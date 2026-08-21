@@ -1,0 +1,186 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Navy #0E1C3E → HSL(221, 63%, 15%) */
+    /* Sky  #7FCEF0 → HSL(197, 80%, 72%) */
+
+    --background: 210 20% 98%;
+    --foreground: 221 63% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 221 63% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 63% 15%;
+
+    --primary: 221 63% 15%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 197 80% 72%;
+    --secondary-foreground: 221 63% 15%;
+
+    --muted: 210 15% 93%;
+    --muted-foreground: 215 15% 47%;
+
+    --accent: 197 80% 72%;
+    --accent-foreground: 221 63% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 90%;
+    --input: 210 15% 90%;
+    --ring: 221 63% 15%;
+
+    --radius: 0.875rem;
+
+    --sidebar-background: 221 63% 12%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 197 80% 72%;
+    --sidebar-primary-foreground: 221 63% 15%;
+    --sidebar-accent: 221 50% 20%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 221 45% 22%;
+    --sidebar-ring: 197 80% 72%;
+
+    /* Custom tokens */
+    --sky: 197 80% 72%;
+    --sky-light: 197 80% 85%;
+    --navy: 221 63% 15%;
+    --navy-light: 221 50% 25%;
+    --gold: 38 85% 55%;
+    --gold-light: 38 85% 70%;
+    --success: 25 95% 53%;
+    --success-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 221 50% 7%;
+    --foreground: 210 20% 93%;
+    --card: 221 45% 11%;
+    --card-foreground: 210 20% 93%;
+    --popover: 221 45% 11%;
+    --popover-foreground: 210 20% 93%;
+    --primary: 197 80% 72%;
+    --primary-foreground: 221 63% 12%;
+    --secondary: 221 63% 15%;
+    --secondary-foreground: 197 80% 72%;
+    --muted: 221 30% 16%;
+    --muted-foreground: 210 15% 55%;
+    --accent: 197 60% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 221 30% 18%;
+    --input: 221 30% 18%;
+    --ring: 197 80% 72%;
+    --sidebar-background: 221 55% 6%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 197 80% 72%;
+    --sidebar-primary-foreground: 221 63% 12%;
+    --sidebar-accent: 221 40% 14%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 221 40% 16%;
+    --sidebar-ring: 197 80% 72%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-cairo antialiased;
+  }
+}
+
+@layer utilities {
+  .text-gradient-sky {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(197 80% 72%), hsl(197 80% 55%));
+  }
+
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(38 85% 55%), hsl(38 85% 70%));
+  }
+
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(197 80% 72%), hsl(197 80% 55%));
+  }
+
+  .bg-hero-gradient {
+    background: linear-gradient(135deg, hsl(221 63% 12%), hsl(221 63% 18%), hsl(221 50% 15%));
+  }
+
+  .bg-sky-gradient {
+    background: linear-gradient(135deg, hsl(197 80% 72%), hsl(197 80% 60%));
+  }
+
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, hsl(38 85% 55%), hsl(38 85% 65%));
+  }
+
+  .shadow-elegant {
+    box-shadow: 0 4px 24px -6px hsl(221 63% 15% / 0.08);
+  }
+
+  .shadow-sky {
+    box-shadow: 0 8px 30px -8px hsl(197 80% 72% / 0.25);
+  }
+
+  .shadow-gold {
+    box-shadow: 0 8px 30px -8px hsl(38 85% 55% / 0.3);
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/40;
+  }
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes marquee-reverse {
+  from { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+/* Portal schedule: physical left/right placement is independent from RTL. */
+.portal-schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 43%) minmax(0, 57%);
+}
+
+.portal-calendar-panel {
+  grid-column: 1;
+  border-right: 1px solid hsl(var(--border));
+}
+
+.portal-lessons-panel {
+  grid-column: 2;
+}
+
+@media (max-width: 639px) {
+  .portal-schedule-layout {
+    display: block;
+  }
+
+  .portal-calendar-panel {
+    border-right: 0;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+}

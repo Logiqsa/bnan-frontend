@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /reset-password
+
+Sitemap: https://bnanacademysa.com/sitemap.xml

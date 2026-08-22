@@ -22,5 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI
+.lovable/
+.workspace/
+
+# MD
 ADMIN_CONTENT_API_REQUIREMENTS
 BACKEND_WEB_REQUIREMENTS.md

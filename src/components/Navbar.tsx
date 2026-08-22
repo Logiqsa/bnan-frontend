@@ -52,7 +52,7 @@ const Navbar = () => {
             </a>
             <a href="/portal/teacher/signup">
               <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sky">
-                تسجيل المعلم
+               إنشاء حساب
               </Button>
             </a>
           </div>
@@ -84,7 +84,7 @@ const Navbar = () => {
               <a href="/portal/login"><Button variant="ghost" size="sm" className="font-cairo w-full">تسجيل الدخول</Button></a>
               <a href="/portal/teacher/signup">
                 <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground w-full mt-2">
-                  تسجيل المعلم
+               إنشاء حساب
                 </Button>
               </a>
             </div>

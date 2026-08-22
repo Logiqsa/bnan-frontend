@@ -15,7 +15,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="BNAN Academy | منصة تعليمية للتعليم عن بعد و شرح اونلاين"
+        title="BNAN Academy | منصة تعليم عن بعد"
         description="منصة BNAN التعليمية الرائدة في التعليم عن بعد و شرح اونلاين للمناهج السعودية والمصرية والخليجية. حصص مباشرة، معلمون متخصصون، تقييمات أسبوعية وشهادات معتمدة."
         path="/"
         jsonLd={{

@@ -108,7 +108,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
-            BNAN Academy منصة تعليم إلكتروني متكاملة تجمع بين أفضل المعلمين والتكنولوجيا الحديثة لتقديم تجربة شرح اونلاين فريدة لأبنائكم
+            BNAN Academy منصة تعليم إلكتروني متكاملة تجمع بين أفضل المعلمين والتكنولوجيا الحديثة لتقديم تجربة تعليم عن بعد فريدة لأبنائكم
           </motion.p>
 
           <motion.div

@@ -67,18 +67,18 @@ interface ItemResponse<T> {
 }
 
 export const zoomAccountsApi = {
-  getZoomAccounts: () => apiRequest<ListResponse<ZoomAccount>>("/api/v1/admin/zoom-accounts"),
+  getZoomAccounts: () => apiRequest<ListResponse<ZoomAccount>>("/admin/zoom-accounts"),
 
-  getZoomAccount: (id: string) => apiRequest<ItemResponse<ZoomAccount>>(`/api/v1/admin/zoom-accounts/${id}`),
+  getZoomAccount: (id: string) => apiRequest<ItemResponse<ZoomAccount>>(`/admin/zoom-accounts/${id}`),
 
   createZoomAccount: (payload: CreateZoomAccountPayload) =>
-    apiRequest<ItemResponse<ZoomAccount>>("/api/v1/admin/zoom-accounts", {
+    apiRequest<ItemResponse<ZoomAccount>>("/admin/zoom-accounts", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
   updateZoomAccount: (id: string, payload: UpdateZoomAccountPayload) =>
-    apiRequest<ItemResponse<ZoomAccount>>(`/api/v1/admin/zoom-accounts/${id}`, {
+    apiRequest<ItemResponse<ZoomAccount>>(`/admin/zoom-accounts/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
@@ -87,19 +87,19 @@ export const zoomAccountsApi = {
   // Marketplace using the webhookUrl shown after Phase 1. Resolves
   // hostUserId from hostEmail and activates the account.
   verifyZoomAccount: (id: string) =>
-    apiRequest<ItemResponse<ZoomAccount>>(`/api/v1/admin/zoom-accounts/${id}/verify`, {
+    apiRequest<ItemResponse<ZoomAccount>>(`/admin/zoom-accounts/${id}/verify`, {
       method: "POST",
     }),
 
   assignZoomAccountToGrade: (gradeId: string, zoomAccountId: string) =>
-    apiRequest<ItemResponse<unknown>>(`/api/v1/grades/${gradeId}/zoom-account`, {
+    apiRequest<ItemResponse<unknown>>(`/grades/${gradeId}/zoom-account`, {
       method: "PATCH",
       body: JSON.stringify({ zoomAccountId }),
     }),
 
   getGradesForZoomAssignment: (curriculumId: string) =>
     apiRequest<ListResponse<GradeZoomOption>>(
-      `/api/v1/grades/curriculum/${curriculumId}?page=1&limit=100&sort=name&fields=name,isActive,zoomAccount`,
+      `/grades/curriculum/${curriculumId}?page=1&limit=100&sort=name&fields=name,isActive,zoomAccount`,
     ),
 };
 

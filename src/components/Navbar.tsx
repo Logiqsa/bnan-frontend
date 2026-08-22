@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { usePortalAuth } from "@/portal/PortalAuthContext";
 import logoImg from "@/assets/logo-bnan.png";
+
+const dashboardPathFor = (role: string) => (role === "admin" ? "/admin" : `/portal/${role}/schedule`);
 
 
 const navLinks = [
@@ -18,8 +22,15 @@ const navLinks = [
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = usePortalAuth();
+  const navigate = useNavigate();
 
   const handleLinkClick = () => setIsOpen(false);
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+    navigate("/");
+  };
 
   return (
     <nav className="fixed top-0 right-0 left-0 z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant">
@@ -45,16 +56,39 @@ const Navbar = () => {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <a href="/portal/login">
-              <Button variant="ghost" size="sm" className="font-cairo text-muted-foreground hover:text-primary">
-                تسجيل الدخول
-              </Button>
-            </a>
-            <a href="/portal/teacher/signup">
-              <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sky">
-               إنشاء حساب
-              </Button>
-            </a>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="font-cairo gap-2 text-foreground">
+                    <User className="w-4 h-4" />
+                    مرحبًا، {user.fullName}
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="font-cairo">
+                  <DropdownMenuItem onClick={() => navigate(dashboardPathFor(user.role))}>
+                    لوحة التحكم
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 ml-2" />
+                    تسجيل الخروج
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <a href="/portal/login">
+                  <Button variant="ghost" size="sm" className="font-cairo text-muted-foreground hover:text-primary">
+                    تسجيل الدخول
+                  </Button>
+                </a>
+                <a href="/register">
+                  <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sky">
+                   إنشاء حساب
+                  </Button>
+                </a>
+              </>
+            )}
           </div>
 
           {/* Mobile Toggle */}
@@ -81,12 +115,37 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
-              <a href="/portal/login"><Button variant="ghost" size="sm" className="font-cairo w-full">تسجيل الدخول</Button></a>
-              <a href="/portal/teacher/signup">
-                <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground w-full mt-2">
-               إنشاء حساب
-                </Button>
-              </a>
+              {user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-cairo w-full gap-2"
+                    onClick={() => { navigate(dashboardPathFor(user.role)); handleLinkClick(); }}
+                  >
+                    <User className="w-4 h-4" />
+                    مرحبًا، {user.fullName}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="font-cairo w-full gap-2 text-destructive"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    تسجيل الخروج
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <a href="/portal/login"><Button variant="ghost" size="sm" className="font-cairo w-full">تسجيل الدخول</Button></a>
+                  <a href="/register">
+                    <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground w-full mt-2">
+                   إنشاء حساب
+                    </Button>
+                  </a>
+                </>
+              )}
             </div>
           </motion.div>
         )}

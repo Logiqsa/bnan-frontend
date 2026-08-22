@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileText, LogOut, RefreshCw, Video } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileText, RefreshCw, Video } from "lucide-react";
 import { getSchedule, joinLesson, startLesson } from "@/api/scheduleApi";
 import { ApiError } from "@/api/client";
 import type { PortalLesson, RegistrationMode } from "@/api/types";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import logo from "@/assets/logo-bnan.png";
+import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "./PortalAuthContext";
 
 const dayNames = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
@@ -25,8 +24,8 @@ const isLiveForTeacher=(lesson:PortalLesson)=>{const status=lesson.activeSession
 const statusText=(lesson:PortalLesson,student:boolean)=>{const status=lesson.activeSession?.status;if(status==="live"||(status==="starting"&&!student))return "الحصة مباشرة الآن";if(status==="starting")return "يجري تجهيز الحصة";if(status==="awaiting_zoom_end")return "الحصة في انتظار الإنهاء";if(isLessonEnded(lesson))return "انتهت";return student?"لم تبدأ الحصة بعد":"موعد مجدول";};
 
 export default function PortalSchedule({role}:{role:"teacher"|"student"}) {
-  const {user,logout}=usePortalAuth();
-  const modeKey=role==="student"?"egyptian":(user?.registrationModes?.length?user.registrationModes.join(","):"egyptian");
+  const {user}=usePortalAuth();
+  const modeKey=role==="student"?(user?.registrationMode||"egyptian"):(user?.registrationModes?.length?user.registrationModes.join(","):"egyptian");
   const today=dateKey(new Date());
   const [month,setMonth]=useState(()=>new Date(new Date().getFullYear(),new Date().getMonth(),1));
   const [selectedDate,setSelectedDate]=useState(today);
@@ -51,9 +50,8 @@ export default function PortalSchedule({role}:{role:"teacher"|"student"}) {
   const openRecording=()=>{if(!selected)return;const value=sessionRecording(selected);if(value)window.open(value,"_blank","noopener,noreferrer");};
   const openSummary=()=>{if(!selected)return;const value=sessionSummary(selected);if(!value)return;if(isWebUrl(value))window.open(value,"_blank","noopener,noreferrer");else setSummaryText(value);};
 
-  return <main className="min-h-screen bg-muted/40" dir="rtl">
-    <header className="bg-card border-b shadow-elegant"><div className="container h-20 flex items-center justify-between"><Link to="/"><img src={logo} alt="بنان" className="h-16"/></Link><div className="flex items-center gap-3"><span className="hidden sm:block text-sm">{user?.fullName}</span><Button variant="ghost" onClick={logout} asChild><Link to="/portal/login"><LogOut className="h-4 w-4 ml-2"/>تسجيل الخروج</Link></Button></div></div></header>
-    <section className="container py-8">
+  return <DashboardLayout>
+    <section className="py-2">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5"><div><h1 className="text-3xl font-bold flex items-center gap-2"><CalendarDays className="text-secondary"/>جدول الحصص</h1><p className="text-muted-foreground mt-1">متابعة حصصك خلال الشهر — بتوقيت Africa/Cairo</p></div><Button variant="outline" onClick={()=>void load()}><RefreshCw className="h-4 w-4 ml-2"/>تحديث</Button></div>
       {modeKey.includes(",")&&<Tabs value={filter} onValueChange={value=>setFilter(value as "all"|RegistrationMode)} className="mb-5"><TabsList><TabsTrigger value="all">الكل</TabsTrigger><TabsTrigger value="egyptian">المنهج المصري</TabsTrigger><TabsTrigger value="gulf">المنهج السعودي/الخليجي</TabsTrigger></TabsList></Tabs>}
       {error&&<div role="alert" className="mb-5 rounded-xl bg-destructive/10 text-destructive p-4">{error}</div>}
@@ -70,5 +68,5 @@ export default function PortalSchedule({role}:{role:"teacher"|"student"}) {
     </section>
     <Dialog open={!!selected} onOpenChange={open=>{if(!open&&!starting){setSelected(null);setStartError("");}}}><DialogContent dir="rtl"><DialogHeader><DialogTitle>{selected&&isLessonEnded(selected)?"الحصة انتهت":role==="teacher"&&selected&&isLiveForTeacher(selected)?"الحصة مباشرة الآن":role==="teacher"?"هل تريد بدء الحصة الآن؟":"تفاصيل الحصة"}</DialogTitle><DialogDescription>{selected?.subject.name} — {selected?.classroom.name} — {selected&&days[selected.day]}، الساعة <span dir="ltr">{selected?.startTime}</span></DialogDescription></DialogHeader>{selected&&isLessonEnded(selected)?<div className="grid gap-3 sm:grid-cols-2"><Button className="h-20 gap-2" variant="outline" disabled={!sessionRecording(selected)} onClick={openRecording}><Video className="h-5 w-5"/>فتح الريكورد</Button><Button className="h-20 gap-2" variant="outline" disabled={!sessionSummary(selected)} onClick={openSummary}><FileText className="h-5 w-5"/>فتح الـ Summary</Button></div>:<>{role==="teacher"&&startError&&<div role="alert" className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm">{startError}</div>}{role==="student"&&selected?.activeSession?.status!=="live"&&<div className="rounded-xl bg-muted p-3 text-sm">لا يمكن الدخول إلا بعد بداية الحصة من قبل المعلم.</div>}<DialogFooter><Button variant="outline" disabled={starting} onClick={()=>{setSelected(null);setStartError("");}}>إلغاء</Button>{role==="teacher"?<Button disabled={starting} onClick={start}>{starting?"جاري بدء الحصة...":selected&&isLiveForTeacher(selected)?"دخول الحصة":"بدء الحصة"}</Button>:<Button disabled={selected?.activeSession?.status!=="live"||joining} onClick={join}><ExternalLink className="h-4 w-4 ml-2"/>{joining?"جاري التجهيز...":"دخول الحصة"}</Button>}</DialogFooter></>}</DialogContent></Dialog>
     <Dialog open={!!summaryText} onOpenChange={open=>{if(!open)setSummaryText(null);}}><DialogContent dir="rtl"><DialogHeader><DialogTitle>ملخص الحصة</DialogTitle></DialogHeader><div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-xl bg-muted p-4 text-sm leading-7">{summaryText}</div><DialogFooter><Button onClick={()=>setSummaryText(null)}>إغلاق</Button></DialogFooter></DialogContent></Dialog>
-  </main>;
+  </DashboardLayout>;
 }

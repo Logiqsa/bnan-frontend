@@ -1,6 +1,13 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Star, Send } from "lucide-react";
 import { contentApi } from "@/api/contentApi";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { MOCK_TESTIMONIALS } from "@/data/testimonialRatings";
 
 import t2 from "@/assets/testimonials/testimonial-2.png";
 import t3 from "@/assets/testimonials/testimonial-3.png";
@@ -115,6 +122,130 @@ const useTestimonialImages = () => {
   return rows;
 };
 
+const RatingForm = () => {
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !message.trim() || rating === 0) {
+      toast.error("يرجى تعبئة جميع الحقول واختيار التقييم");
+      return;
+    }
+    setSubmitting(true);
+    // TODO: ربط الإرسال بمصدر البيانات الفعلي عند تحديده (بدون تخزين حقيقي حاليًا)
+    setTimeout(() => {
+      toast.success("شكراً لك! سيظهر تقييمك بعد المراجعة");
+      setName("");
+      setMessage("");
+      setRating(0);
+      setHover(0);
+      setSubmitting(false);
+    }, 400);
+  };
+
+  return (
+    <Card className="max-w-xl mx-auto shadow-elegant border-border/40">
+      <CardContent className="p-6 md:p-8">
+        <h3 className="text-xl md:text-2xl font-cairo font-bold text-foreground text-center mb-6">
+          شاركنا رأيك ⭐
+        </h3>
+        <form onSubmit={submit} className="space-y-4">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="الاسم الكامل"
+            className="font-tajawal"
+          />
+
+          <div className="flex items-center justify-center gap-1" dir="ltr">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHover(star)}
+                onMouseLeave={() => setHover(0)}
+                className="p-1"
+              >
+                <Star
+                  className={`w-7 h-7 transition-colors ${
+                    star <= (hover || rating) ? "fill-secondary text-secondary" : "text-muted-foreground"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="اكتب رأيك هنا..."
+            className="font-tajawal min-h-[100px]"
+          />
+
+          <Button type="submit" disabled={submitting} className="w-full font-cairo gap-2 bg-gold-gradient text-foreground">
+            <Send className="w-4 h-4" />
+            إرسال التقييم
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+};
+
+const ApprovedTestimonialsList = () => {
+  const approved = useMemo(() => MOCK_TESTIMONIALS.filter((t) => t.approved), []);
+  if (approved.length === 0) return null;
+
+  const render = (k: string) =>
+    approved.map((t) => (
+      <Card key={`${k}-${t.id}`} className="shrink-0 w-[280px] shadow-elegant border-border/40">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-1 mb-2" dir="ltr">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`w-4 h-4 ${star <= t.rating ? "fill-secondary text-secondary" : "text-muted-foreground/30"}`}
+              />
+            ))}
+          </div>
+          <p className="text-sm font-tajawal text-foreground leading-relaxed mb-3 line-clamp-4">{t.message}</p>
+          <p className="text-xs font-cairo font-bold text-muted-foreground">{t.full_name}</p>
+        </CardContent>
+      </Card>
+    ));
+
+  return (
+    <div>
+      <motion.h3
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="text-xl md:text-2xl font-cairo font-bold text-foreground text-center mb-8"
+      >
+        آراء وصلتنا منكم 💬
+      </motion.h3>
+      <div dir="ltr" className="relative w-full overflow-hidden">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-background to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-background to-transparent z-10" />
+        <div
+          className="flex w-max gap-4 md:gap-6"
+          style={{ animation: "marquee 50s linear infinite", willChange: "transform" }}
+        >
+          <div className="flex shrink-0 gap-4 md:gap-6">{render("a")}</div>
+          <div className="flex shrink-0 gap-4 md:gap-6" aria-hidden="true">
+            {render("b")}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TestimonialsSection = () => {
   const bubbles = useMemo(() => generateBubbles(28), []);
   const { rowOne, rowTwo } = useTestimonialImages();
@@ -171,6 +302,14 @@ const TestimonialsSection = () => {
       <div className="relative z-10 space-y-5 md:space-y-6">
         <Marquee images={rowOne} groupKey="row1" duration={70} />
         <Marquee images={rowTwo} groupKey="row2" reverse duration={80} />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10 mt-16 md:mt-20">
+        <RatingForm />
+      </div>
+
+      <div className="relative z-10 mt-16 md:mt-20">
+        <ApprovedTestimonialsList />
       </div>
     </section>
   );

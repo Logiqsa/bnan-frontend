@@ -17,39 +17,39 @@ export interface SuccessStory {
 
 export const contentApi = {
   getTestimonialImages: () =>
-    apiRequest<{ success: true; data: TestimonialImage[] }>("/api/v1/content/testimonial-images"),
+    apiRequest<{ success: true; data: TestimonialImage[] }>("/content/testimonial-images"),
   getSuccessStories: () =>
-    apiRequest<{ success: true; data: SuccessStory[] }>("/api/v1/content/success-stories"),
+    apiRequest<{ success: true; data: SuccessStory[] }>("/content/success-stories"),
 
   admin: {
     listTestimonialImages: () =>
-      apiRequest<{ success: true; data: TestimonialImage[] }>("/api/v1/admin/testimonial-images"),
+      apiRequest<{ success: true; data: TestimonialImage[] }>("/admin/testimonial-images"),
     createTestimonialImage: (body: FormData) =>
-      apiRequest<{ success: true; data: TestimonialImage }>("/api/v1/admin/testimonial-images", {
+      apiRequest<{ success: true; data: TestimonialImage }>("/admin/testimonial-images", {
         method: "POST",
         body,
       }),
     updateTestimonialImage: (id: string, body: FormData) =>
-      apiRequest<{ success: true; data: TestimonialImage }>(`/api/v1/admin/testimonial-images/${id}`, {
+      apiRequest<{ success: true; data: TestimonialImage }>(`/admin/testimonial-images/${id}`, {
         method: "PATCH",
         body,
       }),
     deleteTestimonialImage: (id: string) =>
-      apiRequest<{ success: true }>(`/api/v1/admin/testimonial-images/${id}`, { method: "DELETE" }),
+      apiRequest<{ success: true }>(`/admin/testimonial-images/${id}`, { method: "DELETE" }),
 
     listSuccessStories: () =>
-      apiRequest<{ success: true; data: SuccessStory[] }>("/api/v1/admin/success-stories"),
+      apiRequest<{ success: true; data: SuccessStory[] }>("/admin/success-stories"),
     createSuccessStory: (body: FormData) =>
-      apiRequest<{ success: true; data: SuccessStory }>("/api/v1/admin/success-stories", {
+      apiRequest<{ success: true; data: SuccessStory }>("/admin/success-stories", {
         method: "POST",
         body,
       }),
     updateSuccessStory: (id: string, body: FormData) =>
-      apiRequest<{ success: true; data: SuccessStory }>(`/api/v1/admin/success-stories/${id}`, {
+      apiRequest<{ success: true; data: SuccessStory }>(`/admin/success-stories/${id}`, {
         method: "PATCH",
         body,
       }),
     deleteSuccessStory: (id: string) =>
-      apiRequest<{ success: true }>(`/api/v1/admin/success-stories/${id}`, { method: "DELETE" }),
+      apiRequest<{ success: true }>(`/admin/success-stories/${id}`, { method: "DELETE" }),
   },
 };

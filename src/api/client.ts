@@ -1,6 +1,4 @@
-// لم يرد Production API URL في WEB_API_INTEGRATE.md أو إعدادات المشروع الحالية.
-// ضع العنوان الموثق هنا عند توفيره، دون اختراع نطاق أو استخدام environment variables.
-export const API_BASE_URL = "https://bnan.0xcode7.xyz";
+export const API_BASE_URL = "https://api.bnanacademysa.com/api/v1";
 
 const TOKEN_KEY = "bnan_portal_access_token";
 const REFRESH_KEY = "bnan_portal_refresh_token";
@@ -14,6 +12,7 @@ export class ApiError extends Error {
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
+  getRefresh: () => localStorage.getItem(REFRESH_KEY),
   set: (token: string, refreshToken: string) => {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(REFRESH_KEY, refreshToken);
@@ -24,7 +23,34 @@ export const tokenStore = {
   },
 };
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+// يمنع إطلاق أكثر من محاولة تجديد متزامنة عندما تفشل عدة طلبات بنفس اللحظة بسبب انتهاء صلاحية التوكن.
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = tokenStore.getRefresh();
+  if (!refreshToken) return false;
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", lang: "ar" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.token) return false;
+        tokenStore.set(payload.token, payload.refreshToken || refreshToken);
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    refreshPromise.finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+export async function apiRequest<T>(path: string, options: RequestInit = {}, _retried = false): Promise<T> {
   if (!API_BASE_URL) throw new ApiError(0, "API_NOT_CONFIGURED", "عنوان خدمة Bnan غير مضبوط.");
   const token = tokenStore.get();
   const isForm = options.body instanceof FormData;
@@ -45,6 +71,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) {
+      if (!_retried && token && (await refreshAccessToken())) {
+        return apiRequest<T>(path, options, true);
+      }
       tokenStore.clear();
       window.dispatchEvent(new Event("bnan:session-expired"));
     }

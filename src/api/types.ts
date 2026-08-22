@@ -1,6 +1,46 @@
 export type PortalRole = "teacher" | "student" | "admin";
 export type RegistrationMode = "egyptian" | "gulf";
 
+export interface RegisterParentBody {
+  fullName: string;
+  email: string;
+  phone: string;
+  whatsappNumber?: string;
+  password: string;
+}
+
+export interface StudentRegistrationInput {
+  fullName: string;
+  email: string;
+  password: string;
+  grade: string;
+  subjects: string[];
+}
+
+export interface DirectRegisterBody {
+  parent: { email: string; password: string };
+  student: StudentRegistrationInput;
+  curriculum: string;
+  packageId: string;
+  discountCode?: string;
+}
+
+export interface TamaraPaymentAddress {
+  city: string;
+  region: string;
+  line1: string;
+  line2?: string;
+}
+
+export interface TamaraCheckoutBody {
+  parent: { email: string; password: string };
+  student: StudentRegistrationInput;
+  curriculum: string;
+  packageId: string;
+  paymentAddress: TamaraPaymentAddress;
+  locale: "ar_SA" | "en_US";
+}
+
 export interface PortalUser {
   id: string;
   fullName: string;

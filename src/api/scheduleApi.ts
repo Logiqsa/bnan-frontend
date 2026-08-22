@@ -17,7 +17,7 @@ const addDays = (date: string, days: number) => {
 export async function getSchedule(mode: RegistrationMode, weekStart: string): Promise<PortalLesson[]> {
   const path = mode === "egyptian" ? "egyptianSchedules" : "gulfSchedules";
   if (mode === "egyptian") {
-    const result = await apiRequest<EgyptianResponse>(`/api/v1/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
+    const result = await apiRequest<EgyptianResponse>(`/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
     return (result.data.days || []).flatMap((day) =>
     (day.lessons || []).map((lesson) => ({
       key: `egyptian-${lesson.id}-${lesson.date}`, lessonId: lesson.id, registrationMode: mode,
@@ -27,7 +27,7 @@ export async function getSchedule(mode: RegistrationMode, weekStart: string): Pr
       activeSession: lesson.activeSession || null,
     })),);
   }
-  const result = await apiRequest<GulfResponse>(`/api/v1/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
+  const result = await apiRequest<GulfResponse>(`/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
   return (result.data.classrooms || []).flatMap((room) => (room.schedule?.entries || []).map((entry, i) => ({
     key: `gulf-${room.classroomSubject}-${entry.day}-${entry.startTime}-${i}`, registrationMode: mode,
     classroom: { id: room.id, name: room.name }, classroomSubjectId: room.classroomSubject,
@@ -36,7 +36,7 @@ export async function getSchedule(mode: RegistrationMode, weekStart: string): Pr
   })));
 }
 
-export const startLesson = (lesson: PortalLesson) => apiRequest<StartResponse>(`/api/v1/classrooms/${lesson.classroom.id}/sessions/start`, {
+export const startLesson = (lesson: PortalLesson) => apiRequest<StartResponse>(`/classrooms/${lesson.classroom.id}/sessions/start`, {
   method: "POST", body: JSON.stringify({
     subjectId: lesson.subject.id,
     ...(lesson.lessonId ? { lessonId: lesson.lessonId } : {}),
@@ -46,4 +46,4 @@ export const startLesson = (lesson: PortalLesson) => apiRequest<StartResponse>(`
   }),
 });
 
-export const joinLesson = (classroomId: string) => apiRequest<JoinResponse>(`/api/v1/classrooms/${classroomId}/sessions/active/join`);
+export const joinLesson = (classroomId: string) => apiRequest<JoinResponse>(`/classrooms/${classroomId}/sessions/active/join`);

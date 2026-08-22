@@ -15,11 +15,25 @@ export interface SuccessStory {
   isActive: boolean;
 }
 
+export interface LegacyVisibility {
+  testimonialImages: boolean;
+  testimonialRatings: boolean;
+  successStories: boolean;
+}
+
+export const DEFAULT_LEGACY_VISIBILITY: LegacyVisibility = {
+  testimonialImages: true,
+  testimonialRatings: true,
+  successStories: true,
+};
+
 export const contentApi = {
   getTestimonialImages: () =>
     apiRequest<{ success: true; data: TestimonialImage[] }>("/content/testimonial-images"),
   getSuccessStories: () =>
     apiRequest<{ success: true; data: SuccessStory[] }>("/content/success-stories"),
+  getLegacyVisibility: () =>
+    apiRequest<{ success: true; data: LegacyVisibility }>("/content/legacy-visibility"),
 
   admin: {
     listTestimonialImages: () =>
@@ -51,5 +65,10 @@ export const contentApi = {
       }),
     deleteSuccessStory: (id: string) =>
       apiRequest<{ success: true }>(`/admin/success-stories/${id}`, { method: "DELETE" }),
+    updateLegacyVisibility: (body: Partial<LegacyVisibility>) =>
+      apiRequest<{ success: true; data: LegacyVisibility }>("/admin/content/legacy-visibility", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
   },
 };

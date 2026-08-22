@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Star, Send } from "lucide-react";
-import { contentApi } from "@/api/contentApi";
+import { contentApi, DEFAULT_LEGACY_VISIBILITY } from "@/api/contentApi";
+import { testimonialApi, type Testimonial } from "@/api/testimonialApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +26,7 @@ import w6 from "@/assets/testimonials/whatsapp/wa-6.jpeg";
 import w7 from "@/assets/testimonials/whatsapp/wa-7.jpeg";
 import w8 from "@/assets/testimonials/whatsapp/wa-8.jpeg";
 
-// Used until the admin-managed endpoint has real data (or if it's unreachable).
+// المحتوى القديم يظل ظاهرًا دائمًا، وتُضاف إليه العناصر القادمة من لوحة الإدارة.
 const fallbackRowOne = [t2, t3, t4, w1, w2, w3, w4];
 const fallbackRowTwo = [t5, t6, t7, t8, w5, w6, w7, w8];
 
@@ -108,11 +109,17 @@ const useTestimonialImages = () => {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await contentApi.getTestimonialImages();
-        if (!data || data.length === 0) return;
+        const [{ data }, visibilityResult] = await Promise.all([
+          contentApi.getTestimonialImages().catch(() => ({ data: [] })),
+          contentApi.getLegacyVisibility().catch(() => ({ data: DEFAULT_LEGACY_VISIBILITY })),
+        ]);
+        const showLegacy = visibilityResult.data.testimonialImages;
         const urls = [...data].sort((a, b) => a.sortOrder - b.sortOrder).map((t) => t.imageUrl);
-        const mid = Math.ceil(urls.length / 2);
-        setRows({ rowOne: urls.slice(0, mid), rowTwo: urls.slice(mid) });
+        const added = urls.filter((url) => !fallbackRowOne.includes(url) && !fallbackRowTwo.includes(url));
+        setRows({
+          rowOne: [...(showLegacy ? fallbackRowOne : []), ...added.filter((_, index) => index % 2 === 0)],
+          rowTwo: [...(showLegacy ? fallbackRowTwo : []), ...added.filter((_, index) => index % 2 === 1)],
+        });
       } catch {
         // Keep the static fallback images.
       }
@@ -136,15 +143,18 @@ const RatingForm = () => {
       return;
     }
     setSubmitting(true);
-    // TODO: ربط الإرسال بمصدر البيانات الفعلي عند تحديده (بدون تخزين حقيقي حاليًا)
-    setTimeout(() => {
+    try {
+      await testimonialApi.create({ full_name: name.trim(), message: message.trim(), rating });
       toast.success("شكراً لك! سيظهر تقييمك بعد المراجعة");
       setName("");
       setMessage("");
       setRating(0);
       setHover(0);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر إرسال التقييم، حاول مرة أخرى");
+    } finally {
       setSubmitting(false);
-    }, 400);
+    }
   };
 
   return (
@@ -198,7 +208,22 @@ const RatingForm = () => {
 };
 
 const ApprovedTestimonialsList = () => {
-  const approved = useMemo(() => MOCK_TESTIMONIALS.filter((t) => t.approved), []);
+  const legacyApproved = useMemo(() => MOCK_TESTIMONIALS.filter((item) => item.approved), []);
+  const [approved, setApproved] = useState<Testimonial[]>(legacyApproved);
+
+  useEffect(() => {
+    Promise.all([
+      testimonialApi.listApproved().catch(() => ({ data: [] as Testimonial[] })),
+      contentApi.getLegacyVisibility().catch(() => ({ data: DEFAULT_LEGACY_VISIBILITY })),
+    ])
+      .then(([result, visibilityResult]) => {
+        const legacy = visibilityResult.data.testimonialRatings ? legacyApproved : [];
+        const legacyKeys = new Set(legacy.map((item) => `${item.full_name.trim()}|${item.message.trim()}`));
+        const added = result.data.filter((item) => !legacyKeys.has(`${item.full_name.trim()}|${item.message.trim()}`));
+        setApproved([...legacy, ...added]);
+      });
+  }, [legacyApproved]);
+
   if (approved.length === 0) return null;
 
   const render = (k: string) =>

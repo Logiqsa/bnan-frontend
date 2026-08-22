@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Play, Pause, ExternalLink } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { contentApi } from "@/api/contentApi";
+import { contentApi, DEFAULT_LEGACY_VISIBILITY } from "@/api/contentApi";
 
-// Used until the admin-managed endpoint has real data (or if it's unreachable).
+// المحتوى القديم يظل ظاهرًا دائمًا، وتُضاف إليه العناصر القادمة من لوحة الإدارة.
 const fallbackStories = [
   { name: "أم عبدالعزيز", audioSrc: "/audio/testimonial-1.mp3" },
   { name: "أم كنان", audioSrc: "/audio/testimonial-2.mp3" },
@@ -16,13 +16,17 @@ const useSuccessStories = () => {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await contentApi.getSuccessStories();
-        if (!data || data.length === 0) return;
-        setStories(
-          [...data]
-            .sort((a, b) => a.sortOrder - b.sortOrder)
-            .map((s) => ({ name: s.name, audioSrc: s.audioUrl }))
-        );
+        const [{ data }, visibilityResult] = await Promise.all([
+          contentApi.getSuccessStories().catch(() => ({ data: [] })),
+          contentApi.getLegacyVisibility().catch(() => ({ data: DEFAULT_LEGACY_VISIBILITY })),
+        ]);
+        const legacy = visibilityResult.data.successStories ? fallbackStories : [];
+        const existingSources = new Set(fallbackStories.map((story) => story.audioSrc));
+        const added = [...data]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((s) => ({ name: s.name, audioSrc: s.audioUrl }))
+          .filter((story) => !existingSources.has(story.audioSrc));
+        setStories([...legacy, ...added]);
       } catch {
         // Keep the static fallback stories.
       }

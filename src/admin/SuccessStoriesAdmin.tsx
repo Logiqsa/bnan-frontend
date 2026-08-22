@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import LegacyVisibilityToggle from "./LegacyVisibilityToggle";
 
 const SuccessStoriesAdmin = () => {
   const [items, setItems] = useState<SuccessStory[]>([]);
@@ -82,6 +83,8 @@ const SuccessStoriesAdmin = () => {
         <h2 className="text-xl font-cairo font-bold">قصص نجاح صوتية</h2>
         <p className="text-muted-foreground font-tajawal text-sm">التسجيلات الصوتية اللي بتظهر في "قصص نجاح بدأت مع بنان خطوة بخطوة"</p>
       </div>
+
+      <LegacyVisibilityToggle contentKey="successStories" label="التسجيلات الصوتية القديمة الموجودة داخل الموقع" />
 
       <Card>
         <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">

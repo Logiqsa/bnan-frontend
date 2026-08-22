@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TestimonialImagesAdmin from "./TestimonialImagesAdmin";
 import TestimonialRatingsAdmin from "./TestimonialRatingsAdmin";
@@ -23,26 +23,19 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout>
       <Tabs value={tab} onValueChange={setTab} dir="rtl">
-        <TabsList>
-          <TabsTrigger value="testimonials">آراء عملائنا</TabsTrigger>
-          <TabsTrigger value="testimonial-ratings">تقييمات العملاء</TabsTrigger>
-          <TabsTrigger value="success-stories">قصص النجاح</TabsTrigger>
-          <TabsTrigger value="zoom-accounts">حسابات زوم</TabsTrigger>
-          <TabsTrigger value="zoom-grades">ربط الصفوف بـ Zoom</TabsTrigger>
-        </TabsList>
-        <TabsContent value="testimonials" className="mt-4">
+        <TabsContent value="testimonials" className="mt-0">
           <TestimonialImagesAdmin />
         </TabsContent>
-        <TabsContent value="testimonial-ratings" className="mt-4">
+        <TabsContent value="testimonial-ratings" className="mt-0">
           <TestimonialRatingsAdmin />
         </TabsContent>
-        <TabsContent value="success-stories" className="mt-4">
+        <TabsContent value="success-stories" className="mt-0">
           <SuccessStoriesAdmin />
         </TabsContent>
-        <TabsContent value="zoom-accounts" className="mt-4">
+        <TabsContent value="zoom-accounts" className="mt-0">
           <ZoomAccountsAdmin onGoToGradeAssignment={() => setTab("zoom-grades")} />
         </TabsContent>
-        <TabsContent value="zoom-grades" className="mt-4">
+        <TabsContent value="zoom-grades" className="mt-0">
           <GradeZoomAssignmentAdmin />
         </TabsContent>
       </Tabs>

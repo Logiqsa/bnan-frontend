@@ -1,33 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Star, Check, X, Trash2 } from "lucide-react";
+import { Star, Check, X, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_TESTIMONIALS, type Testimonial } from "@/data/testimonialRatings";
+import { testimonialApi, type Testimonial } from "@/api/testimonialApi";
+import LegacyVisibilityToggle from "./LegacyVisibilityToggle";
 
 type Filter = "all" | "pending" | "approved";
 
 const TestimonialRatingsAdmin = () => {
-  // TODO: يستبدل بمصدر البيانات الفعلي عند تحديده (بدون تخزين حقيقي حاليًا)
-  const [items, setItems] = useState<Testimonial[]>(MOCK_TESTIMONIALS);
+  const [items, setItems] = useState<Testimonial[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const filtered = items.filter((t) => {
-    if (filter === "pending") return !t.approved;
-    if (filter === "approved") return t.approved;
-    return true;
-  });
+  useEffect(() => {
+    setLoading(true);
+    testimonialApi.admin.list(filter)
+      .then((result) => setItems(result.data))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "تعذر تحميل التقييمات"))
+      .finally(() => setLoading(false));
+  }, [filter]);
 
-  const approve = (id: string, approved: boolean) => {
-    setItems((current) => current.map((t) => (t.id === id ? { ...t, approved } : t)));
-    toast.success(approved ? "تم اعتماد التقييم" : "تم إلغاء اعتماد التقييم");
+  const approve = async (id: string, approved: boolean) => {
+    setBusyId(id);
+    try {
+      if (approved) await testimonialApi.admin.approve(id);
+      else await testimonialApi.admin.unapprove(id);
+      if (filter === "all") setItems((current) => current.map((item) => item.id === id ? { ...item, approved } : item));
+      else setItems((current) => current.filter((item) => item.id !== id));
+      toast.success(approved ? "تم اعتماد التقييم" : "تم إلغاء اعتماد التقييم");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر تحديث التقييم");
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     if (!confirm("حذف هذا التقييم؟")) return;
-    setItems((current) => current.filter((t) => t.id !== id));
-    toast.success("تم الحذف");
+    setBusyId(id);
+    try {
+      await testimonialApi.admin.delete(id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      toast.success("تم الحذف");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف التقييم");
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -38,6 +60,8 @@ const TestimonialRatingsAdmin = () => {
           مراجعة واعتماد التقييمات المُرسلة من نموذج "شاركنا رأيك" في الصفحة الرئيسية
         </p>
       </div>
+
+      <LegacyVisibilityToggle contentKey="testimonialRatings" label="التقييمات النصية القديمة الموجودة داخل الموقع" />
 
       <div className="flex gap-2">
         <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>
@@ -51,11 +75,13 @@ const TestimonialRatingsAdmin = () => {
         </Button>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : items.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">لا توجد تقييمات</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {filtered.map((t) => (
+          {items.map((t) => (
             <Card key={t.id}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -72,11 +98,11 @@ const TestimonialRatingsAdmin = () => {
                 </div>
                 <p className="text-sm font-tajawal text-muted-foreground leading-relaxed">{t.message}</p>
                 <div className="flex items-center gap-2 pt-1">
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => approve(t.id, !t.approved)}>
+                  <Button disabled={busyId === t.id} size="sm" variant="outline" className="gap-1" onClick={() => approve(t.id, !t.approved)}>
                     {t.approved ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                     {t.approved ? "إلغاء الاعتماد" : "اعتماد"}
                   </Button>
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => remove(t.id)}>
+                  <Button disabled={busyId === t.id} size="sm" variant="destructive" className="gap-1" onClick={() => remove(t.id)}>
                     <Trash2 className="w-4 h-4" />
                     حذف
                   </Button>

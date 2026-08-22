@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Trash2, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import LegacyVisibilityToggle from "./LegacyVisibilityToggle";
 
 const TestimonialImagesAdmin = () => {
   const [items, setItems] = useState<TestimonialImage[]>([]);
@@ -83,6 +84,8 @@ const TestimonialImagesAdmin = () => {
           </Button>
         </div>
       </div>
+
+      <LegacyVisibilityToggle contentKey="testimonialImages" label="الصور القديمة الموجودة داخل الموقع" />
 
       {loading ? (
         <p className="text-center text-muted-foreground py-12">جاري التحميل...</p>

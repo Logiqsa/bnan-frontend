@@ -22,10 +22,11 @@ import PortalSchedule from "@/portal/PortalSchedule";
 import AdminGuard from "@/admin/AdminGuard";
 import AdminDashboard from "@/admin/AdminDashboard";
 import LegalPage from "@/pages/LegalPage";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const queryClient = new QueryClient();
 export default function App() {
-  return <HelmetProvider><QueryClientProvider client={queryClient}><CurrencyProvider><TooltipProvider><Sonner />
+  return <HelmetProvider><QueryClientProvider client={queryClient}><LanguageProvider><CurrencyProvider><TooltipProvider><Sonner />
     <BrowserRouter><PortalAuthProvider><FloatingWhatsApp /><Routes>
       <Route path="/" element={<Index />} />
       <Route path="/curricula" element={<AllCurricula />} />
@@ -47,5 +48,5 @@ export default function App() {
       <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes></PortalAuthProvider></BrowserRouter>
-  </TooltipProvider></CurrencyProvider></QueryClientProvider></HelmetProvider>;
+  </TooltipProvider></CurrencyProvider></LanguageProvider></QueryClientProvider></HelmetProvider>;
 }

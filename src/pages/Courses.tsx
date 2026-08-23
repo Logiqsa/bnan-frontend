@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button";
 import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
 import { MOCK_COURSES, type Course } from "@/data/courses";
 import defaultCover from "@/assets/course-default-cover.jpg";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const Courses = () => {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [registerCourse, setRegisterCourse] = useState<Course | null>(null);
+  const { isArabic, pick } = useLanguage();
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -26,10 +28,10 @@ const Courses = () => {
   }, [q]);
 
   return (
-    <div dir="rtl" className="min-h-screen bg-background">
+    <div dir={isArabic ? "rtl" : "ltr"} className="min-h-screen bg-background">
       <SEO
-        title="الدورات التعليمية | BNAN Academy"
-        description="تصفّح الدورات التعليمية الاحترافية والتفاعلية في أكاديمية بنان وسجّل في الدورة المناسبة لك."
+        title={pick("الدورات التعليمية | BNAN Academy", "Courses | BNAN Academy")}
+        description={pick("تصفّح الدورات التعليمية الاحترافية والتفاعلية في أكاديمية بنان وسجّل في الدورة المناسبة لك.", "Browse BNAN Academy's professional interactive courses and enroll in the right course for you.")}
         path="/courses"
       />
       <Navbar />
@@ -38,9 +40,9 @@ const Courses = () => {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
             <GraduationCap className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl md:text-4xl font-cairo font-bold text-foreground">الدورات التعليمية</h1>
+            <h1 className="text-3xl md:text-4xl font-cairo font-bold text-foreground">{pick("الدورات التعليمية", "Courses")}</h1>
           </div>
-          <p className="text-muted-foreground font-tajawal">دورات احترافية وتفاعلية</p>
+          <p className="text-muted-foreground font-tajawal">{pick("دورات احترافية وتفاعلية", "Professional and interactive courses")}</p>
         </div>
 
         <div className="max-w-md mx-auto mb-8 relative">
@@ -48,7 +50,7 @@ const Courses = () => {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث عن دورة..."
+            placeholder={pick("ابحث عن دورة...", "Search courses...")}
             className="pr-10 font-tajawal"
           />
         </div>
@@ -56,7 +58,7 @@ const Courses = () => {
         {filtered.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center text-muted-foreground font-tajawal">
-              لا توجد دورات منشورة حالياً
+              {pick("لا توجد دورات منشورة حالياً", "No courses are currently available")}
             </CardContent>
           </Card>
         ) : (
@@ -79,17 +81,17 @@ const Courses = () => {
                   <div className="flex flex-wrap gap-2">
                     {c.grade_level && <Badge variant="outline">{c.grade_level}</Badge>}
                     {c.level && <Badge variant="outline">{c.level}</Badge>}
-                    {c.certificate_enabled && <Badge variant="outline">🎓 شهادة</Badge>}
+                    {c.certificate_enabled && <Badge variant="outline">🎓 {pick("شهادة", "Certificate")}</Badge>}
                   </div>
                   <p className="font-bold text-primary font-cairo">
-                    {c.is_free ? "مجاني" : `${c.price} ${c.currency}`}
+                    {c.is_free ? pick("مجاني", "Free") : `${c.price} ${c.currency}`}
                   </p>
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1" onClick={() => navigate(`/courses/${c.slug}`)}>
-                      التفاصيل
+                      {pick("التفاصيل", "Details")}
                     </Button>
                     <Button className="flex-1" onClick={() => setRegisterCourse(c)}>
-                      سجّل الآن
+                      {pick("سجّل الآن", "Enroll now")}
                     </Button>
                   </div>
                 </CardContent>

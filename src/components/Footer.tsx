@@ -10,6 +10,7 @@ import applePayImg from "@/assets/payment/apple-pay.png";
 import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const partners = [
   { src: saudiBusinessCenter, alt: "المركز السعودي للأعمال" },
@@ -26,6 +27,7 @@ const paymentMethods = [
 ];
 
 const Footer = React.forwardRef<HTMLElement>((_, ref) => {
+  const { pick } = useLanguage();
   return (
     <footer ref={ref} id="contact" className="bg-hero-gradient pt-16 pb-8">
       <div className="container mx-auto px-4">
@@ -39,7 +41,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
               </span>
             </div>
             <p className="text-sm font-tajawal leading-relaxed text-primary-foreground/60">
-              منصة تعليم إلكتروني متكاملة تخدم الطلاب في جميع أنحاء العالم العربي
+              {pick("منصة تعليم إلكتروني متكاملة تخدم الطلاب في جميع أنحاء العالم العربي", "An integrated online learning platform serving students across the Arab world")}
             </p>
             {/* Social Media */}
             <div className="flex items-center gap-3 mt-4">
@@ -67,14 +69,14 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
           {/* Quick Links */}
           <div>
             <h4 className="text-base font-cairo font-bold mb-4 text-primary-foreground">
-              روابط سريعة
+              {pick("روابط سريعة", "Quick links")}
             </h4>
             <ul className="space-y-2">
               {[
-                { label: "المناهج", href: "#curricula" },
-                { label: "المميزات", href: "#features" },
-                { label: "آراء العملاء", href: "#testimonials" },
-                { label: "تواصل معنا", href: "#contact" },
+                { label: pick("المناهج", "Curricula"), href: "#curricula" },
+                { label: pick("المميزات", "Features"), href: "#features" },
+                { label: pick("آراء العملاء", "Testimonials"), href: "#testimonials" },
+                { label: pick("تواصل معنا", "Contact us"), href: "#contact" },
               ].map((link) => (
                 <li key={link.label}>
                   <a href={link.href} className="text-sm font-tajawal text-primary-foreground/60 hover:text-secondary transition-colors">
@@ -88,7 +90,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
           {/* Contact */}
           <div>
             <h4 className="text-base font-cairo font-bold mb-4 text-primary-foreground">
-              تواصل معنا
+              {pick("تواصل معنا", "Contact us")}
             </h4>
             <ul className="space-y-3">
               <li>
@@ -119,7 +121,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
                 </a>
               </li>
               <li className="flex items-center gap-2 text-sm font-tajawal text-primary-foreground/60">
-                <MapPin className="w-4 h-4 text-secondary shrink-0" /> الرياض
+                <MapPin className="w-4 h-4 text-secondary shrink-0" /> {pick("الرياض", "Riyadh")}
               </li>
             </ul>
           </div>
@@ -145,11 +147,11 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
 
             {/* Copyright - Center */}
             <p className="text-xs font-tajawal text-primary-foreground/50 order-3 md:order-2 whitespace-nowrap">
-              © 2026 جميع الحقوق محفوظة لشركة BNAN
+              © 2026 {pick("جميع الحقوق محفوظة لشركة BNAN", "All rights reserved to BNAN")}
               <span className="mx-2">•</span>
-              <Link to="/privacy-policy" className="hover:text-secondary transition-colors">سياسة الخصوصية</Link>
+              <Link to="/privacy-policy" className="hover:text-secondary transition-colors">{pick("سياسة الخصوصية", "Privacy Policy")}</Link>
               <span className="mx-2">•</span>
-              <Link to="/terms-and-conditions" className="hover:text-secondary transition-colors">الشروط والأحكام</Link>
+              <Link to="/terms-and-conditions" className="hover:text-secondary transition-colors">{pick("الشروط والأحكام", "Terms & Conditions")}</Link>
             </p>
 
             {/* Payment Methods - Left (RTL) */}

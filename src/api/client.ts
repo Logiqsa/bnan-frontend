@@ -1,4 +1,5 @@
 export const API_BASE_URL = "https://api.bnanacademysa.com/api/v1";
+const apiLanguage = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 const TOKEN_KEY = "bnan_portal_access_token";
 const REFRESH_KEY = "bnan_portal_refresh_token";
@@ -34,7 +35,7 @@ async function refreshAccessToken(): Promise<boolean> {
       try {
         const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", lang: "ar" },
+          headers: { "Content-Type": "application/json", lang: apiLanguage() },
           body: JSON.stringify({ refreshToken }),
         });
         const payload = await response.json().catch(() => ({}));
@@ -61,7 +62,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
       headers: {
         ...(isForm ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        lang: "ar",
+        lang: apiLanguage(),
         ...options.headers,
       },
     });

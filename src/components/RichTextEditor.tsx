@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Bold, Italic, Link, List, ListOrdered, RemoveFormatting, Underline } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pastedLegalHtml } from "@/lib/legalContent";
 
 interface RichTextEditorProps {
   value: string;
@@ -36,6 +37,18 @@ export default function RichTextEditor({ value, onChange, className }: RichTextE
     if (url?.trim()) execute("createLink", url.trim());
   };
 
+  const handlePaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const html = pastedLegalHtml(
+      event.clipboardData.getData("text/html"),
+      event.clipboardData.getData("text/plain"),
+    );
+
+    if (html === null) return;
+
+    event.preventDefault();
+    execute("insertHTML", html);
+  };
+
   return (
     <div className={cn("overflow-hidden rounded-md border border-input bg-background", className)}>
       <div className="flex flex-wrap gap-1 border-b bg-muted/40 p-2" role="toolbar" aria-label="أدوات تنسيق المحتوى">
@@ -54,7 +67,11 @@ export default function RichTextEditor({ value, onChange, className }: RichTextE
       <div
         ref={editorRef}
         contentEditable
+        role="textbox"
+        aria-label="محتوى الصفحة"
+        aria-multiline="true"
         suppressContentEditableWarning
+        onPaste={handlePaste}
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         className="legal-rich-content min-h-[420px] px-4 py-3 text-right leading-8 outline-none"
         dir="rtl"

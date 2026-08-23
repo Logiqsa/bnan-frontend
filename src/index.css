@@ -11,6 +11,7 @@
     pointer-events: none;
   }
 
+  .legal-rich-content h1 { @apply mb-4 mt-8 text-3xl font-bold font-cairo; }
   .legal-rich-content h2 { @apply mb-3 mt-7 text-2xl font-bold font-cairo; }
   .legal-rich-content h3 { @apply mb-2 mt-6 text-xl font-bold font-cairo; }
   .legal-rich-content p { @apply my-3; }

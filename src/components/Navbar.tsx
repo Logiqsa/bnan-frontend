@@ -1,29 +1,30 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, LogOut, Menu, User, X } from "lucide-react";
+import { ChevronDown, Languages, LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import logoImg from "@/assets/logo-bnan.png";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const dashboardPathFor = (role: string) => (role === "admin" ? "/admin" : `/portal/${role}/schedule`);
 
-
-const navLinks = [
-  { label: "الرئيسية", href: "/" },
-  { label: "من نحن", href: "/#about" },
-  { label: "المناهج", href: "/#curricula" },
-  { label: "الدورات", href: "/courses" },
-  { label: "آراء عملائنا", href: "/#testimonials" },
-  { label: "انضم كمعلم", href: "/#join-teacher" },
-  { label: "تواصل معنا", href: "/contact" },
-];
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = usePortalAuth();
   const navigate = useNavigate();
+  const { isArabic, toggleLanguage, pick } = useLanguage();
+  const navLinks = [
+    { label: pick("الرئيسية", "Home"), href: "/" },
+    { label: pick("من نحن", "About us"), href: "/#about" },
+    { label: pick("المناهج", "Curricula"), href: "/#curricula" },
+    { label: pick("الدورات", "Courses"), href: "/courses" },
+    { label: pick("آراء عملائنا", "Testimonials"), href: "/#testimonials" },
+    { label: pick("انضم كمعلم", "Join as a teacher"), href: "/#join-teacher" },
+    { label: pick("تواصل معنا", "Contact us"), href: "/contact" },
+  ];
 
   const handleLinkClick = () => setIsOpen(false);
   const handleLogout = () => {
@@ -56,22 +57,25 @@ const Navbar = () => {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={toggleLanguage} className="gap-2" aria-label={pick("التبديل إلى الإنجليزية", "Switch to Arabic")}>
+              <Languages className="h-4 w-4" />{isArabic ? "English" : "العربية"}
+            </Button>
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="font-cairo gap-2 text-foreground">
                     <User className="w-4 h-4" />
-                    مرحبًا، {user.fullName}
+                    {pick("مرحبًا،", "Welcome,")} {user.fullName}
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="font-cairo">
                   <DropdownMenuItem onClick={() => navigate(dashboardPathFor(user.role))}>
-                    لوحة التحكم
+                    {pick("لوحة التحكم", "Dashboard")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                     <LogOut className="w-4 h-4 ml-2" />
-                    تسجيل الخروج
+                    {pick("تسجيل الخروج", "Log out")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -79,12 +83,12 @@ const Navbar = () => {
               <>
                 <a href="/portal/login">
                   <Button variant="ghost" size="sm" className="font-cairo text-muted-foreground hover:text-primary">
-                    تسجيل الدخول
+                    {pick("تسجيل الدخول", "Log in")}
                   </Button>
                 </a>
                 <a href="/register">
                   <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-sky">
-                   إنشاء حساب
+                   {pick("إنشاء حساب", "Create account")}
                   </Button>
                 </a>
               </>
@@ -105,6 +109,9 @@ const Navbar = () => {
             className="md:hidden pb-4"
           >
             <div className="flex flex-col gap-3">
+              <Button variant="outline" size="sm" onClick={toggleLanguage} className="w-full gap-2">
+                <Languages className="h-4 w-4" />{isArabic ? "English" : "العربية"}
+              </Button>
               {navLinks.map((link) => (
                 <a
                   key={link.label}
@@ -124,7 +131,7 @@ const Navbar = () => {
                     onClick={() => { navigate(dashboardPathFor(user.role)); handleLinkClick(); }}
                   >
                     <User className="w-4 h-4" />
-                    مرحبًا، {user.fullName}
+                    {pick("مرحبًا،", "Welcome,")} {user.fullName}
                   </Button>
                   <Button
                     variant="ghost"
@@ -133,15 +140,15 @@ const Navbar = () => {
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4" />
-                    تسجيل الخروج
+                    {pick("تسجيل الخروج", "Log out")}
                   </Button>
                 </>
               ) : (
                 <>
-                  <a href="/portal/login"><Button variant="ghost" size="sm" className="font-cairo w-full">تسجيل الدخول</Button></a>
+                  <a href="/portal/login"><Button variant="ghost" size="sm" className="font-cairo w-full">{pick("تسجيل الدخول", "Log in")}</Button></a>
                   <a href="/register">
                     <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground w-full mt-2">
-                   إنشاء حساب
+                   {pick("إنشاء حساب", "Create account")}
                     </Button>
                   </a>
                 </>

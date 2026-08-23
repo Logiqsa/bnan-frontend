@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Calendar, FileText, GraduationCap, LogOut, Menu, MessageSquare, Star, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Calendar, FileText, GraduationCap, LogOut, Menu, MessageSquare, ShieldCheck, Star, UserRound, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,6 +16,8 @@ interface NavItem {
 const roleNavItems: Record<string, NavItem[]> = {
   admin: [
     { label: "طلبات المعلمين", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
+    { label: "المستخدمون", icon: UserRound, path: "/admin?tab=users" },
+    { label: "المشرفون", icon: ShieldCheck, path: "/admin?tab=supervisors" },
     { label: "آراء العملاء", icon: Star, path: "/admin?tab=testimonials" },
     { label: "تقييمات العملاء", icon: MessageSquare, path: "/admin?tab=testimonial-ratings" },
     { label: "قصص النجاح", icon: Award, path: "/admin?tab=success-stories" },

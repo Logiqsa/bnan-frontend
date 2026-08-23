@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, Home, School, ArrowLeft } from "lucide-react";
+import { GraduationCap, Home, School, ArrowLeft, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/logo-bnan.png";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -21,7 +21,15 @@ const AccountTypeSelect = () => {
         <Home className="w-4 h-4" />
         {pick("الصفحة الرئيسية", "Home")}
       </Link>
-      <button onClick={toggleLanguage} className="absolute left-4 top-4 md:left-8 md:top-6 z-10 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20">{isArabic ? "English" : "العربية"}</button>
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        className="fixed left-4 top-4 z-20 inline-flex items-center gap-[6px] rounded-full bg-white/10 px-3 py-1.5 font-cairo text-sm text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+        aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
+      >
+        <Globe className="h-4 w-4" aria-hidden="true" />
+        {isArabic ? "EN" : "عربي"}
+      </button>
 
       <div className="relative z-[1] mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-3xl flex-col items-center justify-center">
         <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">

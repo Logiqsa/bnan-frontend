@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Languages, LogOut, Menu, User, X } from "lucide-react";
+import { ChevronDown, Globe, LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +35,15 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 right-0 left-0 z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant">
+      <button
+        type="button"
+        onClick={toggleLanguage}
+        className="fixed left-4 top-4 z-20 hidden items-center gap-[6px] rounded-full bg-[#102145] px-3 py-1.5 font-cairo text-sm text-white/70 transition-colors hover:bg-[#193466] hover:text-white md:inline-flex"
+        aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
+      >
+        <Globe className="h-4 w-4" aria-hidden="true" />
+        {isArabic ? "EN" : "عربي"}
+      </button>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-18">
           {/* Logo */}
@@ -57,9 +66,6 @@ const Navbar = () => {
 
           {/* CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={toggleLanguage} className="gap-2" aria-label={pick("التبديل إلى الإنجليزية", "Switch to Arabic")}>
-              <Languages className="h-4 w-4" />{isArabic ? "English" : "العربية"}
-            </Button>
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -96,7 +102,13 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Toggle */}
-          <button className="md:hidden text-foreground" onClick={() => setIsOpen(!isOpen)}>
+          <button
+            type="button"
+            className="relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? pick("إغلاق القائمة", "Close menu") : pick("فتح القائمة", "Open menu")}
+            aria-expanded={isOpen}
+          >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
@@ -109,8 +121,15 @@ const Navbar = () => {
             className="md:hidden pb-4"
           >
             <div className="flex flex-col gap-3">
-              <Button variant="outline" size="sm" onClick={toggleLanguage} className="w-full gap-2">
-                <Languages className="h-4 w-4" />{isArabic ? "English" : "العربية"}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLanguage}
+                className="w-full gap-[6px] font-cairo"
+                aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
+              >
+                <Globe className="h-4 w-4" aria-hidden="true" />
+                {isArabic ? "EN" : "عربي"}
               </Button>
               {navLinks.map((link) => (
                 <a

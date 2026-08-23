@@ -9,6 +9,7 @@ import ZoomAccountsAdmin from "./zoom/ZoomAccountsAdmin";
 import GradeZoomAssignmentAdmin from "./zoom/GradeZoomAssignmentAdmin";
 import LegalPagesAdmin from "./LegalPagesAdmin";
 import TeacherApplicationsAdmin from "./TeacherApplicationsAdmin";
+import UsersAdmin from "./UsersAdmin";
 
 const DEFAULT_TAB = "testimonials";
 
@@ -45,6 +46,12 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="teacher-applications" className="mt-0">
           <TeacherApplicationsAdmin />
+        </TabsContent>
+        <TabsContent value="users" className="mt-0">
+          <UsersAdmin title="المستخدمون" description="عرض وإدارة جميع الطلاب وأولياء الأمور والمعلمين." roles={["student", "parent", "teacher"]} />
+        </TabsContent>
+        <TabsContent value="supervisors" className="mt-0">
+          <UsersAdmin title="المشرفون" description="عرض حسابات المشرفين المسجلة في النظام." roles={["supervisor"]} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

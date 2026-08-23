@@ -8,6 +8,7 @@ import SuccessStoriesAdmin from "./SuccessStoriesAdmin";
 import ZoomAccountsAdmin from "./zoom/ZoomAccountsAdmin";
 import GradeZoomAssignmentAdmin from "./zoom/GradeZoomAssignmentAdmin";
 import LegalPagesAdmin from "./LegalPagesAdmin";
+import TeacherApplicationsAdmin from "./TeacherApplicationsAdmin";
 
 const DEFAULT_TAB = "testimonials";
 
@@ -41,6 +42,9 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="legal-pages" className="mt-0">
           <LegalPagesAdmin />
+        </TabsContent>
+        <TabsContent value="teacher-applications" className="mt-0">
+          <TeacherApplicationsAdmin />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

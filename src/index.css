@@ -4,6 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .legal-rich-content:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  .legal-rich-content h2 { @apply mb-3 mt-7 text-2xl font-bold font-cairo; }
+  .legal-rich-content h3 { @apply mb-2 mt-6 text-xl font-bold font-cairo; }
+  .legal-rich-content p { @apply my-3; }
+  .legal-rich-content ul { @apply my-3 list-disc pr-6; }
+  .legal-rich-content ol { @apply my-3 list-decimal pr-6; }
+  .legal-rich-content blockquote { @apply my-4 border-r-4 border-primary/40 pr-4 text-muted-foreground; }
+  .legal-rich-content a { @apply text-primary underline underline-offset-4; }
+}
+
 @layer base {
   :root {
     /* Navy #0E1C3E → HSL(221, 63%, 15%) */

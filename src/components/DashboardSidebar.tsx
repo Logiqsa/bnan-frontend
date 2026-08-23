@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Calendar, LogOut, Menu, MessageSquare, Star, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Calendar, FileText, LogOut, Menu, MessageSquare, Star, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,6 +20,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "قصص النجاح", icon: Award, path: "/admin?tab=success-stories" },
     { label: "حسابات زوم", icon: Video, path: "/admin?tab=zoom-accounts" },
     { label: "ربط الصفوف بـ Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
+    { label: "الصفحات القانونية", icon: FileText, path: "/admin?tab=legal-pages" },
   ],
   teacher: [
     { label: "جدول الحصص", icon: Calendar, path: "/portal/teacher/schedule" },

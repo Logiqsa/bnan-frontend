@@ -9,6 +9,7 @@ import mastercardImg from "@/assets/payment/mastercard.png";
 import applePayImg from "@/assets/payment/apple-pay.png";
 import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
+import { Link } from "react-router-dom";
 
 const partners = [
   { src: saudiBusinessCenter, alt: "المركز السعودي للأعمال" },
@@ -145,6 +146,10 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
             {/* Copyright - Center */}
             <p className="text-xs font-tajawal text-primary-foreground/50 order-3 md:order-2 whitespace-nowrap">
               © 2026 جميع الحقوق محفوظة لشركة BNAN
+              <span className="mx-2">•</span>
+              <Link to="/privacy-policy" className="hover:text-secondary transition-colors">سياسة الخصوصية</Link>
+              <span className="mx-2">•</span>
+              <Link to="/terms-and-conditions" className="hover:text-secondary transition-colors">الشروط والأحكام</Link>
             </p>
 
             {/* Payment Methods - Left (RTL) */}

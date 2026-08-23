@@ -21,6 +21,7 @@ import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
 import AdminGuard from "@/admin/AdminGuard";
 import AdminDashboard from "@/admin/AdminDashboard";
+import LegalPage from "@/pages/LegalPage";
 
 const queryClient = new QueryClient();
 export default function App() {
@@ -37,6 +38,8 @@ export default function App() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:slug" element={<CourseDetails />} />
+      <Route path="/privacy-policy" element={<LegalPage slug="privacy-policy" />} />
+      <Route path="/terms-and-conditions" element={<LegalPage slug="terms-and-conditions" />} />
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/teacher/signup" element={<TeacherSignup />} />
       <Route path="/portal/teacher/schedule" element={<PortalGuard role="teacher"><PortalSchedule role="teacher" /></PortalGuard>} />

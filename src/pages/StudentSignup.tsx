@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logo-bnan.png";
+import LanguageToggle from "@/components/LanguageToggle";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
 
@@ -32,6 +34,7 @@ const friendlyError = (error: unknown) => {
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
 
 export default function StudentSignup() {
+  const { isArabic } = useLanguage();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
@@ -237,7 +240,8 @@ export default function StudentSignup() {
 
   if (submittedPending) {
     return (
-      <main className="min-h-screen bg-hero-gradient grid place-items-center p-4" dir="rtl">
+      <main className="relative min-h-screen bg-hero-gradient grid place-items-center p-4" dir={isArabic ? "rtl" : "ltr"}>
+        <LanguageToggle className="fixed left-4 top-4 z-20 border border-white/20 bg-white/10 text-white hover:bg-white/20" />
         <Card className="max-w-lg text-center">
           <CardContent className="p-8 space-y-4">
             <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto">
@@ -257,7 +261,8 @@ export default function StudentSignup() {
   }
 
   return (
-    <main className="min-h-screen bg-hero-gradient flex items-center justify-center py-8 px-4" dir="rtl">
+    <main className="relative min-h-screen bg-hero-gradient flex items-center justify-center py-16 px-4" dir={isArabic ? "rtl" : "ltr"}>
+      <LanguageToggle className="fixed left-4 top-4 z-20 border border-white/20 bg-white/10 text-white hover:bg-white/20" />
       <Card className="max-w-3xl w-full mx-auto min-h-[640px] flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">

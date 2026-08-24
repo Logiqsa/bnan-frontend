@@ -6,6 +6,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import logo from "@/assets/logo-bnan.png";
+import LanguageToggle from "@/components/LanguageToggle";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface NavItem {
   label: string;
@@ -48,14 +50,15 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const role = user?.role || "student";
   const items = roleNavItems[role] || [];
+  const { isArabic, pick } = useLanguage();
 
   return (
-    <div className="h-full min-h-screen bg-sidebar text-sidebar-foreground flex flex-col">
+    <div className="h-full min-h-0 bg-sidebar text-sidebar-foreground flex flex-col" dir={isArabic ? "rtl" : "ltr"}>
       <div className="p-4 border-b border-sidebar-border">
         <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">
           <img src={logo} alt="أكاديمية بنان" className="h-20 w-auto object-contain brightness-0 invert" />
         </Link>
-        <p className="text-xs text-sidebar-foreground/60 mt-2">{roleLabels[role] || role}</p>
+        <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-sidebar-foreground/60">{pick(roleLabels[role] || role, role === "admin" ? "Administrator" : role === "teacher" ? "Teacher" : "Student")}</p><LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" /></div>
       </div>
 
       <div className="p-4 border-b border-sidebar-border">
@@ -76,7 +79,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
               }`}
             >
               <item.icon className="w-4 h-4" />
-              <span className="flex-1 text-right">{item.label}</span>
+              <span className={`flex-1 ${isArabic?"text-right":"text-left"}`}>{pick(item.label, item.path.includes("schedule") ? "Lesson schedule" : item.label)}</span>
             </button>
           );
         })}
@@ -89,7 +92,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
           className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-destructive hover:bg-sidebar-accent/50"
         >
           <LogOut className="w-4 h-4" />
-          تسجيل الخروج
+          {pick("تسجيل الخروج", "Log out")}
         </Button>
       </div>
     </div>
@@ -99,6 +102,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 const DashboardSidebar = () => {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
+  const { logout } = usePortalAuth();
+  const { pick } = useLanguage();
 
   if (!isMobile) {
     return (
@@ -110,17 +115,23 @@ const DashboardSidebar = () => {
 
   return (
     <>
-      <div className="fixed top-0 right-0 left-0 z-40 h-14 bg-sidebar flex items-center justify-between px-4 border-b border-sidebar-border">
-        <button onClick={() => setOpen(true)} className="text-sidebar-foreground" aria-label="فتح القائمة">
+      <div className="fixed top-0 right-0 left-0 z-40 h-14 bg-sidebar flex items-center justify-between px-3 border-b border-sidebar-border">
+        <button onClick={() => setOpen(true)} className="grid h-10 w-10 place-items-center rounded-lg text-sidebar-foreground hover:bg-sidebar-accent" aria-label={pick("فتح القائمة","Open menu")}>
           <Menu className="w-6 h-6" />
         </button>
         <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">
           <img src={logo} alt="أكاديمية بنان" className="h-10 w-auto object-contain brightness-0 invert" />
         </Link>
-        <div className="w-6" />
+        <div className="flex items-center gap-1">
+          <LanguageToggle className="h-9 bg-white/10 px-2 text-xs text-sidebar-foreground hover:bg-white/20" />
+          <Button variant="ghost" size="sm" onClick={logout} className="h-10 gap-1.5 px-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-destructive" aria-label={pick("تسجيل الخروج","Log out")}>
+            <LogOut className="h-4 w-4" />
+            <span className="hidden min-[390px]:inline text-xs">{pick("خروج","Log out")}</span>
+          </Button>
+        </div>
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-72 p-0 bg-sidebar border-sidebar-border">
+        <SheetContent side="right" className="h-dvh w-72 p-0 bg-sidebar border-sidebar-border">
           <SidebarContent onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>

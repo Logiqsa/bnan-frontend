@@ -8,6 +8,7 @@ import AudioTestimonialsSection from "@/components/AudioTestimonialsSection";
 import JoinTeacherSection from "@/components/JoinTeacherSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import CTASection from "@/components/CTASection";
+import AppDownloadSection from "@/components/AppDownloadSection";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 
@@ -41,6 +42,7 @@ const Index = () => {
       <JoinTeacherSection />
       <FeaturesSection />
       <CTASection />
+      <AppDownloadSection />
       <Footer />
     </div>
   );

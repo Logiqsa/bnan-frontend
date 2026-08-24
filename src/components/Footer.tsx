@@ -11,6 +11,7 @@ import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import AppStoreButtons from "@/components/AppStoreButtons";
 
 const partners = [
   { src: saudiBusinessCenter, alt: "المركز السعودي للأعمال" },
@@ -31,7 +32,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
   return (
     <footer ref={ref} id="contact" className="bg-hero-gradient pt-16 pb-8">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+        <div className="grid grid-cols-1 gap-12 mb-12 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3 mb-4">
@@ -126,6 +127,17 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
                 <MapPin className="w-4 h-4 text-secondary shrink-0" /> {pick("الرياض", "Riyadh")}
               </li>
             </ul>
+          </div>
+
+          {/* App download */}
+          <div>
+            <h4 className="text-base font-cairo font-bold mb-3 text-primary-foreground">
+              {pick("حمّل تطبيق أكاديمية بنان", "Download the BNAN Academy app")}
+            </h4>
+            <p className="mb-5 text-sm leading-6 font-tajawal text-primary-foreground/60">
+              {pick("اضغط على المتجر المناسب لجهازك لتحميل التطبيق", "Choose your device's store to download the app")}
+            </p>
+            <AppStoreButtons onDark compact footerStyle className="max-w-[240px] sm:max-w-none" />
           </div>
         </div>
 

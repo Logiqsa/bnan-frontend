@@ -27,7 +27,7 @@ import ZoomAccountDialog from "./ZoomAccountDialog";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(value).toLocaleDateString("ar-EG-u-ca-gregory", { year: "numeric", month: "short", day: "numeric" });
 };
 
 const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: () => void }) => {

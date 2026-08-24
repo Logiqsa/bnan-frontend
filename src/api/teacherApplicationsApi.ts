@@ -14,6 +14,7 @@ export interface TeacherAssignment {
 
 export interface TeacherApplication {
   id: string;
+  _id?: string;
   fullName?: string;
   email?: string;
   phone?: string;
@@ -64,20 +65,61 @@ export interface TeacherApplication {
 export interface TeacherApplicationsResponse {
   success: true;
   data: TeacherApplication[];
+  length?: number;
+  currentPage?: number;
+  totalCount?: number;
+  totalPages?: number;
   page?: number;
   limit?: number;
   total?: number;
   hasNextPage?: boolean;
 }
 
+type TeacherApplicationPayload = Omit<TeacherApplication, "id"> & { id?: string; _id?: string };
+type TeacherApplicationsPayload = Omit<TeacherApplicationsResponse, "data"> & { data: TeacherApplicationPayload[] };
+
+const normalizeTeacher = (item: TeacherApplicationPayload): TeacherApplication => ({
+  ...item,
+  id: item.id || item._id || "",
+});
+
+const normalizeList = (result: TeacherApplicationsPayload): TeacherApplicationsResponse => ({
+  ...result,
+  data: result.data.map(normalizeTeacher),
+  page: result.page ?? result.currentPage,
+  total: result.total ?? result.totalCount,
+});
+
 export const teacherApplicationsApi = {
-  list: (status: TeacherApplicationStatus, page = 1) =>
-    apiRequest<TeacherApplicationsResponse>(`/teachers?status=${status}&page=${page}&limit=20`),
-  get: (id: string) =>
-    apiRequest<{ success: true; data: TeacherApplication }>(`/teachers/${id}`),
-  updateStatus: (id: string, status: Exclude<TeacherApplicationStatus, "pending">) =>
-    apiRequest<{ success: true; data: TeacherApplication }>(`/teachers/${id}/status`, {
+  list: async (status: TeacherApplicationStatus, page = 1) =>
+    normalizeList(await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=20`)),
+  get: async (id: string) => {
+    const result = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${id}`);
+    return { ...result, data: normalizeTeacher(result.data) };
+  },
+  getByUserId: async (userId: string) => {
+    const statuses: TeacherApplicationStatus[] = ["approved", "pending", "rejected"];
+    for (const status of statuses) {
+      let page = 1;
+      let hasNextPage = true;
+      while (hasNextPage) {
+        const result = normalizeList(await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=20`));
+        const application = result.data.find((item) => item.user?.id === userId || item.id === userId);
+        if (application) {
+          const details = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${application.id}`);
+          return { ...details, data: normalizeTeacher(details.data) };
+        }
+        hasNextPage = result.hasNextPage ?? result.data.length === 20;
+        page += 1;
+      }
+    }
+    return null;
+  },
+  updateStatus: async (id: string, status: Exclude<TeacherApplicationStatus, "pending">) => {
+    const result = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
-    }),
+    });
+    return { ...result, data: normalizeTeacher(result.data) };
+  },
 };

@@ -20,7 +20,7 @@ export interface TeacherMonthlyReportData {
 
 const fmtMonth = (ym: string) => {
   try {
-    return new Date(ym + "-15").toLocaleDateString("ar-EG", { month: "long", year: "numeric" });
+    return new Date(ym + "-15").toLocaleDateString("ar-EG-u-ca-gregory", { month: "long", year: "numeric" });
   } catch { return ym; }
 };
 
@@ -50,7 +50,7 @@ const TeacherMonthlyReportTemplate = forwardRef<HTMLDivElement, { data: TeacherM
           <div style={{ textAlign: "left" }}>
             <div style={{ fontSize: 14, color: "#64748b" }}>تاريخ الإصدار</div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>
-              {new Date(data.generatedAt).toLocaleDateString("ar-EG")}
+              {new Date(data.generatedAt).toLocaleDateString("ar-EG-u-ca-gregory")}
             </div>
           </div>
         </div>

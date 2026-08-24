@@ -83,7 +83,7 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            {page.updatedAt ? `آخر تحديث: ${new Date(page.updatedAt).toLocaleString("ar-SA")}` : "لم يتم الحفظ بعد"}
+            {page.updatedAt ? `آخر تحديث: ${new Date(page.updatedAt).toLocaleString("ar-SA-u-ca-gregory")}` : "لم يتم الحفظ بعد"}
           </p>
           <Button onClick={save} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

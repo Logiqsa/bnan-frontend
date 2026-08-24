@@ -48,8 +48,8 @@ const TeacherCertificateTemplate = forwardRef<HTMLDivElement, Props>(({ data }, 
   const MUTED = "#C9D2E6";
 
   const dateStr = awardedAt
-    ? new Date(awardedAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })
-    : new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
+    ? new Date(awardedAt).toLocaleDateString("ar-EG-u-ca-gregory", { year: "numeric", month: "long", day: "numeric" })
+    : new Date().toLocaleDateString("ar-EG-u-ca-gregory", { year: "numeric", month: "long", day: "numeric" });
 
   // Subtle scattered icons across the dark background (graduation caps, books, scribbles)
   const scatter = [

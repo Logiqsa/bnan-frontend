@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Calendar, FileText, GraduationCap, LogOut, Menu, MessageSquare, ShieldCheck, Star, UserRound, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Calendar, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, MessageSquare, ShieldCheck, Star, UserRound, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,27 +11,29 @@ import { useLanguage } from "@/i18n/LanguageContext";
 
 interface NavItem {
   label: string;
+  labelEn: string;
   icon: LucideIcon;
   path: string;
 }
 
 const roleNavItems: Record<string, NavItem[]> = {
   admin: [
-    { label: "طلبات المعلمين", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
-    { label: "المستخدمون", icon: UserRound, path: "/admin?tab=users" },
-    { label: "المشرفون", icon: ShieldCheck, path: "/admin?tab=supervisors" },
-    { label: "آراء العملاء", icon: Star, path: "/admin?tab=testimonials" },
-    { label: "تقييمات العملاء", icon: MessageSquare, path: "/admin?tab=testimonial-ratings" },
-    { label: "قصص النجاح", icon: Award, path: "/admin?tab=success-stories" },
-    { label: "حسابات زوم", icon: Video, path: "/admin?tab=zoom-accounts" },
-    { label: "ربط الصفوف بـ Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
-    { label: "الصفحات القانونية", icon: FileText, path: "/admin?tab=legal-pages" },
+    { label: "الرئيسية", labelEn: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+    { label: "طلبات المعلمين", labelEn: "Teacher applications", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
+    { label: "المستخدمون", labelEn: "Users", icon: UserRound, path: "/admin?tab=users" },
+    { label: "المشرفون", labelEn: "Supervisors", icon: ShieldCheck, path: "/admin?tab=supervisors" },
+    { label: "آراء العملاء", labelEn: "Testimonials", icon: Star, path: "/admin?tab=testimonials" },
+    { label: "تقييمات العملاء", labelEn: "Customer ratings", icon: MessageSquare, path: "/admin?tab=testimonial-ratings" },
+    { label: "قصص النجاح", labelEn: "Success stories", icon: Award, path: "/admin?tab=success-stories" },
+    { label: "حسابات زوم", labelEn: "Zoom accounts", icon: Video, path: "/admin?tab=zoom-accounts" },
+    { label: "ربط الصفوف بـ Zoom", labelEn: "Assign classes to Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
+    { label: "الصفحات القانونية", labelEn: "Legal pages", icon: FileText, path: "/admin?tab=legal-pages" },
   ],
   teacher: [
-    { label: "جدول الحصص", icon: Calendar, path: "/portal/teacher/schedule" },
+    { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/teacher/schedule" },
   ],
   student: [
-    { label: "جدول الحصص", icon: Calendar, path: "/portal/student/schedule" },
+    { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/student/schedule" },
   ],
 };
 
@@ -42,7 +44,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const isItemActive = (itemPath: string, pathname: string, search: string) =>
-  itemPath.includes("?") ? itemPath === `${pathname}${search}` : itemPath === pathname;
+  itemPath.includes("?") ? itemPath === `${pathname}${search}` : itemPath === pathname && (!search || pathname !== "/admin");
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { user, logout } = usePortalAuth();
@@ -79,7 +81,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
               }`}
             >
               <item.icon className="w-4 h-4" />
-              <span className={`flex-1 ${isArabic?"text-right":"text-left"}`}>{pick(item.label, item.path.includes("schedule") ? "Lesson schedule" : item.label)}</span>
+              <span className={`flex-1 ${isArabic?"text-right":"text-left"}`}>{pick(item.label,item.labelEn)}</span>
             </button>
           );
         })}

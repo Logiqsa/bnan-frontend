@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Home, Loader2 } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { catalogApi, type CurriculumOption, type GradeOption, type SubjectOption, type PackageOption } from "@/api/catalogApi";
 import { paymentApi } from "@/api/paymentApi";
-import { ApiError, tokenStore } from "@/api/client";
+import { ApiError } from "@/api/client";
 import { tamaraDraftStore } from "@/lib/tamaraDraft";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
+import AccountVerification from "@/components/AccountVerification";
 
 const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
 
@@ -72,7 +73,7 @@ export default function StudentSignup() {
   const [region, setRegion] = useState("");
   const [line1, setLine1] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submittedPending, setSubmittedPending] = useState(false);
+  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(null);
 
   const [idempotencyKey] = useState(() => crypto.randomUUID());
 
@@ -174,9 +175,8 @@ export default function StudentSignup() {
         whatsappNumber: parentPhone.trim(),
         password: parentPassword,
       });
-      tokenStore.set(response.token, response.refreshToken);
       setParentCreds({ email: parentEmail.trim(), password: parentPassword });
-      setStep(1);
+      setVerification({ email: response.data.email || parentEmail.trim(), kind: "parent" });
     } catch (value) {
       setError(friendlyError(value));
     } finally {
@@ -190,7 +190,7 @@ export default function StudentSignup() {
       return;
     }
     setError("");
-    if (step === 0) { await submitParentStep(); return; }
+    if (step === 0) { if (parentCreds) setStep(1); else await submitParentStep(); return; }
     if (step === steps.length - 1) { await submit(); return; }
     setStep((current) => current + 1);
   };
@@ -208,14 +208,14 @@ export default function StudentSignup() {
         subjects: mode !== "gulf" && isAllSubjectsPackage ? subjects.map((subject) => subject.id) : subjectIds,
       };
       if (mode === "egyptian") {
-        await authApi.registerStudent({
+        const response = await authApi.registerStudent({
           parent: parentCreds,
           student: studentPayload,
           curriculum: curriculumId,
           packageId,
           discountCode: discountCode.trim() || undefined,
         });
-        setSubmittedPending(true);
+        setVerification({ email: response.data.email || studentEmail.trim(), kind: "student" });
       } else {
         const { data } = await paymentApi.tamaraCheckout(
           {
@@ -228,7 +228,7 @@ export default function StudentSignup() {
           },
           idempotencyKey,
         );
-        tamaraDraftStore.save({ paymentId: data.paymentId, idempotencyKey, createdAt: new Date().toISOString() });
+        tamaraDraftStore.save({ paymentId: data.paymentId, idempotencyKey, studentEmail: studentEmail.trim(), createdAt: new Date().toISOString() });
         window.location.href = data.checkoutUrl;
       }
     } catch (value) {
@@ -238,27 +238,10 @@ export default function StudentSignup() {
     }
   };
 
-  if (submittedPending) {
-    return (
-      <main className="relative min-h-screen bg-hero-gradient grid place-items-center p-4" dir={isArabic ? "rtl" : "ltr"}>
-        <LanguageToggle className="fixed left-4 top-4 z-20 border border-white/20 bg-white/10 text-white hover:bg-white/20" />
-        <Card className="max-w-lg text-center">
-          <CardContent className="p-8 space-y-4">
-            <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto">
-              <Check />
-            </div>
-            <h1 className="text-2xl font-cairo font-bold">تم استلام طلب التسجيل</h1>
-            <p className="text-muted-foreground font-tajawal">
-              سيتم تفعيل حساب الطالب بعد تأكيد الدفع من فريق الإدارة عبر واتساب.
-            </p>
-            <Button asChild>
-              <Link to="/">العودة إلى الصفحة الرئيسية</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
+  if (verification) return <AccountVerification email={verification.email} onVerified={() => {
+    if (verification.kind === "parent") { setVerification(null); setStep(1); }
+    else window.location.href = `/portal/login?email=${encodeURIComponent(verification.email)}&verified=1`;
+  }} />;
 
   return (
     <main className="relative min-h-screen bg-hero-gradient flex items-center justify-center py-16 px-4" dir={isArabic ? "rtl" : "ltr"}>

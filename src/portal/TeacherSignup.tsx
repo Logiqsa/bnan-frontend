@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { authApi } from "@/api/authApi";
-import { ApiError, tokenStore } from "@/api/client";
+import { ApiError } from "@/api/client";
 import { catalogApi, type CurriculumOption, type GradeOption, type SubjectOption } from "@/api/catalogApi";
 import { getCountries, type CountryOption } from "@/api/countriesApi";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import AccountVerification from "@/components/AccountVerification";
 
 const steps=["البيانات الشخصية","المؤهل والخبرة","التخصصات التعليمية","التجهيزات والتقييم","المرفقات والمراجعة"];
 const yesNo=[{value:"true",label:"نعم"},{value:"false",label:"لا"}];
 const initialValues:Record<string,string>={hasTeachingExperience:"false",hasOnlineTeachingExperience:"false",hasLaptop:"true",hasStableInternet:"true",hasGoodCamera:"true",hasMicrophone:"true",canProvideDemoSession:"true"};
 
 export default function TeacherSignup(){
-  const[step,setStep]=useState(0);const[values,setValues]=useState(initialValues);const[files,setFiles]=useState<Record<string,File|null>>({});const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[done,setDone]=useState(false);
+  const[step,setStep]=useState(0);const[values,setValues]=useState(initialValues);const[files,setFiles]=useState<Record<string,File|null>>({});const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[verificationEmail,setVerificationEmail]=useState("");
   const[countries,setCountries]=useState<CountryOption[]>([]);const[catalogsLoading,setCatalogsLoading]=useState(true);const[countriesError,setCountriesError]=useState("");
   const[curriculums,setCurriculums]=useState<CurriculumOption[]>([]);const[selectedCurriculum,setSelectedCurriculum]=useState("");const[grades,setGrades]=useState<GradeOption[]>([]);const[selectedGrades,setSelectedGrades]=useState<string[]>([]);const[subjects,setSubjects]=useState<Record<string,SubjectOption[]>>({});const[assignments,setAssignments]=useState<Record<string,string[]>>({});const[loadingGrades,setLoadingGrades]=useState(false);const[loadingSubjects,setLoadingSubjects]=useState<Record<string,boolean>>({});
   const set=(name:string,value:string)=>setValues(current=>({...current,[name]:value}));
@@ -29,9 +30,9 @@ export default function TeacherSignup(){
   const selectedCurriculumData=curriculums.find(item=>item.id===selectedCurriculum);
   const validStep=useMemo(()=>{if(step===0)return !!(values.fullName?.trim().length>=3&&values.email&&values.password?.length>=8&&values.phone&&values.nationality&&values.country);if(step===1)return !values.availableHoursPerWeek||Number(values.availableHoursPerWeek)>=1;if(step===2)return !!(selectedCurriculum&&selectedGrades.length&&selectedGrades.every(id=>(assignments[id]||[]).length));if(step===3)return !!values.computerSkillLevel;if(step===4)return values.termsAccepted==="true";return true;},[step,values,selectedCurriculum,selectedGrades,assignments]);
   const next=()=>{if(!validStep){setError(step===2?"اختر منهجًا وصفًا واحدًا على الأقل ومادة واحدة لكل صف.":"أكمل الحقول المطلوبة قبل المتابعة.");return;}setError("");setStep(current=>Math.min(current+1,steps.length-1));};
-  const submit=async(event:React.FormEvent)=>{event.preventDefault();if(!validStep)return;setBusy(true);setError("");try{const body=new FormData();Object.entries(values).forEach(([key,value])=>value&&body.append(key,value));body.append("curriculums",JSON.stringify([selectedCurriculum]));body.append("teacherAssignments",JSON.stringify(selectedGrades.map(grade=>({grade,subjects:assignments[grade]}))));Object.entries(files).forEach(([key,value])=>value&&body.append(key,value));await authApi.registerTeacher(body);tokenStore.clear();setDone(true);}catch(value){const apiError=value as ApiError;setError(apiError.code==="EMAIL_ALREADY_EXISTS"?"البريد الإلكتروني مسجل بالفعل.":apiError.message);}finally{setBusy(false);}};
+  const submit=async(event:React.FormEvent)=>{event.preventDefault();if(!validStep)return;setBusy(true);setError("");try{const body=new FormData();Object.entries(values).forEach(([key,value])=>value&&body.append(key,value));body.append("curriculums",JSON.stringify([selectedCurriculum]));body.append("teacherAssignments",JSON.stringify(selectedGrades.map(grade=>({grade,subjects:assignments[grade]}))));Object.entries(files).forEach(([key,value])=>value&&body.append(key,value));const response=await authApi.registerTeacher(body);setVerificationEmail(response.data.email||values.email);}catch(value){const apiError=value as ApiError;setError(apiError.code==="EMAIL_ALREADY_EXISTS"?"البريد الإلكتروني مسجل بالفعل.":apiError.message);}finally{setBusy(false);}};
 
-  if(done)return <main className="min-h-screen bg-hero-gradient grid place-items-center p-4"><Card className="max-w-lg text-center"><CardContent className="p-8 space-y-4"><div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto"><Check/></div><h1 className="text-2xl font-bold">تم استلام طلب التسجيل بنجاح</h1><p className="text-muted-foreground">سيتم إتاحة حسابك بعد مراجعة الإدارة.</p><Button asChild><Link to="/portal/login">العودة إلى تسجيل الدخول</Link></Button></CardContent></Card></main>;
+  if(verificationEmail)return <AccountVerification email={verificationEmail} onVerified={()=>{window.location.href=`/portal/login?email=${encodeURIComponent(verificationEmail)}&verified=1`;}}/>;
 
   return <main className="min-h-screen bg-hero-gradient flex items-center justify-center py-8 px-4" dir="rtl"><Card className="max-w-4xl w-full mx-auto min-h-[640px] flex flex-col"><CardHeader><CardTitle>التسجيل كمعلم</CardTitle><div className="grid grid-cols-5 gap-2 pt-4">{steps.map((title,index)=><div key={title} className="text-center"><div className={`h-2 rounded-full ${index<=step?"bg-secondary":"bg-muted"}`}/><span className={`hidden md:block text-xs mt-2 ${index===step?"font-bold":"text-muted-foreground"}`}>{title}</span></div>)}</div></CardHeader><CardContent className="flex-1 flex flex-col"><form onSubmit={submit} className="flex-1 flex flex-col">
   <div className="flex-1 flex flex-col justify-center space-y-5">

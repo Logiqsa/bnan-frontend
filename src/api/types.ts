@@ -58,6 +58,12 @@ export interface AuthResponse {
   data: PortalUser;
 }
 
+export interface RegistrationResponse {
+  success: true;
+  message: string;
+  data: PortalUser & { isVerified: boolean };
+}
+
 export interface ActiveSession {
   id?: string;
   sessionId?: string;

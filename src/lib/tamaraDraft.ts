@@ -3,6 +3,7 @@ const DRAFT_KEY = "bnan_tamara_payment_draft";
 export interface TamaraDraft {
   paymentId: string;
   idempotencyKey: string;
+  studentEmail: string;
   createdAt: string;
 }
 

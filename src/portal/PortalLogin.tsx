@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, Home, Loader2, Lock, LogIn, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,16 +9,19 @@ import { usePortalAuth } from "./PortalAuthContext";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
+import AccountVerification from "@/components/AccountVerification";
 
 const messages:Record<string,string>={INCORRECT_LOGIN_DATA:"البريد الإلكتروني أو كلمة المرور غير صحيحة.",TEACHER_NOT_APPROVED:"طلب المعلم قيد المراجعة ولم تتم الموافقة عليه بعد.",REGISTRATION_PENDING:"طلب التسجيل قيد المراجعة.",ACCOUNT_DEACTIVATED:"هذا الحساب غير نشط. تواصل مع الإدارة."};
 
 export default function PortalLogin(){
-  const{user,login}=usePortalAuth();const navigate=useNavigate();
+  const{user,login}=usePortalAuth();const navigate=useNavigate();const[searchParams]=useSearchParams();
   const{isArabic,pick}=useLanguage();
-  const[email,setEmail]=useState("");const[password,setPassword]=useState("");const[showPassword,setShowPassword]=useState(false);const[busy,setBusy]=useState(false);const[error,setError]=useState("");
+  const[email,setEmail]=useState(()=>searchParams.get("email")||"");const[password,setPassword]=useState("");const[showPassword,setShowPassword]=useState(false);const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[verificationEmail,setVerificationEmail]=useState("");const[notice,setNotice]=useState(()=>searchParams.get("verified")==="1"?"تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.":"");
   const homeFor=(role:string)=>role==="admin"?"/admin":`/portal/${role}/schedule`;
   if(user)return <Navigate to={homeFor(user.role)} replace/>;
-  const submit=async(event:React.FormEvent)=>{event.preventDefault();setBusy(true);setError("");try{const account=await login(email.trim(),password);navigate(homeFor(account.role),{replace:true});}catch(value){const apiError=value as ApiError;setError(messages[apiError.code]||apiError.message||"تعذر تسجيل الدخول.");}finally{setBusy(false)}};
+  const submit=async(event:React.FormEvent)=>{event.preventDefault();setBusy(true);setError("");setNotice("");try{const account=await login(email.trim(),password);navigate(homeFor(account.role),{replace:true});}catch(value){const apiError=value as ApiError;if(apiError.code==="ACCOUNT_NOT_VERIFIED"){setVerificationEmail(email.trim());}else setError(messages[apiError.code]||apiError.message||"تعذر تسجيل الدخول.");}finally{setBusy(false)}};
+
+  if(verificationEmail)return <AccountVerification email={verificationEmail} onVerified={()=>{setVerificationEmail("");setNotice("تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.");}}/>;
 
   return <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic?"rtl":"ltr"}>
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]"/>
@@ -33,6 +36,7 @@ export default function PortalLogin(){
 
       <Card className="w-full border-white/10 bg-card/95 shadow-2xl"><CardContent className="p-6 md:p-7"><form onSubmit={submit} className="space-y-5">
         {error&&<div role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+        {notice&&<div role="status" className="rounded-xl bg-green-100 p-3 text-sm text-green-700">{notice}</div>}
         <label className="block text-sm font-medium">{pick("البريد الإلكتروني","Email")}<div className="relative mt-2"><Mail className={`${isArabic?"right-3":"left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}/><Input type="email" required autoComplete="email" dir="ltr" placeholder="example@email.com" className="h-12 px-10 text-left" value={email} onChange={event=>setEmail(event.target.value)}/></div></label>
         <label className="block text-sm font-medium">{pick("كلمة المرور","Password")}<div className="relative mt-2"><Lock className={`${isArabic?"right-3":"left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}/><Input type={showPassword?"text":"password"} required autoComplete="current-password" dir="ltr" className="h-12 px-10 text-left" value={password} onChange={event=>setPassword(event.target.value)}/><button type="button" onClick={()=>setShowPassword(value=>!value)} className={`${isArabic?"left-3":"right-3"} absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary`} aria-label={showPassword?pick("إخفاء كلمة المرور","Hide password"):pick("إظهار كلمة المرور","Show password")}>{showPassword?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}</button></div></label>
         <Button disabled={busy} className="h-12 w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<LogIn className="h-4 w-4"/>}{busy?pick("جاري تسجيل الدخول...","Logging in..."):pick("تسجيل الدخول","Log in")}</Button>

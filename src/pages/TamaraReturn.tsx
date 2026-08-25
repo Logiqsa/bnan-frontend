@@ -7,6 +7,7 @@ import { paymentApi, type TamaraStatusResult } from "@/api/paymentApi";
 import { ApiError } from "@/api/client";
 import { tamaraDraftStore } from "@/lib/tamaraDraft";
 import logo from "@/assets/logo-bnan.png";
+import AccountVerification from "@/components/AccountVerification";
 
 const POLL_INTERVAL_MS = 2500;
 const MAX_AUTO_ATTEMPTS = 24; // ~60 seconds of automatic polling
@@ -45,7 +46,6 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
         setResult(data);
         setError("");
         if (TERMINAL_STATUSES.has(data.status)) {
-          if (data.status === "completed") tamaraDraftStore.clear();
           setPhase("settled");
           return;
         }
@@ -70,7 +70,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
     try {
       const { data } = await paymentApi.reconcile(draft.paymentId);
       setResult(data);
-      if (data.status === "completed") tamaraDraftStore.clear();
+      if (TERMINAL_STATUSES.has(data.status)) setPhase("settled");
     } catch (value) {
       setError(friendlyError(value));
     } finally {
@@ -113,12 +113,10 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           )}
 
           {phase === "settled" && result?.status === "completed" && (
-            <>
-              <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto">
-                <Check />
-              </div>
-              <h1 className="text-2xl font-cairo font-bold">تم الدفع وتفعيل التسجيل بنجاح</h1>
-              <p className="text-muted-foreground font-tajawal">يمكن للطالب الآن تسجيل الدخول ببياناته.</p>
+            draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={() => { tamaraDraftStore.clear(); window.location.href = `/portal/login?email=${encodeURIComponent(draft.studentEmail)}&verified=1`; }} /> : <>
+              <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto"><Check /></div>
+              <h1 className="text-2xl font-cairo font-bold">تم الدفع بنجاح</h1>
+              <p className="text-muted-foreground font-tajawal">راجع بريد الطالب لتفعيل الحساب قبل تسجيل الدخول.</p>
               <Button asChild><Link to="/portal/login">تسجيل الدخول</Link></Button>
             </>
           )}

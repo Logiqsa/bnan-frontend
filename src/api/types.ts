@@ -32,13 +32,22 @@ export interface TamaraPaymentAddress {
   line2?: string;
 }
 
-export interface TamaraCheckoutBody {
+export type GulfPaymentProvider = "tamara" | "paymob";
+
+export interface GulfCheckoutBody {
+  provider: GulfPaymentProvider;
   parent: { email: string; password: string };
   student: StudentRegistrationInput;
   curriculum: string;
   packageId: string;
-  paymentAddress: TamaraPaymentAddress;
+  items: Array<{
+    subjectId: string;
+    packageId: string;
+  }>;
+  discountCode?: string;
+  paymentAddress?: TamaraPaymentAddress;
   locale: "ar_SA" | "en_US";
+  isMobile: false;
 }
 
 export interface PortalUser {
@@ -61,6 +70,8 @@ export interface AuthResponse {
 export interface RegistrationResponse {
   success: true;
   message: string;
+  token?: string;
+  refreshToken?: string;
   data: PortalUser & { isVerified: boolean };
 }
 

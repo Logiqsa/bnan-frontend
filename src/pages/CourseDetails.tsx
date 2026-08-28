@@ -7,12 +7,12 @@ import SEO from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
-import { MOCK_COURSES } from "@/data/courses";
+import { PUBLISHED_COURSES } from "@/data/courses";
 import defaultCover from "@/assets/course-default-cover.jpg";
 
 const CourseDetails = () => {
   const { slug } = useParams<{ slug: string }>();
-  const course = MOCK_COURSES.find((c) => c.slug === slug);
+  const course = PUBLISHED_COURSES.find((c) => c.slug === slug);
   const [registering, setRegistering] = useState(false);
 
   if (!course) {

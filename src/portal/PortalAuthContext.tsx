@@ -12,9 +12,19 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const raw = localStorage.getItem(USER_KEY);
-    if (!raw || !tokenStore.get()) { setLoading(false); return; }
-    const saved = JSON.parse(raw) as PortalUser;
-    authApi.profile().then(() => setUser(saved)).catch(() => { tokenStore.clear(); localStorage.removeItem(USER_KEY); }).finally(() => setLoading(false));
+    if (!raw || !tokenStore.get() || !tokenStore.getRefresh()) { setLoading(false); return; }
+    try {
+      const saved = JSON.parse(raw) as PortalUser;
+      setUser(saved);
+      setLoading(false);
+      // التحقق يتم في الخلفية. أخطاء الشبكة العادية لا تنهي الجلسة؛
+      // apiRequest يطلق session-expired فقط إذا رفض الخادم refresh token.
+      void authApi.profile().catch(() => undefined);
+    } catch {
+      // بيانات مستخدم تالفة ليست جلسة قابلة للاستعادة، لكن لا نمس التوكنات هنا.
+      localStorage.removeItem(USER_KEY);
+      setLoading(false);
+    }
   }, []);
   useEffect(() => {
     const onSessionExpired = () => { localStorage.removeItem(USER_KEY); setUser(null); };

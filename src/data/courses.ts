@@ -71,3 +71,7 @@ export const MOCK_COURSES: Course[] = [
     is_free: true,
   },
 ];
+
+// القائمة التي تظهر للزوار. عند ربط مصدر الدورات الفعلي، تُملأ هذه القائمة
+// بالدورات المنشورة فقط؛ وإذا ظلت فارغة تعرض الصفحة حالة "قريبًا".
+export const PUBLISHED_COURSES: Course[] = [];

@@ -1,4 +1,10 @@
-export const API_BASE_URL = "https://api.bnanacademysa.com/api/v1";
+const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+// أثناء التطوير نمرر الطلبات عبر Vite لتفادي منع المتصفح للـ CORS preflight.
+// في الإنتاج يمكن تغيير العنوان بدون تعديل الكود عبر VITE_API_BASE_URL.
+export const API_BASE_URL = import.meta.env.DEV
+  ? "/api/v1"
+  : (configuredApiUrl || "https://bnan.0xcode7.xyz/api/v1").replace(/\/$/, "");
 const apiLanguage = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 const TOKEN_KEY = "bnan_portal_access_token";
@@ -25,11 +31,12 @@ export const tokenStore = {
 };
 
 // يمنع إطلاق أكثر من محاولة تجديد متزامنة عندما تفشل عدة طلبات بنفس اللحظة بسبب انتهاء صلاحية التوكن.
-let refreshPromise: Promise<boolean> | null = null;
+export type RefreshResult = "refreshed" | "rejected" | "unavailable";
+let refreshPromise: Promise<RefreshResult> | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<RefreshResult> {
   const refreshToken = tokenStore.getRefresh();
-  if (!refreshToken) return false;
+  if (!refreshToken) return "rejected";
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
@@ -39,11 +46,14 @@ async function refreshAccessToken(): Promise<boolean> {
           body: JSON.stringify({ refreshToken }),
         });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.token) return false;
+        if (!response.ok) {
+          return [400, 401, 403].includes(response.status) ? "rejected" : "unavailable";
+        }
+        if (!payload.token || !payload.refreshToken) return "rejected";
         tokenStore.set(payload.token, payload.refreshToken || refreshToken);
-        return true;
+        return "refreshed";
       } catch {
-        return false;
+        return "unavailable";
       }
     })();
     refreshPromise.finally(() => { refreshPromise = null; });
@@ -72,11 +82,17 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) {
-      if (!_retried && token && (await refreshAccessToken())) {
-        return apiRequest<T>(path, options, true);
+      if (token && !_retried) {
+        const refreshResult = await refreshAccessToken();
+        if (refreshResult === "refreshed") return apiRequest<T>(path, options, true);
+        if (refreshResult === "unavailable") {
+          throw new ApiError(0, "REFRESH_UNAVAILABLE", "تعذر تجديد الجلسة مؤقتًا. تحقق من الإنترنت وحاول مجددًا.");
+        }
       }
-      tokenStore.clear();
-      window.dispatchEvent(new Event("bnan:session-expired"));
+      if (token) {
+        tokenStore.clear();
+        window.dispatchEvent(new Event("bnan:session-expired"));
+      }
     }
     throw new ApiError(response.status, payload.code || "API_ERROR", payload.message || "حدث خطأ غير متوقع.", payload.errors, payload.data);
   }

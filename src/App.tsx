@@ -19,16 +19,28 @@ import PortalLogin from "@/portal/PortalLogin";
 import TeacherSignup from "@/portal/TeacherSignup";
 import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
+import StudentSessions from "@/portal/StudentSessions";
 import AdminGuard from "@/admin/AdminGuard";
 import AdminDashboard from "@/admin/AdminDashboard";
+import ClassroomRecordingsAdmin from "@/admin/ClassroomRecordingsAdmin";
+import ClassroomSessionsAdmin from "@/admin/ClassroomSessionsAdmin";
 import LegalPage from "@/pages/LegalPage";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import ScrollToHash from "@/components/ScrollToHash";
 
 const queryClient = new QueryClient();
+
+function HomeOrTamaraReturn() {
+  const params = new URLSearchParams(window.location.search);
+  return params.has("paymentStatus") && params.has("orderId")
+    ? <TamaraReturn kind="success" />
+    : <Index />;
+}
+
 export default function App() {
   return <HelmetProvider><QueryClientProvider client={queryClient}><LanguageProvider><CurrencyProvider><TooltipProvider><Sonner />
-    <BrowserRouter><PortalAuthProvider><FloatingWhatsApp /><Routes>
-      <Route path="/" element={<Index />} />
+    <BrowserRouter><PortalAuthProvider><ScrollToHash /><FloatingWhatsApp /><Routes>
+      <Route path="/" element={<HomeOrTamaraReturn />} />
       <Route path="/curricula" element={<AllCurricula />} />
       <Route path="/all-curricula" element={<Navigate to="/curricula" replace />} />
       <Route path="/register" element={<AccountTypeSelect />} />
@@ -36,6 +48,9 @@ export default function App() {
       <Route path="/payment/tamara/success" element={<TamaraReturn kind="success" />} />
       <Route path="/payment/tamara/failure" element={<TamaraReturn kind="failure" />} />
       <Route path="/payment/tamara/cancel" element={<TamaraReturn kind="cancel" />} />
+      <Route path="/payment/paymob/success" element={<TamaraReturn kind="success" />} />
+      <Route path="/payment/paymob/failure" element={<TamaraReturn kind="failure" />} />
+      <Route path="/payment/paymob/cancel" element={<TamaraReturn kind="cancel" />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:slug" element={<CourseDetails />} />
@@ -45,7 +60,10 @@ export default function App() {
       <Route path="/portal/teacher/signup" element={<TeacherSignup />} />
       <Route path="/portal/teacher/schedule" element={<PortalGuard role="teacher"><PortalSchedule role="teacher" /></PortalGuard>} />
       <Route path="/portal/student/schedule" element={<PortalGuard role="student"><PortalSchedule role="student" /></PortalGuard>} />
+      <Route path="/portal/student/sessions" element={<PortalGuard role="student"><StudentSessions /></PortalGuard>} />
       <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+      <Route path="/admin/classroom-recordings" element={<AdminGuard><ClassroomRecordingsAdmin /></AdminGuard>} />
+      <Route path="/admin/classroom-sessions" element={<AdminGuard><ClassroomSessionsAdmin /></AdminGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes></PortalAuthProvider></BrowserRouter>
   </TooltipProvider></CurrencyProvider></LanguageProvider></QueryClientProvider></HelmetProvider>;

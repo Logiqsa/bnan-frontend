@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, Home, Loader2 } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { catalogApi, type CurriculumOption, type GradeOption, type SubjectOption, type PackageOption } from "@/api/catalogApi";
 import { paymentApi } from "@/api/paymentApi";
-import { ApiError } from "@/api/client";
-import { tamaraDraftStore } from "@/lib/tamaraDraft";
+import type { GulfPaymentProvider } from "@/api/types";
+import { ApiError, tokenStore } from "@/api/client";
+import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,16 +14,25 @@ import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
+import { STUDENT_SIGNUP_DRAFT_KEY, studentSignupSession } from "@/lib/studentSignupSession";
 
 const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
   EMAIL_ALREADY_EXISTS: "البريد الإلكتروني مسجل بالفعل.",
-  GULF_PAYMENT_REQUIRED: "هذا المنهج يتطلب الدفع عبر Tamara.",
+  GULF_PAYMENT_REQUIRED: "هذا المنهج يتطلب الدفع الإلكتروني.",
   PARENT_PAYMENT_PHONE_REQUIRED: "يرجى إضافة رقم هاتف موثق لحساب ولي الأمر قبل الدفع.",
   TAMARA_ADDRESS_REQUIRED: "يرجى إدخال عنوان صحيح لإتمام الدفع.",
   TAMARA_NOT_SUPPORTED: "عملة هذه الباقة غير مدعومة في الدفع حاليًا.",
+  PAYMENT_PROVIDER_NOT_SUPPORTED: "وسيلة الدفع المختارة غير متاحة.",
+  PAYMENT_PROVIDER_CURRENCY_NOT_SUPPORTED: "وسيلة الدفع المختارة لا تدعم عملة هذه الباقة.",
+  PAYMOB_NOT_CONFIGURED: "الدفع بالبطاقة غير متاح مؤقتًا. يمكنك اختيار Tamara.",
+  PAYMOB_CHECKOUT_FAILED: "تعذر فتح صفحة الدفع بالبطاقة. حاول مرة أخرى.",
+  INVALID_PAYMENT_PHONE: "رقم هاتف ولي الأمر غير صالح للدفع. أدخل رقمًا سعوديًا صحيحًا.",
+  IDEMPOTENCY_KEY_REQUIRED: "تعذر بدء محاولة الدفع. أعد تحميل الصفحة وحاول مجددًا.",
+  IDEMPOTENCY_KEY_REUSED: "بيانات محاولة الدفع تغيرت. أعد تحميل الصفحة وحاول مجددًا.",
+  GULF_PRIVATE_PURCHASE_ITEMS_REQUIRED: "تعذر تحديد الباقة الخاصة بكل مادة. راجع المواد والباقة المختارة ثم حاول مجددًا.",
   PAYMENT_ACCESS_DENIED: "لا يمكن إتمام هذه العملية بهذا الحساب.",
   CHILD_CURRICULUM_MISMATCH: "يجب أن يلتحق إخوة الطالب بنفس منهج أول طفل مسجّل.",
 };
@@ -34,48 +44,92 @@ const friendlyError = (error: unknown) => {
 
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
 
+const normalizeSaudiPaymentPhone = (value: string): string | null => {
+  let digits = value.replace(/[^\d]/g, "");
+  if (digits.startsWith("00966")) digits = digits.slice(2);
+  if (digits.startsWith("05")) digits = `966${digits.slice(1)}`;
+  if (digits.startsWith("5")) digits = `966${digits}`;
+  return /^9665\d{8}$/.test(digits) ? digits : null;
+};
+
+interface SignupDraft {
+  step: number;
+  parentFullName: string;
+  parentEmail: string;
+  parentPhone: string;
+  parentPassword: string;
+  parentCreds: { email: string; password: string } | null;
+  studentFullName: string;
+  studentEmail: string;
+  studentPassword: string;
+  curriculumId: string;
+  gradeId: string;
+  subjectIds: string[];
+  packageId: string;
+  discountCode: string;
+  paymentProvider: GulfPaymentProvider;
+  city: string;
+  region: string;
+  line1: string;
+  verification: { email: string; kind: "parent" | "student" } | null;
+  idempotencyKey: string;
+}
+
+const readSignupDraft = (): Partial<SignupDraft> => {
+  try {
+    const raw = sessionStorage.getItem(STUDENT_SIGNUP_DRAFT_KEY);
+    return raw ? JSON.parse(raw) as Partial<SignupDraft> : {};
+  } catch {
+    return {};
+  }
+};
+
 export default function StudentSignup() {
   const { isArabic } = useLanguage();
   const [searchParams] = useSearchParams();
-  const [step, setStep] = useState(0);
+  const [savedDraft] = useState(readSignupDraft);
+  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
   const [error, setError] = useState("");
 
   // Step 0: parent
-  const [parentFullName, setParentFullName] = useState("");
-  const [parentEmail, setParentEmail] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
-  const [parentPassword, setParentPassword] = useState("");
+  const [parentFullName, setParentFullName] = useState(savedDraft.parentFullName ?? "");
+  const [parentEmail, setParentEmail] = useState(savedDraft.parentEmail ?? "");
+  const [parentPhone, setParentPhone] = useState(savedDraft.parentPhone ?? "");
+  const [parentPassword, setParentPassword] = useState(savedDraft.parentPassword ?? "");
   const [parentBusy, setParentBusy] = useState(false);
-  const [parentCreds, setParentCreds] = useState<{ email: string; password: string } | null>(null);
+  const [parentCreds, setParentCreds] = useState<{ email: string; password: string } | null>(savedDraft.parentCreds ?? null);
 
   // Step 1: student
-  const [studentFullName, setStudentFullName] = useState("");
-  const [studentEmail, setStudentEmail] = useState("");
-  const [studentPassword, setStudentPassword] = useState("");
+  const [studentFullName, setStudentFullName] = useState(savedDraft.studentFullName ?? "");
+  const [studentEmail, setStudentEmail] = useState(savedDraft.studentEmail ?? "");
+  const [studentPassword, setStudentPassword] = useState(savedDraft.studentPassword ?? "");
 
   // Step 2: curriculum / grade / package / subjects
   const [curriculums, setCurriculums] = useState<CurriculumOption[]>([]);
   const [curriculumsLoading, setCurriculumsLoading] = useState(true);
-  const [curriculumId, setCurriculumId] = useState(() => searchParams.get("curriculum") || "");
+  const [curriculumId, setCurriculumId] = useState(() => savedDraft.curriculumId || searchParams.get("curriculum") || "");
   const [grades, setGrades] = useState<GradeOption[]>([]);
   const [gradesLoading, setGradesLoading] = useState(false);
-  const [gradeId, setGradeId] = useState("");
+  const [gradeId, setGradeId] = useState(savedDraft.gradeId ?? "");
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
-  const [subjectIds, setSubjectIds] = useState<string[]>([]);
+  const [subjectIds, setSubjectIds] = useState<string[]>(savedDraft.subjectIds ?? []);
 
   // Step 3: payment
   const [packages, setPackages] = useState<PackageOption[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
-  const [packageId, setPackageId] = useState(() => searchParams.get("package") || "");
-  const [discountCode, setDiscountCode] = useState("");
-  const [city, setCity] = useState("");
-  const [region, setRegion] = useState("");
-  const [line1, setLine1] = useState("");
+  const [packageId, setPackageId] = useState(() => savedDraft.packageId || searchParams.get("package") || "");
+  const [discountCode, setDiscountCode] = useState(savedDraft.discountCode ?? "");
+  const [paymentProvider, setPaymentProvider] = useState<GulfPaymentProvider>(savedDraft.paymentProvider ?? "paymob");
+  const [city, setCity] = useState(savedDraft.city ?? "");
+  const [region, setRegion] = useState(savedDraft.region ?? "");
+  const [line1, setLine1] = useState(savedDraft.line1 ?? "");
   const [submitting, setSubmitting] = useState(false);
-  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(null);
+  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(savedDraft.verification ?? null);
 
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
+  const previousCurriculumId = useRef(curriculumId);
+  const previousGradeId = useRef(gradeId);
 
   const selectedCurriculum = curriculums.find((c) => c.id === curriculumId);
   const mode = selectedCurriculum?.registrationMode;
@@ -93,10 +147,14 @@ export default function StudentSignup() {
 
   useEffect(() => {
     if (!curriculumId) { setGrades([]); setGradeId(""); return; }
+    const curriculumChanged = previousCurriculumId.current !== curriculumId;
+    previousCurriculumId.current = curriculumId;
     setGradesLoading(true);
-    setGradeId("");
-    setSubjects([]);
-    setSubjectIds([]);
+    if (curriculumChanged) {
+      setGradeId("");
+      setSubjects([]);
+      setSubjectIds([]);
+    }
     catalogApi.grades(curriculumId)
       .then((result) => setGrades(result.data.filter((g) => g.isActive !== false)))
       .catch((value) => setError(friendlyError(value)))
@@ -105,13 +163,25 @@ export default function StudentSignup() {
 
   useEffect(() => {
     if (!gradeId) { setSubjects([]); return; }
+    const gradeChanged = previousGradeId.current !== gradeId;
+    previousGradeId.current = gradeId;
     setSubjectsLoading(true);
-    setSubjectIds([]);
+    if (gradeChanged) setSubjectIds([]);
     catalogApi.subjects(gradeId)
       .then((result) => setSubjects(result.data))
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setSubjectsLoading(false));
   }, [gradeId]);
+
+  useEffect(() => {
+    const draft: SignupDraft = {
+      step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds,
+      studentFullName, studentEmail, studentPassword, curriculumId, gradeId,
+      subjectIds, packageId, discountCode, paymentProvider, city, region, line1,
+      verification, idempotencyKey,
+    };
+    sessionStorage.setItem(STUDENT_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, packageId, discountCode, paymentProvider, city, region, line1, verification, idempotencyKey]);
 
   useEffect(() => {
     if (!curriculumId) { setPackages([]); setPackageId(""); return; }
@@ -147,7 +217,7 @@ export default function StudentSignup() {
     setSubjectIds((current) => current.includes(id) ? current.filter((subjectId) => subjectId !== id) : [...current, id]);
 
   const validStep = useMemo(() => {
-    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && parentPhone.trim().length >= 8 && parentPassword.length >= 8;
+    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeSaudiPaymentPhone(parentPhone) && parentPassword.length >= 8;
     if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && studentPassword.length >= 8;
     if (step === 2) {
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0) return false;
@@ -158,23 +228,29 @@ export default function StudentSignup() {
     }
     if (step === 3) {
       if (!packageId) return false;
-      if (mode === "gulf") return !!city.trim() && !!region.trim() && !!line1.trim();
+      if (mode === "gulf" && paymentProvider === "tamara") return !!city.trim() && !!region.trim() && !!line1.trim();
       return true;
     }
     return true;
-  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, subjects.length, packageId, isSingleSubjectPackage, isAllSubjectsPackage, mode, city, region, line1]);
+  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, subjects.length, packageId, isSingleSubjectPackage, isAllSubjectsPackage, mode, paymentProvider, city, region, line1]);
 
   const submitParentStep = async () => {
     setError("");
+    const paymentPhone = normalizeSaudiPaymentPhone(parentPhone);
+    if (!paymentPhone) {
+      setError("أدخل رقم جوال سعودي صحيحًا مثل 05xxxxxxxx أو 9665xxxxxxxx.");
+      return;
+    }
     setParentBusy(true);
     try {
       const response = await authApi.registerParent({
         fullName: parentFullName.trim(),
         email: parentEmail.trim(),
-        phone: parentPhone.trim(),
-        whatsappNumber: parentPhone.trim(),
+        phone: paymentPhone,
+        whatsappNumber: paymentPhone,
         password: parentPassword,
       });
+      if (response.token) tokenStore.set(response.token, response.refreshToken || "");
       setParentCreds({ email: parentEmail.trim(), password: parentPassword });
       setVerification({ email: response.data.email || parentEmail.trim(), kind: "parent" });
     } catch (value) {
@@ -186,7 +262,9 @@ export default function StudentSignup() {
 
   const next = async () => {
     if (!validStep) {
-      setError("أكمل الحقول المطلوبة قبل المتابعة.");
+      setError(step === 0 && parentPhone.trim() && !normalizeSaudiPaymentPhone(parentPhone)
+        ? "أدخل رقم جوال سعودي صحيحًا مثل 05xxxxxxxx أو 9665xxxxxxxx."
+        : "أكمل الحقول المطلوبة قبل المتابعة.");
       return;
     }
     setError("");
@@ -217,18 +295,34 @@ export default function StudentSignup() {
         });
         setVerification({ email: response.data.email || studentEmail.trim(), kind: "student" });
       } else {
-        const { data } = await paymentApi.tamaraCheckout(
+        const { data } = await paymentApi.checkout(
           {
+            provider: paymentProvider,
             parent: parentCreds,
             student: studentPayload,
             curriculum: curriculumId,
             packageId,
-            paymentAddress: { city: city.trim(), region: region.trim(), line1: line1.trim() },
+            items: subjectIds.map((subjectId) => ({ subjectId, packageId })),
+            discountCode: discountCode.trim() || undefined,
+            ...(paymentProvider === "tamara" ? {
+              paymentAddress: { city: city.trim(), region: region.trim(), line1: line1.trim() },
+            } : {}),
             locale: "ar_SA",
+            isMobile: false,
           },
           idempotencyKey,
         );
-        tamaraDraftStore.save({ paymentId: data.paymentId, idempotencyKey, studentEmail: studentEmail.trim(), createdAt: new Date().toISOString() });
+        gulfPaymentDraftStore.save({
+          paymentId: data.paymentId,
+          provider: paymentProvider,
+          checkoutUrl: data.checkoutUrl,
+          purpose: "registration",
+          idempotencyKey,
+          studentEmail: studentEmail.trim(),
+          createdAt: new Date().toISOString(),
+        });
+        if (paymentProvider === "tamara") localStorage.setItem("tamaraPaymentId", data.paymentId);
+        studentSignupSession.savePaymentCredentials(data.paymentId, studentEmail.trim(), studentPassword);
         window.location.href = data.checkoutUrl;
       }
     } catch (value) {
@@ -238,9 +332,20 @@ export default function StudentSignup() {
     }
   };
 
-  if (verification) return <AccountVerification email={verification.email} onVerified={() => {
-    if (verification.kind === "parent") { setVerification(null); setStep(1); }
-    else window.location.href = `/portal/login?email=${encodeURIComponent(verification.email)}&verified=1`;
+  if (verification) return <AccountVerification email={verification.email} onVerified={async () => {
+    if (verification.kind === "parent") {
+      if (!parentCreds) throw new Error("تعذر استعادة بيانات دخول ولي الأمر.");
+      const login = await authApi.login(parentCreds.email, parentCreds.password);
+      tokenStore.set(login.token, login.refreshToken);
+      setVerification(null);
+      setStep(1);
+    } else {
+      const login = await authApi.login(studentEmail.trim(), studentPassword);
+      tokenStore.set(login.token, login.refreshToken);
+      localStorage.setItem("bnan_portal_user", JSON.stringify(login.data));
+      sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
+      window.location.href = "/portal/student/schedule";
+    }
   }} />;
 
   return (
@@ -311,7 +416,7 @@ export default function StudentSignup() {
                       >
                         <span className="font-cairo font-semibold">{c.name}</span>
                         <span className="block text-xs text-muted-foreground mt-1">
-                          {c.registrationMode === "gulf" ? "دفع فوري عبر Tamara" : "مراجعة وتفعيل يدوي"}
+                          {c.registrationMode === "gulf" ? "دفع فوري عبر البطاقة أو Tamara" : "مراجعة وتفعيل يدوي"}
                         </span>
                       </button>
                     ))}
@@ -430,15 +535,25 @@ export default function StudentSignup() {
               </div>
 
               {mode === "gulf" ? (
-                <div>
-                  <h3 className="font-cairo font-bold mb-3">عنوان الدفع (مطلوب لـ Tamara) *</h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <LabeledInput label="المدينة *" value={city} onChange={setCity} />
-                    <LabeledInput label="المنطقة *" value={region} onChange={setRegion} />
-                    <div className="sm:col-span-2">
-                      <LabeledInput label="العنوان التفصيلي *" value={line1} onChange={setLine1} />
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="font-cairo font-bold mb-3">طريقة الدفع *</h3>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <PaymentProviderOption provider="paymob" selected={paymentProvider} onSelect={setPaymentProvider} title="بطاقة بنكية" description="Visa / Mastercard / Mada" />
+                      <PaymentProviderOption provider="tamara" selected={paymentProvider} onSelect={setPaymentProvider} title="Tamara" description="الدفع المرن عبر Tamara" />
                     </div>
                   </div>
+                  <LabeledInput label="كود الخصم (اختياري)" dir="ltr" value={discountCode} onChange={setDiscountCode} />
+                  {paymentProvider === "tamara" && (
+                    <div>
+                      <h3 className="font-cairo font-bold mb-3">عنوان الدفع لـ Tamara *</h3>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <LabeledInput label="المدينة *" value={city} onChange={setCity} />
+                        <LabeledInput label="المنطقة *" value={region} onChange={setRegion} />
+                        <div className="sm:col-span-2"><LabeledInput label="العنوان التفصيلي *" value={line1} onChange={setLine1} /></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <LabeledInput label="كود الخصم (اختياري)" dir="ltr" value={discountCode} onChange={setDiscountCode} />
@@ -506,5 +621,30 @@ function LoaderRow() {
       <Loader2 className="h-4 w-4 animate-spin" />
       جاري التحميل...
     </div>
+  );
+}
+
+function PaymentProviderOption({
+  provider,
+  selected,
+  onSelect,
+  title,
+  description,
+}: {
+  provider: GulfPaymentProvider;
+  selected: GulfPaymentProvider;
+  onSelect: (provider: GulfPaymentProvider) => void;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(provider)}
+      className={`rounded-xl border p-4 text-right transition-colors ${selected === provider ? "border-secondary bg-secondary/10" : "hover:border-secondary/50"}`}
+    >
+      <span className="block font-cairo font-semibold">{title}</span>
+      <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+    </button>
   );
 }

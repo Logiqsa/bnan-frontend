@@ -1,19 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Loader2, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { paymentApi, type TamaraStatusResult } from "@/api/paymentApi";
+import { paymentApi, type GulfPaymentStatusResult } from "@/api/paymentApi";
 import { ApiError } from "@/api/client";
-import { tamaraDraftStore } from "@/lib/tamaraDraft";
+import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import logo from "@/assets/logo-bnan.png";
 import AccountVerification from "@/components/AccountVerification";
+import { authApi } from "@/api/authApi";
+import { tokenStore } from "@/api/client";
+import { studentSignupSession } from "@/lib/studentSignupSession";
 
-const POLL_INTERVAL_MS = 2500;
-const MAX_AUTO_ATTEMPTS = 24; // ~60 seconds of automatic polling
+const POLL_INTERVAL_MS = 3000;
+const MAX_AUTO_ATTEMPTS = 20; // 60 seconds of automatic polling
 const REFRESH_COOLDOWN_MS = 10000;
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "expired", "refunded"]);
+const TERMINAL_STATUSES = new Set(["failed", "cancelled", "expired", "refunded"]);
+const isRegistrationCompleted = (payment: GulfPaymentStatusResult) =>
+  payment.status === "completed" && Boolean(payment.studentId);
 
 const friendlyError = (error: unknown) => {
   const apiError = error as ApiError;
@@ -27,25 +32,28 @@ const INITIAL_MESSAGE: Record<"success" | "failure" | "cancel", string> = {
 };
 
 export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "cancel" }) {
-  const draft = useMemo(() => tamaraDraftStore.read(), []);
+  const draft = useMemo(() => gulfPaymentDraftStore.read(), []);
   const [phase, setPhase] = useState<"polling" | "settled" | "missing">(draft ? "polling" : "missing");
-  const [result, setResult] = useState<TamaraStatusResult | null>(null);
+  const [result, setResult] = useState<GulfPaymentStatusResult | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [studentLoginState, setStudentLoginState] = useState<"idle" | "logging-in" | "error">("idle");
 
   useEffect(() => {
     if (!draft) return;
     let attempts = 0;
     let cancelled = false;
+    window.history.replaceState({}, "", window.location.pathname);
 
     const poll = async () => {
       try {
-        const { data } = await paymentApi.status(draft.paymentId);
+        const { data } = await paymentApi.status(draft.provider, draft.paymentId);
         if (cancelled) return;
         setResult(data);
         setError("");
-        if (TERMINAL_STATUSES.has(data.status)) {
+        if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+          localStorage.removeItem("tamaraPaymentId");
           setPhase("settled");
           return;
         }
@@ -58,8 +66,50 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
       setTimeout(poll, POLL_INTERVAL_MS);
     };
 
-    poll();
+    const verifyThenPoll = async () => {
+      if (draft.provider === "tamara") {
+        try {
+          const { data } = await paymentApi.reconcile(draft.paymentId);
+          if (cancelled) return;
+          setResult(data);
+          setError("");
+          if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+            localStorage.removeItem("tamaraPaymentId");
+            setPhase("settled");
+            return;
+          }
+        } catch {
+          // الرجوع إلى status polling هو الـ fallback الآمن عند فشل reconcile.
+        }
+      }
+      poll();
+    };
+
+    verifyThenPoll();
     return () => { cancelled = true; };
+  }, [draft]);
+
+  const loginStudent = useCallback(async () => {
+    if (!draft) return;
+    const credentials = studentSignupSession.credentials(draft.paymentId);
+    if (!credentials) {
+      setStudentLoginState("error");
+      setError("تم الدفع، لكن تعذر استعادة بيانات دخول الطالب. سجّل الدخول يدويًا.");
+      return;
+    }
+    setStudentLoginState("logging-in");
+    setError("");
+    try {
+      const login = await authApi.login(credentials.email, credentials.password);
+      tokenStore.set(login.token, login.refreshToken);
+      localStorage.setItem("bnan_portal_user", JSON.stringify(login.data));
+      studentSignupSession.clear();
+      gulfPaymentDraftStore.clear();
+      window.location.href = "/portal/student/schedule";
+    } catch (value) {
+      setStudentLoginState("error");
+      setError(friendlyError(value));
+    }
   }, [draft]);
 
   const manualRefresh = async () => {
@@ -68,9 +118,14 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
     setError("");
     setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
     try {
-      const { data } = await paymentApi.reconcile(draft.paymentId);
+      const { data } = draft.provider === "tamara"
+        ? await paymentApi.reconcile(draft.paymentId)
+        : await paymentApi.status(draft.provider, draft.paymentId);
       setResult(data);
-      if (TERMINAL_STATUSES.has(data.status)) setPhase("settled");
+      if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+        localStorage.removeItem("tamaraPaymentId");
+        setPhase("settled");
+      }
     } catch (value) {
       setError(friendlyError(value));
     } finally {
@@ -79,7 +134,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
   };
 
   const retry = () => {
-    tamaraDraftStore.clear();
+    gulfPaymentDraftStore.clear();
     window.location.href = "/register/student";
   };
 
@@ -112,12 +167,16 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
             </>
           )}
 
-          {phase === "settled" && result?.status === "completed" && (
-            draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={() => { tamaraDraftStore.clear(); window.location.href = `/portal/login?email=${encodeURIComponent(draft.studentEmail)}&verified=1`; }} /> : <>
+          {phase === "settled" && result && isRegistrationCompleted(result) && (
+            studentLoginState === "idle" && draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={loginStudent} /> :
+            result.status === "completed" && studentLoginState === "logging-in" ? <>
+              <Loader2 className="h-12 w-12 animate-spin text-secondary mx-auto" />
+              <h1 className="text-xl font-cairo font-bold">جاري تسجيل دخول الطالب...</h1>
+            </> : <>
               <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto"><Check /></div>
               <h1 className="text-2xl font-cairo font-bold">تم الدفع بنجاح</h1>
-              <p className="text-muted-foreground font-tajawal">راجع بريد الطالب لتفعيل الحساب قبل تسجيل الدخول.</p>
-              <Button asChild><Link to="/portal/login">تسجيل الدخول</Link></Button>
+              <p className="text-muted-foreground font-tajawal">تم الدفع وتفعيل الاشتراك بنجاح.</p>
+              {studentLoginState === "error" ? <Button asChild><Link to={`/portal/login?email=${encodeURIComponent(draft?.studentEmail || "")}`}>تسجيل الدخول يدويًا</Link></Button> : <Button asChild><Link to="/portal/login">تسجيل الدخول</Link></Button>}
             </>
           )}
 
@@ -139,11 +198,13 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
             </>
           )}
 
-          {phase === "settled" && (!result || !TERMINAL_STATUSES.has(result.status)) && (
+          {phase === "settled" && (!result || (!isRegistrationCompleted(result) && !TERMINAL_STATUSES.has(result.status))) && (
             <>
               <h1 className="text-xl font-cairo font-bold">جاري تأكيد الدفع</h1>
               <p className="text-muted-foreground font-tajawal text-sm">
-                لم تصل نتيجة نهائية بعد. اضغط تحديث بعد قليل، أو تواصل مع الدعم إذا استمرت الحالة.
+                {result?.status === "completed" && !result.studentId
+                  ? "تم تأكيد الدفع، لكن إنشاء حساب الطالب لم يكتمل بعد. اضغط تحديث لإعادة المزامنة."
+                  : "لم تصل نتيجة نهائية بعد. اضغط تحديث بعد قليل، أو تواصل مع الدعم إذا استمرت الحالة."}
               </p>
               <Button onClick={manualRefresh} disabled={refreshing || Date.now() < cooldownUntil} variant="outline" className="gap-2">
                 <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />

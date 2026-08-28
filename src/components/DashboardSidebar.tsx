@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Calendar, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, MessageSquare, ShieldCheck, Star, UserRound, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Calendar, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, MessageSquare, ShieldCheck, Star, Upload, UserRound, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +27,8 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "قصص النجاح", labelEn: "Success stories", icon: Award, path: "/admin?tab=success-stories" },
     { label: "حسابات زوم", labelEn: "Zoom accounts", icon: Video, path: "/admin?tab=zoom-accounts" },
     { label: "ربط الصفوف بـ Zoom", labelEn: "Assign classes to Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
+    { label: "رفع تسجيل حصة", labelEn: "Upload lesson recording", icon: Upload, path: "/admin/classroom-recordings" },
+    { label: "سيشنات الفصل", labelEn: "Class sessions", icon: Calendar, path: "/admin/classroom-sessions" },
     { label: "الصفحات القانونية", labelEn: "Legal pages", icon: FileText, path: "/admin?tab=legal-pages" },
   ],
   teacher: [
@@ -34,6 +36,7 @@ const roleNavItems: Record<string, NavItem[]> = {
   ],
   student: [
     { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/student/schedule" },
+    { label: "تسجيلات الحصص", labelEn: "Lesson recordings", icon: Video, path: "/portal/student/sessions" },
   ],
 };
 

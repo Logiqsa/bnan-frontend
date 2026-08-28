@@ -1,14 +1,14 @@
 import { apiRequest } from "./client";
-import type { TamaraCheckoutBody } from "./types";
+import type { GulfCheckoutBody, GulfPaymentProvider } from "./types";
 
-export interface TamaraCheckoutResult {
+export interface GulfCheckoutResult {
   paymentId: string;
   checkoutUrl: string;
   orderId: string;
   status: string;
 }
 
-export interface TamaraStatusResult {
+export interface GulfPaymentStatusResult {
   paymentId: string;
   status: "pending" | "authorized" | "captured" | "completed" | "failed" | "cancelled" | "expired" | "refunded" | string;
   checkoutUrl?: string;
@@ -19,16 +19,16 @@ export interface TamaraStatusResult {
 }
 
 export const paymentApi = {
-  tamaraCheckout: (body: TamaraCheckoutBody, idempotencyKey: string) =>
-    apiRequest<{ success: true; data: TamaraCheckoutResult }>("/payment/tamara/checkout", {
+  checkout: (body: GulfCheckoutBody, idempotencyKey: string) =>
+    apiRequest<{ success: true; data: GulfCheckoutResult }>("/payment/checkout", {
       method: "POST",
       body: JSON.stringify(body),
       headers: { "Idempotency-Key": idempotencyKey },
     }),
-  status: (paymentId: string) =>
-    apiRequest<{ success: true; data: TamaraStatusResult }>(`/payment/tamara/${paymentId}/status`),
+  status: (provider: GulfPaymentProvider, paymentId: string) =>
+    apiRequest<{ success: true; data: GulfPaymentStatusResult }>(`/payment/${provider}/${paymentId}/status`),
   reconcile: (paymentId: string) =>
-    apiRequest<{ success: true; data: TamaraStatusResult }>(`/payment/tamara/${paymentId}/reconcile`, {
+    apiRequest<{ success: true; data: GulfPaymentStatusResult }>(`/payment/tamara/${paymentId}/reconcile`, {
       method: "POST",
     }),
 };

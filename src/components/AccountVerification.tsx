@@ -15,7 +15,7 @@ const errors: Record<string, string> = {
   USER_WITH_EMAIL_NOT_FOUND: "تعذر إرسال رمز التفعيل لهذا البريد.",
 };
 
-export default function AccountVerification({ email, onVerified, embedded = false }: { email: string; onVerified: () => void; embedded?: boolean }) {
+export default function AccountVerification({ email, onVerified, embedded = false }: { email: string; onVerified: () => void | Promise<void>; embedded?: boolean }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
@@ -32,7 +32,7 @@ export default function AccountVerification({ email, onVerified, embedded = fals
   const verify = async (submittedCode = code) => {
     if (submittedCode.length !== 4) { setError(errors.EMAIL_AND_CODE_REQUIRED); return; }
     setBusy(true); setError(""); setNotice("");
-    try { await authApi.verifyAccount(email, submittedCode); onVerified(); }
+    try { await authApi.verifyAccount(email, submittedCode); await onVerified(); }
     catch (value) { const apiError = value as ApiError; setError(errors[apiError.code] || apiError.message || "تعذر تفعيل الحساب."); }
     finally { setBusy(false); }
   };
@@ -45,7 +45,7 @@ export default function AccountVerification({ email, onVerified, embedded = fals
       setCode(""); setSeconds(COOLDOWN_SECONDS); setNotice("تم إرسال رمز جديد إلى بريدك الإلكتروني.");
     } catch (value) {
       const apiError = value as ApiError;
-      if (apiError.code === "ACCOUNT_ALREADY_VERIFIED") { onVerified(); return; }
+      if (apiError.code === "ACCOUNT_ALREADY_VERIFIED") { await onVerified(); return; }
       setError(errors[apiError.code] || apiError.message || "تعذر إعادة إرسال الرمز.");
     } finally { setResending(false); }
   };

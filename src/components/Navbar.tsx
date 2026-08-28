@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { ChevronDown, Globe, LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import logoImg from "@/assets/logo-bnan.png";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { scrollToSection } from "@/lib/hash-scroll";
 
 const dashboardPathFor = (role: string) => (role === "admin" ? "/admin" : `/portal/${role}/schedule`);
 
@@ -15,6 +16,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = usePortalAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isArabic, toggleLanguage, pick } = useLanguage();
   const navLinks = [
     { label: pick("الرئيسية", "Home"), href: "/" },
@@ -26,7 +28,18 @@ const Navbar = () => {
     { label: pick("تواصل معنا", "Contact us"), href: "/contact" },
   ];
 
-  const handleLinkClick = () => setIsOpen(false);
+  const handleLinkClick = (event?: React.MouseEvent<HTMLAnchorElement>, href?: string) => {
+    setIsOpen(false);
+    if (!event || !href?.startsWith("/#")) return;
+    event.preventDefault();
+    const hash = href.slice(1);
+    if (location.pathname === "/") {
+      navigate(href);
+      window.requestAnimationFrame(() => scrollToSection(hash));
+      return;
+    }
+    navigate(href);
+  };
   const handleLogout = () => {
     logout();
     setIsOpen(false);
@@ -57,6 +70,7 @@ const Navbar = () => {
               <a
                 key={link.label}
                 href={link.href}
+                onClick={(event) => handleLinkClick(event, link.href)}
                 className="text-sm font-cairo font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 {link.label}
@@ -135,7 +149,7 @@ const Navbar = () => {
                 <a
                   key={link.label}
                   href={link.href}
-                  onClick={handleLinkClick}
+                  onClick={(event) => handleLinkClick(event, link.href)}
                   className="text-sm font-cairo font-medium text-muted-foreground hover:text-primary py-2"
                 >
                   {link.label}

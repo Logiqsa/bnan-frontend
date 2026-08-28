@@ -1,5 +1,6 @@
-import { Apple, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
+import appleIcon from "@/assets/apple-icon.png";
 
 const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.bnanacademy.app&pcampaignid=web_share";
 
@@ -38,10 +39,11 @@ const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false,
       </a>
       <div aria-label={pick("تطبيق iOS قريبًا", "iOS app coming soon")}
         className={`grid min-w-0 cursor-not-allowed grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-2xl border ${footerStyle ? "min-h-[58px] gap-2 px-3 py-2" : "min-h-[76px] gap-3 px-4 py-3"} ${iosSurface}`}>
-        <Apple
-          className={`${footerStyle ? "h-7 w-7" : "h-9 w-9"} shrink-0`}
-          fill="currentColor"
-          strokeWidth={1.4}
+        <img
+          src={appleIcon}
+          alt=""
+          aria-hidden="true"
+          className={`${footerStyle ? "h-7 w-7" : "h-9 w-9"} shrink-0 object-contain`}
         />
         <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-50 ${footerStyle ? "text-[8px]" : "text-[10px]"}`}>COMING SOON ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : "text-lg"}`}>App Store</span></span>
         <span className={`shrink-0 whitespace-nowrap rounded-full bg-secondary font-bold text-secondary-foreground ${footerStyle ? "px-1.5 py-px text-[7px]" : "px-2 py-0.5 text-[9px]"}`}>{pick("قريبًا", "Soon")}</span>

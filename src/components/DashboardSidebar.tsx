@@ -27,6 +27,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "قصص النجاح", labelEn: "Success stories", icon: Award, path: "/admin?tab=success-stories" },
     { label: "حسابات زوم", labelEn: "Zoom accounts", icon: Video, path: "/admin?tab=zoom-accounts" },
     { label: "ربط الصفوف بـ Zoom", labelEn: "Assign classes to Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
+    { label: "Zoom للفصول اليدوية", labelEn: "Manual classroom Zoom", icon: Video, path: "/admin/classroom-zoom" },
     { label: "رفع تسجيل حصة", labelEn: "Upload lesson recording", icon: Upload, path: "/admin/classroom-recordings" },
     { label: "سيشنات الفصل", labelEn: "Class sessions", icon: Calendar, path: "/admin/classroom-sessions" },
     { label: "الصفحات القانونية", labelEn: "Legal pages", icon: FileText, path: "/admin?tab=legal-pages" },
@@ -38,12 +39,16 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/student/schedule" },
     { label: "تسجيلات الحصص", labelEn: "Lesson recordings", icon: Video, path: "/portal/student/sessions" },
   ],
+  supervisor: [
+    { label: "Zoom للفصول اليدوية", labelEn: "Manual classroom Zoom", icon: Video, path: "/portal/supervisor/classrooms/zoom" },
+  ],
 };
 
 const roleLabels: Record<string, string> = {
   admin: "مدير النظام",
   teacher: "معلم",
   student: "طالب",
+  supervisor: "مشرف",
 };
 
 const isItemActive = (itemPath: string, pathname: string, search: string) =>
@@ -63,7 +68,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">
           <img src={logo} alt="أكاديمية بنان" className="h-20 w-auto object-contain brightness-0 invert" />
         </Link>
-        <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-sidebar-foreground/60">{pick(roleLabels[role] || role, role === "admin" ? "Administrator" : role === "teacher" ? "Teacher" : "Student")}</p><LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" /></div>
+        <div className="mt-2 flex items-center justify-between gap-2"><p className="text-xs text-sidebar-foreground/60">{pick(roleLabels[role] || role, role === "admin" ? "Administrator" : role === "teacher" ? "Teacher" : role === "supervisor" ? "Supervisor" : "Student")}</p><LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" /></div>
       </div>
 
       <div className="p-4 border-b border-sidebar-border">

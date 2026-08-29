@@ -17,7 +17,7 @@ export default function PortalLogin(){
   const{user,login}=usePortalAuth();const navigate=useNavigate();const[searchParams]=useSearchParams();
   const{isArabic,pick}=useLanguage();
   const[email,setEmail]=useState(()=>searchParams.get("email")||"");const[password,setPassword]=useState("");const[showPassword,setShowPassword]=useState(false);const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[verificationEmail,setVerificationEmail]=useState("");const[notice,setNotice]=useState(()=>searchParams.get("verified")==="1"?"تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.":"");
-  const homeFor=(role:string)=>role==="admin"?"/admin":`/portal/${role}/schedule`;
+  const homeFor=(role:string)=>role==="admin"?"/admin":role==="supervisor"?"/portal/supervisor/classrooms/zoom":`/portal/${role}/schedule`;
   if(user)return <Navigate to={homeFor(user.role)} replace/>;
   const submit=async(event:React.FormEvent)=>{event.preventDefault();setBusy(true);setError("");setNotice("");try{const account=await login(email.trim(),password);navigate(homeFor(account.role),{replace:true});}catch(value){const apiError=value as ApiError;if(apiError.code==="ACCOUNT_NOT_VERIFIED"){setVerificationEmail(email.trim());}else setError(messages[apiError.code]||apiError.message||"تعذر تسجيل الدخول.");}finally{setBusy(false)}};
 

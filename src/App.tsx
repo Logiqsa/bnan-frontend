@@ -27,6 +27,8 @@ import ClassroomSessionsAdmin from "@/admin/ClassroomSessionsAdmin";
 import LegalPage from "@/pages/LegalPage";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import ScrollToHash from "@/components/ScrollToHash";
+import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
+import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +66,8 @@ export default function App() {
       <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
       <Route path="/admin/classroom-recordings" element={<AdminGuard><ClassroomRecordingsAdmin /></AdminGuard>} />
       <Route path="/admin/classroom-sessions" element={<AdminGuard><ClassroomSessionsAdmin /></AdminGuard>} />
+      <Route path="/admin/classroom-zoom" element={<ManualZoomGuard role="admin"><ClassroomZoomManagement /></ManualZoomGuard>} />
+      <Route path="/portal/supervisor/classrooms/zoom" element={<ManualZoomGuard role="supervisor"><ClassroomZoomManagement /></ManualZoomGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes></PortalAuthProvider></BrowserRouter>
   </TooltipProvider></CurrencyProvider></LanguageProvider></QueryClientProvider></HelmetProvider>;

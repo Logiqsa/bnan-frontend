@@ -1,4 +1,4 @@
-export type PortalRole = "teacher" | "student" | "admin";
+export type PortalRole = "teacher" | "student" | "supervisor" | "admin";
 export type RegistrationMode = "egyptian" | "gulf";
 
 export interface RegisterParentBody {

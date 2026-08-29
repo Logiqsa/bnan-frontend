@@ -33,7 +33,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   }, []);
   const login = async (email: string, password: string) => {
     const response = await authApi.login(email, password);
-    if (!["teacher", "student", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
+    if (!["teacher", "student", "supervisor", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
     tokenStore.set(response.token, response.refreshToken); localStorage.setItem(USER_KEY, JSON.stringify(response.data)); setUser(response.data);
     return response.data;
   };

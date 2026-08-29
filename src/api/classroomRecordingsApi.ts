@@ -3,8 +3,27 @@ import { API_BASE_URL, ApiError, apiRequest, refreshAccessToken, tokenStore } fr
 export interface ClassroomOption {
   id: string;
   name: string;
-  curriculum?: { id: string; name: string };
-  grade?: { id: string; name: string };
+  curriculum?: { id: string; _id?: string; name: string; registrationMode?: "egyptian" | "gulf" };
+  grade?: { id: string; _id?: string; name: string };
+  subject?: { id?: string; name?: string } | string | null;
+  teacher?: { id?: string; name?: string; fullName?: string } | string | null;
+  student?: { id?: string; name?: string; fullName?: string } | string | null;
+  students?: Array<{ id?: string; name?: string; fullName?: string }>;
+  schedule?: { entries?: Array<{ day: string; startTime: string; endTime?: string; subjectName?: string }> } | null;
+  scheduleEntries?: Array<{ day: string; startTime: string; endTime?: string; subjectName?: string }>;
+  zoomAssignmentMode?: "grade_default" | "manual";
+  zoomMeeting?: {
+    zoomMeetingId?: string;
+    meetingLink?: string;
+    provisioningStatus?: string;
+    zoomAccount?: string | { id?: string; _id?: string; name?: string };
+  } | null;
+  zoomMeetingId?: string;
+  meetingLink?: string;
+  provisioningStatus?: string;
+  zoomProvisioning?: { status?: "creating" | "ready" | "failed"; errorCode?: string; updatedAt?: string } | null;
+  zoomAccount?: string | { id?: string; _id?: string; name?: string } | null;
+  createdAt?: string;
   isActive: boolean;
 }
 

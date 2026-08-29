@@ -4,7 +4,7 @@ const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 // في الإنتاج يمكن تغيير العنوان بدون تعديل الكود عبر VITE_API_BASE_URL.
 export const API_BASE_URL = import.meta.env.DEV
   ? "/api/v1"
-  : (configuredApiUrl || "https://bnan.0xcode7.xyz/api/v1").replace(/\/$/, "");
+  : (configuredApiUrl || "https://api.bnanacademysa.com/api/v1").replace(/\/$/, "");
 const apiLanguage = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 const TOKEN_KEY = "bnan_portal_access_token";

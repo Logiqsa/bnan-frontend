@@ -1,104 +1,180 @@
-# أكاديمية بنان
+<div align="center">
+  <img src="src/assets/logo-bnan.png" alt="BNAN Academy" width="150" />
 
-واجهة منصة **أكاديمية بنان** للتعليم عن بُعد، وتقديم المناهج السعودية والمصرية والخليجية للطلاب عبر تجربة عربية وإنجليزية متجاوبة.
+  # BNAN Academy
 
-🌐 **الموقع الرسمي:** [bnanacademysa.com](https://bnanacademysa.com)
+  **A modern learning platform for Saudi, Egyptian, and Gulf curricula.**
 
-## عن المشروع
+  [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![Tests](https://img.shields.io/badge/Tests-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 
-المشروع هو تطبيق ويب أحادي الصفحة (SPA) مبني باستخدام React وTypeScript. يضم الموقع التعريفي للأكاديمية، عرض المناهج والدورات، تسجيل الطلاب والمعلمين، بوابة الجداول والحصص، بالإضافة إلى لوحة إدارة لمتابعة المحتوى والمستخدمين والفصول وتسجيلات Zoom.
+  [Live Website](https://bnanacademysa.com) · [Report an Issue](../../issues)
+</div>
 
-### أبرز المزايا
+---
 
-- دعم اللغتين العربية والإنجليزية.
-- عرض المناهج والدورات وتفاصيلها.
-- تسجيل الطلاب واستقبال طلبات المعلمين.
-- بوابة منفصلة للطلاب والمعلمين مع صلاحيات وصول.
-- إدارة الجداول والحصص والتسجيلات والفصول الافتراضية.
-- تكامل مع Zoom لإدارة حسابات وحصص الفصول.
-- دعم عمليات الدفع وصفحات الرجوع الخاصة بـ Tamara وPaymob.
-- إدارة المحتوى القانوني وقصص النجاح والتقييمات.
-- تصميم متجاوب مع تحسين بيانات SEO الأساسية.
+## Overview
 
-## التقنيات المستخدمة
+BNAN Academy is a bilingual online education platform designed to connect students and teachers through structured curricula, live classes, course content, and classroom tools.
 
-- [React 18](https://react.dev/) و[TypeScript](https://www.typescriptlang.org/)
-- [Vite 5](https://vitejs.dev/)
-- [Tailwind CSS](https://tailwindcss.com/) و[shadcn/ui](https://ui.shadcn.com/)
-- [React Router](https://reactrouter.com/)
-- [TanStack Query](https://tanstack.com/query/latest)
-- [React Hook Form](https://react-hook-form.com/) و[Zod](https://zod.dev/)
-- [Vitest](https://vitest.dev/) وTesting Library
+This repository contains the public website, student and teacher portals, and administrative dashboard. The application is built as a responsive single-page application and communicates with a separate production API.
 
-## متطلبات التشغيل
+## Features
 
-- Node.js 20 (الإصدار محدد في `.nvmrc`)
+- Arabic and English language support
+- Curriculum and course discovery
+- Student registration and teacher applications
+- Role-based student, teacher, supervisor, and administrator access
+- Class schedules and session management
+- Classroom recordings and live lesson tools
+- Zoom account and virtual classroom management
+- Tamara and Paymob payment return flows
+- Legal content, testimonials, ratings, and success-story management
+- Responsive interface with SEO metadata support
+
+## Technology Stack
+
+| Area | Technologies |
+| --- | --- |
+| Core | React 18, TypeScript, Vite 5 |
+| Styling | Tailwind CSS, shadcn/ui, Radix UI |
+| Routing | React Router |
+| Data | TanStack Query, Fetch API |
+| Forms | React Hook Form, Zod |
+| Motion & Charts | Framer Motion, Recharts |
+| Testing | Vitest, Testing Library |
+| Deployment | Cloudflare Pages |
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js 20](https://nodejs.org/) — the expected version is defined in `.nvmrc`
 - npm
 
-## التشغيل محليًا
+### Installation
 
 ```bash
 git clone <repository-url>
 cd bnan-source-code
 npm ci
+```
+
+### Development
+
+```bash
 npm run dev
 ```
 
-بعد التشغيل، افتح [http://localhost:8080](http://localhost:8080).
+The development server runs at [http://localhost:8080](http://localhost:8080).
 
-> الواجهة تتصل حاليًا بخدمة الـ API على `https://api.bnanacademysa.com/api/v1`، لذلك تحتاج اتصالًا بالإنترنت لتشغيل الوظائف التي تعتمد على البيانات أو تسجيل الدخول.
+> [!NOTE]
+> The frontend currently communicates with `https://api.bnanacademysa.com/api/v1`. An internet connection is required for authentication and data-driven features.
 
-## أوامر المشروع
+## Available Scripts
 
-| الأمر | الوصف |
+| Command | Description |
 | --- | --- |
-| `npm run dev` | تشغيل بيئة التطوير |
-| `npm run build` | إنشاء نسخة الإنتاج داخل `dist` |
-| `npm run preview` | معاينة نسخة الإنتاج محليًا |
-| `npm run lint` | فحص جودة الكود باستخدام ESLint |
-| `npm test` | تشغيل الاختبارات مرة واحدة |
-| `npm run test:watch` | تشغيل الاختبارات في وضع المراقبة |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Create an optimized production build in `dist` |
+| `npm run build:dev` | Build the application in development mode |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Analyze the codebase with ESLint |
+| `npm test` | Run the test suite once |
+| `npm run test:watch` | Run tests in watch mode |
 
-## بنية المشروع
+## Project Structure
 
 ```text
 src/
-├── admin/       # لوحة الإدارة وإدارة Zoom والفصول
-├── api/         # عميل الـ API وتعريفات الطلبات والأنواع
-├── assets/      # الصور والملفات المرئية
-├── components/  # المكونات المشتركة ومكونات الواجهة
-├── data/        # البيانات المحلية الثابتة
-├── hooks/       # React hooks المخصصة
-├── i18n/        # إدارة اللغة والترجمة
-├── layouts/     # تخطيطات الصفحات ولوحات التحكم
-├── lib/         # الأدوات والخدمات المساعدة
-├── pages/       # صفحات الموقع العامة
-├── portal/      # بوابة الطلاب والمعلمين
-└── test/        # إعداد بيئة الاختبارات
+├── admin/       # Administration, classrooms, and Zoom management
+├── api/         # API client, domain requests, and shared types
+├── assets/      # Images and other visual assets
+├── components/  # Shared application and UI components
+├── data/        # Static application data
+├── hooks/       # Custom React hooks
+├── i18n/        # Language state and localization
+├── layouts/     # Shared page and dashboard layouts
+├── lib/         # Utilities and supporting services
+├── pages/       # Public-facing application pages
+├── portal/      # Student and teacher portal features
+└── test/        # Shared test setup
 ```
 
-## النشر على Cloudflare Pages
+## Architecture
 
-1. اربط المستودع بـ GitHub من **Workers & Pages** في Cloudflare.
-2. اختر إعدادات البناء التالية:
-   - **Framework preset:** `Vite`
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Node.js version:** `20`
-3. نفّذ عملية النشر، ثم أضف الدومين من **Custom domains** عند الحاجة.
+```mermaid
+flowchart LR
+    Visitor[Public Website] --> App[React Application]
+    Student[Student Portal] --> App
+    Teacher[Teacher Portal] --> App
+    Staff[Admin & Supervisor] --> App
+    App --> API[BNAN REST API]
+    API --> Services[Authentication, Content, Payments & Classrooms]
+```
 
-ملف `public/_redirects` يوفّر fallback لمسارات React Router، بينما يحتوي `public/_headers` على ترويسات الأمان وسياسة التخزين المؤقت.
+The frontend uses React Router for client-side navigation, TanStack Query for server-state workflows, and a centralized API client for authentication, token refresh, and error handling.
 
-## الـ Backend
+## Production Build
 
-هذا المستودع خاص بواجهة الويب فقط. خدمات المصادقة والبيانات والدفع والفصول متاحة من خلال API منفصل، ونقطة الاتصال الحالية معرفة في `src/api/client.ts`.
+Create and preview an optimized build locally:
 
-## المساهمة
+```bash
+npm run build
+npm run preview
+```
 
-قبل إرسال أي تغيير، تأكد من نجاح الفحص والاختبارات والبناء:
+## Deployment
+
+The project is configured for deployment on Cloudflare Pages.
+
+| Setting | Value |
+| --- | --- |
+| Framework preset | Vite |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Node.js version | `20` |
+
+To deploy:
+
+1. Connect the GitHub repository from **Cloudflare Workers & Pages**.
+2. Apply the build settings shown above.
+3. Deploy the project.
+4. Add the production domains under **Custom domains** if required.
+
+The deployment-related files are:
+
+- `public/_redirects` — provides the SPA fallback required by React Router.
+- `public/_headers` — defines security and caching headers.
+- `.nvmrc` — pins the expected Node.js major version.
+
+## Backend
+
+This repository contains the web frontend only. Authentication, content, payments, scheduling, and classroom services are provided by a separate backend. The current API endpoint is defined in `src/api/client.ts`.
+
+## Quality Checks
+
+Before submitting a change, run:
 
 ```bash
 npm run lint
 npm test
 npm run build
 ```
+
+## Contributing
+
+1. Create a branch for your change.
+2. Keep changes focused and follow the existing project conventions.
+3. Add or update tests when behavior changes.
+4. Run the quality checks locally.
+5. Open a pull request with a clear description and verification notes.
+
+---
+
+<div align="center">
+  Built for <a href="https://bnanacademysa.com">BNAN Academy</a>.
+</div>

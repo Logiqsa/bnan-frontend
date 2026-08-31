@@ -83,6 +83,9 @@ interface UploadResult {
 const language = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 export const classroomRecordingsApi = {
+  listAllClassrooms: () =>
+    apiRequest<{ success: true; data: ClassroomOption[] }>("/classrooms?page=1&limit=100"),
+
   listClassrooms: (keyword = "") => {
     const query = new URLSearchParams({
       status: "active",

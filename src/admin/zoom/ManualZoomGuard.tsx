@@ -11,7 +11,7 @@ export default function ManualZoomGuard({ children, role }: { children: ReactNod
     const destination = user.role === "admin"
       ? "/admin"
       : user.role === "supervisor"
-        ? "/portal/supervisor/classrooms/zoom"
+        ? "/portal/supervisor/schedule"
         : `/portal/${user.role}/schedule`;
     return <Navigate to={destination} replace />;
   }

@@ -1,32 +1,51 @@
 import { apiRequest } from "./client";
 
-export type ZoomAccountSetupStatus = "pending_webhook" | "ready";
-
 export interface ZoomAccount {
   id: string;
   name: string;
-  accountId: string;
-  clientId: string;
-  // Unset while the account is pending (Phase 1/2 of onboarding) -- only
-  // resolved once verifyZoomAccount (Phase 3) succeeds.
-  hostUserId?: string;
-  hostEmail?: string;
-  webhookKey: string;
-  webhookUrl: string;
-  setupStatus: ZoomAccountSetupStatus;
-  apiBaseUrl?: string;
   isActive: boolean;
-  verifiedAt?: string | null;
-  hasClientSecret: boolean;
-  hasWebhookSecret: boolean;
+  isConfigured: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
-// Phase 1 of onboarding: hostUserId is deliberately not collected here -- the
-// Zoom app can't be activated in Zoom Marketplace (and hostUserId resolved)
-// until it already has this account's webhook URL configured. See
-// verifyZoomAccount (Phase 3) for how hostUserId gets set, from hostEmail.
+export type ZoomAssignmentMode = "manual" | "grade_default";
+export type ZoomProvisioningStatus = "ready" | "creating" | "failed";
+
+export interface ZoomAccountClassroomSchedule {
+  day: string;
+  startTime: string;
+  endTime: string | null;
+  subjectId: string;
+  subjectName: string;
+}
+
+export interface ZoomAccountClassroom {
+  id: string;
+  name: string;
+  isActive: boolean;
+  zoomAssignmentMode: ZoomAssignmentMode;
+  curriculum: { id: string; name: string; registrationMode: "egyptian" | "gulf" };
+  grade: { id: string; name: string };
+  zoomMeetingId: string | null;
+  meetingLink: string | null;
+  zoomProvisioning: { status: ZoomProvisioningStatus } | null;
+  createdAt: string;
+  schedule: ZoomAccountClassroomSchedule[];
+}
+
+export interface ZoomAccountUsage {
+  account: Pick<ZoomAccount, "id" | "name" | "isActive" | "isConfigured">;
+  classrooms: ZoomAccountClassroom[];
+  summary: {
+    totalClassrooms: number;
+    activeClassrooms: number;
+    readyMeetings: number;
+    manualClassrooms: number;
+    gradeDefaultClassrooms: number;
+  };
+}
+
 export interface CreateZoomAccountPayload {
   name: string;
   accountId: string;
@@ -71,6 +90,9 @@ export const zoomAccountsApi = {
 
   getZoomAccount: (id: string) => apiRequest<ItemResponse<ZoomAccount>>(`/admin/zoom-accounts/${id}`),
 
+  getZoomAccountClassrooms: (id: string) =>
+    apiRequest<ItemResponse<ZoomAccountUsage>>(`/admin/zoom-accounts/${id}/classrooms`),
+
   createZoomAccount: (payload: CreateZoomAccountPayload) =>
     apiRequest<ItemResponse<ZoomAccount>>("/admin/zoom-accounts", {
       method: "POST",
@@ -83,9 +105,6 @@ export const zoomAccountsApi = {
       body: JSON.stringify(payload),
     }),
 
-  // Phase 3: called once the admin has activated the Zoom app in Zoom
-  // Marketplace using the webhookUrl shown after Phase 1. Resolves
-  // hostUserId from hostEmail and activates the account.
   verifyZoomAccount: (id: string) =>
     apiRequest<ItemResponse<ZoomAccount>>(`/admin/zoom-accounts/${id}/verify`, {
       method: "POST",

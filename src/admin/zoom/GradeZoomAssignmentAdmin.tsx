@@ -16,13 +16,15 @@ const GradeZoomAssignmentAdmin = () => {
   const [loadingCurriculums, setLoadingCurriculums] = useState(true);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<GradeZoomOption | null>(null);
+  const selectedCurriculum = curriculums.find((curriculum) => curriculum.id === curriculumId);
 
   useEffect(() => {
     catalogApi
       .curriculums()
       .then(({ data }) => {
-        setCurriculums(data);
-        if (data.length) setCurriculumId(data[0].id);
+        const egyptianCurriculums = data.filter((curriculum) => curriculum.registrationMode === "egyptian");
+        setCurriculums(egyptianCurriculums);
+        if (egyptianCurriculums.length) setCurriculumId(egyptianCurriculums[0].id);
       })
       .catch((error) => toast.error((error as ApiError).message || "فشل تحميل المناهج"))
       .finally(() => setLoadingCurriculums(false));
@@ -52,28 +54,25 @@ const GradeZoomAssignmentAdmin = () => {
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-primary/70"><Video className="h-4 w-4" />إعدادات Zoom التلقائية</div>
           <h2 className="text-2xl font-bold sm:text-3xl">ربط الصفوف بحسابات Zoom</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">اختر المنهج ثم اربط كل صف بحساب Zoom المستخدم عند إنشاء الفصول الجديدة.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">اربط كل صف بحساب Zoom المستخدم عند إنشاء الفصول الجديدة.</p>
         </div>
       </header>
 
       {loadingCurriculums ? (
         <div className="grid min-h-56 place-items-center"><div className="text-center text-muted-foreground"><Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin text-primary"/><p>جاري تحميل المناهج...</p></div></div>
       ) : curriculums.length === 0 ? (
-        <Card><CardContent className="grid min-h-56 place-items-center text-center text-muted-foreground"><div><School className="mx-auto mb-3 h-10 w-10 opacity-40"/><p className="font-medium">لا توجد مناهج متاحة</p></div></CardContent></Card>
+        <Card><CardContent className="grid min-h-56 place-items-center text-center text-muted-foreground"><div><School className="mx-auto mb-3 h-10 w-10 opacity-40"/><p className="font-medium">لا توجد مناهج مصرية متاحة</p></div></CardContent></Card>
       ) : (
         <>
-          <section className="space-y-3">
-            <div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span><h3 className="font-bold">اختر المنهج</h3></div>
-            <div className="flex snap-x gap-3 overflow-x-auto pb-2">
-              {curriculums.map((curriculum) => {
-                const active = curriculumId === curriculum.id;
-                return <button key={curriculum.id} type="button" onClick={() => setCurriculumId(curriculum.id)} className={`min-w-52 snap-start rounded-xl border bg-card p-4 text-right transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sky ${active ? "border-primary bg-primary text-primary-foreground shadow-sky" : ""}`}>
-                  <span className="block font-bold">{curriculum.name}</span>
-                  <span className={`mt-1 block text-xs ${active ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{active ? "المنهج المحدد" : "عرض الصفوف"}</span>
-                </button>;
-              })}
-            </div>
-          </section>
+          {selectedCurriculum && (
+            <section className="rounded-xl border border-primary/30 bg-primary/[0.06] p-4">
+              <p className="text-xs text-muted-foreground">المنهج المحدد</p>
+              <div className="mt-1 flex items-center gap-2 font-bold text-primary">
+                <GraduationCap className="h-4 w-4" />
+                {selectedCurriculum.name}
+              </div>
+            </section>
+          )}
 
           {loadingGrades ? (
             <div className="grid min-h-48 place-items-center"><div className="text-center text-muted-foreground"><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary"/><p>جاري تحميل الصفوف...</p></div></div>
@@ -81,7 +80,7 @@ const GradeZoomAssignmentAdmin = () => {
             <Card><CardContent className="grid min-h-48 place-items-center text-center text-muted-foreground"><div><GraduationCap className="mx-auto mb-3 h-9 w-9 opacity-40"/><p className="font-medium">لا توجد صفوف لهذا المنهج</p></div></CardContent></Card>
           ) : (
             <section className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span><div><h3 className="font-bold">ربط الصفوف</h3><p className="text-xs text-muted-foreground">{grades.length} صف في المنهج المحدد</p></div></div><div className="flex items-center gap-2"><Badge variant="outline">{grades.length} إجمالي</Badge><Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{grades.filter((grade) => grade.zoomAccount).length} مربوط</Badge></div></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span><div><h3 className="font-bold">ربط الصفوف</h3><p className="text-xs text-muted-foreground">{grades.length} صف</p></div></div><div className="flex items-center gap-2"><Badge variant="outline">{grades.length} إجمالي</Badge><Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{grades.filter((grade) => grade.zoomAccount).length} مربوط</Badge></div></div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {grades.map((grade) => {
                   const linked = Boolean(grade.zoomAccount);

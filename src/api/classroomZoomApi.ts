@@ -29,6 +29,43 @@ export interface ZoomAvailability {
   accounts: AvailableZoomAccount[];
 }
 
+export interface ZoomScheduleWindow {
+  startTime: string;
+  endTime: string | null;
+}
+
+export interface ZoomScheduleBusyBooking extends ZoomScheduleWindow {
+  classroomId?: string;
+  classroomName?: string;
+  gradeName?: string;
+  subjectId?: string;
+  subjectName?: string;
+  registrationMode?: "egyptian" | "gulf";
+}
+
+export interface ZoomScheduleAvailabilityAccount {
+  account: {
+    id: string;
+    name: string;
+    isActive: boolean;
+    isConfigured: boolean;
+    isSelectable: boolean;
+  };
+  busyBookings: ZoomScheduleBusyBooking[];
+  mergedBusyWindows: ZoomScheduleWindow[];
+  freeWindows: ZoomScheduleWindow[];
+  eligibleWindows: ZoomScheduleWindow[];
+}
+
+export interface ZoomScheduleAvailability {
+  advisory: boolean;
+  classroom: { id: string; name: string };
+  day: string;
+  durationMinutes?: number | null;
+  mode: "current_account" | "account_options";
+  accounts: ZoomScheduleAvailabilityAccount[];
+}
+
 export interface GeneratedZoomMeeting {
   classroomId: string;
   zoomAccount: { id: string; name: string };
@@ -93,6 +130,14 @@ export const classroomZoomApi = {
 
   getAvailability: (classroomId: string) =>
     apiRequest<ItemResponse<ZoomAvailability>>(`/classrooms/${classroomId}/zoom-accounts/availability`),
+
+  getScheduleAvailability: (classroomId: string, day: string, durationMinutes?: number) => {
+    const query = new URLSearchParams({ day });
+    if (durationMinutes) query.set("durationMinutes", String(durationMinutes));
+    return apiRequest<ItemResponse<ZoomScheduleAvailability>>(
+      `/classrooms/${classroomId}/zoom-schedule-availability?${query}`,
+    );
+  },
 
   generateMeeting: (classroomId: string, zoomAccountId: string) =>
     apiRequest<ItemResponse<GeneratedZoomMeeting>>(`/classrooms/${classroomId}/zoom-meeting`, {

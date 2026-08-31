@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, MoreVertical, Plus, Copy, Pencil, Power, PowerOff, ShieldCheck } from "lucide-react";
+import { Eye, Loader2, MoreVertical, Plus, Pencil, Power, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { zoomAccountsApi, ZOOM_ERROR_MESSAGES, type ZoomAccount } from "@/api/zoomAccountsApi";
 import ZoomAccountDialog from "./ZoomAccountDialog";
+import { getZoomAccountCounters, getZoomAccountStatus } from "./zoomAccountStatus";
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
@@ -37,6 +39,7 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
   const [editing, setEditing] = useState<ZoomAccount | null>(null);
   const [toDisable, setToDisable] = useState<ZoomAccount | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
@@ -65,11 +68,6 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
     setDialogOpen(true);
   };
 
-  const copyWebhook = async (account: ZoomAccount) => {
-    await navigator.clipboard.writeText(account.webhookUrl);
-    toast.success("تم نسخ رابط الـ Webhook");
-  };
-
   const enable = async (account: ZoomAccount) => {
     setBusyId(account.id);
     try {
@@ -79,24 +77,6 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
     } catch (error) {
       const apiError = error as ApiError;
       toast.error(ZOOM_ERROR_MESSAGES[apiError.code] || apiError.message || "تعذر تفعيل الحساب");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const verify = async (account: ZoomAccount) => {
-    setBusyId(account.id);
-    try {
-      await zoomAccountsApi.verifyZoomAccount(account.id);
-      toast.success("تم التحقق من حساب Zoom وتفعيله");
-      load();
-    } catch (error) {
-      const apiError = error as ApiError;
-      if (apiError.code === "ZOOM_HOST_LOOKUP_SCOPE_REQUIRED") {
-        toast.error("أضف Scope التالي في Zoom App ثم أعد التفعيل: user:read:user:admin");
-      } else {
-        toast.error(ZOOM_ERROR_MESSAGES[apiError.code] || apiError.message || "تعذر التحقق من الحساب");
-      }
     } finally {
       setBusyId(null);
     }
@@ -118,8 +98,7 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
     }
   };
 
-  const activeCount = items.filter((i) => i.isActive).length;
-  const pendingCount = items.filter((i) => i.setupStatus !== "ready").length;
+  const counters = getZoomAccountCounters(items);
 
   return (
     <div className="space-y-6">
@@ -135,23 +114,29 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
       </div>
 
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 max-w-xl">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground font-tajawal">إجمالي الحسابات</p>
-              <p className="text-2xl font-cairo font-bold">{items.length}</p>
+              <p className="text-2xl font-cairo font-bold">{counters.total}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground font-tajawal">الحسابات المفعّلة</p>
-              <p className="text-2xl font-cairo font-bold text-emerald-600">{activeCount}</p>
+              <p className="text-2xl font-cairo font-bold text-emerald-600">{counters.active}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground font-tajawal">جاهزة للاستخدام</p>
+              <p className="text-2xl font-cairo font-bold text-emerald-600">{counters.ready}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground font-tajawal">قيد الإعداد</p>
-              <p className="text-2xl font-cairo font-bold text-amber-600">{pendingCount}</p>
+              <p className="text-2xl font-cairo font-bold text-amber-600">{counters.pending}</p>
             </CardContent>
           </Card>
         </div>
@@ -167,47 +152,43 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
             <TableHeader>
               <TableRow>
                 <TableHead>الاسم</TableHead>
-                <TableHead>Host Email</TableHead>
-                <TableHead>Account ID</TableHead>
-                <TableHead>Host User ID</TableHead>
                 <TableHead>الحالة</TableHead>
-                <TableHead>البيانات السرية</TableHead>
-                <TableHead>تاريخ التحقق</TableHead>
-                <TableHead>Webhook</TableHead>
+                <TableHead>جاهزية الحساب</TableHead>
+                <TableHead>تاريخ الإضافة / آخر تحديث</TableHead>
                 <TableHead className="text-left">إجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((account) => (
                 <TableRow key={account.id}>
-                  <TableCell className="font-cairo font-medium">{account.name}</TableCell>
-                  <TableCell dir="ltr" className="text-left text-sm">{account.hostEmail || "—"}</TableCell>
-                  <TableCell dir="ltr" className="text-left text-xs text-muted-foreground">{account.accountId}</TableCell>
-                  <TableCell dir="ltr" className="text-left text-xs text-muted-foreground">{account.hostUserId || "—"}</TableCell>
+                  <TableCell className="font-cairo font-medium">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/zoom-accounts/${account.id}/classrooms`)}
+                      className="text-start text-primary underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      {account.name}
+                    </button>
+                  </TableCell>
                   <TableCell>
-                    {account.setupStatus !== "ready" ? (
+                    <Badge variant={account.isActive ? "default" : "outline"} className={account.isActive ? "bg-emerald-600 hover:bg-emerald-600" : "text-muted-foreground"}>
+                      {account.isActive ? "مفعّل" : "غير مفعل"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {getZoomAccountStatus(account) === "ready" ? (
+                      <Badge variant="outline" className="text-emerald-700 border-emerald-300">جاهز</Badge>
+                    ) : getZoomAccountStatus(account) === "pending" ? (
                       <Badge variant="outline" className="text-amber-700 border-amber-300">قيد الإعداد</Badge>
                     ) : (
-                      <Badge variant={account.isActive ? "default" : "outline"} className={account.isActive ? "bg-emerald-600 hover:bg-emerald-600" : "text-muted-foreground"}>
-                        {account.isActive ? "مفعّل" : "معطّل"}
-                      </Badge>
+                      <Badge variant="outline" className="text-muted-foreground">غير مفعل</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1 text-xs">
-                      <span className={account.hasClientSecret ? "text-emerald-700" : "text-muted-foreground"}>
-                        Client Secret {account.hasClientSecret ? "✓" : "✗"}
-                      </span>
-                      <span className={account.hasWebhookSecret ? "text-emerald-700" : "text-muted-foreground"}>
-                        Webhook Secret {account.hasWebhookSecret ? "✓" : "✗"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(account.verifiedAt)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => copyWebhook(account)} title="نسخ رابط الـ Webhook">
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                  <TableCell className="text-sm text-muted-foreground">
+                    <div>{formatDate(account.createdAt)}</div>
+                    {account.updatedAt && account.updatedAt !== account.createdAt && (
+                      <div className="text-xs">آخر تحديث: {formatDate(account.updatedAt)}</div>
+                    )}
                   </TableCell>
                   <TableCell className="text-left">
                     {busyId === account.id ? (
@@ -220,20 +201,15 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => navigate(`/admin/zoom-accounts/${account.id}/classrooms`)} className="gap-2">
+                            <Eye className="w-4 h-4" />
+                            عرض الفصول
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(account)} className="gap-2">
                             <Pencil className="w-4 h-4" />
                             عرض / تعديل
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => copyWebhook(account)} className="gap-2">
-                            <Copy className="w-4 h-4" />
-                            نسخ رابط Webhook
-                          </DropdownMenuItem>
-                          {account.setupStatus !== "ready" ? (
-                            <DropdownMenuItem onClick={() => verify(account)} className="gap-2">
-                              <ShieldCheck className="w-4 h-4" />
-                              تحقق وفعّل الحساب
-                            </DropdownMenuItem>
-                          ) : account.isActive ? (
+                          {account.isActive ? (
                             <DropdownMenuItem onClick={() => setToDisable(account)} className="gap-2 text-destructive focus:text-destructive">
                               <PowerOff className="w-4 h-4" />
                               تعطيل

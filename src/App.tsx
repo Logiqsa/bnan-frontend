@@ -29,6 +29,10 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import ScrollToHash from "@/components/ScrollToHash";
 import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
+import ZoomAccountUsageAdmin from "@/admin/zoom/ZoomAccountUsageAdmin";
+import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
+import AccountSettings from "@/portal/AccountSettings";
+import SupervisorSchedule from "@/portal/SupervisorSchedule";
 
 const queryClient = new QueryClient();
 
@@ -67,7 +71,15 @@ export default function App() {
       <Route path="/admin/classroom-recordings" element={<AdminGuard><ClassroomRecordingsAdmin /></AdminGuard>} />
       <Route path="/admin/classroom-sessions" element={<AdminGuard><ClassroomSessionsAdmin /></AdminGuard>} />
       <Route path="/admin/classroom-zoom" element={<ManualZoomGuard role="admin"><ClassroomZoomManagement /></ManualZoomGuard>} />
+      <Route path="/admin/settings" element={<AdminGuard><AccountSettings /></AdminGuard>} />
+      <Route path="/admin/classrooms" element={<AdminGuard><ClassroomManagement /></AdminGuard>} />
+      <Route path="/admin/zoom-accounts/:id/classrooms" element={<AdminGuard><ZoomAccountUsageAdmin /></AdminGuard>} />
+      <Route path="/portal/supervisor/classrooms" element={<ManualZoomGuard role="supervisor"><ClassroomManagement /></ManualZoomGuard>} />
+      <Route path="/portal/supervisor/schedule" element={<ManualZoomGuard role="supervisor"><SupervisorSchedule /></ManualZoomGuard>} />
+      <Route path="/portal/supervisor/settings" element={<ManualZoomGuard role="supervisor"><AccountSettings /></ManualZoomGuard>} />
       <Route path="/portal/supervisor/classrooms/zoom" element={<ManualZoomGuard role="supervisor"><ClassroomZoomManagement /></ManualZoomGuard>} />
+      <Route path="/portal/teacher/settings" element={<PortalGuard role="teacher"><AccountSettings /></PortalGuard>} />
+      <Route path="/portal/student/settings" element={<PortalGuard role="student"><AccountSettings /></PortalGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes></PortalAuthProvider></BrowserRouter>
   </TooltipProvider></CurrencyProvider></LanguageProvider></QueryClientProvider></HelmetProvider>;

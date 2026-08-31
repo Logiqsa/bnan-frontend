@@ -21,4 +21,11 @@ export const authApi = {
     method: "POST", body: JSON.stringify({ email }),
   }),
   profile: () => apiRequest<{ success: true; data: unknown }>("/users/me"),
+  updateName: (fullName: string) => apiRequest<{ success: true; data?: { fullName?: string } }>("/users/me/name", {
+    method: "PATCH", body: JSON.stringify({ fullName }),
+  }),
+  updatePassword: (currentPassword: string, updatedPassword: string) =>
+    apiRequest<{ success: true; token?: string; refreshToken?: string; data?: { token?: string; refreshToken?: string } }>("/auth/updatePassword", {
+      method: "PATCH", body: JSON.stringify({ currentPassword, updatedPassword }),
+    }),
 };

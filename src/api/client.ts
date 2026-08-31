@@ -12,15 +12,22 @@ export class ApiError extends Error {
 }
 
 export const tokenStore = {
-  get: () => localStorage.getItem(TOKEN_KEY),
-  getRefresh: () => localStorage.getItem(REFRESH_KEY),
-  set: (token: string, refreshToken: string) => {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(REFRESH_KEY, refreshToken);
+  get: () => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY),
+  getRefresh: () => sessionStorage.getItem(REFRESH_KEY) || localStorage.getItem(REFRESH_KEY),
+  isPersistent: () => Boolean(localStorage.getItem(TOKEN_KEY)),
+  set: (token: string, refreshToken: string, persistent = true) => {
+    const target = persistent ? localStorage : sessionStorage;
+    const other = persistent ? sessionStorage : localStorage;
+    target.setItem(TOKEN_KEY, token);
+    target.setItem(REFRESH_KEY, refreshToken);
+    other.removeItem(TOKEN_KEY);
+    other.removeItem(REFRESH_KEY);
   },
   clear: () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_KEY);
   },
 };
 
@@ -44,7 +51,7 @@ export async function refreshAccessToken(): Promise<RefreshResult> {
           return [400, 401, 403].includes(response.status) ? "rejected" : "unavailable";
         }
         if (!payload.token || !payload.refreshToken) return "rejected";
-        tokenStore.set(payload.token, payload.refreshToken || refreshToken);
+        tokenStore.set(payload.token, payload.refreshToken || refreshToken, tokenStore.isPersistent());
         return "refreshed";
       } catch {
         return "unavailable";

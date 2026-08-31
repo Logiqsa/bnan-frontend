@@ -27,7 +27,7 @@ const AssignZoomAccountDialog = ({ open, onOpenChange, grade, onAssigned }: Prop
     setLoading(true);
     zoomAccountsApi
       .getZoomAccounts()
-      .then(({ data }) => setAccounts(data.filter((a) => a.isActive && a.setupStatus === "ready")))
+      .then(({ data }) => setAccounts(data.filter((a) => a.isActive && a.isConfigured)))
       .catch((error) => {
         const apiError = error as ApiError;
         toast.error(ZOOM_ERROR_MESSAGES[apiError.code] || apiError.message || "فشل تحميل حسابات Zoom");
@@ -74,10 +74,7 @@ const AssignZoomAccountDialog = ({ open, onOpenChange, grade, onAssigned }: Prop
               <SelectContent>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    <div className="flex flex-col items-start">
-                      <span>{account.name}</span>
-                      {account.hostEmail && <span className="text-xs text-muted-foreground" dir="ltr">{account.hostEmail}</span>}
-                    </div>
+                    <span>{account.name}</span>
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -113,7 +113,7 @@ export default function ClassroomSessionsAdmin() {
       setSessions([]);
       setSubjects([]);
       setRecordings([]);
-      toast.error((error as Error).message || pick("تعذر تحميل السيشنات", "Unable to load sessions"));
+      toast.error((error as Error).message || pick("تعذر تحميل التسجيلات", "Unable to load recordings"));
     } finally {
       setLoadingSessions(false);
     }
@@ -145,7 +145,7 @@ export default function ClassroomSessionsAdmin() {
   return <DashboardLayout>
     <div className="mx-auto max-w-6xl" dir={isArabic ? "rtl" : "ltr"}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="text-3xl font-bold">{pick("سيشنات الفصل", "Class sessions")}</h1><p className="mt-1 text-muted-foreground">{pick("اعرض وفلتر كل الحصص الخاصة بالفصل.", "View and filter all lessons for a class.")}</p></div>
+        <div><h1 className="text-3xl font-bold">{pick("تسجيلات الفصل", "Class recordings")}</h1><p className="mt-1 text-muted-foreground">{pick("اعرض وفلتر كل الحصص الخاصة بالفصل.", "View and filter all lessons for a class.")}</p></div>
         <Button variant="outline" className="gap-2" disabled={!classroomId || loadingSessions} onClick={() => void loadSessions(classroomId)}><RefreshCw className={cn("h-4 w-4", loadingSessions && "animate-spin")} />{pick("تحديث", "Refresh")}</Button>
       </div>
 
@@ -156,9 +156,9 @@ export default function ClassroomSessionsAdmin() {
         <div className="space-y-2"><Label>{pick("حالة السيشن", "Session status")}</Label><Select value={status} onValueChange={setStatus} disabled={!classroomId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل الحالات", "All statuses")}</SelectItem>{statuses.map((item) => <SelectItem key={item} value={item}>{(isArabic ? statusLabelsAr : statusLabelsEn)[item] || item}</SelectItem>)}</SelectContent></Select></div>
       </CardContent></Card>
 
-      {!classroomId ? <Card><CardContent className="grid min-h-56 place-items-center text-center text-muted-foreground"><div><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/><p>{pick("اختر فصلًا لعرض السيشنات.", "Select a class to view its sessions.")}</p></div></CardContent></Card>
+      {!classroomId ? <Card><CardContent className="grid min-h-56 place-items-center text-center text-muted-foreground"><div><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/><p>{pick("اختر فصلًا لعرض التسجيلات.", "Select a class to view its recordings.")}</p></div></CardContent></Card>
         : loadingSessions ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-28 w-full" />)}</div>
-        : visibleSessions.length === 0 ? <Card><CardContent className="grid min-h-56 place-items-center text-muted-foreground">{pick("لا توجد سيشنات مطابقة.", "No matching sessions.")}</CardContent></Card>
+        : visibleSessions.length === 0 ? <Card><CardContent className="grid min-h-56 place-items-center text-muted-foreground">{pick("لا توجد تسجيلات مطابقة.", "No matching recordings.")}</CardContent></Card>
         : <div className="grid gap-4 md:grid-cols-2">{visibleSessions.map((session, index) => {
           const sessionSubjectId = session.classroomSubjectId
             || (typeof session.classroomSubject === "string" ? session.classroomSubject : session.classroomSubject?.id);

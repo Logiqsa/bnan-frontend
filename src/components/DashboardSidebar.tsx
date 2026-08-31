@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Calendar, ChevronLeft, ChevronsUpDown, FileText, GraduationCap, LayoutDashboard, Loader2, LogOut, Menu, MessageSquare, School, Settings, ShieldCheck, Star, Trash2, Upload, UserPlus, UserRound, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Bell, Calendar, ChevronLeft, ChevronsUpDown, FileText, GraduationCap, LayoutDashboard, Loader2, LogOut, Menu, MessageSquare, School, Settings, ShieldCheck, Star, Trash2, Upload, UserPlus, UserRound, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,12 +17,15 @@ interface NavItem {
   path: string;
 }
 
-const roleNavItems: Record<string, NavItem[]> = {
+// Exported so role-scoped navigation can be verified without rendering auth state.
+// eslint-disable-next-line react-refresh/only-export-components
+export const roleNavItems: Record<string, NavItem[]> = {
   admin: [
     { label: "الرئيسية", labelEn: "Dashboard", icon: LayoutDashboard, path: "/admin" },
     { label: "طلبات المعلمين", labelEn: "Teacher applications", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
     { label: "المستخدمون", labelEn: "Users", icon: UserRound, path: "/admin?tab=users" },
     { label: "المشرفون", labelEn: "Supervisors", icon: ShieldCheck, path: "/admin?tab=supervisors" },
+    { label: "إرسال إشعار", labelEn: "Send notification", icon: Bell, path: "/admin/notifications" },
     { label: "آراء العملاء", labelEn: "Testimonials", icon: Star, path: "/admin?tab=testimonials" },
     { label: "تقييمات العملاء", labelEn: "Customer ratings", icon: MessageSquare, path: "/admin?tab=testimonial-ratings" },
     { label: "قصص النجاح", labelEn: "Success stories", icon: Award, path: "/admin?tab=success-stories" },

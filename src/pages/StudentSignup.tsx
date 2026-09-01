@@ -35,6 +35,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   GULF_PRIVATE_PURCHASE_ITEMS_REQUIRED: "تعذر تحديد الباقة الخاصة بكل مادة. راجع المواد والباقة المختارة ثم حاول مجددًا.",
   PAYMENT_ACCESS_DENIED: "لا يمكن إتمام هذه العملية بهذا الحساب.",
   CHILD_CURRICULUM_MISMATCH: "يجب أن يلتحق إخوة الطالب بنفس منهج أول طفل مسجّل.",
+  WRONG_PARENT_ACCOUNT: "هذه البيانات لا تخص حساب ولي أمر.",
 };
 
 const friendlyError = (error: unknown) => {
@@ -243,18 +244,36 @@ export default function StudentSignup() {
     }
     setParentBusy(true);
     try {
+      const credentials = { email: parentEmail.trim(), password: parentPassword };
+      try {
+        const login = await authApi.login(credentials.email, credentials.password);
+        if ((login.data as { role?: string }).role !== "parent") {
+          throw new ApiError(403, "WRONG_PARENT_ACCOUNT", "هذه البيانات لا تخص حساب ولي أمر.");
+        }
+        tokenStore.set(login.token, login.refreshToken);
+        setParentCreds(credentials);
+        setStep(1);
+        return;
+      } catch (value) {
+        const loginError = value as ApiError;
+        // فشل بيانات الدخول قد يعني أن ولي الأمر جديد، لذا نحاول إنشاءه.
+        // أخطاء الشبكة والخادم ونوع الحساب لا يصح تحويلها إلى محاولة تسجيل.
+        if (loginError.code !== "INCORRECT_LOGIN_DATA") throw value;
+      }
+
       const response = await authApi.registerParent({
         fullName: parentFullName.trim(),
-        email: parentEmail.trim(),
+        email: credentials.email,
         phone: paymentPhone,
         whatsappNumber: paymentPhone,
-        password: parentPassword,
+        password: credentials.password,
       });
       if (response.token) tokenStore.set(response.token, response.refreshToken || "");
-      setParentCreds({ email: parentEmail.trim(), password: parentPassword });
-      setVerification({ email: response.data.email || parentEmail.trim(), kind: "parent" });
+      setParentCreds(credentials);
+      setVerification({ email: response.data.email || credentials.email, kind: "parent" });
     } catch (value) {
-      setError(friendlyError(value));
+      const apiError = value as ApiError;
+      setError(apiError.code === "EMAIL_ALREADY_EXISTS" ? ERROR_MESSAGES.INCORRECT_LOGIN_DATA : friendlyError(value));
     } finally {
       setParentBusy(false);
     }
@@ -385,9 +404,9 @@ export default function StudentSignup() {
           {step === 0 && (
             <div className="grid sm:grid-cols-2 gap-4">
               <LabeledInput label="اسم ولي الأمر الكامل *" value={parentFullName} onChange={setParentFullName} />
-              <LabeledInput label="البريد الإلكتروني *" type="email" dir="ltr" value={parentEmail} onChange={setParentEmail} />
+              <LabeledInput label="البريد الإلكتروني *" type="email" dir="ltr" value={parentEmail} onChange={(value) => { setParentEmail(value); setParentCreds(null); }} />
               <LabeledInput label="رقم الهاتف / واتساب *" dir="ltr" value={parentPhone} onChange={setParentPhone} />
-              <LabeledInput label="كلمة المرور *" type="password" dir="ltr" value={parentPassword} onChange={setParentPassword} />
+              <LabeledInput label="كلمة المرور *" type="password" dir="ltr" value={parentPassword} onChange={(value) => { setParentPassword(value); setParentCreds(null); }} />
             </div>
           )}
 
@@ -582,7 +601,7 @@ export default function StudentSignup() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
               )}
               {step === 0
-                ? "إنشاء الحساب والمتابعة"
+                ? "التحقق والمتابعة"
                 : step === steps.length - 1
                   ? (mode === "gulf" ? "المتابعة للدفع" : "إرسال الطلب")
                   : "التالي"}

@@ -62,18 +62,14 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
   if (loading) return <div className="py-16 text-center text-muted-foreground">جاري تحميل المحتوى...</div>;
 
   return (
-    <Card>
-      <CardHeader className="sticky top-2 z-20 mx-3 mt-3 flex-row items-center justify-between gap-3 rounded-xl border bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
+    <Card className="flex max-h-[calc(100dvh-14rem)] min-h-[32rem] flex-col overflow-hidden">
+      <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center gap-2 font-cairo text-lg">
           <FileText className="h-5 w-5 text-primary" />
           {pageLabels[slug]}
         </CardTitle>
-        <Button onClick={save} disabled={saving} className="shrink-0 gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          حفظ التغييرات
-        </Button>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
         <div className="space-y-2">
           <Label htmlFor={`${slug}-title`}>عنوان الصفحة</Label>
           <Input id={`${slug}-title`} value={page.title} onChange={(event) => setPage({ ...page, title: event.target.value })} />
@@ -92,6 +88,12 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
           </p>
         </div>
       </CardContent>
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t bg-card px-6 py-4 shadow-[0_-8px_24px_-18px_hsl(var(--foreground)/0.45)]">
+        <Button onClick={save} disabled={saving} className="min-w-40 shrink-0 gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          حفظ التغييرات
+        </Button>
+      </div>
     </Card>
   );
 };

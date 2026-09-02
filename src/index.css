@@ -123,6 +123,30 @@
 }
 
 @layer utilities {
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.9) transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    margin-block: 8px;
+    background: transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.9) content-box;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(255 255 255) content-box;
+  }
+
   .dashboard-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--secondary)) hsl(var(--muted) / 0.55);

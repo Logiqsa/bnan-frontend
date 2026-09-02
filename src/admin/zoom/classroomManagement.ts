@@ -23,11 +23,12 @@ export const classroomZoomLabel = (item: ClassroomOption) => {
 };
 
 export const normalizeEgyptianSchedule = (data: {
-  days?: Array<{ dayName: string; lessons?: Array<{ startTime: string; endTime?: string; subject?: { name?: string | { ar?: string; en?: string } } }> }>;
+  days?: Array<{ dayName: string; lessons?: Array<{ startTime: string; endTime?: string; classroomSubjectId?: string; classroomSubject?: string | { id?: string; _id?: string }; subject?: { name?: string | { ar?: string; en?: string } } }> }>;
 }): ClassroomScheduleEntry[] => (data.days || []).flatMap((day) => (day.lessons || []).map((lesson) => ({
   day: day.dayName,
   startTime: lesson.startTime,
   ...(lesson.endTime ? { endTime: lesson.endTime } : {}),
+  classroomSubjectId: lesson.classroomSubjectId || (typeof lesson.classroomSubject === "string" ? lesson.classroomSubject : lesson.classroomSubject?.id || lesson.classroomSubject?._id),
   subjectName: typeof lesson.subject?.name === "string" ? lesson.subject.name : lesson.subject?.name?.ar || lesson.subject?.name?.en,
 })));
 

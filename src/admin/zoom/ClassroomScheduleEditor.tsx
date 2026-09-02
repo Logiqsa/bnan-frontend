@@ -48,6 +48,7 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
 
   const save = async () => {
     if (!subjects.length) return toast.error(pick("لا توجد مواد مكلّفة داخل الفصل", "No assigned subjects are available"));
+    if (mode === "gulf" && !gulfSubjectId) return toast.error(pick("اختر المادة", "Select a subject"));
     if (rows.some((row) => !DAYS.includes(row.day as typeof DAYS[number]) || !row.startTime || (row.endTime && row.endTime <= row.startTime))) return toast.error(pick("راجع الأيام والأوقات؛ وقت النهاية يجب أن يكون بعد البداية", "Check days and times; end time must be after start time"));
     if (mode === "gulf" && new Set(rows.map((row) => row.day)).size !== rows.length) return toast.error(pick("الجدول السعودي يسمح بموعد واحد فقط لكل يوم", "The Gulf schedule allows only one entry per day"));
     if (mode === "egyptian") {

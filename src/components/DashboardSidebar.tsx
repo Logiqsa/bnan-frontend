@@ -116,7 +116,7 @@ const SidebarContent = ({ onNavigate, collapsed = false, onToggle }: { onNavigat
           </DropdownMenu> : <button type="button" className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg p-2 text-start transition-colors hover:bg-sidebar-accent/50" onClick={() => { prepareAddAccount(); navigate("/portal/login?addAccount=1"); onNavigate?.(); }} aria-label={pick("إضافة حساب", "Add account")} title={pick("إضافة حساب", "Add account")}><span className="min-w-0 flex-1 truncate font-cairo text-sm font-semibold">{user?.fullName}</span><UserPlus className="h-4 w-4 shrink-0 text-sidebar-foreground/70"/></button>}
       </div>
 
-      <nav className={`flex-1 space-y-1 overflow-x-hidden overflow-y-auto transition-all duration-300 ${collapsed ? "p-2" : "p-3"}`}>
+      <nav dir="ltr" className={`sidebar-scrollbar flex-1 space-y-1 overflow-x-hidden overflow-y-auto transition-all duration-300 ${collapsed ? "p-2" : "p-3"}`}>
         {items.map((item) => {
           const active = isItemActive(item.path, location.pathname, location.search);
           return (
@@ -125,6 +125,7 @@ const SidebarContent = ({ onNavigate, collapsed = false, onToggle }: { onNavigat
               onClick={() => { navigate(item.path); onNavigate?.(); }}
               title={collapsed ? pick(item.label, item.labelEn) : undefined}
               aria-label={pick(item.label, item.labelEn)}
+              dir={isArabic ? "rtl" : "ltr"}
               className={`w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${
                 active
                   ? "bg-sidebar-accent text-sidebar-primary"

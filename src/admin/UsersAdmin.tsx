@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MoreHorizontal, PauseCircle, Phone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminUsersApi, type AdminUser, type AdminUserRole, type AdminUserStatus } from "@/api/adminUsersApi";
@@ -18,6 +18,7 @@ const roleLabels: Record<AdminUserRole, string> = {
   parent: "ولي أمر",
   teacher: "معلم",
   supervisor: "مشرف",
+  admin: "أدمن",
 };
 
 const statusLabels: Record<string, string> = {
@@ -37,9 +38,11 @@ interface UsersAdminProps {
   title: string;
   description: string;
   roles: AdminUserRole[];
+  headerAction?: ReactNode;
+  refreshKey?: number;
 }
 
-export default function UsersAdmin({ title, description, roles }: UsersAdminProps) {
+export default function UsersAdmin({ title, description, roles, headerAction, refreshKey }: UsersAdminProps) {
   const rolesKey = roles.join(",");
   const [role, setRole] = useState<AdminUserRole | "all">(roles.length === 1 ? roles[0] : "all");
   const [page, setPage] = useState(1);
@@ -55,6 +58,7 @@ export default function UsersAdmin({ title, description, roles }: UsersAdminProp
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   const load = useCallback(async () => {
+    void refreshKey;
     setLoading(true);
     try {
       const result = await adminUsersApi.list(role === "all" ? undefined : role, page);
@@ -71,7 +75,7 @@ export default function UsersAdmin({ title, description, roles }: UsersAdminProp
     } finally {
       setLoading(false);
     }
-  }, [page, role, rolesKey, title]);
+  }, [page, role, rolesKey, title, refreshKey]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -145,9 +149,10 @@ export default function UsersAdmin({ title, description, roles }: UsersAdminProp
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div>
-        <h2 className="text-xl font-bold font-cairo">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="text-xl font-bold font-cairo">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p></div>
+        {headerAction}
       </div>
 
       {roles.length > 1 && <div className="flex flex-wrap gap-2">

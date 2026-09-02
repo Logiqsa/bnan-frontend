@@ -41,6 +41,7 @@ describe("GlobalNotificationAdmin", () => {
 
   it("keeps navigation Admin-only", () => {
     expect(roleNavItems.admin.some((item) => item.path === "/admin/notifications")).toBe(true);
+    expect(roleNavItems.admin.some((item) => item.path === "/admin?tab=admins")).toBe(true);
     for (const role of ["teacher", "student", "supervisor"]) expect(roleNavItems[role].some((item) => item.path === "/admin/notifications")).toBe(false);
   });
 

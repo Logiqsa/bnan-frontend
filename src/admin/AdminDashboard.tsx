@@ -12,6 +12,7 @@ import LegalPagesAdmin from "./LegalPagesAdmin";
 import TeacherApplicationsAdmin from "./TeacherApplicationsAdmin";
 import UsersAdmin from "./UsersAdmin";
 import { useLanguage } from "@/i18n/LanguageContext";
+import AdminsAdmin from "./AdminsAdmin";
 
 const DEFAULT_TAB = "overview";
 
@@ -32,6 +33,7 @@ export default function AdminDashboard() {
               ["teacher-applications",GraduationCap,"طلبات المعلمين","Teacher applications"],
               ["users",UserRound,"المستخدمون","Users"],
               ["supervisors",Users,"المشرفون","Supervisors"],
+              ["admins",Users,"الأدمنز","Administrators"],
               ["testimonials",Star,"آراء العملاء","Testimonials"],
               ["testimonial-ratings",MessageSquare,"تقييمات العملاء","Customer ratings"],
               ["success-stories",Award,"قصص النجاح","Success stories"],
@@ -68,6 +70,9 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="supervisors" className="mt-0">
           <UsersAdmin title={pick("المشرفون","Supervisors")} description={pick("عرض حسابات المشرفين المسجلة في النظام.","View supervisor accounts registered in the system.")} roles={["supervisor"]} />
+        </TabsContent>
+        <TabsContent value="admins" className="mt-0">
+          <AdminsAdmin />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

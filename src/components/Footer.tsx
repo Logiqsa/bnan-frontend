@@ -160,13 +160,15 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
             </div>
 
             {/* Copyright - Center */}
-            <p className="text-xs font-tajawal text-primary-foreground/50 order-3 md:order-2 whitespace-nowrap">
-              © 2026 {pick("جميع الحقوق محفوظة لشركة BNAN", "All rights reserved to BNAN")}
-              <span className="mx-2">•</span>
-              <Link to="/privacy-policy" className="hover:text-secondary transition-colors">{pick("سياسة الخصوصية", "Privacy Policy")}</Link>
-              <span className="mx-2">•</span>
-              <Link to="/terms-and-conditions" className="hover:text-secondary transition-colors">{pick("الشروط والأحكام", "Terms & Conditions")}</Link>
-            </p>
+            <div className="order-3 w-full text-center font-tajawal text-xs text-primary-foreground/60 md:order-2 md:w-auto">
+              <p className="leading-6">© 2026 {pick("جميع الحقوق محفوظة لشركة BNAN", "All rights reserved to BNAN")}</p>
+              <nav aria-label={pick("الروابط القانونية", "Legal links")} className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 md:mt-0 md:inline-flex">
+                <span className="hidden md:inline" aria-hidden="true">•</span>
+                <Link to="/privacy-policy" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-white/10 hover:text-secondary">{pick("سياسة الخصوصية", "Privacy Policy")}</Link>
+                <span className="text-primary-foreground/35" aria-hidden="true">•</span>
+                <Link to="/terms-and-conditions" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-white/10 hover:text-secondary">{pick("الشروط والأحكام", "Terms & Conditions")}</Link>
+              </nav>
+            </div>
 
             {/* Payment Methods - Left (RTL) */}
             <div className="flex items-center gap-4 order-2 md:order-3">

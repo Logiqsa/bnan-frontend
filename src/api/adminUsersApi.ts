@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 
-export type AdminUserRole = "student" | "parent" | "teacher" | "supervisor";
+export type AdminUserRole = "student" | "parent" | "teacher" | "supervisor" | "admin";
 export type AdminUserStatus = "active" | "inactive" | "blocked";
 
 export interface AdminUser {
@@ -68,4 +68,11 @@ export const adminUsersApi = {
     apiRequest<{ success: true; message?: string }>(`/users/${id}`, {
       method: "DELETE",
     }),
+  createAdmin: async (body: { fullName: string; email: string; password: string; phone?: string }) => {
+    const result = await apiRequest<{ success: true; data: AdminUserPayload }>("/users/admins", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    return { ...result, data: normalizeUser(result.data) };
+  },
 };

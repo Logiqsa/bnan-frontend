@@ -8,15 +8,20 @@ export const CLASSROOM_DAY_NAMES: Record<string, string> = {
   wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة",
 };
 
-export const formatScheduleTime = (value: string) => {
+export const formatScheduleTimeParts = (value: string, isArabic = true) => {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
-  if (!match) return value;
+  if (!match) return { clock: value, period: "" };
   const hours = Number(match[1]);
-  if (hours < 0 || hours > 24 || (hours === 24 && match[2] !== "00")) return value;
+  if (hours < 0 || hours > 24 || (hours === 24 && match[2] !== "00")) return { clock: value, period: "" };
   const normalizedHours = hours === 24 ? 0 : hours;
-  const period = normalizedHours < 12 ? "صباحًا" : "مساءً";
+  const period = normalizedHours < 12 ? (isArabic ? "صباحا" : "AM") : (isArabic ? "مساءا" : "PM");
   const displayHours = normalizedHours % 12 || 12;
-  return `${displayHours}:${match[2]} ${period}`;
+  return { clock: `${displayHours}:${match[2]}`, period };
+};
+
+export const formatScheduleTime = (value: string, isArabic = true) => {
+  const { clock, period } = formatScheduleTimeParts(value, isArabic);
+  return period ? `${clock} ${period}` : clock;
 };
 
 export const sortClassroomsNewestFirst = (items: ClassroomOption[]) => [...items].sort((a, b) => {

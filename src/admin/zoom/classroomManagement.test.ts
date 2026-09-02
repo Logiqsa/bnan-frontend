@@ -22,9 +22,10 @@ describe("classroom management", () => {
   });
 
   it("formats schedule times in Arabic 12-hour periods", () => {
-    expect(formatScheduleTime("00:00")).toBe("12:00 صباحًا");
-    expect(formatScheduleTime("11:30")).toBe("11:30 صباحًا");
-    expect(formatScheduleTime("17:45")).toBe("5:45 مساءً");
-    expect(formatScheduleTime("24:00")).toBe("12:00 صباحًا");
+    expect(formatScheduleTime("00:00")).toBe("12:00 صباحا");
+    expect(formatScheduleTime("11:30")).toBe("11:30 صباحا");
+    expect(formatScheduleTime("17:45")).toBe("5:45 مساءا");
+    expect(formatScheduleTime("24:00")).toBe("12:00 صباحا");
+    expect(formatScheduleTime("17:45", false)).toBe("5:45 PM");
   });
 });

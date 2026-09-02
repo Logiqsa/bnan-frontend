@@ -134,6 +134,25 @@
 }
 
 @layer utilities {
+  .schedule-day-tabs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.45) transparent;
+    scroll-snap-type: x proximity;
+  }
+
+  .schedule-day-tabs-scroll::-webkit-scrollbar {
+    height: 5px;
+  }
+
+  .schedule-day-tabs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .schedule-day-tabs-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: hsl(var(--primary) / 0.45);
+  }
+
   .sidebar-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgb(255 255 255 / 0.9) transparent;

@@ -5,10 +5,10 @@ import { classroomRecordingsApi, type ClassroomSubjectOption } from "@/api/class
 import { classroomZoomApi, type ClassroomScheduleEntry } from "@/api/classroomZoomApi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/i18n/LanguageContext";
+import Time12Input from "@/components/Time12Input";
 
 const DAYS = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const DAY_AR: Record<string, string> = { saturday: "السبت", sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء", wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة" };
@@ -84,12 +84,12 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
     <DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{pick("تحديد جدول الفصل", "Set classroom schedule")}</DialogTitle><DialogDescription>{mode === "egyptian" ? pick("يمكن إضافة أكثر من حصة في اليوم مع اختيار مادة كل حصة.", "You can add multiple lessons per day and select a subject for each.") : pick("اختر المادة ثم أضف موعدًا واحدًا لكل يوم.", "Choose the subject, then add one time slot per day.")}</DialogDescription></DialogHeader>
       {loading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary"/></div> : <div className="space-y-4">
         {mode === "gulf" && <div className="space-y-2"><Label>{pick("المادة", "Subject")}</Label><Select value={gulfSubjectId} onValueChange={setGulfSubjectId}><SelectTrigger><SelectValue placeholder={pick("اختر المادة", "Select subject")}/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>}
-        <div className="space-y-2">{rows.map((row) => <div key={row.key} className="grid gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] sm:items-end">
+        <div className="space-y-2">{rows.map((row) => <div key={row.key} className="grid gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2 sm:items-end">
           <div className="space-y-1.5"><Label>{pick("اليوم", "Day")}</Label><Select value={row.day} onValueChange={(day) => updateRow(row.key, { day })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{DAYS.map((day) => <SelectItem key={day} value={day}>{isArabic ? DAY_AR[day] : day[0].toUpperCase() + day.slice(1)}</SelectItem>)}</SelectContent></Select></div>
           {mode === "egyptian" && <div className="space-y-1.5"><Label>{pick("المادة", "Subject")}</Label><Select value={row.classroomSubjectId} onValueChange={(classroomSubjectId) => updateRow(row.key, { classroomSubjectId })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>}
-          <div className="space-y-1.5"><Label>{pick("من", "From")}</Label><Input type="time" value={row.startTime} onChange={(event) => updateRow(row.key, { startTime: event.target.value })}/></div>
-          <div className="space-y-1.5"><Label>{pick("إلى", "To")}</Label><Input type="time" value={row.endTime || ""} onChange={(event) => updateRow(row.key, { endTime: event.target.value })}/></div>
-          <Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}><Trash2 className="h-4 w-4"/></Button>
+          <div className="space-y-1.5"><Label>{pick("من", "From")}</Label><Time12Input value={row.startTime} onChange={(startTime) => updateRow(row.key, { startTime })}/></div>
+          <div className="space-y-1.5"><Label>{pick("إلى", "To")}</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })}/></div>
+          <Button type="button" variant="ghost" className="text-destructive hover:text-destructive sm:col-span-2" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}><Trash2 className="me-2 h-4 w-4"/>{pick("حذف الحصة", "Delete lesson")}</Button>
         </div>)}</div>
         <Button type="button" variant="outline" className="w-full border-dashed" onClick={addRow} disabled={mode === "gulf" && rows.length >= DAYS.length}><Plus className="me-2 h-4 w-4"/>{pick("إضافة موعد", "Add time slot")}</Button>
       </div>}

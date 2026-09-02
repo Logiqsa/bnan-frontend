@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { normalizeZoomState, referenceId, referenceName } from "./classroomZoomNormalization";
-import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomZoomLabel, formatScheduleTime, normalizeEgyptianSchedule, normalizeGulfSchedule, sortClassroomsNewestFirst } from "./classroomManagement";
+import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomZoomLabel, normalizeEgyptianSchedule, normalizeGulfSchedule, sortClassroomsNewestFirst } from "./classroomManagement";
+import ScheduleTimeText from "@/components/ScheduleTimeText";
 
 const safeError = (error: ApiError) => {
   if (error.status === 400) return "تحقق من اليوم ومدة الحصة ثم حاول مرة أخرى.";
@@ -22,17 +23,14 @@ const safeError = (error: ApiError) => {
 };
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleDateString("ar-EG-u-ca-gregory") : "—";
-const isolatedTime = (value: string) => `\u2066${formatScheduleTime(value)}\u2069`;
-const formatWindow = (window: ZoomScheduleWindow) => window.endTime
-  ? `من ${isolatedTime(window.startTime)} إلى ${isolatedTime(window.endTime)}`
-  : `من ${isolatedTime(window.startTime)}`;
+const ScheduleWindowText = ({ window }: { window: ZoomScheduleWindow }) => <span className="inline-flex flex-wrap items-center gap-1">من <ScheduleTimeText value={window.startTime}/>{window.endTime && <> إلى <ScheduleTimeText value={window.endTime}/></>}</span>;
 const windowKey = (window: ZoomScheduleWindow) => `${window.startTime}-${window.endTime || ""}`;
 
 function CurrentSchedule({ entries, loading, action }: { entries: ClassroomScheduleEntry[]; loading: boolean; action?: React.ReactNode }) {
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-primary"/>;
   return <div className="space-y-4">
     <div className="flex justify-end">{action}</div>
-    {!entries.length ? <p className="rounded-xl border border-dashed py-8 text-center text-muted-foreground">لم يتم تحديد جدول الفصل</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map((entry, index) => <div key={`${entry.day}-${entry.startTime}-${entry.classroomSubjectId || index}`} className="rounded-xl border p-3"><p className="font-bold">{CLASSROOM_DAY_NAMES[entry.day] || entry.day}</p><p className="mt-1 w-fit font-mono">من {isolatedTime(entry.startTime)}{entry.endTime ? ` إلى ${isolatedTime(entry.endTime)}` : ""}</p>{entry.subjectName && <p className="mt-1 text-sm text-muted-foreground">{entry.subjectName}</p>}</div>)}</div>}
+    {!entries.length ? <p className="rounded-xl border border-dashed py-8 text-center text-muted-foreground">لم يتم تحديد جدول الفصل</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{entries.map((entry, index) => <div key={`${entry.day}-${entry.startTime}-${entry.classroomSubjectId || index}`} className="rounded-xl border p-3"><p className="font-bold">{CLASSROOM_DAY_NAMES[entry.day] || entry.day}</p><p className="mt-1 w-fit font-mono"><ScheduleWindowText window={entry}/></p>{entry.subjectName && <p className="mt-1 text-sm text-muted-foreground">{entry.subjectName}</p>}</div>)}</div>}
   </div>;
 }
 
@@ -40,10 +38,10 @@ function AccountAvailability({ value, duration }: { value: ZoomScheduleAvailabil
   const eligible = new Set((value.eligibleWindows || []).map(windowKey));
   const allDay = value.freeWindows?.length === 1 && value.freeWindows[0].startTime === "00:00" && value.freeWindows[0].endTime === "24:00";
   return <Card className={!value.account.isSelectable ? "opacity-70" : ""}><CardHeader className="pb-3"><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-lg">{value.account.name}</CardTitle><div className="flex gap-2"><Badge variant={value.account.isActive ? "default" : "outline"}>{value.account.isActive ? "مفعل" : "غير مفعل"}</Badge>{!value.account.isSelectable && <Badge variant="outline">غير متاح للاختيار</Badge>}</div></div></CardHeader><CardContent className="space-y-5">
-    <section><h4 className="mb-2 font-semibold text-red-700">المواعيد المحجوزة</h4>{!value.busyBookings?.length ? <p className="text-sm text-muted-foreground">لا توجد حجوزات أخرى على الحساب في هذا اليوم</p> : <div className="grid gap-2 sm:grid-cols-2">{value.busyBookings.map((booking, index) => <div key={`${booking.classroomId}-${booking.startTime}-${index}`} className="rounded-lg border border-red-100 bg-red-50/60 p-3 text-sm"><p className="w-fit font-mono font-bold">{formatWindow(booking)}</p><p className="font-semibold">{booking.classroomName || "فصل محجوز"}{booking.gradeName ? ` - ${booking.gradeName}` : ""}</p>{booking.subjectName && <p className="text-muted-foreground">{booking.subjectName}</p>}{booking.registrationMode && <Badge variant="outline" className="mt-2 text-xs">{booking.registrationMode === "egyptian" ? "مصري" : "خليجي"}</Badge>}</div>)}</div>}</section>
-    {!!value.mergedBusyWindows?.length && <section><h4 className="mb-2 text-sm font-semibold">ملخص الفترات المشغولة</h4><div className="flex flex-wrap gap-2">{value.mergedBusyWindows.map((window) => <Badge key={windowKey(window)} variant="outline" className="border-red-200 bg-red-50 text-red-700">{formatWindow(window)}</Badge>)}</div></section>}
-    <section><h4 className="mb-2 font-semibold text-emerald-700">المواعيد المتاحة</h4>{allDay ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">الحساب متاح طوال اليوم</p> : !value.freeWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد مواعيد متاحة</p> : <div className="flex flex-wrap gap-2">{value.freeWindows.map((window) => { const suitable = !duration || eligible.has(windowKey(window)); return <span key={windowKey(window)} className={`rounded-lg border px-3 py-2 font-mono text-sm ${suitable ? "border-emerald-300 bg-emerald-50 font-bold text-emerald-800" : "bg-muted/40 text-muted-foreground"}`}>{formatWindow(window)}</span>; })}</div>}</section>
-    {duration && <section><h4 className="mb-2 font-semibold text-primary">مناسبة لمدة الحصة ({duration} دقيقة)</h4>{!value.eligibleWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد فترة متاحة تكفي مدة الحصة المطلوبة</p> : <div className="flex flex-wrap gap-2">{value.eligibleWindows.map((window) => <Badge key={windowKey(window)} className="px-3 py-2">{formatWindow(window)}</Badge>)}</div>}</section>}
+    <section><h4 className="mb-2 font-semibold text-red-700">المواعيد المحجوزة</h4>{!value.busyBookings?.length ? <p className="text-sm text-muted-foreground">لا توجد حجوزات أخرى على الحساب في هذا اليوم</p> : <div className="grid gap-2 sm:grid-cols-2">{value.busyBookings.map((booking, index) => <div key={`${booking.classroomId}-${booking.startTime}-${index}`} className="rounded-lg border border-red-100 bg-red-50/60 p-3 text-sm"><p className="w-fit font-mono font-bold"><ScheduleWindowText window={booking}/></p><p className="font-semibold">{booking.classroomName || "فصل محجوز"}{booking.gradeName ? ` - ${booking.gradeName}` : ""}</p>{booking.subjectName && <p className="text-muted-foreground">{booking.subjectName}</p>}{booking.registrationMode && <Badge variant="outline" className="mt-2 text-xs">{booking.registrationMode === "egyptian" ? "مصري" : "خليجي"}</Badge>}</div>)}</div>}</section>
+    {!!value.mergedBusyWindows?.length && <section><h4 className="mb-2 text-sm font-semibold">ملخص الفترات المشغولة</h4><div className="flex flex-wrap gap-2">{value.mergedBusyWindows.map((window) => <Badge key={windowKey(window)} variant="outline" className="border-red-200 bg-red-50 text-red-700"><ScheduleWindowText window={window}/></Badge>)}</div></section>}
+    <section><h4 className="mb-2 font-semibold text-emerald-700">المواعيد المتاحة</h4>{allDay ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">الحساب متاح طوال اليوم</p> : !value.freeWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد مواعيد متاحة</p> : <div className="flex flex-wrap gap-2">{value.freeWindows.map((window) => { const suitable = !duration || eligible.has(windowKey(window)); return <span key={windowKey(window)} className={`rounded-lg border px-3 py-2 font-mono text-sm ${suitable ? "border-emerald-300 bg-emerald-50 font-bold text-emerald-800" : "bg-muted/40 text-muted-foreground"}`}><ScheduleWindowText window={window}/></span>; })}</div>}</section>
+    {duration && <section><h4 className="mb-2 font-semibold text-primary">مناسبة لمدة الحصة ({duration} دقيقة)</h4>{!value.eligibleWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد فترة متاحة تكفي مدة الحصة المطلوبة</p> : <div className="flex flex-wrap gap-2">{value.eligibleWindows.map((window) => <Badge key={windowKey(window)} className="px-3 py-2"><ScheduleWindowText window={window}/></Badge>)}</div>}</section>}
   </CardContent></Card>;
 }
 

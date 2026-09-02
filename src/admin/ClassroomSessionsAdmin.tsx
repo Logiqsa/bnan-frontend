@@ -63,6 +63,7 @@ export default function ClassroomSessionsAdmin() {
   const [subjects, setSubjects] = useState<ClassroomSubjectOption[]>([]);
   const [recordings, setRecordings] = useState<SessionRecording[]>([]);
   const [curriculumId, setCurriculumId] = useState("all");
+  const [gradeId, setGradeId] = useState("all");
   const [classroomId, setClassroomId] = useState(requestedClassroomId);
   const [status, setStatus] = useState("all");
   const [classroomOpen, setClassroomOpen] = useState(false);
@@ -75,9 +76,15 @@ export default function ClassroomSessionsAdmin() {
   const curricula = useMemo(() => Array.from(new Map(
     classrooms.filter((item) => item.curriculum).map((item) => [item.curriculum!.id, item.curriculum!]),
   ).values()), [classrooms]);
+  const grades = useMemo(() => Array.from(new Map(
+    classrooms
+      .filter((item) => item.grade && (curriculumId === "all" || item.curriculum?.id === curriculumId))
+      .map((item) => [item.grade!.id, item.grade!]),
+  ).values()), [classrooms, curriculumId]);
   const filteredClassrooms = useMemo(() => classrooms.filter((item) =>
     (curriculumId === "all" || item.curriculum?.id === curriculumId)
-  ), [classrooms, curriculumId]);
+    && (gradeId === "all" || item.grade?.id === gradeId)
+  ), [classrooms, curriculumId, gradeId]);
   const visibleSessions = useMemo(() => sessions
     .filter((item) => status === "all" || item.status === status)
     .sort((a, b) => new Date(b.startAt || 0).getTime() - new Date(a.startAt || 0).getTime()), [sessions, status]);
@@ -131,6 +138,7 @@ export default function ClassroomSessionsAdmin() {
 
   const chooseCurriculum = (value: string) => {
     setCurriculumId(value);
+    setGradeId("all");
     setClassroomId("");
   };
 
@@ -141,8 +149,9 @@ export default function ClassroomSessionsAdmin() {
         <Button variant="outline" className="gap-2" disabled={!classroomId || loadingSessions} onClick={() => void loadSessions(classroomId)}><RefreshCw className={cn("h-4 w-4", loadingSessions && "animate-spin")} />{pick("تحديث", "Refresh")}</Button>
       </div>
 
-      <Card className="mb-6"><CardContent className="grid gap-4 p-5 md:grid-cols-3">
+      <Card className="mb-6"><CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
         <div className="space-y-2"><Label>{pick("المنهج", "Curriculum")}</Label><Select value={curriculumId} onValueChange={chooseCurriculum} disabled={loadingClassrooms}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{curricula.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-2"><Label>{pick("الصف", "Grade")}</Label><Select value={gradeId} onValueChange={(value) => { setGradeId(value); setClassroomId(""); }} disabled={loadingClassrooms}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل الصفوف", "All grades")}</SelectItem>{grades.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{pick("الفصل", "Class")}</Label><Popover open={classroomOpen} onOpenChange={setClassroomOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" disabled={loadingClassrooms} className="w-full justify-between font-normal"><span className="truncate">{loadingClassrooms ? pick("جاري التحميل...", "Loading...") : selectedClassroom?.name || pick("اختر أو ابحث", "Select or search")}</span><ChevronsUpDown className="h-4 w-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start"><Command dir={isArabic ? "rtl" : "ltr"}><CommandInput placeholder={pick("ابحث باسم الفصل...", "Search by class name...")}/><CommandList><CommandEmpty>{pick("لا توجد نتائج.", "No results found.")}</CommandEmpty><CommandGroup>{filteredClassrooms.map((item) => <CommandItem key={item.id} value={`${item.name} ${item.curriculum?.name || ""} ${item.grade?.name || ""}`} onSelect={() => { setClassroomId(item.id); setClassroomOpen(false); }}><Check className={cn("ml-2 h-4 w-4", classroomId === item.id ? "opacity-100" : "opacity-0")}/><span><span className="block">{item.name}</span><span className="text-xs text-muted-foreground">{[item.curriculum?.name, item.grade?.name].filter(Boolean).join(" — ")}</span></span></CommandItem>)}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>
         <div className="space-y-2"><Label>{pick("حالة السيشن", "Session status")}</Label><Select value={status} onValueChange={setStatus} disabled={!classroomId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل الحالات", "All statuses")}</SelectItem>{statuses.map((item) => <SelectItem key={item} value={item}>{(isArabic ? statusLabelsAr : statusLabelsEn)[item] || item}</SelectItem>)}</SelectContent></Select></div>
       </CardContent></Card>

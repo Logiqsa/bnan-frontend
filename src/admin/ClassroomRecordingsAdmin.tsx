@@ -48,6 +48,7 @@ export default function ClassroomRecordingsAdmin() {
   const [classroomSubjectId, setClassroomSubjectId] = useState("");
   const [classroomOpen, setClassroomOpen] = useState(false);
   const [curriculumId, setCurriculumId] = useState("all");
+  const [gradeId, setGradeId] = useState("all");
   const [title, setTitle] = useState("");
   const [startAt, setStartAt] = useState("");
   const [notes, setNotes] = useState("");
@@ -61,9 +62,15 @@ export default function ClassroomRecordingsAdmin() {
   const curricula = useMemo(() => Array.from(new Map(
     classrooms.filter((item) => item.curriculum).map((item) => [item.curriculum!.id, item.curriculum!]),
   ).values()), [classrooms]);
+  const grades = useMemo(() => Array.from(new Map(
+    classrooms
+      .filter((item) => item.grade && (curriculumId === "all" || item.curriculum?.id === curriculumId))
+      .map((item) => [item.grade!.id, item.grade!]),
+  ).values()), [classrooms, curriculumId]);
   const filteredClassrooms = useMemo(() => classrooms.filter((item) =>
     (curriculumId === "all" || item.curriculum?.id === curriculumId)
-  ), [classrooms, curriculumId]);
+    && (gradeId === "all" || item.grade?.id === gradeId)
+  ), [classrooms, curriculumId, gradeId]);
   const selectedClassroom = classrooms.find((item) => item.id === classroomId);
 
   useEffect(() => {
@@ -147,12 +154,19 @@ export default function ClassroomRecordingsAdmin() {
         <CardContent>
           <form onSubmit={submit} className="space-y-5">
             <fieldset disabled={uploading} className="space-y-5">
-              <div className="space-y-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>{pick("المنهج", "Curriculum")}</Label>
-                  <Select value={curriculumId} onValueChange={(value) => { setCurriculumId(value); setClassroomId(""); }} disabled={loadingClassrooms}>
+                  <Select value={curriculumId} onValueChange={(value) => { setCurriculumId(value); setGradeId("all"); setClassroomId(""); }} disabled={loadingClassrooms}>
                     <SelectTrigger><SelectValue placeholder={pick("كل المناهج", "All curricula")} /></SelectTrigger>
                     <SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{curricula.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{pick("الصف", "Grade")}</Label>
+                  <Select value={gradeId} onValueChange={(value) => { setGradeId(value); setClassroomId(""); }} disabled={loadingClassrooms}>
+                    <SelectTrigger><SelectValue placeholder={pick("كل الصفوف", "All grades")} /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">{pick("كل الصفوف", "All grades")}</SelectItem>{grades.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>

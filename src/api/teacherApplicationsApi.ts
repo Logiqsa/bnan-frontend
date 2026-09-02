@@ -22,6 +22,7 @@ export interface TeacherApplication {
   nationality?: string;
   country?: string;
   city?: string;
+  dateOfBirth?: string;
   degree?: string;
   specialization?: string;
   institutionName?: string;
@@ -43,6 +44,7 @@ export interface TeacherApplication {
   status: TeacherApplicationStatus;
   isVerified?: boolean;
   curriculums?: Array<NamedEntity | string>;
+  additionalCurriculums?: Array<NamedEntity | string>;
   teacherAssignments?: TeacherAssignment[];
   cv?: string;
   cvUrl?: string;
@@ -50,6 +52,11 @@ export interface TeacherApplication {
   certificateUrl?: string;
   identityDocument?: string;
   identityDocumentUrl?: string;
+  stableInternetProof?: string;
+  stableInternetProofUrl?: string;
+  experienceCertificates?: string[];
+  termsAcceptedAt?: string;
+  termsVersion?: number;
   createdAt?: string;
   updatedAt?: string;
   user?: {

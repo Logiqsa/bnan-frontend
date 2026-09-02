@@ -8,6 +8,7 @@ import { sanitizeLegalHtml } from "@/lib/legalContent";
 const defaults: Record<LegalPageSlug, string> = {
   "privacy-policy": "سياسة الخصوصية",
   "terms-and-conditions": "الشروط والأحكام",
+  "teacher-terms-and-conditions": "شروط وأحكام تسجيل وعمل المعلمين",
 };
 
 export default function LegalPage({ slug }: { slug: LegalPageSlug }) {

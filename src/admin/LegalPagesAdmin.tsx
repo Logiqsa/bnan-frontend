@@ -14,6 +14,7 @@ import { legalHtmlHasContent, sanitizeLegalHtml } from "@/lib/legalContent";
 const pageLabels: Record<LegalPageSlug, string> = {
   "privacy-policy": "سياسة الخصوصية",
   "terms-and-conditions": "الشروط والأحكام",
+  "teacher-terms-and-conditions": "شروط وأحكام المعلمين",
 };
 
 const emptyPage = (slug: LegalPageSlug): LegalPage => ({
@@ -103,12 +104,14 @@ export default function LegalPagesAdmin() {
         <p className="text-sm font-tajawal text-muted-foreground">تعديل المحتوى الذي يظهر لزوار الموقع.</p>
       </div>
       <Tabs defaultValue="privacy-policy" dir="rtl">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="privacy-policy">سياسة الخصوصية</TabsTrigger>
           <TabsTrigger value="terms-and-conditions">الشروط والأحكام</TabsTrigger>
+          <TabsTrigger value="teacher-terms-and-conditions">شروط المعلمين</TabsTrigger>
         </TabsList>
         <TabsContent value="privacy-policy"><LegalPageEditor slug="privacy-policy" /></TabsContent>
         <TabsContent value="terms-and-conditions"><LegalPageEditor slug="terms-and-conditions" /></TabsContent>
+        <TabsContent value="teacher-terms-and-conditions"><LegalPageEditor slug="teacher-terms-and-conditions" /></TabsContent>
       </Tabs>
     </div>
   );

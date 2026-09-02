@@ -21,12 +21,13 @@ export interface LegacyVisibility {
   successStories: boolean;
 }
 
-export type LegalPageSlug = "privacy-policy" | "terms-and-conditions";
+export type LegalPageSlug = "privacy-policy" | "terms-and-conditions" | "teacher-terms-and-conditions";
 
 export interface LegalPage {
   slug: LegalPageSlug;
   title: string;
   content: string;
+  version?: number;
   updatedAt: string | null;
 }
 

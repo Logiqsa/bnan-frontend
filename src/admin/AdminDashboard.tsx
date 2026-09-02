@@ -33,7 +33,7 @@ export default function AdminDashboard() {
               ["teacher-applications",GraduationCap,"طلبات المعلمين","Teacher applications"],
               ["users",UserRound,"المستخدمون","Users"],
               ["supervisors",Users,"المشرفون","Supervisors"],
-              ["admins",Users,"الأدمنز","Administrators"],
+              ["admins",Users,"الأدمن","Admins"],
               ["testimonials",Star,"آراء العملاء","Testimonials"],
               ["testimonial-ratings",MessageSquare,"تقييمات العملاء","Customer ratings"],
               ["success-stories",Award,"قصص النجاح","Success stories"],

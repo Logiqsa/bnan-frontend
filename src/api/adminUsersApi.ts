@@ -30,12 +30,15 @@ export interface AdminUsersResponse {
 }
 
 type AdminUserPayload = Omit<AdminUser, "id"> & { id?: string; _id?: string };
+type AdminUserEnvelope = AdminUserPayload & { user?: AdminUserPayload };
 type AdminUsersPayload = Omit<AdminUsersResponse, "data"> & { data: AdminUserPayload[] };
 
 const normalizeUser = (item: AdminUserPayload): AdminUser => ({
   ...item,
   id: item.id || item._id || "",
 });
+
+const normalizeUserEnvelope = (item: AdminUserEnvelope): AdminUser => normalizeUser(item.user || item);
 
 const normalizeList = (result: AdminUsersPayload): AdminUsersResponse => ({
   ...result,
@@ -54,8 +57,8 @@ export const adminUsersApi = {
     return normalizeList(await apiRequest<AdminUsersPayload>(`/users?${params.toString()}`));
   },
   get: async (id: string) => {
-    const result = await apiRequest<{ success: true; data: AdminUserPayload }>(`/users/${id}`);
-    return { ...result, data: normalizeUser(result.data) };
+    const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/users/${id}`);
+    return { ...result, data: normalizeUserEnvelope(result.data) };
   },
   updateStatus: async (id: string, status: AdminUserStatus) => {
     const result = await apiRequest<{ success: true; data: AdminUserPayload }>(`/users/${id}/status`, {
@@ -74,5 +77,12 @@ export const adminUsersApi = {
       body: JSON.stringify(body),
     });
     return { ...result, data: normalizeUser(result.data) };
+  },
+  update: async (id: string, body: { fullName: string; email: string; phone?: string }) => {
+    const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    return { ...result, data: normalizeUserEnvelope(result.data) };
   },
 };

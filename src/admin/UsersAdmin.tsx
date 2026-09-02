@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MoreHorizontal, PauseCircle, Phone, Trash2 } from "lucide-react";
+import { Ban, CheckCircle2, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MoreHorizontal, PauseCircle, Pencil, Phone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { adminUsersApi, type AdminUser, type AdminUserRole, type AdminUserStatus } from "@/api/adminUsersApi";
 import { ApiError } from "@/api/client";
@@ -7,11 +7,13 @@ import { teacherApplicationsApi, type TeacherApplication } from "@/api/teacherAp
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TeacherApplicationDetails } from "./TeacherApplicationDetails";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const roleLabels: Record<AdminUserRole, string> = {
   student: "طالب",
@@ -34,15 +36,20 @@ const Detail = ({ label, value }: { label: string; value?: string }) => (
   </div>
 );
 
+const mergeUserDetails = (current: AdminUser, details: AdminUser): AdminUser => Object.fromEntries(
+  Object.entries({ ...current, ...details }).map(([key, value]) => [key, value ?? current[key as keyof AdminUser]]),
+) as unknown as AdminUser;
+
 interface UsersAdminProps {
   title: string;
   description: string;
   roles: AdminUserRole[];
   headerAction?: ReactNode;
   refreshKey?: number;
+  allowEdit?: boolean;
 }
 
-export default function UsersAdmin({ title, description, roles, headerAction, refreshKey }: UsersAdminProps) {
+export default function UsersAdmin({ title, description, roles, headerAction, refreshKey, allowEdit = false }: UsersAdminProps) {
   const rolesKey = roles.join(",");
   const [role, setRole] = useState<AdminUserRole | "all">(roles.length === 1 ? roles[0] : "all");
   const [page, setPage] = useState(1);
@@ -56,6 +63,8 @@ export default function UsersAdmin({ title, description, roles, headerAction, re
   const [teacherDetailsMissing, setTeacherDetailsMissing] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", email: "", phone: "" });
 
   const load = useCallback(async () => {
     void refreshKey;
@@ -94,12 +103,12 @@ export default function UsersAdmin({ title, description, roles, headerAction, re
           adminUsersApi.get(item.id),
           teacherApplicationsApi.getByUserId(item.id),
         ]);
-        setSelected(userResult.data);
+        setSelected(mergeUserDetails(item, userResult.data));
         setTeacherDetails(teacherResult?.data ?? null);
         setTeacherDetailsMissing(!teacherResult);
       } else {
         const result = await adminUsersApi.get(item.id);
-        setSelected(result.data);
+        setSelected(mergeUserDetails(item, result.data));
       }
     } catch (error) {
       toast.error((error as ApiError).message || "تعذر تحميل بيانات المستخدم");
@@ -147,6 +156,32 @@ export default function UsersAdmin({ title, description, roles, headerAction, re
     }
   };
 
+  const openEdit = (item: AdminUser) => {
+    setEditingUser(item);
+    setEditForm({ fullName: item.fullName || "", email: item.email || "", phone: item.phone || "" });
+  };
+
+  const saveEdit = async () => {
+    if (!editingUser || busyUserId) return;
+    if (!editForm.fullName.trim() || !editForm.email.trim()) return toast.error("الاسم والبريد الإلكتروني مطلوبان");
+    setBusyUserId(editingUser.id);
+    try {
+      const result = await adminUsersApi.update(editingUser.id, {
+        fullName: editForm.fullName.trim(),
+        email: editForm.email.trim().toLowerCase(),
+        phone: editForm.phone.trim(),
+      });
+      const updated = mergeUserDetails({ ...editingUser, ...editForm }, result.data);
+      setItems((current) => current.map((item) => item.id === editingUser.id ? updated : item));
+      setSelected((current) => current?.id === editingUser.id ? mergeUserDetails(current, updated) : current);
+      setEditingUser(null);
+      toast.success("تم تحديث بيانات الأدمن بنجاح");
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(apiError.status === 409 ? "يوجد حساب آخر بهذا البريد الإلكتروني" : apiError.message || "تعذر تحديث البيانات");
+    } finally { setBusyUserId(null); }
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -177,6 +212,7 @@ export default function UsersAdmin({ title, description, roles, headerAction, re
                 <DropdownMenuTrigger asChild><Button size="icon" variant="outline" disabled={busyUserId === item.id} aria-label={`إجراءات ${item.fullName || "المستخدم"}`}>{busyUserId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}</Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="start" dir="rtl">
                   <DropdownMenuLabel>تغيير الحالة</DropdownMenuLabel>
+                  {allowEdit && <><DropdownMenuItem onClick={() => openEdit(item)} className="gap-2"><Pencil className="h-4 w-4" />تعديل البيانات</DropdownMenuItem><DropdownMenuSeparator /></>}
                   <DropdownMenuItem disabled={item.status === "active"} onClick={() => updateStatus(item, "active")} className="gap-2"><CheckCircle2 className="h-4 w-4" />تنشيط</DropdownMenuItem>
                   <DropdownMenuItem disabled={item.status === "inactive"} onClick={() => updateStatus(item, "inactive")} className="gap-2"><PauseCircle className="h-4 w-4" />تعطيل</DropdownMenuItem>
                   <DropdownMenuItem disabled={item.status === "blocked"} onClick={() => updateStatus(item, "blocked")} className="gap-2"><Ban className="h-4 w-4" />حظر</DropdownMenuItem>
@@ -197,6 +233,13 @@ export default function UsersAdmin({ title, description, roles, headerAction, re
       <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) { setSelected(null); setTeacherDetails(null); setTeacherDetailsMissing(false); } }}>
         <DialogContent className={selected?.role === "teacher" ? "max-h-[92vh] w-[95vw] max-w-6xl overflow-y-auto" : undefined} dir="rtl"><DialogHeader><DialogTitle className="font-cairo">بيانات {selected?.fullName || "المستخدم"}</DialogTitle><DialogDescription>{selected?.role === "teacher" ? "بيانات حساب المعلم وملف التقديم الكامل." : "تفاصيل الحساب المسجلة في النظام."}</DialogDescription></DialogHeader>
           {detailLoading || !selected ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-7 w-7 animate-spin" /></div> : teacherDetails ? <><section><h3 className="mb-3 font-bold font-cairo">بيانات الحساب</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Detail label="الدور" value={roleLabels[selected.role]} /><Detail label="حالة الحساب" value={statusLabels[selected.status || ""] || selected.status} /><Detail label="تاريخ التسجيل" value={selected.createdAt ? new Date(selected.createdAt).toLocaleString("ar-SA-u-ca-gregory") : "—"} /></div></section><TeacherApplicationDetails application={teacherDetails} /></> : <>{teacherDetailsMissing && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">لا يوجد طلب تقديم مرتبط بحساب هذا المعلم.</div>}<div className="grid gap-3 sm:grid-cols-2"><Detail label="الاسم" value={selected.fullName} /><Detail label="الدور" value={roleLabels[selected.role]} /><Detail label="البريد الإلكتروني" value={selected.email} /><Detail label="رقم الهاتف" value={selected.phone} /><Detail label="الحالة" value={statusLabels[selected.status || ""] || selected.status} /><Detail label="البريد مفعّل" value={selected.isVerified === undefined ? "—" : selected.isVerified ? "نعم" : "لا"} /><Detail label="تاريخ التسجيل" value={selected.createdAt ? new Date(selected.createdAt).toLocaleString("ar-SA-u-ca-gregory") : "—"} /><Detail label="آخر تحديث" value={selected.updatedAt ? new Date(selected.updatedAt).toLocaleString("ar-SA-u-ca-gregory") : "—"} /></div></>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(editingUser)} onOpenChange={(open) => !open && !busyUserId && setEditingUser(null)}>
+        <DialogContent dir="rtl"><DialogHeader><DialogTitle>تعديل بيانات الأدمن</DialogTitle><DialogDescription>يمكنك تعديل الاسم والبريد الإلكتروني ورقم الهاتف.</DialogDescription></DialogHeader>
+          <div className="space-y-4"><div className="space-y-2"><Label htmlFor="edit-admin-name">الاسم الكامل</Label><Input id="edit-admin-name" value={editForm.fullName} onChange={(event) => setEditForm((current) => ({ ...current, fullName: event.target.value }))}/></div><div className="space-y-2"><Label htmlFor="edit-admin-email">البريد الإلكتروني</Label><Input id="edit-admin-email" type="email" dir="ltr" value={editForm.email} onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}/></div><div className="space-y-2"><Label htmlFor="edit-admin-phone">رقم الهاتف</Label><Input id="edit-admin-phone" type="tel" dir="ltr" value={editForm.phone} onChange={(event) => setEditForm((current) => ({ ...current, phone: event.target.value }))}/></div></div>
+          <DialogFooter><Button variant="outline" onClick={() => setEditingUser(null)} disabled={Boolean(busyUserId)}>إلغاء</Button><Button onClick={() => void saveEdit()} disabled={Boolean(busyUserId)}>{busyUserId && <Loader2 className="ml-2 h-4 w-4 animate-spin"/>}حفظ التغييرات</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

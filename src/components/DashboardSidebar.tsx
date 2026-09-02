@@ -25,7 +25,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
     { label: "طلبات المعلمين", labelEn: "Teacher applications", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
     { label: "المستخدمون", labelEn: "Users", icon: UserRound, path: "/admin?tab=users" },
     { label: "المشرفون", labelEn: "Supervisors", icon: ShieldCheck, path: "/admin?tab=supervisors" },
-    { label: "الأدمنز", labelEn: "Administrators", icon: Users, path: "/admin?tab=admins" },
+    { label: "الأدمن", labelEn: "Admins", icon: Users, path: "/admin?tab=admins" },
     { label: "إرسال إشعار", labelEn: "Send notification", icon: Bell, path: "/admin/notifications" },
     { label: "آراء العملاء", labelEn: "Testimonials", icon: Star, path: "/admin?tab=testimonials" },
     { label: "تقييمات العملاء", labelEn: "Customer ratings", icon: MessageSquare, path: "/admin?tab=testimonial-ratings" },

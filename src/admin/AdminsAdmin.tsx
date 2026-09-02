@@ -43,10 +43,11 @@ export default function AdminsAdmin() {
 
   return <>
     <UsersAdmin
-      title={pick("الأدمنز", "Administrators")}
+      title={pick("الأدمن", "Admins")}
       description={pick("عرض حسابات الإدارة وإضافة أدمن جديد للنظام.", "View administrator accounts and add a new administrator.")}
       roles={["admin"]}
       refreshKey={refreshKey}
+      allowEdit
       headerAction={<Button onClick={() => setOpen(true)} className="gap-2"><Plus className="h-4 w-4"/>{pick("إضافة أدمن", "Add administrator")}</Button>}
     />
     <Dialog open={open} onOpenChange={(value) => !saving && setOpen(value)}>

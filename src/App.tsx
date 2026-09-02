@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { CurrencyProvider } from "@/hooks/useCurrency";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 import Index from "@/pages/Index";
 import AllCurricula from "@/pages/AllCurricula";
 import AccountTypeSelect from "@/pages/AccountTypeSelect";
@@ -46,7 +47,7 @@ function HomeOrTamaraReturn() {
 
 export default function App() {
   return <HelmetProvider><QueryClientProvider client={queryClient}><LanguageProvider><CurrencyProvider><TooltipProvider><Sonner />
-    <BrowserRouter><PortalAuthProvider><ScrollToHash /><FloatingWhatsApp /><Routes>
+    <BrowserRouter><PortalAuthProvider><ScrollToHash /><FloatingWhatsApp /><ScrollToTopButton /><Routes>
       <Route path="/" element={<HomeOrTamaraReturn />} />
       <Route path="/curricula" element={<AllCurricula />} />
       <Route path="/all-curricula" element={<Navigate to="/curricula" replace />} />

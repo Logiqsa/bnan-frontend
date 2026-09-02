@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
-import { Bell, CheckCircle2, Loader2, RefreshCw, Send, Trash2, TriangleAlert, Upload } from "lucide-react";
+import { Bell, CheckCircle2, Loader2, RefreshCw, Send, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/api/globalNotificationsApi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -31,7 +31,6 @@ export const audienceDetails: Record<GlobalNotificationAudience, { ar: string; e
   parent: { ar: "أولياء الأمور", en: "Parents", hintAr: "سيتم إرسال الإشعار إلى أولياء الأمور فقط.", hintEn: "The notification will be sent to parents only." },
 };
 
-const formatNumber = (value: number | undefined, locale: string) => value == null ? "—" : value.toLocaleString(locale);
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
 
@@ -112,11 +111,6 @@ export default function GlobalNotificationAdmin() {
       setResult(response.data);
       setConfirming(false);
       clearForm();
-      if (response.data.status === "partial") {
-        toast.warning(pick("تم إرسال الإشعار مع وجود بعض حالات فشل في Push.", "The notification was sent with some push delivery failures."));
-      } else {
-        toast.success(pick("تم إرسال الإشعار بنجاح", "Notification sent successfully"));
-      }
     } catch (error) {
       const apiError = error as ApiError;
       const message = apiError.status === 413 || apiError.code === "GLOBAL_NOTIFICATION_IMAGE_TOO_LARGE"
@@ -144,18 +138,12 @@ export default function GlobalNotificationAdmin() {
         <p className="mt-1 text-muted-foreground">{pick("أرسل إشعارًا لمستخدمي منصة بنان.", "Send a notification to Bnan platform users.")}</p>
       </div>
 
-      {result && <Alert className={result.status === "partial" ? "border-amber-300 bg-amber-50/70" : "border-emerald-300 bg-emerald-50/70"}>
-        {result.status === "partial" ? <TriangleAlert className="h-4 w-4 text-amber-700" /> : <CheckCircle2 className="h-4 w-4 text-emerald-700" />}
-        <AlertTitle>{result.status === "partial" ? pick("تم الإرسال جزئيًا", "Partially delivered") : pick("تم إرسال الإشعار", "Notification sent")}</AlertTitle>
-        <AlertDescription>
-          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <span>{pick("المستخدمون المستهدفون", "Users targeted")}: <strong>{formatNumber(result.usersTargeted, isArabic ? "ar-SA" : "en-US")}</strong></span>
-            <span>{pick("الإشعارات المنشأة", "Notifications created")}: <strong>{formatNumber(result.notificationsCreated, isArabic ? "ar-SA" : "en-US")}</strong></span>
-            <span>{pick("Push ناجح", "Push succeeded")}: <strong>{formatNumber(result.pushSuccessCount, isArabic ? "ar-SA" : "en-US")}</strong></span>
-            <span>{pick("Push فشل", "Push failed")}: <strong>{formatNumber(result.pushFailureCount, isArabic ? "ar-SA" : "en-US")}</strong></span>
-          </div>
-          <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setResult(null)}>{pick("إخفاء النتيجة", "Dismiss result")}</Button>
-        </AlertDescription>
+      {result && <Alert className="relative border-emerald-300 bg-emerald-50/80 pe-12 text-emerald-900">
+        <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+        <AlertTitle>{pick("تم إرسال الإشعار بنجاح", "Notification sent successfully")}</AlertTitle>
+        <Button type="button" variant="ghost" size="icon" className="absolute end-2 top-2 h-8 w-8 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900" onClick={() => setResult(null)} aria-label={pick("إخفاء الرسالة", "Dismiss message")}>
+          <X className="h-4 w-4" />
+        </Button>
       </Alert>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">

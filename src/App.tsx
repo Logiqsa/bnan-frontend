@@ -35,6 +35,7 @@ import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
 import AccountSettings from "@/portal/AccountSettings";
 import SupervisorSchedule from "@/portal/SupervisorSchedule";
 import GlobalNotificationAdmin from "@/admin/GlobalNotificationAdmin";
+import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 
 const queryClient = new QueryClient();
 
@@ -76,8 +77,10 @@ export default function App() {
       <Route path="/admin/settings" element={<AdminGuard><AccountSettings /></AdminGuard>} />
       <Route path="/admin/notifications" element={<AdminGuard><GlobalNotificationAdmin /></AdminGuard>} />
       <Route path="/admin/classrooms" element={<AdminGuard><ClassroomManagement /></AdminGuard>} />
+      <Route path="/admin/classrooms/:classroomId/schedule" element={<AdminGuard><ClassroomScheduleManagement /></AdminGuard>} />
       <Route path="/admin/zoom-accounts/:id/classrooms" element={<AdminGuard><ZoomAccountUsageAdmin /></AdminGuard>} />
       <Route path="/portal/supervisor/classrooms" element={<ManualZoomGuard role="supervisor"><ClassroomManagement /></ManualZoomGuard>} />
+      <Route path="/portal/supervisor/classrooms/:classroomId/schedule" element={<ManualZoomGuard role="supervisor"><ClassroomScheduleManagement /></ManualZoomGuard>} />
       <Route path="/portal/supervisor/schedule" element={<ManualZoomGuard role="supervisor"><SupervisorSchedule /></ManualZoomGuard>} />
       <Route path="/portal/supervisor/settings" element={<ManualZoomGuard role="supervisor"><AccountSettings /></ManualZoomGuard>} />
       <Route path="/portal/supervisor/classrooms/zoom" element={<ManualZoomGuard role="supervisor"><ClassroomZoomManagement /></ManualZoomGuard>} />

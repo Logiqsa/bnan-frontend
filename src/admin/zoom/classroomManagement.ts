@@ -8,6 +8,17 @@ export const CLASSROOM_DAY_NAMES: Record<string, string> = {
   wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة",
 };
 
+export const formatScheduleTime = (value: string) => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return value;
+  const hours = Number(match[1]);
+  if (hours < 0 || hours > 24 || (hours === 24 && match[2] !== "00")) return value;
+  const normalizedHours = hours === 24 ? 0 : hours;
+  const period = normalizedHours < 12 ? "صباحًا" : "مساءً";
+  const displayHours = normalizedHours % 12 || 12;
+  return `${displayHours}:${match[2]} ${period}`;
+};
+
 export const sortClassroomsNewestFirst = (items: ClassroomOption[]) => [...items].sort((a, b) => {
   const aTime = a.createdAt ? Date.parse(a.createdAt) : 0;
   const bTime = b.createdAt ? Date.parse(b.createdAt) : 0;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Loader2, X } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { ApiError } from "@/api/client";
 import {
@@ -14,7 +14,16 @@ import { contentApi, type LegalPage } from "@/api/contentApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -30,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { pastedLegalHtml } from "@/lib/legalContent";
+import { cn } from "@/lib/utils";
 import AccountVerification from "@/components/AccountVerification";
 
 const steps = [
@@ -999,21 +1009,67 @@ function CountrySelect({
   countries: CountryOption[];
   loading: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const selectedCountry = countries.find((country) => country.name === value);
+
   return (
-    <Field label={label}>
-      <Select value={value} onValueChange={onChange} disabled={loading}>
-        <SelectTrigger>
-          <SelectValue placeholder={loading ? "جاري التحميل..." : "اختر"} />
-        </SelectTrigger>
-        <SelectContent>
-          {countries.map((country) => (
-            <SelectItem key={country.code} value={country.name}>
-              {country.flag} {country.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
+    <div className="block space-y-1.5 text-sm">
+      <span>{label}</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={loading}
+            className="w-full justify-between font-normal"
+          >
+            <span className={cn("truncate", !selectedCountry && "text-muted-foreground")}>
+              {loading
+                ? "جاري التحميل..."
+                : selectedCountry
+                  ? `${selectedCountry.flag} ${selectedCountry.name}`
+                  : "اختر"}
+            </span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] p-0"
+        >
+          <Command dir="rtl">
+            <CommandInput placeholder="ابحث عن دولة..." />
+            <CommandList>
+              <CommandEmpty>لا توجد دولة مطابقة.</CommandEmpty>
+              <CommandGroup>
+                {countries.map((country) => (
+                  <CommandItem
+                    key={country.code}
+                    value={`${country.name} ${country.code}`}
+                    onSelect={() => {
+                      onChange(country.name);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "ml-2 h-4 w-4",
+                        value === country.name ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <span className="truncate">
+                      {country.flag} {country.name}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 function Loader() {

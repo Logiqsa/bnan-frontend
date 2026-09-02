@@ -63,7 +63,7 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
 
   return (
     <Card>
-      <CardHeader className="sticky top-0 z-20 flex-row items-center justify-between gap-3 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <CardHeader className="sticky top-2 z-20 mx-3 mt-3 flex-row items-center justify-between gap-3 rounded-xl border bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/85">
         <CardTitle className="flex items-center gap-2 font-cairo text-lg">
           <FileText className="h-5 w-5 text-primary" />
           {pageLabels[slug]}

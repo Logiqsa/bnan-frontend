@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
-const SHOW_AFTER_PX = 400;
+const SHOW_AFTER_PX = 8;
 
 export default function ScrollToTopButton() {
   const { pick } = useLanguage();

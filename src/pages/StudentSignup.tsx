@@ -368,18 +368,20 @@ export default function StudentSignup() {
   }} />;
 
   return (
-    <main className="relative min-h-screen bg-hero-gradient flex items-center justify-center py-16 px-4" dir={isArabic ? "rtl" : "ltr"}>
-      <LanguageToggle className="fixed left-4 top-4 z-20 border border-white/20 bg-white/10 text-white hover:bg-white/20" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-hero-gradient px-3 py-6 sm:px-4 sm:py-16" dir={isArabic ? "rtl" : "ltr"}>
       <Card className="max-w-3xl w-full mx-auto min-h-[640px] flex flex-col">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">
               <img src={logo} alt="أكاديمية بنان" className="h-10 w-auto" />
             </Link>
-            <Link to="/" className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1">
-              <Home className="w-4 h-4" />
-              الرئيسية
-            </Link>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <LanguageToggle className="h-9 border bg-muted/50 px-2.5 text-foreground hover:bg-muted" />
+              <Link to="/" className="flex items-center gap-1 whitespace-nowrap text-sm text-muted-foreground hover:text-primary">
+                <Home className="w-4 h-4" />
+                {pick("الرئيسية", "Home")}
+              </Link>
+            </div>
           </div>
           <CardTitle className="font-cairo mt-4">إنشاء حساب طالب</CardTitle>
           <div className="grid grid-cols-4 gap-2 pt-4">

@@ -23,7 +23,20 @@ const safeError = (error: ApiError) => {
 };
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleDateString("ar-EG-u-ca-gregory") : "—";
-const formatWindow = (window: ZoomScheduleWindow) => `${window.startTime}${window.endTime ? ` ← ${window.endTime === "24:00" ? "نهاية اليوم / 24:00" : window.endTime}` : ""}`;
+export const formatScheduleTime = (value: string) => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return value;
+  const hours = Number(match[1]);
+  if (hours < 0 || hours > 24 || (hours === 24 && match[2] !== "00")) return value;
+  const normalizedHours = hours === 24 ? 0 : hours;
+  const period = normalizedHours < 12 ? "AM" : "PM";
+  const displayHours = normalizedHours % 12 || 12;
+  return `${displayHours}:${match[2]} ${period}`;
+};
+const isolatedTime = (value: string) => `\u2066${formatScheduleTime(value)}\u2069`;
+export const formatWindow = (window: ZoomScheduleWindow) => window.endTime
+  ? `من ${isolatedTime(window.startTime)} إلى ${isolatedTime(window.endTime)}`
+  : `من ${isolatedTime(window.startTime)}`;
 const windowKey = (window: ZoomScheduleWindow) => `${window.startTime}-${window.endTime || ""}`;
 
 function CurrentSchedule({ entries, loading, action }: { entries: ClassroomScheduleEntry[]; loading: boolean; action?: React.ReactNode }) {
@@ -38,10 +51,10 @@ function AccountAvailability({ value, duration }: { value: ZoomScheduleAvailabil
   const eligible = new Set((value.eligibleWindows || []).map(windowKey));
   const allDay = value.freeWindows?.length === 1 && value.freeWindows[0].startTime === "00:00" && value.freeWindows[0].endTime === "24:00";
   return <Card className={!value.account.isSelectable ? "opacity-70" : ""}><CardHeader className="pb-3"><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-lg">{value.account.name}</CardTitle><div className="flex gap-2"><Badge variant={value.account.isActive ? "default" : "outline"}>{value.account.isActive ? "مفعل" : "غير مفعل"}</Badge>{!value.account.isSelectable && <Badge variant="outline">غير متاح للاختيار</Badge>}</div></div></CardHeader><CardContent className="space-y-5">
-    <section><h4 className="mb-2 font-semibold text-red-700">المواعيد المحجوزة</h4>{!value.busyBookings?.length ? <p className="text-sm text-muted-foreground">لا توجد حجوزات أخرى على الحساب في هذا اليوم</p> : <div className="grid gap-2 sm:grid-cols-2">{value.busyBookings.map((booking, index) => <div key={`${booking.classroomId}-${booking.startTime}-${index}`} className="rounded-lg border border-red-100 bg-red-50/60 p-3 text-sm"><p dir="ltr" className="w-fit font-mono font-bold">{formatWindow(booking)}</p><p className="font-semibold">{booking.classroomName || "فصل محجوز"}{booking.gradeName ? ` - ${booking.gradeName}` : ""}</p>{booking.subjectName && <p className="text-muted-foreground">{booking.subjectName}</p>}{booking.registrationMode && <Badge variant="outline" className="mt-2 text-xs">{booking.registrationMode === "egyptian" ? "مصري" : "خليجي"}</Badge>}</div>)}</div>}</section>
-    {!!value.mergedBusyWindows?.length && <section><h4 className="mb-2 text-sm font-semibold">ملخص الفترات المشغولة</h4><div className="flex flex-wrap gap-2">{value.mergedBusyWindows.map((window) => <Badge key={windowKey(window)} variant="outline" className="border-red-200 bg-red-50 text-red-700" dir="ltr">{formatWindow(window)}</Badge>)}</div></section>}
-    <section><h4 className="mb-2 font-semibold text-emerald-700">المواعيد المتاحة</h4>{allDay ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">الحساب متاح طوال اليوم</p> : !value.freeWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد مواعيد متاحة</p> : <div className="flex flex-wrap gap-2">{value.freeWindows.map((window) => { const suitable = !duration || eligible.has(windowKey(window)); return <span key={windowKey(window)} dir="ltr" className={`rounded-lg border px-3 py-2 font-mono text-sm ${suitable ? "border-emerald-300 bg-emerald-50 font-bold text-emerald-800" : "bg-muted/40 text-muted-foreground"}`}>{formatWindow(window)}</span>; })}</div>}</section>
-    {duration && <section><h4 className="mb-2 font-semibold text-primary">مناسبة لمدة الحصة ({duration} دقيقة)</h4>{!value.eligibleWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد فترة متاحة تكفي مدة الحصة المطلوبة</p> : <div className="flex flex-wrap gap-2">{value.eligibleWindows.map((window) => <Badge key={windowKey(window)} className="px-3 py-2" dir="ltr">{formatWindow(window)}</Badge>)}</div>}</section>}
+    <section><h4 className="mb-2 font-semibold text-red-700">المواعيد المحجوزة</h4>{!value.busyBookings?.length ? <p className="text-sm text-muted-foreground">لا توجد حجوزات أخرى على الحساب في هذا اليوم</p> : <div className="grid gap-2 sm:grid-cols-2">{value.busyBookings.map((booking, index) => <div key={`${booking.classroomId}-${booking.startTime}-${index}`} className="rounded-lg border border-red-100 bg-red-50/60 p-3 text-sm"><p className="w-fit font-mono font-bold">{formatWindow(booking)}</p><p className="font-semibold">{booking.classroomName || "فصل محجوز"}{booking.gradeName ? ` - ${booking.gradeName}` : ""}</p>{booking.subjectName && <p className="text-muted-foreground">{booking.subjectName}</p>}{booking.registrationMode && <Badge variant="outline" className="mt-2 text-xs">{booking.registrationMode === "egyptian" ? "مصري" : "خليجي"}</Badge>}</div>)}</div>}</section>
+    {!!value.mergedBusyWindows?.length && <section><h4 className="mb-2 text-sm font-semibold">ملخص الفترات المشغولة</h4><div className="flex flex-wrap gap-2">{value.mergedBusyWindows.map((window) => <Badge key={windowKey(window)} variant="outline" className="border-red-200 bg-red-50 text-red-700">{formatWindow(window)}</Badge>)}</div></section>}
+    <section><h4 className="mb-2 font-semibold text-emerald-700">المواعيد المتاحة</h4>{allDay ? <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">الحساب متاح طوال اليوم</p> : !value.freeWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد مواعيد متاحة</p> : <div className="flex flex-wrap gap-2">{value.freeWindows.map((window) => { const suitable = !duration || eligible.has(windowKey(window)); return <span key={windowKey(window)} className={`rounded-lg border px-3 py-2 font-mono text-sm ${suitable ? "border-emerald-300 bg-emerald-50 font-bold text-emerald-800" : "bg-muted/40 text-muted-foreground"}`}>{formatWindow(window)}</span>; })}</div>}</section>
+    {duration && <section><h4 className="mb-2 font-semibold text-primary">مناسبة لمدة الحصة ({duration} دقيقة)</h4>{!value.eligibleWindows?.length ? <p className="text-sm text-muted-foreground">لا توجد فترة متاحة تكفي مدة الحصة المطلوبة</p> : <div className="flex flex-wrap gap-2">{value.eligibleWindows.map((window) => <Badge key={windowKey(window)} className="px-3 py-2">{formatWindow(window)}</Badge>)}</div>}</section>}
   </CardContent></Card>;
 }
 

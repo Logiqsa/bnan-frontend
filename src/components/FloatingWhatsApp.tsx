@@ -5,13 +5,18 @@ const WhatsAppIcon = () => (
 );
 
 const FloatingWhatsApp = () => {
+  const { pathname } = useLocation();
+  const isAdminOrSupervisorDashboard = pathname.startsWith("/admin")
+    || pathname.startsWith("/portal/supervisor");
+  if (isAdminOrSupervisorDashboard) return null;
+
   return (
     <a
       href="https://wa.me/+966582502026"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="تواصل عبر الواتساب"
-      className="fixed bottom-20 left-6 z-50 w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center animate-float"
+      className="fixed bottom-20 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110 sm:left-6 sm:h-14 sm:w-14 animate-float"
     >
       <WhatsAppIcon />
     </a>
@@ -19,3 +24,4 @@ const FloatingWhatsApp = () => {
 };
 
 export default FloatingWhatsApp;
+import { useLocation } from "react-router-dom";

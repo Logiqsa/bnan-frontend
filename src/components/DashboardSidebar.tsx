@@ -164,7 +164,7 @@ const DashboardSidebar = () => {
 
   if (!isMobile) {
     return (
-      <aside className={`relative flex min-h-screen shrink-0 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-in-out ${collapsed ? "w-20" : "w-64"}`}>
+      <aside className={`relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-in-out ${collapsed ? "w-20" : "w-64"}`}>
         <SidebarContent
           collapsed={collapsed}
           onToggle={() => setCollapsed((current) => {

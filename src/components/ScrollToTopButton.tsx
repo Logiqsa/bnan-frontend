@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
@@ -7,21 +8,26 @@ const SHOW_AFTER_PX = 400;
 
 export default function ScrollToTopButton() {
   const { pick } = useLanguage();
+  const location = useLocation();
   const [visible, setVisible] = useState(false);
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    const updateVisibility = () => setVisible(window.scrollY > SHOW_AFTER_PX);
+    const container = document.querySelector<HTMLElement>("[data-scroll-container]");
+    setScrollContainer(container);
+    const scrollTarget: Window | HTMLElement = container || window;
+    const updateVisibility = () => setVisible((container?.scrollTop || window.scrollY) > SHOW_AFTER_PX);
     updateVisibility();
-    window.addEventListener("scroll", updateVisibility, { passive: true });
-    return () => window.removeEventListener("scroll", updateVisibility);
-  }, []);
+    scrollTarget.addEventListener("scroll", updateVisibility, { passive: true });
+    return () => scrollTarget.removeEventListener("scroll", updateVisibility);
+  }, [location.pathname, location.search]);
 
   return (
     <button
       type="button"
       aria-label={pick("العودة إلى أعلى الصفحة", "Back to top")}
       title={pick("العودة إلى الأعلى", "Back to top")}
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      onClick={() => (scrollContainer || window).scrollTo({ top: 0, behavior: "smooth" })}
       className={cn(
         "fixed bottom-6 right-6 z-50 grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         visible

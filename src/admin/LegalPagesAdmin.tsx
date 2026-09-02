@@ -63,11 +63,15 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="sticky top-0 z-20 flex-row items-center justify-between gap-3 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
         <CardTitle className="flex items-center gap-2 font-cairo text-lg">
           <FileText className="h-5 w-5 text-primary" />
           {pageLabels[slug]}
         </CardTitle>
+        <Button onClick={save} disabled={saving} className="shrink-0 gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          حفظ التغييرات
+        </Button>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="space-y-2">
@@ -86,10 +90,6 @@ const LegalPageEditor = ({ slug }: { slug: LegalPageSlug }) => {
           <p className="text-xs text-muted-foreground">
             {page.updatedAt ? `آخر تحديث: ${new Date(page.updatedAt).toLocaleString("ar-SA-u-ca-gregory")}` : "لم يتم الحفظ بعد"}
           </p>
-          <Button onClick={save} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            حفظ التغييرات
-          </Button>
         </div>
       </CardContent>
     </Card>

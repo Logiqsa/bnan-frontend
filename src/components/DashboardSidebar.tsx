@@ -33,7 +33,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
     { label: "حسابات زوم", labelEn: "Zoom accounts", icon: Video, path: "/admin?tab=zoom-accounts" },
     { label: "ربط الصفوف بـ Zoom", labelEn: "Assign classes to Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
     { label: "إدارة الفصول والمواعيد", labelEn: "Classrooms and availability", icon: School, path: "/admin/classrooms" },
-    { label: "Zoom للفصول اليدوية", labelEn: "Manual classroom Zoom", icon: Video, path: "/admin/classroom-zoom" },
+    { label: "ربط الفصول بـ Zoom", labelEn: "Link classrooms to Zoom", icon: Video, path: "/admin/classroom-zoom" },
     { label: "رفع تسجيل حصة", labelEn: "Upload lesson recording", icon: Upload, path: "/admin/classroom-recordings" },
     { label: "تسجيلات الفصل", labelEn: "Class recordings", icon: Calendar, path: "/admin/classroom-sessions" },
     { label: "الصفحات القانونية", labelEn: "Legal pages", icon: FileText, path: "/admin?tab=legal-pages" },
@@ -51,7 +51,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
   supervisor: [
     { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/supervisor/schedule" },
     { label: "الفصول والمواعيد", labelEn: "Classrooms and availability", icon: School, path: "/portal/supervisor/classrooms" },
-    { label: "Zoom للفصول اليدوية", labelEn: "Manual classroom Zoom", icon: Video, path: "/portal/supervisor/classrooms/zoom" },
+    { label: "ربط الفصول بـ Zoom", labelEn: "Link classrooms to Zoom", icon: Video, path: "/portal/supervisor/classrooms/zoom" },
     { label: "إعدادات الحساب", labelEn: "Account settings", icon: Settings, path: "/portal/supervisor/settings" },
   ],
 };

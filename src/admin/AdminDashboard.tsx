@@ -39,7 +39,7 @@ export default function AdminDashboard() {
               ["success-stories",Award,"قصص النجاح","Success stories"],
               ["zoom-accounts",Video,"حسابات زوم","Zoom accounts"],
               ["zoom-grades",Users,"ربط الصفوف بـ Zoom","Assign classes to Zoom"],
-              ["classroom-zoom",Video,"Zoom للفصول اليدوية","Manual classroom Zoom"],
+              ["classroom-zoom",Video,"ربط الفصول بـ Zoom","Link classrooms to Zoom"],
               ["legal-pages",FileText,"الصفحات القانونية","Legal pages"],
             ].map(([value,Icon,arabic,english])=><button key={value as string} onClick={()=>value === "classroom-zoom" ? window.location.assign("/admin/classroom-zoom") : setTab(value as string)} className="text-start"><Card className="h-full transition-all hover:-translate-y-0.5 hover:border-secondary hover:shadow-sky"><CardContent className="flex items-center gap-4 p-5"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10"><Icon className="h-5 w-5 text-primary"/></span><span className="font-semibold">{pick(arabic as string,english as string)}</span></CardContent></Card></button>)}
           </div>

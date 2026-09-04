@@ -9,7 +9,7 @@ interface ListResponse<T> { success:true; data:T[]; hasNextPage:boolean }
 
 export const catalogApi = {
   curriculums: () => apiRequest<ListResponse<CurriculumOption>>("/curriculums?page=1&limit=100&sort=name&fields=name,description,registrationMode,icon"),
-  grades: (curriculumId:string) => apiRequest<ListResponse<GradeOption>>(`/grades/curriculum/${curriculumId}?page=1&limit=100&sort=name&isActive=true&fields=name,isActive`),
+  grades: (curriculumId:string) => apiRequest<ListResponse<GradeOption>>(`/grades/curriculum/${curriculumId}?page=1&limit=100&isActive=true&fields=name,isActive`),
   subjects: (gradeId:string) => apiRequest<{success:true;data:SubjectOption[]}>(`/grades/${gradeId}/subjects`),
   packages: (curriculumId:string) => apiRequest<{success:true;data:PackageOption[]}>(`/packages/curriculum/${curriculumId}`),
 };

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Mail, Phone, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MessageCircle, Phone, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
+import { adminUsersApi } from "@/api/adminUsersApi";
 import {
   teacherApplicationsApi,
   type TeacherApplication,
   type TeacherApplicationStatus,
 } from "@/api/teacherApplicationsApi";
-import { applicantEmail, applicantName, applicantPhone, TeacherApplicationDetails } from "./TeacherApplicationDetails";
+import { applicantEmail, applicantName, applicantPhone, applicantWhatsapp, TeacherApplicationDetails } from "./TeacherApplicationDetails";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,16 @@ const statusLabels: Record<TeacherApplicationStatus, string> = {
   pending: "قيد المراجعة",
   approved: "مقبول",
   rejected: "مرفوض",
+};
+
+const phoneHref = (value: string) => value === "—" ? "" : value.replace(/[^\d+]/g, "");
+const whatsappHref = (value: string) => {
+  if (value === "—") return "";
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("01")) digits = `20${digits.slice(1)}`;
+  else if (digits.startsWith("05")) digits = `966${digits.slice(1)}`;
+  return digits ? `https://wa.me/${digits}` : "";
 };
 
 export default function TeacherApplicationsAdmin() {
@@ -52,7 +63,32 @@ export default function TeacherApplicationsAdmin() {
     setDetailLoading(true);
     try {
       const { data } = await teacherApplicationsApi.get(item.id);
-      setSelected(data);
+      const mergedApplication: TeacherApplication = {
+        ...item,
+        ...data,
+        isVerified: data.isVerified ?? item.isVerified,
+        user: item.user || data.user ? { ...item.user, ...data.user } : undefined,
+      };
+      const userId = mergedApplication.user?.id;
+      if (userId) {
+        try {
+          const userResult = await adminUsersApi.get(userId);
+          setSelected({
+            ...mergedApplication,
+            isVerified: mergedApplication.isVerified ?? userResult.data.isVerified,
+            user: { ...mergedApplication.user, ...userResult.data },
+          });
+        } catch {
+          setSelected(mergedApplication);
+        }
+      } else {
+        const user = mergedApplication.email ? await adminUsersApi.findTeacherByEmail(mergedApplication.email) : null;
+        setSelected(user ? {
+          ...mergedApplication,
+          isVerified: mergedApplication.isVerified ?? user.isVerified,
+          user: { ...mergedApplication.user, ...user },
+        } : mergedApplication);
+      }
     } catch (error) {
       toast.error((error as ApiError).message || "تعذر تحميل تفاصيل الطلب");
     } finally {
@@ -96,14 +132,20 @@ export default function TeacherApplicationsAdmin() {
             <div className="py-16 text-center text-muted-foreground">لا توجد طلبات {statusLabels[status]}</div>
           ) : (
             <Table>
-              <TableHeader><TableRow><TableHead className="text-right">المتقدم</TableHead><TableHead className="text-right">التواصل</TableHead><TableHead className="text-right">التخصص</TableHead><TableHead className="text-right">تاريخ التقديم</TableHead><TableHead /></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead className="text-center">المتقدم</TableHead><TableHead className="text-center">التواصل</TableHead><TableHead className="text-center">التخصص</TableHead><TableHead className="text-center">تاريخ التقديم</TableHead><TableHead className="text-center">الإجراء</TableHead></TableRow></TableHeader>
               <TableBody>{items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell><p className="font-semibold">{applicantName(item)}</p><Badge className="mt-1" variant={item.status === "rejected" ? "destructive" : item.status === "approved" ? "default" : "outline"}>{statusLabels[item.status]}</Badge></TableCell>
-                  <TableCell><p className="flex items-center gap-1" dir="ltr"><Mail className="h-3.5 w-3.5" />{applicantEmail(item)}</p><p className="mt-1 flex items-center gap-1" dir="ltr"><Phone className="h-3.5 w-3.5" />{applicantPhone(item)}</p></TableCell>
-                  <TableCell>{item.specialization || "—"}</TableCell>
-                  <TableCell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString("ar-SA-u-ca-gregory") : "—"}</TableCell>
-                  <TableCell><Button size="sm" variant="outline" className="gap-1" onClick={() => openDetails(item)}><Eye className="h-4 w-4" />عرض التفاصيل</Button></TableCell>
+                  <TableCell className="text-center"><p className="font-semibold">{applicantName(item)}</p><Badge className="mt-1" variant={item.status === "rejected" ? "destructive" : item.status === "approved" ? "default" : "outline"}>{statusLabels[item.status]}</Badge></TableCell>
+                  <TableCell className="text-center">
+                    <div className="mx-auto flex w-fit flex-col items-start space-y-1.5" dir="ltr">
+                      {applicantEmail(item) !== "—" && <a href={`mailto:${applicantEmail(item)}`} className="flex items-center gap-1 text-primary hover:underline"><Mail className="h-3.5 w-3.5" />{applicantEmail(item)}</a>}
+                      {phoneHref(applicantPhone(item)) && <a href={`tel:${phoneHref(applicantPhone(item))}`} className="flex items-center gap-1 text-primary hover:underline"><Phone className="h-3.5 w-3.5" />{applicantPhone(item)}</a>}
+                      {whatsappHref(applicantWhatsapp(item)) && <a href={whatsappHref(applicantWhatsapp(item))} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 hover:underline"><MessageCircle className="h-3.5 w-3.5" />{applicantWhatsapp(item)}</a>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">{item.specialization || "—"}</TableCell>
+                  <TableCell className="text-center">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("ar-SA-u-ca-gregory") : "—"}</TableCell>
+                  <TableCell className="text-center"><Button size="sm" variant="outline" className="gap-1" onClick={() => openDetails(item)}><Eye className="h-4 w-4" />عرض التفاصيل</Button></TableCell>
                 </TableRow>
               ))}</TableBody>
             </Table>

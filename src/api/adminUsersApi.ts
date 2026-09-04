@@ -60,6 +60,19 @@ export const adminUsersApi = {
     const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/users/${id}`);
     return { ...result, data: normalizeUserEnvelope(result.data) };
   },
+  findTeacherByEmail: async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    let page = 1;
+    let hasNextPage = true;
+    while (hasNextPage) {
+      const result = await adminUsersApi.list("teacher", page);
+      const user = result.data.find((item) => item.email?.trim().toLowerCase() === normalizedEmail);
+      if (user) return user;
+      hasNextPage = result.hasNextPage ?? result.data.length === 20;
+      page += 1;
+    }
+    return null;
+  },
   updateStatus: async (id: string, status: AdminUserStatus) => {
     const result = await apiRequest<{ success: true; data: AdminUserPayload }>(`/users/${id}/status`, {
       method: "PATCH",

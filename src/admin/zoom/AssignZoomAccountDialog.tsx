@@ -12,10 +12,14 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   grade: GradeZoomOption | null;
+  curriculumIds: string[];
   onAssigned: () => void;
 }
 
-const AssignZoomAccountDialog = ({ open, onOpenChange, grade, onAssigned }: Props) => {
+const zoomAccountId = (value: GradeZoomOption["zoomAccount"]) =>
+  typeof value === "string" ? value : value?.id || value?._id || "";
+
+const AssignZoomAccountDialog = ({ open, onOpenChange, grade, curriculumIds, onAssigned }: Props) => {
   const [accounts, setAccounts] = useState<ZoomAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string>("");
@@ -23,17 +27,29 @@ const AssignZoomAccountDialog = ({ open, onOpenChange, grade, onAssigned }: Prop
 
   useEffect(() => {
     if (!open) return;
-    setSelected(grade?.zoomAccount?.id || "");
+    const currentAccountId = zoomAccountId(grade?.zoomAccount);
+    setSelected(currentAccountId);
     setLoading(true);
-    zoomAccountsApi
-      .getZoomAccounts()
-      .then(({ data }) => setAccounts(data.filter((a) => a.isActive && a.isConfigured)))
+    Promise.all([
+      zoomAccountsApi.getZoomAccounts(),
+      ...curriculumIds.map((curriculumId) => zoomAccountsApi.getGradesForZoomAssignment(curriculumId)),
+    ])
+      .then(([accountsResponse, ...gradeResponses]) => {
+        const assignedAccountIds = new Set(
+          gradeResponses.flatMap(({ data }) => data.map((item) => zoomAccountId(item.zoomAccount))).filter(Boolean),
+        );
+        setAccounts(accountsResponse.data.filter((account) =>
+          account.isActive
+          && account.isConfigured
+          && (!assignedAccountIds.has(account.id) || account.id === currentAccountId),
+        ));
+      })
       .catch((error) => {
         const apiError = error as ApiError;
         toast.error(ZOOM_ERROR_MESSAGES[apiError.code] || apiError.message || "فشل تحميل حسابات Zoom");
       })
       .finally(() => setLoading(false));
-  }, [open, grade]);
+  }, [open, grade, curriculumIds]);
 
   const submit = async () => {
     if (!grade || !selected) return;
@@ -64,7 +80,7 @@ const AssignZoomAccountDialog = ({ open, onOpenChange, grade, onAssigned }: Prop
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : accounts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">لا توجد حسابات Zoom مفعّلة. أضف حسابًا أولًا من تبويب حسابات زوم.</p>
+          <p className="text-sm text-muted-foreground py-4">لا توجد حسابات Zoom مفعّلة وغير مرتبطة بصف آخر.</p>
         ) : (
           <div className="space-y-4">
             <Select value={selected} onValueChange={setSelected}>

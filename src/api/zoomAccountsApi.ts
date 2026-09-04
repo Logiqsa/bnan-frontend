@@ -72,7 +72,7 @@ export interface GradeZoomOption {
   id: string;
   name: string;
   isActive: boolean;
-  zoomAccount?: { id: string; name: string } | null;
+  zoomAccount?: string | { id?: string; _id?: string; name?: string } | null;
 }
 
 interface ListResponse<T> {
@@ -118,7 +118,7 @@ export const zoomAccountsApi = {
 
   getGradesForZoomAssignment: (curriculumId: string) =>
     apiRequest<ListResponse<GradeZoomOption>>(
-      `/grades/curriculum/${curriculumId}?page=1&limit=100&sort=name&fields=name,isActive,zoomAccount`,
+      `/grades/curriculum/${curriculumId}?page=1&limit=100&fields=name,isActive,zoomAccount`,
     ),
 };
 

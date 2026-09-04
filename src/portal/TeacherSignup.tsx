@@ -643,7 +643,7 @@ export default function TeacherSignup() {
                     loading={catalogsLoading}
                     options={curriculums.map((item) => ({
                       value: item.id,
-                      label: `${item.name} — ${item.registrationMode === "egyptian" ? "مصري" : "سعودي/خليجي"}`,
+                      label: `${item.name} — ${item.registrationMode === "egyptian" ? "مصري" : "خليجي"}`,
                     }))}
                   />
                   {selectedCurriculum && (

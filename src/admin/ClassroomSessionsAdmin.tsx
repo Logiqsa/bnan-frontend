@@ -3,6 +3,7 @@ import { CalendarDays, Check, ChevronsUpDown, Play, RefreshCw } from "lucide-rea
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import { catalogApi, type CurriculumOption, type GradeOption } from "@/api/catalogApi";
 import {
   classroomRecordingsApi,
   type ClassroomOption,
@@ -21,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { referenceId, referenceName } from "@/admin/zoom/classroomZoomNormalization";
 
 const statusLabelsAr: Record<string, string> = {
   live: "مباشرة",
@@ -59,6 +61,8 @@ export default function ClassroomSessionsAdmin() {
   const requestedClassroomId = searchParams.get("classroomId") || "";
   const requestedSessionId = searchParams.get("sessionId") || "";
   const [classrooms, setClassrooms] = useState<ClassroomOption[]>([]);
+  const [curricula, setCurricula] = useState<CurriculumOption[]>([]);
+  const [grades, setGrades] = useState<GradeOption[]>([]);
   const [sessions, setSessions] = useState<ClassroomSession[]>([]);
   const [subjects, setSubjects] = useState<ClassroomSubjectOption[]>([]);
   const [recordings, setRecordings] = useState<SessionRecording[]>([]);
@@ -73,17 +77,9 @@ export default function ClassroomSessionsAdmin() {
   const [highlightedSessionId, setHighlightedSessionId] = useState(requestedSessionId);
   const closeRecording = useCallback(() => setSelectedRecording(null), []);
 
-  const curricula = useMemo(() => Array.from(new Map(
-    classrooms.filter((item) => item.curriculum).map((item) => [item.curriculum!.id, item.curriculum!]),
-  ).values()), [classrooms]);
-  const grades = useMemo(() => Array.from(new Map(
-    classrooms
-      .filter((item) => item.grade && (curriculumId === "all" || item.curriculum?.id === curriculumId))
-      .map((item) => [item.grade!.id, item.grade!]),
-  ).values()), [classrooms, curriculumId]);
   const filteredClassrooms = useMemo(() => classrooms.filter((item) =>
-    (curriculumId === "all" || item.curriculum?.id === curriculumId)
-    && (gradeId === "all" || item.grade?.id === gradeId)
+    (curriculumId === "all" || referenceId(item.curriculum) === curriculumId)
+    && (gradeId === "all" || referenceId(item.grade) === gradeId)
   ), [classrooms, curriculumId, gradeId]);
   const visibleSessions = useMemo(() => sessions
     .filter((item) => status === "all" || item.status === status)
@@ -97,6 +93,19 @@ export default function ClassroomSessionsAdmin() {
       .catch((error) => toast.error((error as Error).message || pick("تعذر تحميل الفصول", "Unable to load classes")))
       .finally(() => setLoadingClassrooms(false));
   }, [pick]);
+
+  useEffect(() => {
+    catalogApi.curriculums()
+      .then((response) => setCurricula(response.data || []))
+      .catch((error) => toast.error((error as Error).message || pick("تعذر تحميل المناهج", "Unable to load curricula")));
+  }, [pick]);
+
+  useEffect(() => {
+    if (curriculumId === "all") { setGrades([]); return; }
+    catalogApi.grades(curriculumId)
+      .then((response) => setGrades((response.data || []).filter((item) => item.isActive !== false)))
+      .catch((error) => { setGrades([]); toast.error((error as Error).message || pick("تعذر تحميل الصفوف", "Unable to load grades")); });
+  }, [curriculumId, pick]);
 
   const loadSessions = useCallback(async (id: string) => {
     setLoadingSessions(true);
@@ -152,7 +161,7 @@ export default function ClassroomSessionsAdmin() {
       <Card className="mb-6"><CardContent className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
         <div className="space-y-2"><Label>{pick("المنهج", "Curriculum")}</Label><Select value={curriculumId} onValueChange={chooseCurriculum} disabled={loadingClassrooms}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{curricula.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-2"><Label>{pick("الصف", "Grade")}</Label><Select value={gradeId} onValueChange={(value) => { setGradeId(value); setClassroomId(""); }} disabled={loadingClassrooms}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل الصفوف", "All grades")}</SelectItem>{grades.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>
-        <div className="space-y-2"><Label>{pick("الفصل", "Class")}</Label><Popover open={classroomOpen} onOpenChange={setClassroomOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" disabled={loadingClassrooms} className="w-full justify-between font-normal"><span className="truncate">{loadingClassrooms ? pick("جاري التحميل...", "Loading...") : selectedClassroom?.name || pick("اختر أو ابحث", "Select or search")}</span><ChevronsUpDown className="h-4 w-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start"><Command dir={isArabic ? "rtl" : "ltr"}><CommandInput placeholder={pick("ابحث باسم الفصل...", "Search by class name...")}/><CommandList><CommandEmpty>{pick("لا توجد نتائج.", "No results found.")}</CommandEmpty><CommandGroup>{filteredClassrooms.map((item) => <CommandItem key={item.id} value={`${item.name} ${item.curriculum?.name || ""} ${item.grade?.name || ""}`} onSelect={() => { setClassroomId(item.id); setClassroomOpen(false); }}><Check className={cn("ml-2 h-4 w-4", classroomId === item.id ? "opacity-100" : "opacity-0")}/><span><span className="block">{item.name}</span><span className="text-xs text-muted-foreground">{[item.curriculum?.name, item.grade?.name].filter(Boolean).join(" — ")}</span></span></CommandItem>)}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>
+        <div className="space-y-2"><Label>{pick("الفصل", "Class")}</Label><Popover open={classroomOpen} onOpenChange={setClassroomOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" disabled={loadingClassrooms} className="w-full justify-between font-normal"><span className="truncate">{loadingClassrooms ? pick("جاري التحميل...", "Loading...") : selectedClassroom?.name || pick("اختر أو ابحث", "Select or search")}</span><ChevronsUpDown className="h-4 w-4 opacity-50" /></Button></PopoverTrigger><PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start"><Command dir={isArabic ? "rtl" : "ltr"}><CommandInput placeholder={pick("ابحث باسم الفصل...", "Search by class name...")}/><CommandList><CommandEmpty>{pick("لا توجد نتائج.", "No results found.")}</CommandEmpty><CommandGroup>{filteredClassrooms.map((item) => <CommandItem key={item.id} value={`${item.name} ${referenceName(item.curriculum)} ${referenceName(item.grade)}`} onSelect={() => { setClassroomId(item.id); setClassroomOpen(false); }}><Check className={cn("ml-2 h-4 w-4", classroomId === item.id ? "opacity-100" : "opacity-0")}/><span><span className="block">{item.name}</span><span className="text-xs text-muted-foreground">{[referenceName(item.curriculum), referenceName(item.grade)].filter(Boolean).join(" — ")}</span></span></CommandItem>)}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>
         <div className="space-y-2"><Label>{pick("حالة السيشن", "Session status")}</Label><Select value={status} onValueChange={setStatus} disabled={!classroomId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{pick("كل الحالات", "All statuses")}</SelectItem>{statuses.map((item) => <SelectItem key={item} value={item}>{(isArabic ? statusLabelsAr : statusLabelsEn)[item] || item}</SelectItem>)}</SelectContent></Select></div>
       </CardContent></Card>
 

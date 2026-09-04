@@ -1,24 +1,30 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, GraduationCap, Link2, Loader2, School, Video } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { catalogApi, type CurriculumOption } from "@/api/catalogApi";
-import { zoomAccountsApi, ZOOM_ERROR_MESSAGES, type GradeZoomOption } from "@/api/zoomAccountsApi";
+import { zoomAccountsApi, ZOOM_ERROR_MESSAGES, type GradeZoomOption, type ZoomAccount } from "@/api/zoomAccountsApi";
 import AssignZoomAccountDialog from "./AssignZoomAccountDialog";
 
 const GradeZoomAssignmentAdmin = () => {
   const [curriculums, setCurriculums] = useState<CurriculumOption[]>([]);
   const [curriculumId, setCurriculumId] = useState<string>("");
   const [grades, setGrades] = useState<GradeZoomOption[]>([]);
+  const [zoomAccounts, setZoomAccounts] = useState<ZoomAccount[]>([]);
   const [loadingCurriculums, setLoadingCurriculums] = useState(true);
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<GradeZoomOption | null>(null);
   const selectedCurriculum = curriculums.find((curriculum) => curriculum.id === curriculumId);
+  const curriculumIds = useMemo(() => curriculums.map((curriculum) => curriculum.id), [curriculums]);
 
   useEffect(() => {
+    zoomAccountsApi.getZoomAccounts()
+      .then(({ data }) => setZoomAccounts(data))
+      .catch(() => setZoomAccounts([]));
     catalogApi
       .curriculums()
       .then(({ data }) => {
@@ -81,16 +87,47 @@ const GradeZoomAssignmentAdmin = () => {
           ) : (
             <section className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span><div><h3 className="font-bold">ربط الصفوف</h3><p className="text-xs text-muted-foreground">{grades.length} صف</p></div></div><div className="flex items-center gap-2"><Badge variant="outline">{grades.length} إجمالي</Badge><Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{grades.filter((grade) => grade.zoomAccount).length} مربوط</Badge></div></div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {grades.map((grade) => {
-                  const linked = Boolean(grade.zoomAccount);
-                  return <Card key={grade.id} className={`relative flex h-full flex-col overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-sky ${linked ? "border-emerald-200" : "border-amber-200 bg-amber-50/20"}`}>
-                    <div className={`absolute inset-y-0 right-0 w-1 ${linked ? "bg-emerald-400" : "bg-amber-400"}`}/>
-                    <CardHeader className="space-y-3 pb-3 pr-5"><div className="flex flex-wrap items-center justify-between gap-2">{linked ? <Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100"><CheckCircle2 className="ml-1.5 h-3 w-3"/>Zoom مربوط</Badge> : <Badge className="border border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-100"><Link2 className="ml-1.5 h-3 w-3"/>غير مربوط</Badge>}</div><CardTitle className="break-words text-lg leading-7">{grade.name}</CardTitle></CardHeader>
-                    <CardContent className="flex flex-1 flex-col gap-4 pr-5">{linked ? <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-3"><p className="text-xs text-emerald-700/70">حساب Zoom الحالي</p><p className="mt-1 flex items-center gap-2 font-semibold text-emerald-800"><Video className="h-4 w-4"/>{grade.zoomAccount!.name}</p></div> : <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50/60 p-3 text-sm text-amber-900">يحتاج هذا الصف إلى اختيار حساب Zoom.</div>}<div className="mt-auto border-t pt-4"><Button className="w-full gap-2" variant={linked ? "outline" : "default"} onClick={() => setSelectedGrade(grade)}><Link2 className="h-4 w-4"/>{linked ? "تغيير حساب Zoom" : "ربط حساب Zoom"}</Button></div></CardContent>
-                  </Card>;
-                })}
-              </div>
+              <Card className="overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/60">
+                    <TableRow>
+                      <TableHead className="min-w-48 text-right font-bold">الصف</TableHead>
+                      <TableHead className="min-w-36 text-right font-bold">حالة الربط</TableHead>
+                      <TableHead className="min-w-56 text-right font-bold">حساب Zoom</TableHead>
+                      <TableHead className="w-44 text-right font-bold">الإجراء</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {grades.map((grade) => {
+                      const assignedAccountId = typeof grade.zoomAccount === "string" ? grade.zoomAccount : grade.zoomAccount?.id || grade.zoomAccount?._id || "";
+                      const assignedAccountName = typeof grade.zoomAccount === "object" && grade.zoomAccount?.name
+                        ? grade.zoomAccount.name
+                        : zoomAccounts.find((account) => account.id === assignedAccountId)?.name;
+                      const linked = Boolean(assignedAccountId);
+                      return (
+                        <TableRow key={grade.id} className={linked ? "bg-emerald-50/30" : "bg-amber-50/20"}>
+                          <TableCell className="font-bold">{grade.name}</TableCell>
+                          <TableCell>
+                            {linked ? (
+                              <Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100"><CheckCircle2 className="ml-1.5 h-3 w-3"/>مربوط</Badge>
+                            ) : (
+                              <Badge className="border border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-100"><Link2 className="ml-1.5 h-3 w-3"/>غير مربوط</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {linked ? <span className="flex items-center gap-2 font-semibold text-emerald-800"><Video className="h-4 w-4"/>{assignedAccountName || "حساب Zoom مرتبط"}</span> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" className="min-w-32 gap-2" variant={linked ? "outline" : "default"} onClick={() => setSelectedGrade(grade)}>
+                              <Link2 className="h-4 w-4"/>{linked ? "تغيير الحساب" : "ربط الحساب"}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
             </section>
           )}
         </>
@@ -100,6 +137,7 @@ const GradeZoomAssignmentAdmin = () => {
         open={!!selectedGrade}
         onOpenChange={(open) => !open && setSelectedGrade(null)}
         grade={selectedGrade}
+        curriculumIds={curriculumIds}
         onAssigned={loadGrades}
       />
     </div>

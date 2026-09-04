@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { ApiError } from "@/api/client";
+import { catalogApi, type CurriculumOption, type GradeOption } from "@/api/catalogApi";
 import {
   classroomRecordingsApi,
   type ClassroomOption,
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { referenceId, referenceName } from "@/admin/zoom/classroomZoomNormalization";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ["mp4", "webm", "mov", "mkv", "avi"];
@@ -43,6 +45,8 @@ export default function ClassroomRecordingsAdmin() {
   const navigate = useNavigate();
   const { isArabic, pick } = useLanguage();
   const [classrooms, setClassrooms] = useState<ClassroomOption[]>([]);
+  const [curricula, setCurricula] = useState<CurriculumOption[]>([]);
+  const [grades, setGrades] = useState<GradeOption[]>([]);
   const [subjects, setSubjects] = useState<ClassroomSubjectOption[]>([]);
   const [classroomId, setClassroomId] = useState("");
   const [classroomSubjectId, setClassroomSubjectId] = useState("");
@@ -59,17 +63,9 @@ export default function ClassroomRecordingsAdmin() {
   const [progress, setProgress] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const curricula = useMemo(() => Array.from(new Map(
-    classrooms.filter((item) => item.curriculum).map((item) => [item.curriculum!.id, item.curriculum!]),
-  ).values()), [classrooms]);
-  const grades = useMemo(() => Array.from(new Map(
-    classrooms
-      .filter((item) => item.grade && (curriculumId === "all" || item.curriculum?.id === curriculumId))
-      .map((item) => [item.grade!.id, item.grade!]),
-  ).values()), [classrooms, curriculumId]);
   const filteredClassrooms = useMemo(() => classrooms.filter((item) =>
-    (curriculumId === "all" || item.curriculum?.id === curriculumId)
-    && (gradeId === "all" || item.grade?.id === gradeId)
+    (curriculumId === "all" || referenceId(item.curriculum) === curriculumId)
+    && (gradeId === "all" || referenceId(item.grade) === gradeId)
   ), [classrooms, curriculumId, gradeId]);
   const selectedClassroom = classrooms.find((item) => item.id === classroomId);
 
@@ -80,6 +76,19 @@ export default function ClassroomRecordingsAdmin() {
       .catch((error) => toast.error((error as Error).message || pick("تعذر تحميل الفصول", "Unable to load classes")))
       .finally(() => setLoadingClassrooms(false));
   }, [pick]);
+
+  useEffect(() => {
+    catalogApi.curriculums()
+      .then((response) => setCurricula(response.data || []))
+      .catch((error) => toast.error((error as Error).message || pick("تعذر تحميل المناهج", "Unable to load curricula")));
+  }, [pick]);
+
+  useEffect(() => {
+    if (curriculumId === "all") { setGrades([]); return; }
+    catalogApi.grades(curriculumId)
+      .then((response) => setGrades((response.data || []).filter((item) => item.isActive !== false)))
+      .catch((error) => { setGrades([]); toast.error((error as Error).message || pick("تعذر تحميل الصفوف", "Unable to load grades")); });
+  }, [curriculumId, pick]);
 
   useEffect(() => {
     setClassroomSubjectId("");
@@ -187,11 +196,11 @@ export default function ClassroomRecordingsAdmin() {
                         <CommandGroup>
                           {filteredClassrooms.map((item) => <CommandItem
                             key={item.id}
-                            value={`${item.name} ${item.curriculum?.name || ""} ${item.grade?.name || ""}`}
+                            value={`${item.name} ${referenceName(item.curriculum)} ${referenceName(item.grade)}`}
                             onSelect={() => { setClassroomId(item.id); setClassroomOpen(false); }}
                           >
                             <Check className={cn("ml-2 h-4 w-4", classroomId === item.id ? "opacity-100" : "opacity-0")} />
-                            <span className="flex-1"><span className="block">{item.name}</span><span className="text-xs text-muted-foreground">{[item.curriculum?.name, item.grade?.name].filter(Boolean).join(" — ")}</span></span>
+                            <span className="flex-1"><span className="block">{item.name}</span><span className="text-xs text-muted-foreground">{[referenceName(item.curriculum), referenceName(item.grade)].filter(Boolean).join(" — ")}</span></span>
                           </CommandItem>)}
                         </CommandGroup>
                       </CommandList>

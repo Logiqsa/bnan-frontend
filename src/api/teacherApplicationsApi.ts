@@ -43,9 +43,17 @@ export interface TeacherApplication {
   termsAccepted?: boolean;
   status: TeacherApplicationStatus;
   isVerified?: boolean;
+  emailVerified?: boolean;
+  verified?: boolean;
+  curriculum?: NamedEntity | string;
   curriculums?: Array<NamedEntity | string>;
   additionalCurriculums?: Array<NamedEntity | string>;
   teacherAssignments?: TeacherAssignment[];
+  assignments?: TeacherAssignment[];
+  teachingAssignments?: TeacherAssignment[];
+  gradeSubjects?: TeacherAssignment[];
+  grades?: Array<NamedEntity | string>;
+  subjects?: Array<NamedEntity | string>;
   cv?: string;
   cvUrl?: string;
   certificate?: string;
@@ -66,6 +74,8 @@ export interface TeacherApplication {
     phone?: string;
     status?: string;
     isVerified?: boolean;
+    emailVerified?: boolean;
+    verified?: boolean;
   };
 }
 
@@ -85,10 +95,31 @@ export interface TeacherApplicationsResponse {
 type TeacherApplicationPayload = Omit<TeacherApplication, "id"> & { id?: string; _id?: string };
 type TeacherApplicationsPayload = Omit<TeacherApplicationsResponse, "data"> & { data: TeacherApplicationPayload[] };
 
-const normalizeTeacher = (item: TeacherApplicationPayload): TeacherApplication => ({
-  ...item,
-  id: item.id || item._id || "",
-});
+const arrayValue = <T>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    return [];
+  }
+};
+
+const normalizeTeacher = (item: TeacherApplicationPayload): TeacherApplication => {
+  const raw = item as TeacherApplicationPayload & Record<string, unknown>;
+  const curriculums = arrayValue<NamedEntity | string>(raw.curriculums);
+  if (!curriculums.length && item.curriculum) curriculums.push(item.curriculum);
+  const teacherAssignments = [raw.teacherAssignments, raw.assignments, raw.teachingAssignments, raw.gradeSubjects]
+    .map((value) => arrayValue<TeacherAssignment>(value))
+    .find((value) => value.length > 0) || [];
+  return {
+    ...item,
+    id: item.id || item._id || "",
+    curriculums,
+    teacherAssignments,
+  };
+};
 
 const normalizeList = (result: TeacherApplicationsPayload): TeacherApplicationsResponse => ({
   ...result,

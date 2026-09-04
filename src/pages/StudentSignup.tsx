@@ -45,12 +45,19 @@ const friendlyError = (error: unknown) => {
 
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
 
-const normalizeSaudiPaymentPhone = (value: string): string | null => {
+export const normalizeRegistrationPhone = (value: string): string | null => {
   let digits = value.replace(/[^\d]/g, "");
-  if (digits.startsWith("00966")) digits = digits.slice(2);
+  if (digits.startsWith("00")) digits = digits.slice(2);
+
+  // Saudi mobile numbers: 05xxxxxxxx / 5xxxxxxxx / 9665xxxxxxxx
   if (digits.startsWith("05")) digits = `966${digits.slice(1)}`;
   if (digits.startsWith("5")) digits = `966${digits}`;
-  return /^9665\d{8}$/.test(digits) ? digits : null;
+  if (/^9665\d{8}$/.test(digits)) return digits;
+
+  // Egyptian mobile numbers: 01xxxxxxxxx / 1xxxxxxxxx / 20xxxxxxxxxx
+  if (digits.startsWith("01")) digits = `20${digits.slice(1)}`;
+  if (/^1(?:0|1|2|5)\d{8}$/.test(digits)) digits = `20${digits}`;
+  return /^201(?:0|1|2|5)\d{8}$/.test(digits) ? digits : null;
 };
 
 interface SignupDraft {
@@ -86,7 +93,7 @@ const readSignupDraft = (): Partial<SignupDraft> => {
 };
 
 export default function StudentSignup() {
-  const { isArabic } = useLanguage();
+  const { isArabic, pick } = useLanguage();
   const [searchParams] = useSearchParams();
   const [savedDraft] = useState(readSignupDraft);
   const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
@@ -126,7 +133,11 @@ export default function StudentSignup() {
   const [region, setRegion] = useState(savedDraft.region ?? "");
   const [line1, setLine1] = useState(savedDraft.line1 ?? "");
   const [submitting, setSubmitting] = useState(false);
-  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(savedDraft.verification ?? null);
+  // Student registrations remain pending until admin approval, so an old student
+  // verification draft must not reopen the OTP screen on a later registration.
+  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(
+    savedDraft.verification?.kind === "parent" ? savedDraft.verification : null,
+  );
 
   const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
   const previousCurriculumId = useRef(curriculumId);
@@ -218,7 +229,7 @@ export default function StudentSignup() {
     setSubjectIds((current) => current.includes(id) ? current.filter((subjectId) => subjectId !== id) : [...current, id]);
 
   const validStep = useMemo(() => {
-    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeSaudiPaymentPhone(parentPhone) && parentPassword.length >= 8;
+    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeRegistrationPhone(parentPhone) && parentPassword.length >= 8;
     if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && studentPassword.length >= 8;
     if (step === 2) {
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0) return false;
@@ -237,9 +248,9 @@ export default function StudentSignup() {
 
   const submitParentStep = async () => {
     setError("");
-    const paymentPhone = normalizeSaudiPaymentPhone(parentPhone);
-    if (!paymentPhone) {
-      setError("أدخل رقم جوال سعودي صحيحًا مثل 05xxxxxxxx أو 9665xxxxxxxx.");
+    const registrationPhone = normalizeRegistrationPhone(parentPhone);
+    if (!registrationPhone) {
+      setError("أدخل رقم موبايل مصري أو سعودي صحيحًا.");
       return;
     }
     setParentBusy(true);
@@ -264,8 +275,8 @@ export default function StudentSignup() {
       const response = await authApi.registerParent({
         fullName: parentFullName.trim(),
         email: credentials.email,
-        phone: paymentPhone,
-        whatsappNumber: paymentPhone,
+        phone: registrationPhone,
+        whatsappNumber: registrationPhone,
         password: credentials.password,
       });
       if (response.token) tokenStore.set(response.token, response.refreshToken || "");
@@ -281,8 +292,8 @@ export default function StudentSignup() {
 
   const next = async () => {
     if (!validStep) {
-      setError(step === 0 && parentPhone.trim() && !normalizeSaudiPaymentPhone(parentPhone)
-        ? "أدخل رقم جوال سعودي صحيحًا مثل 05xxxxxxxx أو 9665xxxxxxxx."
+      setError(step === 0 && parentPhone.trim() && !normalizeRegistrationPhone(parentPhone)
+        ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
         : "أكمل الحقول المطلوبة قبل المتابعة.");
       return;
     }
@@ -305,14 +316,16 @@ export default function StudentSignup() {
         subjects: mode !== "gulf" && isAllSubjectsPackage ? subjects.map((subject) => subject.id) : subjectIds,
       };
       if (mode === "egyptian") {
-        const response = await authApi.registerStudent({
+        await authApi.registerStudent({
           parent: parentCreds,
           student: studentPayload,
           curriculum: curriculumId,
           packageId,
           discountCode: discountCode.trim() || undefined,
         });
-        setVerification({ email: response.data.email || studentEmail.trim(), kind: "student" });
+        const pendingStudentEmail = studentEmail.trim();
+        sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
+        window.location.href = `/portal/login?email=${encodeURIComponent(pendingStudentEmail)}&pending=1`;
       } else {
         const { data } = await paymentApi.checkout(
           {
@@ -359,11 +372,9 @@ export default function StudentSignup() {
       setVerification(null);
       setStep(1);
     } else {
-      const login = await authApi.login(studentEmail.trim(), studentPassword);
-      tokenStore.set(login.token, login.refreshToken);
-      localStorage.setItem("bnan_portal_user", JSON.stringify(login.data));
+      const verifiedStudentEmail = verification.email || studentEmail.trim();
       sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
-      window.location.href = "/portal/student/schedule";
+      window.location.href = `/portal/login?email=${encodeURIComponent(verifiedStudentEmail)}&pending=1`;
     }
   }} />;
 

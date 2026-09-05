@@ -102,4 +102,6 @@ export interface PortalLesson {
   startTime: string;
   scheduledAt: string | null;
   activeSession: ActiveSession | null;
+  scheduleKind?: "classroom" | "course";
+  courseName?: string;
 }

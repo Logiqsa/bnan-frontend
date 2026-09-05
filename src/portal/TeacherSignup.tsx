@@ -60,6 +60,7 @@ const TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_teacher_signup_persistent_draf
 const MAX_TEACHER_FILE_SIZE = 20 * 1024 * 1024;
 
 interface TeacherSignupDraft {
+  idempotencyKey: string;
   step: number;
   curriculumStage: "grades" | "subjects";
   values: Record<string, string>;
@@ -87,6 +88,7 @@ const readTeacherSignupDraft = (): Partial<TeacherSignupDraft> => {
 
 export default function TeacherSignup() {
   const [savedDraft] = useState(readTeacherSignupDraft);
+  const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
   // Browsers do not allow restoring File inputs. Return to the documents step
   // after a reload, while keeping every serializable answer and selection.
   const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), 1));
@@ -125,6 +127,7 @@ export default function TeacherSignup() {
 
   useEffect(() => {
     const draft: TeacherSignupDraft = {
+      idempotencyKey,
       step,
       curriculumStage,
       values,
@@ -148,7 +151,7 @@ export default function TeacherSignup() {
     } catch {
       // Storage may be unavailable in strict private-browsing modes.
     }
-  }, [step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
+  }, [idempotencyKey, step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -390,7 +393,7 @@ export default function TeacherSignup() {
       experienceCertificates.forEach((file) =>
         body.append("experienceCertificates", file),
       );
-      const response = await authApi.registerTeacher(body);
+      const response = await authApi.registerTeacher(body, idempotencyKey);
       sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
       localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
       setVerificationEmail(response.data.email || values.email);

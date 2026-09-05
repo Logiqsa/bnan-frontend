@@ -23,6 +23,7 @@ import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
 
 const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
+const STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_student_signup_persistent_draft";
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -90,19 +91,27 @@ interface SignupDraft {
 }
 
 const readSignupDraft = (): Partial<SignupDraft> => {
-  try {
-    const raw = sessionStorage.getItem(STUDENT_SIGNUP_DRAFT_KEY);
-    return raw ? JSON.parse(raw) as Partial<SignupDraft> : {};
-  } catch {
-    return {};
+  for (const [storage, key] of [
+    [sessionStorage, STUDENT_SIGNUP_DRAFT_KEY],
+    [localStorage, STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY],
+  ] as const) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw) return JSON.parse(raw) as Partial<SignupDraft>;
+    } catch {
+      // Continue to the other storage when mobile private mode blocks one.
+    }
   }
+  return {};
 };
 
 export default function StudentSignup() {
   const { isArabic, pick } = useLanguage();
   const [searchParams] = useSearchParams();
   const [savedDraft] = useState(readSignupDraft);
-  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
+  const [step, setStep] = useState(() => savedDraft.parentCreds
+    ? Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1)
+    : 0);
   const [error, setError] = useState("");
 
   // Step 0: parent
@@ -204,7 +213,24 @@ export default function StudentSignup() {
       subjectIds, packageId, discountCode, paymentProvider, city, region, line1,
       verification, idempotencyKey,
     };
-    sessionStorage.setItem(STUDENT_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+    try {
+      sessionStorage.setItem(STUDENT_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // sessionStorage may be discarded or unavailable on mobile browsers.
+    }
+    try {
+      const persistentDraft: Partial<SignupDraft> = {
+        ...draft,
+        step: 0,
+        parentPassword: "",
+        studentPassword: "",
+        parentCreds: null,
+        verification: null,
+      };
+      localStorage.setItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY, JSON.stringify(persistentDraft));
+    } catch {
+      // Strict private browsing can disable persistent storage.
+    }
   }, [step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, packageId, discountCode, paymentProvider, city, region, line1, verification, idempotencyKey]);
 
   useEffect(() => {
@@ -337,6 +363,7 @@ export default function StudentSignup() {
         });
         const pendingStudentEmail = studentEmail.trim();
         sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
+        localStorage.removeItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY);
         window.location.href = `/portal/login?email=${encodeURIComponent(pendingStudentEmail)}&pending=1`;
       } else {
         const { data } = await paymentApi.checkout(
@@ -386,6 +413,7 @@ export default function StudentSignup() {
     } else {
       const verifiedStudentEmail = verification.email || studentEmail.trim();
       sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
+      localStorage.removeItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY);
       window.location.href = `/portal/login?email=${encodeURIComponent(verifiedStudentEmail)}&pending=1`;
     }
   }} />;

@@ -5,8 +5,9 @@ export const authApi = {
   login: (email: string, password: string) => apiRequest<AuthResponse>("/auth/login", {
     method: "POST", body: JSON.stringify({ email, password }),
   }),
-  registerTeacher: (body: FormData) => apiRequest<RegistrationResponse>("/auth/register-teacher", {
+  registerTeacher: (body: FormData, idempotencyKey?: string) => apiRequest<RegistrationResponse>("/auth/register-teacher", {
     method: "POST", body,
+    ...(idempotencyKey ? { headers: { "Idempotency-Key": idempotencyKey } } : {}),
   }),
   registerParent: (body: RegisterParentBody) => apiRequest<RegistrationResponse>("/auth/register-parent", {
     method: "POST", body: JSON.stringify(body),

@@ -43,6 +43,7 @@ import MyCourses from "@/portal/MyCourses";
 import CourseEnrollmentDetail from "@/portal/CourseEnrollmentDetail";
 import CourseGroupsAdmin from "@/admin/CourseGroupsAdmin";
 import TeachersAdmin from "@/admin/TeachersAdmin";
+import CourseClassroomScheduleAdmin from "@/admin/CourseClassroomScheduleAdmin";
 
 const queryClient = new QueryClient();
 
@@ -257,6 +258,14 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/admin/course-classrooms/:classroomId/schedule"
+                      element={
+                        <AdminGuard>
+                          <CourseClassroomScheduleAdmin />
+                        </AdminGuard>
+                      }
+                    />
+                    <Route
                       path="/admin/zoom-accounts/:id/classrooms"
                       element={
                         <AdminGuard>
@@ -278,6 +287,14 @@ export default function App() {
                         <ManualZoomGuard role="supervisor">
                           <ClassroomScheduleManagement />
                         </ManualZoomGuard>
+                      }
+                    />
+                    <Route
+                      path="/portal/supervisor/course-classrooms/:classroomId/schedule"
+                      element={
+                        <PortalGuard role="supervisor">
+                          <CourseClassroomScheduleAdmin />
+                        </PortalGuard>
                       }
                     />
                     <Route

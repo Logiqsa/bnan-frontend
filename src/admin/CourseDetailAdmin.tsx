@@ -129,14 +129,6 @@ export default function CourseDetailAdmin() {
                           </p>
                         </div>
                         <div className="rounded-xl border bg-muted/30 p-4 sm:col-span-2">
-                          <p className="text-xs text-muted-foreground">
-                            الصفوف المؤهلة
-                          </p>
-                          <p className="mt-1 font-bold">
-                            {query.data.eligibleGrades.map(refName).join("، ")}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border bg-muted/30 p-4 sm:col-span-2">
                           <p className="mb-2 text-xs text-muted-foreground">
                             حالة الدورة
                           </p>

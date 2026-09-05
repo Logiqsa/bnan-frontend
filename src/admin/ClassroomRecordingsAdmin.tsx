@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { referenceId, referenceName } from "@/admin/zoom/classroomZoomNormalization";
+import GradeStageFilter from "@/admin/GradeStageFilter";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ["mp4", "webm", "mov", "mkv", "avi"];
@@ -68,6 +69,7 @@ export default function ClassroomRecordingsAdmin() {
     && (gradeId === "all" || referenceId(item.grade) === gradeId)
   ), [classrooms, curriculumId, gradeId]);
   const selectedClassroom = classrooms.find((item) => item.id === classroomId);
+  const selectedCurriculum = curricula.find((item) => item.id === curriculumId);
 
   useEffect(() => {
     setLoadingClassrooms(true);
@@ -163,7 +165,7 @@ export default function ClassroomRecordingsAdmin() {
         <CardContent>
           <form onSubmit={submit} className="space-y-5">
             <fieldset disabled={uploading} className="space-y-5">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label>{pick("المنهج", "Curriculum")}</Label>
                   <Select value={curriculumId} onValueChange={(value) => { setCurriculumId(value); setGradeId("all"); setClassroomId(""); }} disabled={loadingClassrooms}>
@@ -171,13 +173,7 @@ export default function ClassroomRecordingsAdmin() {
                     <SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{curricula.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>{pick("الصف", "Grade")}</Label>
-                  <Select value={gradeId} onValueChange={(value) => { setGradeId(value); setClassroomId(""); }} disabled={loadingClassrooms}>
-                    <SelectTrigger><SelectValue placeholder={pick("كل الصفوف", "All grades")} /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">{pick("كل الصفوف", "All grades")}</SelectItem>{grades.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <GradeStageFilter grades={grades} gradeId={gradeId} mode={selectedCurriculum?.registrationMode} allowAll disabled={loadingClassrooms || curriculumId === "all"} onGradeChange={(value) => { setGradeId(value); setClassroomId(""); }} />
               </div>
               <div className="space-y-2">
                 <Label>{pick("الفصل", "Class")}</Label>

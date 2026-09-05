@@ -23,6 +23,13 @@ const contactInfo = [
     subtitle: "خط إضافي",
   },
   {
+    icon: Phone,
+    title: "خط مصر",
+    value: "+20 10 9156 9792",
+    href: "tel:+201091569792",
+    subtitle: "للتواصل من مصر",
+  },
+  {
     icon: MessageCircle,
     title: "واتساب",
     value: "+966 58 250 2026",

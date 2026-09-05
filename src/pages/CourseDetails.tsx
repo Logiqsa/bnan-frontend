@@ -1,2 +1,171 @@
-import { useState } from "react";import { useParams,Link } from "react-router-dom";import { useQuery } from "@tanstack/react-query";import { ArrowRight } from "lucide-react";import { coursesApi } from "@/api/coursesApi";import { courseError,courseImageUrl,refName } from "@/lib/courseUi";import Navbar from "@/components/Navbar";import Footer from "@/components/Footer";import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";import { Button } from "@/components/ui/button";import { Badge } from "@/components/ui/badge";import cover from "@/assets/course-default-cover.jpg";
-export default function CourseDetails(){const {slug=""}=useParams();const [open,setOpen]=useState(false);const q=useQuery({queryKey:["public-course",slug],queryFn:()=>coursesApi.getPublic(slug)});return <div dir="rtl" className="min-h-screen"><Navbar/><main className="container mx-auto max-w-4xl px-4 pb-16 pt-28"><Link to="/courses" className="mb-5 inline-flex items-center gap-2 text-muted-foreground"><ArrowRight className="h-4 w-4"/>كل الدورات</Link>{q.isLoading?<p>جاري التحميل...</p>:q.error?<p className="text-destructive">{courseError(q.error)}</p>:q.data&&<><img src={courseImageUrl(q.data.image)||cover} alt={q.data.name} className="mb-6 h-72 w-full rounded-2xl object-cover"/><h1 className="mb-2 text-3xl font-bold">{q.data.name}</h1><p className="mb-4 text-muted-foreground">المعلم: {refName(q.data.teacher)}</p><div className="mb-6 flex flex-wrap gap-2">{q.data.eligibleGrades.map(g=><Badge key={g.id||g._id||g.name} variant="outline">{refName(g)}</Badge>)}</div><p className="mb-8 whitespace-pre-wrap leading-8">{q.data.description}</p><div className="rounded-2xl border bg-card p-5"><div className="mb-4 flex flex-wrap gap-6">{q.data.enrollmentModes.group.enabled&&<p>جماعي: <b>{q.data.enrollmentModes.group.price||"مجاني"} {q.data.enrollmentModes.group.price?q.data.currency:""}</b></p>}{q.data.enrollmentModes.individual.enabled&&<p>فردي: <b>{q.data.enrollmentModes.individual.price||"مجاني"} {q.data.enrollmentModes.individual.price?q.data.currency:""}</b></p>}</div><Button disabled={!q.data.enrollmentOpen} onClick={()=>setOpen(true)}>{q.data.enrollmentOpen?"اختيار نمط التسجيل":"التسجيل مغلق"}</Button></div>{open&&<CourseRegistrationDialog course={q.data} onClose={()=>setOpen(false)}/>}</>}</main><Footer/></div>}
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, BookOpen, Clock3, UserRound } from "lucide-react";
+import { coursesApi } from "@/api/coursesApi";
+import {
+  courseError,
+  courseImageUrl,
+  isFreeCourse,
+  refName,
+} from "@/lib/courseUi";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import cover from "@/assets/course-default-cover.jpg";
+
+export default function CourseDetails() {
+  const { slug = "" } = useParams();
+  const [open, setOpen] = useState(false);
+  const query = useQuery({
+    queryKey: ["public-course", slug],
+    queryFn: () => coursesApi.getPublic(slug),
+  });
+  const course = query.data;
+  const free = course ? isFreeCourse(course) : false;
+  const duration = course
+    ? course.durationHours ||
+      course.requiredDuration ||
+      (course.requiredMinutes ? course.requiredMinutes / 60 : undefined)
+    : undefined;
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-muted/20">
+      <Navbar />
+      <main className="container mx-auto max-w-6xl px-4 pb-16 pt-28">
+        <Link
+          to="/courses"
+          className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowRight className="h-4 w-4" />
+          كل الدورات
+        </Link>
+        {query.isLoading ? (
+          <p className="py-20 text-center">جاري التحميل...</p>
+        ) : query.error ? (
+          <p className="py-20 text-center text-destructive">
+            {courseError(query.error)}
+          </p>
+        ) : (
+          course && (
+            <>
+              <div
+                className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
+                dir="ltr"
+              >
+                <img
+                  src={courseImageUrl(course.image) || cover}
+                  alt={course.name}
+                  className="h-full min-h-80 w-full rounded-2xl border bg-card object-cover shadow-sm"
+                />
+                <div className="space-y-4" dir="rtl">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="mb-4 flex flex-wrap items-center gap-2">
+                        <h1 className="text-3xl font-bold">{course.name}</h1>
+                        {free && (
+                          <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                            مجانية
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border bg-muted/30 p-4">
+                          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <UserRound className="h-4 w-4" />
+                            المعلم
+                          </p>
+                          <p className="mt-2 font-bold">
+                            {refName(course.teacher)}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border bg-muted/30 p-4">
+                          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <BookOpen className="h-4 w-4" />
+                            المادة
+                          </p>
+                          <p className="mt-2 font-bold">
+                            {refName(course.subject)}
+                          </p>
+                        </div>
+                        {duration && (
+                          <div className="rounded-xl border bg-muted/30 p-4 sm:col-span-2">
+                            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock3 className="h-4 w-4" />
+                              مدة الدورة
+                            </p>
+                            <p className="mt-2 font-bold">{duration} ساعة</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-6">
+                      <h2 className="mb-3 text-lg font-bold">عن الدورة</h2>
+                      <p className="whitespace-pre-wrap leading-8 text-muted-foreground">
+                        {course.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      {!free && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {course.enrollmentModes.group.enabled && (
+                            <div className="rounded-xl border p-4">
+                              <p className="text-xs text-muted-foreground">
+                                التسجيل الجماعي
+                              </p>
+                              <p className="mt-1 text-lg font-bold">
+                                {course.enrollmentModes.group.price}{" "}
+                                {course.currency}
+                              </p>
+                            </div>
+                          )}
+                          {course.enrollmentModes.individual.enabled && (
+                            <div className="rounded-xl border p-4">
+                              <p className="text-xs text-muted-foreground">
+                                التسجيل الفردي
+                              </p>
+                              <p className="mt-1 text-lg font-bold">
+                                {course.enrollmentModes.individual.price}{" "}
+                                {course.currency}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        disabled={!course.enrollmentOpen}
+                        onClick={() => setOpen(true)}
+                      >
+                        {course.enrollmentOpen
+                          ? free
+                            ? "سجّل مجانًا"
+                            : "اختيار نمط التسجيل"
+                          : "التسجيل مغلق"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              {open && (
+                <CourseRegistrationDialog
+                  course={course}
+                  onClose={() => setOpen(false)}
+                />
+              )}
+            </>
+          )
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}

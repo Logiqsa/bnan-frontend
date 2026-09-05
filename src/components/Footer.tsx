@@ -123,6 +123,15 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
                   <span dir="ltr">+966 53 080 8189</span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="tel:+201091569792"
+                  className="flex items-center gap-2 text-sm font-tajawal text-primary-foreground/60 hover:text-secondary transition-colors"
+                >
+                  <Phone className="w-4 h-4 text-secondary shrink-0" />
+                  <span dir="ltr">+20 10 9156 9792</span>
+                </a>
+              </li>
               <li className="flex items-center gap-2 text-sm font-tajawal text-primary-foreground/60">
                 <MapPin className="w-4 h-4 text-secondary shrink-0" /> {pick("الرياض", "Riyadh")}
               </li>

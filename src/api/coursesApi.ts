@@ -42,6 +42,9 @@ export interface Course {
   createdAt?: string;
   updatedAt?: string;
   subject?: string | NamedRef | null;
+  // Some deployed read endpoints return the single course subject wrapped in
+  // a `subjects` array. Writes still use the singular `subject` contract.
+  subjects?: NamedRef[];
   requiredMinutes?: number;
   durationHours?: number;
   requiredDuration?: number;
@@ -157,6 +160,7 @@ const course = (item: Raw<Omit<Course, "id">>): Course => ({
   ...item,
   id: item.id || item._id || "",
   eligibleGrades: item.grades || item.eligibleGrades || [],
+  subject: item.subject || item.subjects?.[0] || null,
   enrollmentModes: item.enrollmentModes || {
     group: { enabled: false, price: 0 },
     individual: { enabled: false, price: 0 },

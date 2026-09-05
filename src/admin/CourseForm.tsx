@@ -94,6 +94,14 @@ export default function CourseForm({
   const [individualPrice, setIndividualPrice] = useState(
     String(course?.enrollmentModes.individual.price ?? 0),
   );
+  const [isFree, setIsFree] = useState(
+    Boolean(
+      course &&
+        course.enrollmentModes.group.enabled &&
+        Number(course.enrollmentModes.group.price) === 0 &&
+        !course.enrollmentModes.individual.enabled,
+    ),
+  );
   const [currency, setCurrency] = useState(course?.currency || "EGP");
   const [published, setPublished] = useState(course?.isPublished ?? false);
   const [open, setOpen] = useState(course?.enrollmentOpen ?? true);
@@ -292,7 +300,7 @@ export default function CourseForm({
   };
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!groupEnabled && !individualEnabled) return;
+    if (!isFree && !groupEnabled && !individualEnabled) return;
     const hours = Number(requiredHours);
     if (!Number.isFinite(hours) || hours <= 0) {
       toast.error("مدة الدورة بالساعات مطلوبة ويجب أن تكون أكبر من صفر.");
@@ -317,12 +325,12 @@ export default function CourseForm({
         requiredMinutes,
         enrollmentModes: {
           group: {
-            enabled: groupEnabled,
-            price: groupEnabled ? Number(groupPrice) : 0,
+            enabled: isFree || groupEnabled,
+            price: isFree ? 0 : groupEnabled ? Number(groupPrice) : 0,
           },
           individual: {
-            enabled: individualEnabled,
-            price: individualEnabled ? Number(individualPrice) : 0,
+            enabled: isFree ? false : individualEnabled,
+            price: isFree ? 0 : individualEnabled ? Number(individualPrice) : 0,
           },
         },
         currency,
@@ -728,7 +736,13 @@ export default function CourseForm({
                 </p>
               )}
           </label>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border bg-muted/20 p-4">
+            <label className="flex cursor-pointer items-center justify-between gap-4">
+              <span><span className="block font-semibold">دورة مجانية</span><span className="mt-1 block text-xs text-muted-foreground">عند التفعيل ستكون الدورة جماعية فقط وسعرها صفر.</span></span>
+              <Switch checked={isFree} onCheckedChange={setIsFree} aria-label="دورة مجانية" />
+            </label>
+          </div>
+          {!isFree && <div className="grid gap-4 md:grid-cols-2">
             {[
               [
                 "التسجيل الجماعي",
@@ -769,13 +783,13 @@ export default function CourseForm({
                 </label>
               </div>
             ))}
-          </div>
-          {!groupEnabled && !individualEnabled && (
+          </div>}
+          {!isFree && !groupEnabled && !individualEnabled && (
             <p className="text-sm text-destructive">
               فعّل نمط تسجيل واحدًا على الأقل.
             </p>
           )}
-          {groupEnabled && (
+          {(isFree || groupEnabled) && (
             <div className="grid gap-4 rounded-xl border p-4 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="flex items-center gap-2">
@@ -840,7 +854,7 @@ export default function CourseForm({
           <div
             className={`grid gap-4 ${course ? "md:grid-cols-3" : "md:grid-cols-2"}`}
           >
-            <label className="space-y-2">
+            {!isFree && <label className="space-y-2">
               <span>العملة</span>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger>
@@ -851,7 +865,7 @@ export default function CourseForm({
                   <SelectItem value="SAR">سعودي — ريال سعودي (SAR)</SelectItem>
                 </SelectContent>
               </Select>
-            </label>
+            </label>}
             {course && (
               <label className="space-y-2">
                 <span>حالة الدورة</span>
@@ -968,17 +982,17 @@ export default function CourseForm({
                 )}
               </div>
               <div className="space-y-1 text-sm">
-                {groupEnabled && (
+                {(isFree || groupEnabled) && (
                   <p>
                     جماعي:{" "}
                     <b>
-                      {Number(groupPrice) > 0
+                      {!isFree && Number(groupPrice) > 0
                         ? `${Number(groupPrice)} ${currency}`
                         : "مجاني"}
                     </b>
                   </p>
                 )}
-                {individualEnabled && (
+                {!isFree && individualEnabled && (
                   <p>
                     فردي:{" "}
                     <b>
@@ -988,7 +1002,7 @@ export default function CourseForm({
                     </b>
                   </p>
                 )}
-                {!groupEnabled && !individualEnabled && (
+                {!isFree && !groupEnabled && !individualEnabled && (
                   <p className="text-muted-foreground">
                     لم يتم تفعيل نمط تسجيل.
                   </p>

@@ -17,6 +17,10 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
 import { STUDENT_SIGNUP_DRAFT_KEY, studentSignupSession } from "@/lib/studentSignupSession";
 import { cn } from "@/lib/utils";
+import visaImg from "@/assets/payment/visa.png";
+import mastercardImg from "@/assets/payment/mastercard.png";
+import madaImg from "@/assets/payment/mada.png";
+import tamaraImg from "@/assets/payment/tamara.png";
 
 const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
 
@@ -153,8 +157,8 @@ export default function StudentSignup() {
   const selectedAccessScope = selectedPackage?.accessScope;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
   const isAllSubjectsPackage = selectedAccessScope === "all_subjects";
-  const gradeGroups=useMemo(()=>{const languages=grades.filter(grade=>grade.name.includes("لغات"));const arabic=grades.filter(grade=>!grade.name.includes("لغات")&&(grade.name.includes("عربي")||grade.name.includes("عربى")));const groupedIds=new Set([...languages,...arabic].map(grade=>grade.id));const other=grades.filter(grade=>!groupedIds.has(grade.id));return [{key:"languages",label:"قسم اللغات",grades:languages},{key:"arabic",label:"القسم العربي",grades:arabic},...(other.length?[{key:"other",label:"صفوف أخرى",grades:other}]:[])].filter(group=>group.grades.length);},[grades]);
   const splitGradesByStage=(groupGrades:GradeOption[])=>{const normalize=(value:string)=>value.replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");const definitions=mode==="egyptian"?[{key:"primary",label:"المرحلة الابتدائية",keyword:"ابتدائي"},{key:"preparatory",label:"المرحلة الإعدادية",keyword:"اعدادي"},{key:"secondary",label:"المرحلة الثانوية",keyword:"ثانوي"}]:[{key:"primary",label:"المرحلة الابتدائية",keyword:"ابتدائي"},{key:"middle",label:"المرحلة المتوسطة",keyword:"متوسط"},{key:"secondary",label:"المرحلة الثانوية",keyword:"ثانوي"}];const stages=definitions.map(stage=>({...stage,grades:groupGrades.filter(grade=>normalize(grade.name).includes(stage.keyword))})).filter(stage=>stage.grades.length);const stagedIds=new Set(stages.flatMap(stage=>stage.grades.map(grade=>grade.id)));const other=groupGrades.filter(grade=>!stagedIds.has(grade.id));return [...stages,...(other.length?[{key:"other",label:"مراحل أخرى",keyword:"",grades:other}]:[])];};
+  const splitGradesByTrack=(stageGrades:GradeOption[])=>{const languages=stageGrades.filter(grade=>grade.name.includes("لغات"));const arabic=stageGrades.filter(grade=>!grade.name.includes("لغات")&&(grade.name.includes("عربي")||grade.name.includes("عربى")));const groupedIds=new Set([...languages,...arabic].map(grade=>grade.id));const other=stageGrades.filter(grade=>!groupedIds.has(grade.id));return [{key:"languages",label:"قسم اللغات",grades:languages},{key:"arabic",label:"القسم العربي",grades:arabic},...(other.length?[{key:"other",label:"صفوف أخرى",grades:other}]:[])].filter(group=>group.grades.length);};
 
   useEffect(() => {
     catalogApi.curriculums()
@@ -471,11 +475,11 @@ export default function StudentSignup() {
                     <p className="text-muted-foreground font-tajawal text-sm">لا توجد صفوف نشطة لهذا المنهج.</p>
                   ) : (
                     <div className="space-y-3">
-                      {gradeGroups.map((group) => { const isOpen=Boolean(openGradeGroups[group.key]);const selectedInGroup=group.grades.some(grade=>grade.id===gradeId);return <Collapsible key={group.key} open={isOpen} onOpenChange={(open)=>setOpenGradeGroups(current=>({...current,[group.key]:open}))} className="overflow-hidden rounded-xl border bg-card">
-                        <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50"><span><span className="block font-cairo font-bold">{group.label}</span><span className="text-xs text-muted-foreground">{group.grades.length} صفوف{selectedInGroup?" — تم اختيار صف":""}</span></span><ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform",isOpen&&"rotate-180")}/></button></CollapsibleTrigger>
-                        <CollapsibleContent><div className="space-y-3 border-t bg-muted/10 p-3">{splitGradesByStage(group.grades).map((stage)=>{const stageId=`${group.key}-${stage.key}`;const isStageOpen=Boolean(openGradeStages[stageId]);const selectedInStage=stage.grades.some(grade=>grade.id===gradeId);return <Collapsible key={stageId} open={isStageOpen} onOpenChange={(open)=>setOpenGradeStages(current=>({...current,[stageId]:open}))} className="overflow-hidden rounded-lg border bg-card">
-                          <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50"><span className="flex items-center gap-2"><span className="text-sm font-cairo font-bold">{stage.label}</span><span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{stage.grades.length}{selectedInStage?" / تم الاختيار":""}</span></span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform",isStageOpen&&"rotate-180")}/></button></CollapsibleTrigger>
-                          <CollapsibleContent><div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3">{stage.grades.map((grade)=>{const selected=grade.id===gradeId;return <button key={grade.id} type="button" aria-pressed={selected} onClick={()=>setGradeId(grade.id)} className={cn("relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",selected?"border-secondary bg-secondary/10 text-secondary-foreground":"border-border bg-card hover:border-secondary/40 hover:bg-muted/40")}>{selected&&<span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-secondary text-secondary-foreground"><Check className="h-3.5 w-3.5"/></span>}{grade.name}</button>;})}</div></CollapsibleContent>
+                      {splitGradesByStage(grades).map((stage) => { const isStageOpen=Boolean(openGradeStages[stage.key]);const selectedInStage=stage.grades.some(grade=>grade.id===gradeId);return <Collapsible key={stage.key} open={isStageOpen} onOpenChange={(open)=>setOpenGradeStages(current=>({...current,[stage.key]:open}))} className="overflow-hidden rounded-xl border bg-card">
+                        <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50"><span className="flex items-center gap-2"><span className="font-cairo font-bold">{stage.label}</span>{selectedInStage&&<span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">تم الاختيار</span>}</span><ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform",isStageOpen&&"rotate-180")}/></button></CollapsibleTrigger>
+                        <CollapsibleContent><div className="space-y-3 border-t bg-muted/10 p-3">{splitGradesByTrack(stage.grades).map((group)=>{const groupId=`${stage.key}-${group.key}`;const isGroupOpen=Boolean(openGradeGroups[groupId]);const selectedInGroup=group.grades.some(grade=>grade.id===gradeId);return <Collapsible key={groupId} open={isGroupOpen} onOpenChange={(open)=>setOpenGradeGroups(current=>({...current,[groupId]:open}))} className="overflow-hidden rounded-lg border bg-card">
+                          <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50"><span className="flex items-center gap-2"><span className="text-sm font-cairo font-bold">{group.label}</span>{selectedInGroup&&<span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">تم الاختيار</span>}</span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform",isGroupOpen&&"rotate-180")}/></button></CollapsibleTrigger>
+                          <CollapsibleContent><div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3">{group.grades.map((grade)=>{const selected=grade.id===gradeId;return <button key={grade.id} type="button" aria-pressed={selected} onClick={()=>setGradeId(grade.id)} className={cn("relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",selected?"border-secondary bg-secondary/10 text-secondary-foreground":"border-border bg-card hover:border-secondary/40 hover:bg-muted/40")}>{selected&&<span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-secondary text-secondary-foreground"><Check className="h-3.5 w-3.5"/></span>}{grade.name}</button>;})}</div></CollapsibleContent>
                         </Collapsible>;})}</div></CollapsibleContent>
                       </Collapsible>;})}
                     </div>
@@ -574,8 +578,8 @@ export default function StudentSignup() {
                   <div>
                     <h3 className="font-cairo font-bold mb-3">طريقة الدفع *</h3>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      <PaymentProviderOption provider="paymob" selected={paymentProvider} onSelect={setPaymentProvider} title="بطاقة بنكية" description="Visa / Mastercard / Mada" />
-                      <PaymentProviderOption provider="tamara" selected={paymentProvider} onSelect={setPaymentProvider} title="Tamara" description="الدفع المرن عبر Tamara" />
+                      <PaymentProviderOption provider="paymob" selected={paymentProvider} onSelect={setPaymentProvider} />
+                      <PaymentProviderOption provider="tamara" selected={paymentProvider} onSelect={setPaymentProvider} />
                     </div>
                   </div>
                   <LabeledInput label="كود الخصم (اختياري)" dir="ltr" value={discountCode} onChange={setDiscountCode} />
@@ -663,23 +667,21 @@ function PaymentProviderOption({
   provider,
   selected,
   onSelect,
-  title,
-  description,
 }: {
   provider: GulfPaymentProvider;
   selected: GulfPaymentProvider;
   onSelect: (provider: GulfPaymentProvider) => void;
-  title: string;
-  description: string;
 }) {
+  const isTamara = provider === "tamara";
   return (
     <button
       type="button"
       onClick={() => onSelect(provider)}
-      className={`rounded-xl border p-4 text-right transition-colors ${selected === provider ? "border-secondary bg-secondary/10" : "hover:border-secondary/50"}`}
+      aria-pressed={selected === provider}
+      className={`flex min-h-28 items-center justify-between gap-4 rounded-xl border p-4 text-right transition-colors ${selected === provider ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
     >
-      <span className="block font-cairo font-semibold">{title}</span>
-      <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
+      <span className="font-cairo font-semibold">{isTamara ? "قسّط فاتورتك مع تمارا" : "بطاقة بنكية"}</span>
+      {isTamara ? <img src={tamaraImg} alt="تمارا" className="h-10 w-24 rounded-md object-contain" /> : <span className="flex items-center gap-2" dir="ltr"><img src={visaImg} alt="Visa" className="h-8 w-12 object-contain" /><img src={mastercardImg} alt="Mastercard" className="h-8 w-12 object-contain" /><img src={madaImg} alt="مدى" className="h-8 w-12 object-contain" /></span>}
     </button>
   );
 }

@@ -98,6 +98,27 @@ describe("coursesApi", () => {
     });
   });
 
+  it("normalizes the deployed subjects array to the single course subject", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      success: true,
+      data: [{
+        _id: "c1",
+        name: "Course",
+        description: "Description",
+        teacher: "t1",
+        eligibleGrades: [],
+        subjects: [{ id: "s1", name: "دين" }],
+        enrollmentModes: { group: { enabled: true, price: 250 }, individual: { enabled: false, price: 0 } },
+        currency: "EGP",
+        enrollmentOpen: true,
+        status: "active",
+      }],
+    });
+
+    const courses = await coursesApi.listPublic();
+    expect(courses[0].subject).toEqual({ id: "s1", name: "دين" });
+  });
+
   it("uses classroom-scoped schedule endpoints", async () => {
     vi.mocked(apiRequest).mockResolvedValue({
       success: true,

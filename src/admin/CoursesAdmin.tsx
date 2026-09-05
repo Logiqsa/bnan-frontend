@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { BookOpen, Eye, Pencil, Plus, Users } from "lucide-react";
 import { coursesApi } from "@/api/coursesApi";
 import { courseStaffApi } from "@/api/courseStaffApi";
-import { courseError, courseImageUrl, refId, refName } from "@/lib/courseUi";
+import { courseError, courseImageUrl, isFreeCourse, refId, refName } from "@/lib/courseUi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,8 +115,9 @@ export default function CoursesAdmin() {
                 />
                 <CardHeader className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="line-clamp-2">
-                      {course.name}
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      <span className="line-clamp-2">{course.name}</span>
+                      {isFreeCourse(course) && <Badge className="bg-emerald-600 hover:bg-emerald-600">مجانية</Badge>}
                     </CardTitle>
                     <Badge variant="outline">{course.status}</Badge>
                   </div>
@@ -162,19 +163,7 @@ export default function CoursesAdmin() {
                       </p>
                     )}
                   </div>
-                  <div>
-                    <p className="mb-2 text-xs text-muted-foreground">
-                      الصفوف المؤهلة
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {course.eligibleGrades.map((grade) => (
-                        <Badge key={refId(grade)} variant="secondary">
-                          {refName(grade)}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  {!isFreeCourse(course) && <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg bg-muted/40 p-3">
                       <p className="text-xs text-muted-foreground">جماعي</p>
                       <b>
@@ -191,7 +180,7 @@ export default function CoursesAdmin() {
                           : "معطل"}
                       </b>
                     </div>
-                  </div>
+                  </div>}
                 </CardContent>
                 <CardFooter className="grid grid-cols-3 gap-1.5 border-t bg-muted/20 p-3">
                   <Button variant="outline" size="sm" asChild>

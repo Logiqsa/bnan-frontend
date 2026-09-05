@@ -34,6 +34,18 @@ describe("UsersAdmin verification OTP", () => {
     expect(await screen.findByRole("menuitem", { name: /Generate Verification OTP/ })).toBeInTheDocument();
   });
 
+  it("uses the WhatsApp number before the phone number", async () => {
+    mocks.list.mockResolvedValue({
+      success: true,
+      data: [{ ...user, whatsappNumber: "01000000000", phone: "01111111111" }],
+      hasNextPage: false,
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Contact Ahmed on WhatsApp" })).toHaveAttribute("href", "https://wa.me/201000000000");
+  });
+
   it("confirms, displays the response-only code, copies it, and clears it on close", async () => {
     renderPage();
     fireEvent.keyDown(await screen.findByRole("button", { name: /Actions for Ahmed/ }), { key: "Enter", code: "Enter" });

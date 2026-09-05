@@ -1,5 +1,10 @@
 import { API_BASE_URL, ApiError } from "@/api/client";
-import type { NamedRef } from "@/api/coursesApi";
+import type { Course, NamedRef } from "@/api/coursesApi";
+
+export const isFreeCourse = (course: Course) =>
+  course.enrollmentModes.group.enabled &&
+  Number(course.enrollmentModes.group.price) === 0 &&
+  !course.enrollmentModes.individual.enabled;
 
 export const refId = (value?: string | NamedRef | null) => typeof value === "string" ? value : value?.id || value?._id || "";
 export const refName = (value?: string | NamedRef | null) => {
@@ -23,4 +28,3 @@ const errors: Record<string,string> = {
   COURSE_CLASSROOM_NOT_FOUND: "فصل الدورة غير متاح.", DUPLICATED_SCHEDULE_SLOT: "يوجد موعد مكرر.", END_TIME_MUST_BE_AFTER_START: "وقت النهاية يجب أن يكون بعد البداية.",
 };
 export const courseError = (value: unknown) => { const e = value as ApiError; return errors[e?.code] || e?.message || "حدث خطأ غير متوقع."; };
-

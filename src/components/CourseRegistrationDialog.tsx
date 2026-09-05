@@ -13,6 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
+import visaImg from "@/assets/payment/visa.png";
+import mastercardImg from "@/assets/payment/mastercard.png";
+import madaImg from "@/assets/payment/mada.png";
+import tamaraImg from "@/assets/payment/tamara.png";
 
 export default function CourseRegistrationDialog({
   course,
@@ -126,23 +130,19 @@ export default function CourseRegistrationDialog({
                     type="button"
                     aria-pressed={provider === "paymob"}
                     onClick={() => setProvider("paymob")}
-                    className={`rounded-xl border p-4 text-right transition-colors ${provider === "paymob" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
+                    className={`flex min-h-28 items-center justify-between gap-3 rounded-xl border p-4 text-right transition-colors ${provider === "paymob" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
                   >
-                    <span className="block font-semibold">بطاقة بنكية</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      Visa / Mastercard / Mada
-                    </span>
+                    <span className="font-semibold">بطاقة بنكية</span>
+                    <span className="flex items-center gap-1.5" dir="ltr"><img src={visaImg} alt="Visa" className="h-7 w-10 object-contain"/><img src={mastercardImg} alt="Mastercard" className="h-7 w-10 object-contain"/><img src={madaImg} alt="مدى" className="h-7 w-10 object-contain"/></span>
                   </button>
                   <button
                     type="button"
                     aria-pressed={provider === "tamara"}
                     onClick={() => setProvider("tamara")}
-                    className={`rounded-xl border p-4 text-right transition-colors ${provider === "tamara" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
+                    className={`flex min-h-28 items-center justify-between gap-3 rounded-xl border p-4 text-right transition-colors ${provider === "tamara" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
                   >
-                    <span className="block font-semibold">تمارا</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      الدفع المرن عبر تمارا
-                    </span>
+                    <span className="font-semibold">قسّط فاتورتك مع تمارا</span>
+                    <img src={tamaraImg} alt="تمارا" className="h-10 w-24 rounded-md object-contain"/>
                   </button>
                 </div>
               </div>

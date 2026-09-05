@@ -11,6 +11,28 @@ export class ApiError extends Error {
   }
 }
 
+const textFromUnknown = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value.map(textFromUnknown).filter(Boolean).join("، ");
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return textFromUnknown(record.message)
+      || textFromUnknown(record.msg)
+      || textFromUnknown(record.reason)
+      || Object.values(record).map(textFromUnknown).filter(Boolean).join("، ");
+  }
+  return "";
+};
+
+const responseErrorMessage = (payload: Record<string, unknown>, rawBody: string) =>
+  textFromUnknown(payload.message)
+  || textFromUnknown(payload.error)
+  || textFromUnknown(payload.errors)
+  || rawBody.trim()
+  || "حدث خطأ غير متوقع.";
+
 export const tokenStore = {
   get: () => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY),
   getRefresh: () => sessionStorage.getItem(REFRESH_KEY) || localStorage.getItem(REFRESH_KEY),
@@ -77,10 +99,28 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
         ...options.headers,
       },
     });
-  } catch {
-    throw new ApiError(0, "NETWORK_ERROR", "تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مجددًا.");
+  } catch (error) {
+    const technicalReason = error instanceof Error ? error.message.trim() : textFromUnknown(error);
+    throw new ApiError(
+      0,
+      "NETWORK_ERROR",
+      technicalReason
+        ? `لم يتمكن المتصفح من إرسال الطلب إلى الخادم. السبب التقني: ${technicalReason}`
+        : "لم يتمكن المتصفح من إرسال الطلب إلى الخادم. تحقق من الاتصال وإعدادات CORS في الخادم.",
+      undefined,
+      { technicalReason, path },
+    );
   }
-  const payload = await response.json().catch(() => ({}));
+  const rawBody = await response.text().catch(() => "");
+  let payload: Record<string, unknown> = {};
+  if (rawBody) {
+    try {
+      const parsed = JSON.parse(rawBody) as unknown;
+      payload = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+    } catch {
+      payload = {};
+    }
+  }
   if (!response.ok) {
     if (response.status === 401) {
       if (token && !_retried) {
@@ -95,7 +135,13 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
         window.dispatchEvent(new Event("bnan:session-expired"));
       }
     }
-    throw new ApiError(response.status, payload.code || "API_ERROR", payload.message || "حدث خطأ غير متوقع.", payload.errors, payload.data);
+    throw new ApiError(
+      response.status,
+      typeof payload.code === "string" ? payload.code : "API_ERROR",
+      responseErrorMessage(payload, rawBody),
+      payload.errors,
+      payload.data && typeof payload.data === "object" ? payload.data as Record<string, unknown> : undefined,
+    );
   }
   return payload as T;
 }

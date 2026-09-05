@@ -3,7 +3,182 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { coursesApi, type Course } from "@/api/coursesApi";
-import { courseError, courseImageUrl, refName } from "@/lib/courseUi";
-import Navbar from "@/components/Navbar";import Footer from "@/components/Footer";import SEO from "@/components/SEO";import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
-import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";import { Button } from "@/components/ui/button";import { Badge } from "@/components/ui/badge";import { Input } from "@/components/ui/input";import cover from "@/assets/course-default-cover.jpg";import { useLanguage } from "@/i18n/LanguageContext";
-export default function Courses(){const {isArabic,pick}=useLanguage();const [search,setSearch]=useState("");const [register,setRegister]=useState<Course|null>(null);const q=useQuery({queryKey:["public-courses"],queryFn:coursesApi.listPublic});const rows=useMemo(()=>q.data?.filter(c=>(c.name+" "+c.description).toLowerCase().includes(search.trim().toLowerCase()))||[],[q.data,search]);return <div dir={isArabic?"rtl":"ltr"} className="min-h-screen bg-background"><SEO title={pick("الدورات التعليمية | BNAN Academy","Courses | BNAN Academy")} description={pick("اكتشف دورات أكاديمية بنان","Discover BNAN Academy courses")} path="/courses"/><Navbar/><main className="container mx-auto px-4 pb-16 pt-28"><div className="mb-8 text-center"><h1 className="text-3xl font-bold">{pick("الدورات التعليمية","Courses")}</h1><p className="text-muted-foreground">{pick("اختر التسجيل الجماعي أو الفردي المناسب لك","Choose the group or individual experience that suits you")}</p></div><div className="relative mx-auto mb-8 max-w-md"><Search className="absolute end-3 top-3 h-4 w-4 text-muted-foreground"/><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder={pick("ابحث عن دورة...","Search courses...")}/></div>{q.isLoading?<p className="py-16 text-center">{pick("جاري التحميل...","Loading...")}</p>:q.error?<p className="py-16 text-center text-destructive">{courseError(q.error)}</p>:!rows.length?<p className="py-16 text-center text-muted-foreground">{pick("لا توجد دورات متاحة حاليًا.","No courses are available right now.")}</p>:<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{rows.map(c=>{const available=c.canEnroll??c.enrollmentOpen;return <Card key={c.id} className="overflow-hidden"><img src={courseImageUrl(c.image)||cover} alt={c.name} className="h-44 w-full object-cover"/><CardHeader><CardTitle>{c.name}</CardTitle><p className="text-sm text-muted-foreground">{pick("المعلم:","Teacher:")} {refName(c.teacher)}</p><p className="text-sm text-muted-foreground">{pick("المادة:","Subject:")} {refName(c.subject)}</p></CardHeader><CardContent className="space-y-4"><p className="line-clamp-3 min-h-16 text-sm text-muted-foreground">{c.description}</p><div className="flex flex-wrap gap-1">{c.eligibleGrades.map(g=><Badge key={g.id||g._id||g.name} variant="outline">{refName(g)}</Badge>)}{(c.durationHours||c.requiredDuration)&&<Badge variant="outline">{c.durationHours||c.requiredDuration} {pick("ساعة","hours")}</Badge>}</div><div className="space-y-1 text-sm">{c.enrollmentModes.group.enabled&&<p>{pick("جماعي","Group")}: <b>{c.enrollmentModes.group.price||pick("مجاني","Free")} {c.enrollmentModes.group.price?c.currency:""}</b></p>}{c.enrollmentModes.individual.enabled&&<p>{pick("فردي","Individual")}: <b>{c.enrollmentModes.individual.price||pick("مجاني","Free")} {c.enrollmentModes.individual.price?c.currency:""}</b></p>}</div><div className="flex gap-2"><Button variant="outline" className="flex-1" asChild><Link to={`/courses/${c.id}`}>{pick("التفاصيل","Details")}</Link></Button><Button className="flex-1" disabled={!available} onClick={()=>setRegister(c)}>{available?pick("سجّل الآن","Enroll Now"):pick("غير متاح حاليًا","Currently unavailable")}</Button></div></CardContent></Card>})}</div>}</main><Footer/>{register&&<CourseRegistrationDialog course={register} onClose={()=>setRegister(null)}/>}</div>}
+import {
+  courseError,
+  courseImageUrl,
+  isFreeCourse,
+  refName,
+} from "@/lib/courseUi";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
+import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import cover from "@/assets/course-default-cover.jpg";
+import { useLanguage } from "@/i18n/LanguageContext";
+export default function Courses() {
+  const { isArabic, pick } = useLanguage();
+  const [search, setSearch] = useState("");
+  const [register, setRegister] = useState<Course | null>(null);
+  const q = useQuery({
+    queryKey: ["public-courses"],
+    queryFn: coursesApi.listPublic,
+  });
+  const rows = useMemo(
+    () =>
+      q.data?.filter((c) =>
+        (c.name + " " + c.description)
+          .toLowerCase()
+          .includes(search.trim().toLowerCase()),
+      ) || [],
+    [q.data, search],
+  );
+  return (
+    <div dir={isArabic ? "rtl" : "ltr"} className="min-h-screen bg-background">
+      <SEO
+        title={pick(
+          "الدورات التعليمية | BNAN Academy",
+          "Courses | BNAN Academy",
+        )}
+        description={pick(
+          "اكتشف دورات أكاديمية بنان",
+          "Discover BNAN Academy courses",
+        )}
+        path="/courses"
+      />
+      <Navbar />
+      <main className="container mx-auto px-4 pb-16 pt-28">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold">
+            {pick("الدورات التعليمية", "Courses")}
+          </h1>
+          <p className="text-muted-foreground">
+            {pick(
+              "اختر التسجيل الجماعي أو الفردي المناسب لك",
+              "Choose the group or individual experience that suits you",
+            )}
+          </p>
+        </div>
+        <div className="relative mx-auto mb-8 max-w-md">
+          <Search className="absolute end-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={pick("ابحث عن دورة...", "Search courses...")}
+          />
+        </div>
+        {q.isLoading ? (
+          <p className="py-16 text-center">
+            {pick("جاري التحميل...", "Loading...")}
+          </p>
+        ) : q.error ? (
+          <p className="py-16 text-center text-destructive">
+            {courseError(q.error)}
+          </p>
+        ) : !rows.length ? (
+          <p className="py-16 text-center text-muted-foreground">
+            {pick(
+              "لا توجد دورات متاحة حاليًا.",
+              "No courses are available right now.",
+            )}
+          </p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {rows.map((c) => {
+              const available = c.canEnroll ?? c.enrollmentOpen;
+              const free = isFreeCourse(c);
+              return (
+                <Card key={c.id} className="overflow-hidden">
+                  <img
+                    src={courseImageUrl(c.image) || cover}
+                    alt={c.name}
+                    className="h-44 w-full object-cover"
+                  />
+                  <CardHeader>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      <span>{c.name}</span>
+                      {free && (
+                        <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                          {pick("مجانية", "Free")}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {pick("المعلم:", "Teacher:")} {refName(c.teacher)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {pick("المادة:", "Subject:")} {refName(c.subject)}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="line-clamp-3 min-h-16 text-sm text-muted-foreground">
+                      {c.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {(c.durationHours ||
+                        c.requiredDuration ||
+                        c.requiredMinutes) && (
+                        <Badge variant="outline">
+                          {c.durationHours ||
+                            c.requiredDuration ||
+                            Number(c.requiredMinutes) / 60}{" "}
+                          {pick("ساعة", "hours")}
+                        </Badge>
+                      )}
+                    </div>
+                    {!free && (
+                      <div className="space-y-1 text-sm">
+                        {c.enrollmentModes.group.enabled && (
+                          <p>
+                            {pick("جماعي", "Group")}:{" "}
+                            <b>
+                              {c.enrollmentModes.group.price} {c.currency}
+                            </b>
+                          </p>
+                        )}
+                        {c.enrollmentModes.individual.enabled && (
+                          <p>
+                            {pick("فردي", "Individual")}:{" "}
+                            <b>
+                              {c.enrollmentModes.individual.price} {c.currency}
+                            </b>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" asChild>
+                        <Link to={`/courses/${c.id}`}>
+                          {pick("التفاصيل", "Details")}
+                        </Link>
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        disabled={!available}
+                        onClick={() => setRegister(c)}
+                      >
+                        {available
+                          ? pick("سجّل الآن", "Enroll Now")
+                          : pick("غير متاح حاليًا", "Currently unavailable")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
+      <Footer />
+      {register && (
+        <CourseRegistrationDialog
+          course={register}
+          onClose={() => setRegister(null)}
+        />
+      )}
+    </div>
+  );
+}

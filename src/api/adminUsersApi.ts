@@ -3,12 +3,25 @@ import { apiRequest } from "./client";
 export type AdminUserRole = "student" | "parent" | "teacher" | "supervisor" | "admin";
 export type AdminUserStatus = "active" | "inactive" | "blocked";
 
+export interface AdminUserReference {
+  id?: string;
+  _id?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  whatsappNumber?: string;
+  role?: AdminUserRole;
+}
+
 export interface AdminUser {
   id: string;
   _id?: string;
   fullName?: string;
   email?: string;
   phone?: string;
+  whatsapp?: string;
+  whatsappNumber?: string;
   role: AdminUserRole;
   status?: AdminUserStatus;
   isVerified?: boolean;
@@ -16,6 +29,11 @@ export interface AdminUser {
   grade?: string;
   createdAt?: string;
   updatedAt?: string;
+  parent?: AdminUserReference | string;
+  parentId?: AdminUserReference | string;
+  parentUser?: AdminUserReference | string;
+  guardian?: AdminUserReference | string;
+  guardianId?: AdminUserReference | string;
 }
 
 export interface AdminUsersResponse {

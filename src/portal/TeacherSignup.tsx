@@ -1038,12 +1038,29 @@ export default function TeacherSignup() {
                 </div>
               )}
             </div>
+            {busy && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-5 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+              >
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-amber-700" />
+                <div>
+                  <p className="font-bold">يتم الآن رفع الملفات وإرسال طلبك</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-800">
+                    قد تستغرق العملية بعض الوقت حسب سرعة الاتصال. من فضلك لا
+                    تغلق الصفحة ولا تضغط زر الإرسال مرة أخرى حتى تظهر نتيجة الطلب.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-5 mt-6">
               <div>
                 {step > 0 ? (
                   <Button
                     type="button"
                     variant="outline"
+                    disabled={busy}
                     onClick={() => {
                       setError("");
                       setStep((current) => current - 1);
@@ -1068,7 +1085,7 @@ export default function TeacherSignup() {
                   {busy ? (
                     <>
                       <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      جاري الإرسال...
+                      جاري رفع الملفات والإرسال...
                     </>
                   ) : (
                     "إرسال طلب التسجيل"

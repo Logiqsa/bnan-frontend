@@ -106,6 +106,13 @@ export interface CourseProgress {
   totalHours: number;
   percentage: number;
 }
+export interface ActiveCourseSession {
+  sessionId: string;
+  status: string;
+  canJoin: boolean;
+  chatRoomId?: string;
+  teacher?: { id?: string; userId?: string; fullName?: string } | null;
+}
 export interface CourseEnrollment {
   id: string;
   course: Course | NamedRef | string;
@@ -114,6 +121,7 @@ export interface CourseEnrollment {
   classroom?: CourseClassroom | string | null;
   payment?: NamedRef | string | null;
   group?: CourseGroup | NamedRef | string | null;
+  courseGroup?: CourseGroup | NamedRef | string | null;
   status: EnrollmentStatus;
   price: number;
   currency: string;
@@ -179,10 +187,12 @@ const enrollment = (
     typeof item.classroom === "object" && item.classroom
       ? withId(item.classroom as Raw<Omit<CourseClassroom, "id">>)
       : item.classroom,
-  group:
-    typeof item.group === "object" && item.group
-      ? group(item.group as Raw<Omit<CourseGroup, "id">>)
-      : item.group,
+  group: (() => {
+    const value = item.group || item.courseGroup;
+    return typeof value === "object" && value
+      ? group(value as Raw<Omit<CourseGroup, "id">>)
+      : value;
+  })(),
 });
 const group = (item: Raw<Omit<CourseGroup, "id">>): CourseGroup => ({
   ...item,
@@ -292,10 +302,29 @@ export const coursesApi = {
         )
       ).data,
     ),
-  myProgress: async (id: string) =>
-    (
-      await apiRequest<Envelope<CourseProgress>>(
+  myProgress: async (id: string) => {
+    const result = await apiRequest<Envelope<CourseProgress & {
+      requiredMinutes?: number;
+      completedMinutes?: number;
+    }>>(
         `/courses/me/enrollments/${id}/progress`,
+    );
+    return {
+      ...result.data,
+      completedHours: result.data.completedHours ?? Number(((result.data.completedMinutes || 0) / 60).toFixed(2)),
+      totalHours: result.data.totalHours ?? Number(((result.data.requiredMinutes || 0) / 60).toFixed(2)),
+    };
+  },
+  activeSession: async (classroomId: string) =>
+    (
+      await apiRequest<Envelope<ActiveCourseSession | null>>(
+        `/classrooms/${classroomId}/sessions/active`,
+      )
+    ).data,
+  joinActiveSession: async (classroomId: string) =>
+    (
+      await apiRequest<Envelope<ActiveCourseSession & { meetingLink?: string }>>(
+        `/classrooms/${classroomId}/sessions/active/join`,
       )
     ).data,
   listGroups: async (courseId: string) => {

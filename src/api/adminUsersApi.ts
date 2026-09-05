@@ -29,7 +29,11 @@ export interface AdminUser {
   grade?: string;
   createdAt?: string;
   updatedAt?: string;
+  registrationStatus?: "pending" | "approved" | "rejected";
+  paymentStatus?: "pending" | "confirmed" | "completed" | "rejected" | string;
+  teacherStatus?: "pending" | "approved" | "rejected";
   parent?: AdminUserReference | string;
+  parentInfo?: AdminUserReference;
   parentId?: AdminUserReference | string;
   parentUser?: AdminUserReference | string;
   guardian?: AdminUserReference | string;

@@ -56,6 +56,8 @@ const yesNo = [
 ];
 const initialValues: Record<string, string> = {};
 const TEACHER_SIGNUP_DRAFT_KEY = "bnan_teacher_signup_draft";
+const TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_teacher_signup_persistent_draft";
+const MAX_TEACHER_FILE_SIZE = 20 * 1024 * 1024;
 
 interface TeacherSignupDraft {
   step: number;
@@ -69,12 +71,18 @@ interface TeacherSignupDraft {
 }
 
 const readTeacherSignupDraft = (): Partial<TeacherSignupDraft> => {
-  try {
-    const raw = sessionStorage.getItem(TEACHER_SIGNUP_DRAFT_KEY);
-    return raw ? JSON.parse(raw) as Partial<TeacherSignupDraft> : {};
-  } catch {
-    return {};
+  for (const [storage, key] of [
+    [sessionStorage, TEACHER_SIGNUP_DRAFT_KEY],
+    [localStorage, TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY],
+  ] as const) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw) return JSON.parse(raw) as Partial<TeacherSignupDraft>;
+    } catch {
+      // Try the other storage when private browsing or a malformed draft blocks one.
+    }
   }
+  return {};
 };
 
 export default function TeacherSignup() {
@@ -126,7 +134,20 @@ export default function TeacherSignup() {
       activeGrade,
       additionalCurriculums,
     };
-    sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+    try {
+      sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+
+      // Mobile browsers may discard a background tab, including its sessionStorage.
+      // Keep a durable copy, but never persist the account password locally.
+      const safeValues = { ...values };
+      delete safeValues.password;
+      localStorage.setItem(
+        TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+        JSON.stringify({ ...draft, values: safeValues }),
+      );
+    } catch {
+      // Storage may be unavailable in strict private-browsing modes.
+    }
   }, [step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
 
   useEffect(() => {
@@ -371,12 +392,18 @@ export default function TeacherSignup() {
       );
       const response = await authApi.registerTeacher(body);
       sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
+      localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
       setVerificationEmail(response.data.email || values.email);
     } catch (value) {
       const apiError = value as ApiError;
       setError(
         apiError.code === "EMAIL_ALREADY_EXISTS"
           ? "البريد الإلكتروني مسجل بالفعل."
+          : apiError.code === "NETWORK_ERROR"
+            ? "تعذر رفع طلب التسجيل ولم يصل رد من الخادم. بيانات النموذج محفوظة؛ تأكد من ثبات الشبكة، وصغّر الملفات الكبيرة، ثم حاول مجددًا. " +
+              (typeof apiError.data?.technicalReason === "string"
+                ? `السبب التقني: ${apiError.data.technicalReason}`
+                : "")
           : apiError.message,
       );
     } finally {
@@ -415,11 +442,29 @@ export default function TeacherSignup() {
     setError("");
     setFiles((current) => ({ ...current, stableInternetProof: file }));
   };
+  const chooseRequiredFile = (key: string, file?: File) => {
+    if (!file) {
+      setFiles((current) => ({ ...current, [key]: null }));
+      return;
+    }
+    if (file.size > MAX_TEACHER_FILE_SIZE) {
+      setError(`حجم الملف «${file.name}» يتجاوز الحد الأقصى 20MB.`);
+      setFiles((current) => ({ ...current, [key]: null }));
+      return;
+    }
+    setError("");
+    setFiles((current) => ({ ...current, [key]: file }));
+  };
   const chooseExperienceFiles = (list: FileList | null) => {
     if (!list) return;
     const selected = Array.from(list);
     if (selected.length > 10) {
       setError("يمكن إرفاق 10 شهادات خبرة بحد أقصى.");
+      return;
+    }
+    const oversizedFile = selected.find((file) => file.size > MAX_TEACHER_FILE_SIZE);
+    if (oversizedFile) {
+      setError(`حجم الملف «${oversizedFile.name}» يتجاوز الحد الأقصى 20MB.`);
       return;
     }
     setError("");
@@ -645,34 +690,19 @@ export default function TeacherSignup() {
                     <Field label="السيرة الذاتية *">
                       <Input
                         type="file"
-                        onChange={(e) =>
-                          setFiles((current) => ({
-                            ...current,
-                            cv: e.target.files?.[0] || null,
-                          }))
-                        }
+                        onChange={(e) => chooseRequiredFile("cv", e.target.files?.[0])}
                       />
                     </Field>
                     <Field label="شهادة التخرج *">
                       <Input
                         type="file"
-                        onChange={(e) =>
-                          setFiles((current) => ({
-                            ...current,
-                            certificate: e.target.files?.[0] || null,
-                          }))
-                        }
+                        onChange={(e) => chooseRequiredFile("certificate", e.target.files?.[0])}
                       />
                     </Field>
                     <Field label="البطاقة الشخصية *">
                       <Input
                         type="file"
-                        onChange={(e) =>
-                          setFiles((current) => ({
-                            ...current,
-                            identityDocument: e.target.files?.[0] || null,
-                          }))
-                        }
+                        onChange={(e) => chooseRequiredFile("identityDocument", e.target.files?.[0])}
                       />
                     </Field>
                     <Field label="شهادات الخبرة (اختياري، حتى 10 ملفات)">

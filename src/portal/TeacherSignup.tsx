@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronsUpDown, Loader2, X } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { ApiError } from "@/api/client";
 import {
@@ -14,6 +14,7 @@ import { contentApi, type LegalPage } from "@/api/contentApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Command,
   CommandEmpty,
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -53,10 +55,35 @@ const yesNo = [
   { value: "false", label: "لا" },
 ];
 const initialValues: Record<string, string> = {};
+const TEACHER_SIGNUP_DRAFT_KEY = "bnan_teacher_signup_draft";
+
+interface TeacherSignupDraft {
+  step: number;
+  curriculumStage: "grades" | "subjects";
+  values: Record<string, string>;
+  selectedCurriculum: string;
+  selectedGrades: string[];
+  assignments: Record<string, string[]>;
+  activeGrade: string | null;
+  additionalCurriculums: string[];
+}
+
+const readTeacherSignupDraft = (): Partial<TeacherSignupDraft> => {
+  try {
+    const raw = sessionStorage.getItem(TEACHER_SIGNUP_DRAFT_KEY);
+    return raw ? JSON.parse(raw) as Partial<TeacherSignupDraft> : {};
+  } catch {
+    return {};
+  }
+};
 
 export default function TeacherSignup() {
-  const [step, setStep] = useState(0);
-  const [values, setValues] = useState(initialValues);
+  const [savedDraft] = useState(readTeacherSignupDraft);
+  // Browsers do not allow restoring File inputs. Return to the documents step
+  // after a reload, while keeping every serializable answer and selection.
+  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), 1));
+  const [curriculumStage, setCurriculumStage] = useState<"grades" | "subjects">(savedDraft.curriculumStage ?? "grades");
+  const [values, setValues] = useState<Record<string, string>>(() => ({ ...initialValues, ...savedDraft.values }));
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -65,18 +92,19 @@ export default function TeacherSignup() {
   const [catalogsLoading, setCatalogsLoading] = useState(true);
   const [countriesError, setCountriesError] = useState("");
   const [curriculums, setCurriculums] = useState<CurriculumOption[]>([]);
-  const [selectedCurriculum, setSelectedCurriculum] = useState("");
+  const [selectedCurriculum, setSelectedCurriculum] = useState(savedDraft.selectedCurriculum ?? "");
   const [grades, setGrades] = useState<GradeOption[]>([]);
-  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>(savedDraft.selectedGrades ?? []);
+  const [activeGrade, setActiveGrade] = useState<string | null>(savedDraft.activeGrade ?? null);
   const [subjects, setSubjects] = useState<Record<string, SubjectOption[]>>({});
-  const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  const [assignments, setAssignments] = useState<Record<string, string[]>>(savedDraft.assignments ?? {});
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [loadingSubjects, setLoadingSubjects] = useState<
     Record<string, boolean>
   >({});
-  const [additionalCurriculums, setAdditionalCurriculums] = useState<string[]>(
-    [],
-  );
+  const [openGradeGroups, setOpenGradeGroups] = useState<Record<string, boolean>>({});
+  const [openGradeStages, setOpenGradeStages] = useState<Record<string, boolean>>({});
+  const [additionalCurriculums, setAdditionalCurriculums] = useState<string[]>(savedDraft.additionalCurriculums ?? []);
   const [experienceCertificates, setExperienceCertificates] = useState<File[]>(
     [],
   );
@@ -85,6 +113,21 @@ export default function TeacherSignup() {
   const [termsLoading, setTermsLoading] = useState(false);
   const set = (name: string, value: string) =>
     setValues((current) => ({ ...current, [name]: value }));
+  const previousCurriculum = useRef(selectedCurriculum);
+
+  useEffect(() => {
+    const draft: TeacherSignupDraft = {
+      step,
+      curriculumStage,
+      values,
+      selectedCurriculum,
+      selectedGrades,
+      assignments,
+      activeGrade,
+      additionalCurriculums,
+    };
+    sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+  }, [step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -103,20 +146,33 @@ export default function TeacherSignup() {
       setGrades([]);
       return;
     }
+    const curriculumChanged = previousCurriculum.current !== selectedCurriculum;
+    previousCurriculum.current = selectedCurriculum;
     setLoadingGrades(true);
-    setSelectedGrades([]);
-    setAssignments({});
+    if (curriculumChanged) {
+      setCurriculumStage("grades");
+      setSelectedGrades([]);
+      setActiveGrade(null);
+      setAssignments({});
+      setSubjects({});
+    }
     catalogApi
       .grades(selectedCurriculum)
-      .then((result) =>
-        setGrades(result.data.filter((grade) => grade.isActive !== false)),
-      )
+      .then((result) => {
+        const activeGrades = result.data.filter((grade) => grade.isActive !== false);
+        setGrades(activeGrades);
+        if (!curriculumChanged) {
+          const validIds = new Set(activeGrades.map((grade) => grade.id));
+          setSelectedGrades((current) => current.filter((id) => validIds.has(id)));
+        }
+      })
       .catch((value) => setError((value as ApiError).message))
       .finally(() => setLoadingGrades(false));
   }, [selectedCurriculum]);
-  const toggleGrade = async (gradeId: string, checked: boolean) => {
+  const toggleGrade = (gradeId: string, checked: boolean) => {
     if (!checked) {
       setSelectedGrades((current) => current.filter((id) => id !== gradeId));
+      setActiveGrade((current) => current === gradeId ? null : current);
       setAssignments((current) => {
         const next = { ...current };
         delete next[gradeId];
@@ -125,17 +181,18 @@ export default function TeacherSignup() {
       return;
     }
     setSelectedGrades((current) => [...current, gradeId]);
-    if (subjects[gradeId]) return;
-    setLoadingSubjects((current) => ({ ...current, [gradeId]: true }));
-    try {
-      const result = await catalogApi.subjects(gradeId);
-      setSubjects((current) => ({ ...current, [gradeId]: result.data }));
-    } catch (value) {
-      setError((value as ApiError).message);
-    } finally {
-      setLoadingSubjects((current) => ({ ...current, [gradeId]: false }));
-    }
+    setActiveGrade(gradeId);
   };
+  useEffect(() => {
+    selectedGrades.forEach((gradeId) => {
+      if (subjects[gradeId] || loadingSubjects[gradeId]) return;
+      setLoadingSubjects((current) => ({ ...current, [gradeId]: true }));
+      catalogApi.subjects(gradeId)
+        .then((result) => setSubjects((current) => ({ ...current, [gradeId]: result.data })))
+        .catch((value) => setError((value as ApiError).message))
+        .finally(() => setLoadingSubjects((current) => ({ ...current, [gradeId]: false })));
+    });
+  }, [selectedGrades, subjects, loadingSubjects]);
   const toggleSubject = (
     gradeId: string,
     subjectId: string,
@@ -150,6 +207,33 @@ export default function TeacherSignup() {
   const selectedCurriculumData = curriculums.find(
     (item) => item.id === selectedCurriculum,
   );
+  const displayedGrade = activeGrade && selectedGrades.includes(activeGrade)
+    ? activeGrade
+    : selectedGrades[0];
+  const gradeGroups = useMemo(() => {
+    const languages = grades.filter((grade) => grade.name.includes("لغات"));
+    const arabic = grades.filter((grade) => !grade.name.includes("لغات") && (grade.name.includes("عربي") || grade.name.includes("عربى")));
+    const groupedIds = new Set([...languages, ...arabic].map((grade) => grade.id));
+    const other = grades.filter((grade) => !groupedIds.has(grade.id));
+    return [
+      { key: "languages", label: "قسم اللغات", grades: languages },
+      { key: "arabic", label: "القسم العربي", grades: arabic },
+      ...(other.length ? [{ key: "other", label: "صفوف أخرى", grades: other }] : []),
+    ];
+  }, [grades]);
+  const splitGradesByStage = (groupGrades: GradeOption[]) => {
+    const normalize = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
+    const definitions = selectedCurriculumData?.registrationMode === "egyptian"
+      ? [{ key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" }, { key: "preparatory", label: "المرحلة الإعدادية", keyword: "اعدادي" }, { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" }]
+      : [{ key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" }, { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" }, { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" }];
+    const stages = definitions.map((stage) => ({
+      ...stage,
+      grades: groupGrades.filter((grade) => normalize(grade.name).includes(stage.keyword)),
+    })).filter((stage) => stage.grades.length > 0);
+    const stagedIds = new Set(stages.flatMap((stage) => stage.grades.map((grade) => grade.id)));
+    const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
+    return [...stages, ...(other.length ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }] : [])];
+  };
   const progress = useMemo(() => {
     const required = [
       values.fullName?.trim().length >= 3,
@@ -286,6 +370,7 @@ export default function TeacherSignup() {
         body.append("experienceCertificates", file),
       );
       const response = await authApi.registerTeacher(body);
+      sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
       setVerificationEmail(response.data.email || values.email);
     } catch (value) {
       const apiError = value as ApiError;
@@ -356,7 +441,7 @@ export default function TeacherSignup() {
       className="min-h-screen bg-hero-gradient flex items-center justify-center py-8 px-4"
       dir="rtl"
     >
-      <Card className="max-w-4xl w-full mx-auto min-h-[640px] flex flex-col">
+      <Card className="max-w-6xl w-full mx-auto min-h-[640px] flex flex-col">
         <CardHeader>
           <CardTitle>التسجيل كمعلم</CardTitle>
           <div
@@ -631,7 +716,7 @@ export default function TeacherSignup() {
               )}
               {step === 2 && (
                 <div className="space-y-5">
-                  <SelectField
+                  {curriculumStage === "grades" && <><SelectField
                     label="المنهج الأساسي *"
                     value={selectedCurriculum}
                     onChange={(value) => {
@@ -677,12 +762,16 @@ export default function TeacherSignup() {
                           ))}
                       </div>
                     </div>
-                  )}
+                  )}</>}
                   {selectedCurriculum && (
                     <div>
-                      <h3 className="font-bold mb-3">
-                        اختر الصفوف والمواد لكل صف
-                      </h3>
+                      {curriculumStage === "grades" ? <div className="mb-4">
+                        <h3 className="font-bold">اختر الصفوف التي تدرّسها</h3>
+                        <p className="mt-1 text-xs text-muted-foreground">يمكنك اختيار أكثر من صف، ثم تحديد المواد لكل صف بالأسفل.</p>
+                      </div> : <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div><h3 className="font-bold">اختر المواد لكل صف</h3><p className="mt-1 text-xs text-muted-foreground">تنقل بين الصفوف المختارة وحدد مادة واحدة على الأقل لكل صف.</p></div>
+                        <Button type="button" size="sm" variant="outline" onClick={() => { setError(""); setCurriculumStage("grades"); }}><ArrowRight className="ml-2 h-4 w-4" />تعديل الصفوف</Button>
+                      </div>}
                       {loadingGrades ? (
                         <Loader />
                       ) : grades.length === 0 ? (
@@ -690,58 +779,92 @@ export default function TeacherSignup() {
                           لا توجد صفوف نشطة لهذا المنهج.
                         </p>
                       ) : (
-                        <div className="space-y-3">
-                          {grades.map((grade) => (
-                            <div
-                              key={grade.id}
-                              className="rounded-xl border p-4"
-                            >
-                              <label className="flex items-center gap-3 font-semibold">
-                                <Checkbox
-                                  checked={selectedGrades.includes(grade.id)}
-                                  onCheckedChange={(checked) =>
-                                    void toggleGrade(grade.id, checked === true)
-                                  }
-                                />
-                                {grade.name}
-                              </label>
-                              {selectedGrades.includes(grade.id) && (
-                                <div className="mt-4 pr-7">
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    المواد التي تستطيع تدريسها:
-                                  </p>
-                                  {loadingSubjects[grade.id] ? (
-                                    <Loader />
-                                  ) : (
-                                    <div className="flex flex-wrap gap-3">
-                                      {(subjects[grade.id] || []).map(
-                                        (subject) => (
-                                          <label
-                                            key={subject.id}
-                                            className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
-                                          >
-                                            <Checkbox
-                                              checked={(
-                                                assignments[grade.id] || []
-                                              ).includes(subject.id)}
-                                              onCheckedChange={(checked) =>
-                                                toggleSubject(
-                                                  grade.id,
-                                                  subject.id,
-                                                  checked === true,
-                                                )
-                                              }
-                                            />
-                                            {subject.name}
-                                          </label>
-                                        ),
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                        <div className="space-y-5">
+                          {curriculumStage === "grades" && <div className="space-y-3">
+                            {gradeGroups.map((group) => {
+                              const isOpen = Boolean(openGradeGroups[group.key]);
+                              const selectedCount = group.grades.filter((grade) => selectedGrades.includes(grade.id)).length;
+                              return <Collapsible key={group.key} open={isOpen} onOpenChange={(open) => setOpenGradeGroups((current) => ({ ...current, [group.key]: open }))} className="overflow-hidden rounded-xl border bg-card">
+                                <CollapsibleTrigger asChild>
+                                  <button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50">
+                                    <span><span className="block font-bold">{group.label}</span><span className="text-xs text-muted-foreground">{group.grades.length} صفوف{selectedCount ? ` — تم اختيار ${selectedCount}` : ""}</span></span>
+                                    <ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform", isOpen && "rotate-180")} />
+                                  </button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="space-y-4 border-t bg-muted/10 p-3">
+                                    {splitGradesByStage(group.grades).map((stage) => {
+                                      const stageId = `${group.key}-${stage.key}`;
+                                      const isStageOpen = Boolean(openGradeStages[stageId]);
+                                      const stageSelectedCount = stage.grades.filter((grade) => selectedGrades.includes(grade.id)).length;
+                                      return <Collapsible key={stageId} open={isStageOpen} onOpenChange={(open) => setOpenGradeStages((current) => ({ ...current, [stageId]: open }))} className="overflow-hidden rounded-lg border bg-card">
+                                        <CollapsibleTrigger asChild>
+                                          <button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50">
+                                            <span className="flex items-center gap-2"><span className="text-sm font-bold">{stage.label}</span><span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{stage.grades.length}{stageSelectedCount ? ` / مختار ${stageSelectedCount}` : ""}</span></span>
+                                            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isStageOpen && "rotate-180")} />
+                                          </button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                            {stage.grades.map((grade) => {
+                                              const selected = selectedGrades.includes(grade.id);
+                                              return <button
+                                                key={grade.id}
+                                                type="button"
+                                                aria-pressed={selected}
+                                                onClick={() => toggleGrade(grade.id, !selected)}
+                                                className={cn("relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors", selected ? "border-primary bg-primary/10 text-primary" : "border-border bg-card hover:border-primary/40 hover:bg-muted/40")}
+                                              >
+                                                {selected && <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="h-3.5 w-3.5" /></span>}
+                                                {grade.name}
+                                              </button>;
+                                            })}
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>;
+                                    })}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>;
+                            })}
+                          </div>}
+
+                          {curriculumStage === "grades" && <div className="flex justify-end border-t pt-4">
+                            <Button type="button" disabled={selectedGrades.length === 0} onClick={() => { setError(""); setActiveGrade((current) => current && selectedGrades.includes(current) ? current : selectedGrades[0]); setCurriculumStage("subjects"); }}>
+                              التالي: اختيار المواد<ArrowLeft className="mr-2 h-4 w-4" />
+                            </Button>
+                          </div>}
+
+                          {curriculumStage === "subjects" && selectedGrades.length > 0 && <div className="rounded-2xl border bg-muted/20 p-4 sm:p-5">
+                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div><h4 className="font-bold">اختر المواد لكل صف</h4><p className="text-xs text-muted-foreground">اختر مادة واحدة على الأقل لكل صف محدد.</p></div>
+                              <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{selectedGrades.length} صفوف مختارة</span>
                             </div>
-                          ))}
+                            {displayedGrade && <Tabs dir="rtl" value={displayedGrade} onValueChange={setActiveGrade}>
+                              <TabsList className="mb-3 h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+                                {selectedGrades.map((gradeId) => {
+                                  const grade = grades.find((item) => item.id === gradeId);
+                                  const count = (assignments[gradeId] || []).length;
+                                  return <TabsTrigger key={gradeId} value={gradeId} className="gap-2 border border-transparent data-[state=active]:border-border">
+                                    {grade?.name || "الصف"}
+                                    <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", count ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{count}</span>
+                                  </TabsTrigger>;
+                                })}
+                              </TabsList>
+                              {selectedGrades.map((gradeId) => <TabsContent key={gradeId} value={gradeId} className="mt-0 rounded-xl border bg-card p-4">
+                                <p className="mb-3 font-semibold">مواد {grades.find((item) => item.id === gradeId)?.name}</p>
+                                {loadingSubjects[gradeId] ? <Loader /> : (subjects[gradeId] || []).length === 0 ? <p className="text-sm text-muted-foreground">لا توجد مواد متاحة لهذا الصف.</p> : <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                  {(subjects[gradeId] || []).map((subject) => {
+                                    const selected = (assignments[gradeId] || []).includes(subject.id);
+                                    return <label key={subject.id} className={cn("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors", selected ? "border-primary bg-primary/5" : "hover:bg-muted/50")}>
+                                      <Checkbox checked={selected} onCheckedChange={(checked) => toggleSubject(gradeId, subject.id, checked === true)} />
+                                      {subject.name}
+                                    </label>;
+                                  })}
+                                </div>}
+                              </TabsContent>)}
+                            </Tabs>}
+                          </div>}
                         </div>
                       )}
                     </div>
@@ -903,7 +1026,7 @@ export default function TeacherSignup() {
                   </Button>
                 )}
               </div>
-              {step < steps.length - 1 ? (
+              {step === 2 && curriculumStage === "grades" ? null : step < steps.length - 1 ? (
                 <Button type="button" onClick={next}>
                   التالي
                   <ArrowLeft className="h-4 w-4 mr-2" />

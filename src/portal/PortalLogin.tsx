@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, Home, Loader2, Lock, LogIn, Mail, Trash2, UserRound } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Home,
+  Loader2,
+  Lock,
+  LogIn,
+  Mail,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,41 +21,279 @@ import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
 
-const messages:Record<string,string>={INCORRECT_LOGIN_DATA:"البريد الإلكتروني أو كلمة المرور غير صحيحة.",TEACHER_NOT_APPROVED:"طلب المعلم قيد المراجعة ولم تتم الموافقة عليه بعد.",REGISTRATION_PENDING:"طلب التسجيل قيد المراجعة.",ACCOUNT_DEACTIVATED:"هذا الحساب غير نشط. تواصل مع الإدارة."};
+const messages: Record<string, string> = {
+  INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+  TEACHER_NOT_APPROVED: "حسابك قيد المراجعة.",
+  REGISTRATION_PENDING: "طلب التسجيل قيد المراجعة.",
+  ACCOUNT_DEACTIVATED: "حسابك قيد المراجعة.",
+};
 
-export default function PortalLogin(){
-  const{user,login,rememberedAccounts,switchAccount,forgetRememberedAccount}=usePortalAuth();const navigate=useNavigate();const[searchParams]=useSearchParams();
-  const{isArabic,pick}=useLanguage();
-  const addingAccount=searchParams.get("addAccount")==="1";
-  const[email,setEmail]=useState(()=>searchParams.get("email")||"");const[password,setPassword]=useState("");const[remember,setRemember]=useState(addingAccount);const[showPassword,setShowPassword]=useState(false);const[busy,setBusy]=useState(false);const[error,setError]=useState("");const[verificationEmail,setVerificationEmail]=useState("");const[notice,setNotice]=useState(()=>searchParams.get("pending")==="1"?"تم تفعيل الحساب، وطلب التسجيل قيد المراجعة. يمكنك تسجيل الدخول بعد موافقة الإدارة.":searchParams.get("verified")==="1"?"تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.":"");
-  const homeFor=(role:string)=>role==="admin"?"/admin":`/portal/${role}/schedule`;
-  if(user&&!addingAccount)return <Navigate to={homeFor(user.role)} replace/>;
-  const submit=async(event:React.FormEvent)=>{event.preventDefault();setBusy(true);setError("");setNotice("");try{const account=await login(email.trim(),password,remember);navigate(homeFor(account.role),{replace:true});}catch(value){const apiError=value as ApiError;if(apiError.code==="ACCOUNT_NOT_VERIFIED"){setVerificationEmail(email.trim());}else setError(messages[apiError.code]||apiError.message||"تعذر تسجيل الدخول.");}finally{setBusy(false)}};
+export default function PortalLogin() {
+  const {
+    user,
+    login,
+    rememberedAccounts,
+    switchAccount,
+    forgetRememberedAccount,
+  } = usePortalAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { isArabic, pick } = useLanguage();
+  const addingAccount = searchParams.get("addAccount") === "1";
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(addingAccount);
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [notice, setNotice] = useState(() =>
+    searchParams.get("pending") === "1"
+      ? "تم تفعيل الحساب، وطلب التسجيل قيد المراجعة. يمكنك تسجيل الدخول بعد موافقة الإدارة."
+      : searchParams.get("verified") === "1"
+        ? "تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن."
+        : "",
+  );
+  const homeFor = (role: string) =>
+    role === "admin" ? "/admin" : `/portal/${role}/schedule`;
+  if (user && !addingAccount)
+    return <Navigate to={homeFor(user.role)} replace />;
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const account = await login(email.trim(), password, remember);
+      navigate(homeFor(account.role), { replace: true });
+    } catch (value) {
+      const apiError = value as ApiError;
+      if (apiError.code === "ACCOUNT_NOT_VERIFIED") {
+        setVerificationEmail(email.trim());
+      } else
+        setError(
+          messages[apiError.code] || apiError.message || "تعذر تسجيل الدخول.",
+        );
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  if(verificationEmail)return <AccountVerification email={verificationEmail} onVerified={()=>{setVerificationEmail("");setNotice("تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.");}}/>;
+  if (verificationEmail)
+    return (
+      <AccountVerification
+        email={verificationEmail}
+        onVerified={() => {
+          setVerificationEmail("");
+          setNotice("تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.");
+        }}
+      />
+    );
 
-  return <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic?"rtl":"ltr"}>
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]"/>
-    <Button asChild variant="outline" className={`${isArabic?"right-4 md:right-8":"left-4 md:left-8"} absolute top-4 md:top-6 z-10 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white`}>
-      <Link to="/"><Home className="h-4 w-4"/>{pick("الصفحة الرئيسية","Home")}</Link>
-    </Button>
-    <LanguageToggle className={`${isArabic?"left-4 md:left-8":"right-4 md:right-8"} absolute top-4 md:top-6 z-10 border border-white/20 bg-white/10 text-white hover:bg-white/20`} />
+  return (
+    <main
+      className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16"
+      dir={isArabic ? "rtl" : "ltr"}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]" />
+      <Button
+        asChild
+        variant="outline"
+        className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 md:top-6 z-10 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white`}
+      >
+        <Link to="/">
+          <Home className="h-4 w-4" />
+          {pick("الصفحة الرئيسية", "Home")}
+        </Link>
+      </Button>
+      <LanguageToggle
+        className={`${isArabic ? "left-4 md:left-8" : "right-4 md:right-8"} absolute top-4 md:top-6 z-10 border border-white/20 bg-white/10 text-white hover:bg-white/20`}
+      />
 
-    <div className="relative z-[1] mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md flex-col items-center justify-center">
-      <Link to="/" aria-label={pick("العودة إلى الصفحة الرئيسية","Back to home")}><img src={logo} alt={pick("أكاديمية بنان","BNAN Academy")} className="mx-auto h-28 brightness-0 invert md:h-32"/></Link>
-      <div className="mb-7 mt-3 text-center text-white"><h1 className="text-3xl font-bold">{pick("مرحبًا بك","Welcome")}</h1><p className="mt-2 text-sm text-white/55">{pick("سجّل دخولك للوصول إلى جدول حصصك","Log in to access your lesson schedule")}</p></div>
+      <div className="relative z-[1] mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md flex-col items-center justify-center">
+        <Link
+          to="/"
+          aria-label={pick("العودة إلى الصفحة الرئيسية", "Back to home")}
+        >
+          <img
+            src={logo}
+            alt={pick("أكاديمية بنان", "BNAN Academy")}
+            className="mx-auto h-28 brightness-0 invert md:h-32"
+          />
+        </Link>
+        <div className="mb-7 mt-3 text-center text-white">
+          <h1 className="text-3xl font-bold">{pick("مرحبًا بك", "Welcome")}</h1>
+          <p className="mt-2 text-sm text-white/55">
+            {pick(
+              "سجّل دخولك للوصول إلى جدول حصصك",
+              "Log in to access your lesson schedule",
+            )}
+          </p>
+        </div>
 
-      {rememberedAccounts.length > 0 && <div className="mb-4 w-full rounded-xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur"><p className="mb-2 text-xs text-white/60">{pick("تبديل سريع للحساب", "Quick account switch")}</p><div className="grid gap-2">{rememberedAccounts.map(account=><div key={account.user.id} className="flex items-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"><button type="button" onClick={()=>{switchAccount(account.user.id);navigate(homeFor(account.user.role),{replace:true});}} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-2.5 text-start"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15"><UserRound className="h-4 w-4"/></span><span className="min-w-0"><span className="block truncate text-sm font-semibold">{account.user.fullName}</span><span className="block truncate text-xs text-white/55" dir="ltr">{account.user.email}</span></span></button><button type="button" onClick={()=>forgetRememberedAccount(account.user.id)} className="m-1 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-red-700 transition-colors hover:bg-red-500/15 hover:text-red-800" aria-label={pick(`حذف حساب ${account.user.fullName}`, `Remove ${account.user.fullName}`)} title={pick("حذف الحساب المحفوظ", "Remove saved account")}><Trash2 className="h-4 w-4"/></button></div>)}</div></div>}
-      <Card className="w-full border-white/10 bg-card/95 shadow-2xl"><CardContent className="p-6 md:p-7"><form onSubmit={submit} className="space-y-5">
-        {error&&<div role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-        {notice&&<div role="status" className="rounded-xl bg-green-100 p-3 text-sm text-green-700">{notice}</div>}
-        <label className="block text-sm font-medium">{pick("البريد الإلكتروني","Email")}<div className="relative mt-2"><Mail className={`${isArabic?"right-3":"left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}/><Input type="email" required autoComplete="email" dir="ltr" placeholder="example@email.com" className="h-12 px-10 text-left" value={email} onChange={event=>setEmail(event.target.value)}/></div></label>
-        <label className="block text-sm font-medium">{pick("كلمة المرور","Password")}<div className="relative mt-2"><Lock className={`${isArabic?"right-3":"left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}/><Input type={showPassword?"text":"password"} required autoComplete="current-password" dir="ltr" className="h-12 px-10 text-left" value={password} onChange={event=>setPassword(event.target.value)}/><button type="button" onClick={()=>setShowPassword(value=>!value)} className={`${isArabic?"left-3":"right-3"} absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary`} aria-label={showPassword?pick("إخفاء كلمة المرور","Hide password"):pick("إظهار كلمة المرور","Show password")}>{showPassword?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}</button></div></label>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"><input type="checkbox" checked={remember} onChange={event=>setRemember(event.target.checked)} className="h-4 w-4 rounded border-input accent-primary"/><span>{pick("تذكرني", "Remember me")}</span></label>
-        <Button disabled={busy} className="h-12 w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">{busy?<Loader2 className="h-4 w-4 animate-spin"/>:<LogIn className="h-4 w-4"/>}{busy?pick("جاري تسجيل الدخول...","Logging in..."):pick("تسجيل الدخول","Log in")}</Button>
-        <div className="border-t pt-5 text-center text-sm text-muted-foreground">{pick("ليس لديك حساب؟","Don't have an account?")} <Link className="font-semibold text-secondary hover:underline" to="/register">{pick("سجّل الآن","Sign up now")}</Link></div>
-      </form></CardContent></Card>
-      <p className="mt-7 text-center text-xs text-white/35">© {new Date().getFullYear()} {pick("أكاديمية بنان — جميع الحقوق محفوظة","BNAN Academy — All rights reserved")}</p>
-    </div>
-  </main>;
+        {rememberedAccounts.length > 0 && (
+          <div className="mb-4 w-full rounded-xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
+            <p className="mb-2 text-xs text-white/60">
+              {pick("تبديل سريع للحساب", "Quick account switch")}
+            </p>
+            <div className="grid gap-2">
+              {rememberedAccounts.map((account) => (
+                <div
+                  key={account.user.id}
+                  className="flex items-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      switchAccount(account.user.id);
+                      navigate(homeFor(account.user.role), { replace: true });
+                    }}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-2.5 text-start"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15">
+                      <UserRound className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">
+                        {account.user.fullName}
+                      </span>
+                      <span
+                        className="block truncate text-xs text-white/55"
+                        dir="ltr"
+                      >
+                        {account.user.email}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => forgetRememberedAccount(account.user.id)}
+                    className="m-1 grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-red-700 transition-colors hover:bg-red-500/15 hover:text-red-800"
+                    aria-label={pick(
+                      `حذف حساب ${account.user.fullName}`,
+                      `Remove ${account.user.fullName}`,
+                    )}
+                    title={pick("حذف الحساب المحفوظ", "Remove saved account")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <Card className="w-full border-white/10 bg-card/95 shadow-2xl">
+          <CardContent className="p-6 md:p-7">
+            <form onSubmit={submit} className="space-y-5">
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  {error}
+                </div>
+              )}
+              {notice && (
+                <div
+                  role="status"
+                  className="rounded-xl bg-green-100 p-3 text-sm text-green-700"
+                >
+                  {notice}
+                </div>
+              )}
+              <label className="block text-sm font-medium">
+                {pick("البريد الإلكتروني", "Email")}
+                <div className="relative mt-2">
+                  <Mail
+                    className={`${isArabic ? "right-3" : "left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}
+                  />
+                  <Input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    dir="ltr"
+                    placeholder="example@email.com"
+                    className="h-12 px-10 text-left"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+              </label>
+              <label className="block text-sm font-medium">
+                {pick("كلمة المرور", "Password")}
+                <div className="relative mt-2">
+                  <Lock
+                    className={`${isArabic ? "right-3" : "left-3"} absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`}
+                  />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    dir="ltr"
+                    className="h-12 px-10 text-left"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className={`${isArabic ? "left-3" : "right-3"} absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary`}
+                    aria-label={
+                      showPassword
+                        ? pick("إخفاء كلمة المرور", "Hide password")
+                        : pick("إظهار كلمة المرور", "Show password")
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(event) => setRemember(event.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span>{pick("تذكرني", "Remember me")}</span>
+              </label>
+              <Button
+                disabled={busy}
+                className="h-12 w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {busy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogIn className="h-4 w-4" />
+                )}
+                {busy
+                  ? pick("جاري تسجيل الدخول...", "Logging in...")
+                  : pick("تسجيل الدخول", "Log in")}
+              </Button>
+              <div className="border-t pt-5 text-center text-sm text-muted-foreground">
+                {pick("ليس لديك حساب؟", "Don't have an account?")}{" "}
+                <Link
+                  className="font-semibold text-secondary hover:underline"
+                  to="/register"
+                >
+                  {pick("سجّل الآن", "Sign up now")}
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+        <p className="mt-7 text-center text-xs text-white/35">
+          © {new Date().getFullYear()}{" "}
+          {pick(
+            "أكاديمية بنان — جميع الحقوق محفوظة",
+            "BNAN Academy — All rights reserved",
+          )}
+        </p>
+      </div>
+    </main>
+  );
 }

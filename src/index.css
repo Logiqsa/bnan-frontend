@@ -121,9 +121,14 @@
     overflow-x: hidden;
   }
 
-  body[data-scroll-locked] {
+  html body[data-scroll-locked] {
     margin-right: 0 !important;
     padding-right: 0 !important;
+  }
+
+  html body[data-scroll-locked]:has([data-dashboard-layout]) {
+    --removed-body-scroll-bar-size: 0px !important;
+    overflow: hidden !important;
   }
 
   body {
@@ -133,10 +138,51 @@
     overflow-x: hidden;
   }
 
+  :is(
+    a[href],
+    button:not(:disabled),
+    select:not(:disabled),
+    summary,
+    label[for],
+    label:has(input[type="checkbox"], input[type="radio"]),
+    input[type="checkbox"]:not(:disabled),
+    input[type="radio"]:not(:disabled),
+    input[type="file"]:not(:disabled),
+    input[type="range"]:not(:disabled),
+    [role="button"]:not([aria-disabled="true"]),
+    [role="menuitem"]:not([aria-disabled="true"]),
+    [role="option"]:not([aria-disabled="true"]),
+    [role="tab"]:not([aria-disabled="true"]),
+    [role="checkbox"]:not([aria-disabled="true"]),
+    [role="radio"]:not([aria-disabled="true"]),
+    [role="switch"]:not([aria-disabled="true"])
+  ) {
+    cursor: pointer;
+  }
+
+  :is(button, select, input):disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   #root {
     min-width: 0;
     max-width: 100%;
     overflow-x: clip;
+  }
+
+  /* DashboardLayout owns scrolling inside its <main>. Locking the document
+     prevents a second browser scrollbar and leaves Radix nothing to offset. */
+  html:has([data-dashboard-layout]) {
+    height: 100%;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+
+  body:has([data-dashboard-layout]),
+  body:has([data-dashboard-layout]) > #root {
+    height: 100%;
+    overflow: hidden;
   }
 }
 

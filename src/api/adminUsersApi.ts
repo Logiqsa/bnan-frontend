@@ -12,6 +12,8 @@ export interface AdminUser {
   role: AdminUserRole;
   status?: AdminUserStatus;
   isVerified?: boolean;
+  curriculum?: string;
+  grade?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -27,6 +29,12 @@ export interface AdminUsersResponse {
   limit?: number;
   total?: number;
   hasNextPage?: boolean;
+}
+
+export interface RegenerateVerificationCodeResponse {
+  message: string;
+  code: string;
+  expiresAt: string;
 }
 
 type AdminUserPayload = Omit<AdminUser, "id"> & { id?: string; _id?: string };
@@ -48,17 +56,20 @@ const normalizeList = (result: AdminUsersPayload): AdminUsersResponse => ({
 });
 
 export const adminUsersApi = {
-  list: async (role?: AdminUserRole, page = 1) => {
+  list: async (role?: AdminUserRole, page = 1, isVerified?: boolean, search?: string) => {
     const params = new URLSearchParams({
       page: String(page),
       limit: "20",
     });
     if (role) params.set("role", role);
+    if (isVerified !== undefined) params.set("isVerified", String(isVerified));
+    if (search?.trim()) params.set("fullName", search.trim());
     return normalizeList(await apiRequest<AdminUsersPayload>(`/users?${params.toString()}`));
   },
   get: async (id: string) => {
-    const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/users/${id}`);
-    return { ...result, data: normalizeUserEnvelope(result.data) };
+    const result = await apiRequest<{ success: true; data: AdminUserEnvelope | AdminUserEnvelope[] }>(`/users/${id}`);
+    const details = Array.isArray(result.data) ? result.data[0] : result.data;
+    return { ...result, data: details ? normalizeUserEnvelope(details) : normalizeUser({ id }) };
   },
   findTeacherByEmail: async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -98,4 +109,9 @@ export const adminUsersApi = {
     });
     return { ...result, data: normalizeUserEnvelope(result.data) };
   },
+  regenerateVerificationCode: (id: string, reason?: string) =>
+    apiRequest<RegenerateVerificationCodeResponse>(`/admin/users/${id}/regenerate-verification-code`, {
+      method: "POST",
+      ...(reason ? { body: JSON.stringify({ reason }) } : {}),
+    }),
 };

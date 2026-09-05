@@ -36,6 +36,12 @@ import AccountSettings from "@/portal/AccountSettings";
 import SupervisorSchedule from "@/portal/SupervisorSchedule";
 import GlobalNotificationAdmin from "@/admin/GlobalNotificationAdmin";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
+import CoursesAdmin from "@/admin/CoursesAdmin";
+import CourseEditorAdmin from "@/admin/CourseEditorAdmin";
+import CourseDetailAdmin from "@/admin/CourseDetailAdmin";
+import MyCourses from "@/portal/MyCourses";
+import CourseEnrollmentDetail from "@/portal/CourseEnrollmentDetail";
+import CourseGroupsAdmin from "@/admin/CourseGroupsAdmin";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +84,11 @@ export default function App() {
       <Route path="/admin/notifications" element={<AdminGuard><GlobalNotificationAdmin /></AdminGuard>} />
       <Route path="/admin/classrooms" element={<AdminGuard><ClassroomManagement /></AdminGuard>} />
       <Route path="/admin/classrooms/:classroomId/schedule" element={<AdminGuard><ClassroomScheduleManagement /></AdminGuard>} />
+      <Route path="/admin/courses" element={<AdminGuard><CoursesAdmin /></AdminGuard>} />
+      <Route path="/admin/courses/new" element={<AdminGuard><CourseEditorAdmin /></AdminGuard>} />
+      <Route path="/admin/courses/:courseId" element={<AdminGuard><CourseDetailAdmin /></AdminGuard>} />
+      <Route path="/admin/courses/:courseId/edit" element={<AdminGuard><CourseEditorAdmin /></AdminGuard>} />
+      <Route path="/admin/courses/:courseId/groups" element={<AdminGuard><CourseGroupsAdmin /></AdminGuard>} />
       <Route path="/admin/zoom-accounts/:id/classrooms" element={<AdminGuard><ZoomAccountUsageAdmin /></AdminGuard>} />
       <Route path="/portal/supervisor/classrooms" element={<ManualZoomGuard role="supervisor"><ClassroomManagement /></ManualZoomGuard>} />
       <Route path="/portal/supervisor/classrooms/:classroomId/schedule" element={<ManualZoomGuard role="supervisor"><ClassroomScheduleManagement /></ManualZoomGuard>} />
@@ -86,6 +97,10 @@ export default function App() {
       <Route path="/portal/supervisor/classrooms/zoom" element={<ManualZoomGuard role="supervisor"><ClassroomZoomManagement /></ManualZoomGuard>} />
       <Route path="/portal/teacher/settings" element={<PortalGuard role="teacher"><AccountSettings /></PortalGuard>} />
       <Route path="/portal/student/settings" element={<PortalGuard role="student"><AccountSettings /></PortalGuard>} />
+      <Route path="/portal/student/courses" element={<PortalGuard role="student"><MyCourses /></PortalGuard>} />
+      <Route path="/portal/student/courses/:enrollmentId" element={<PortalGuard role="student"><CourseEnrollmentDetail /></PortalGuard>} />
+      <Route path="/my-courses" element={<PortalGuard role="student"><MyCourses /></PortalGuard>} />
+      <Route path="/my-courses/:enrollmentId" element={<PortalGuard role="student"><CourseEnrollmentDetail /></PortalGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes></PortalAuthProvider></BrowserRouter>
   </TooltipProvider></CurrencyProvider></LanguageProvider></QueryClientProvider></HelmetProvider>;

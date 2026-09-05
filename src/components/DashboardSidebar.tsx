@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Award, Bell, Calendar, ChevronLeft, ChevronsUpDown, FileText, GraduationCap, LayoutDashboard, Loader2, LogOut, Menu, MessageSquare, School, Settings, ShieldCheck, Star, Trash2, Upload, UserPlus, UserRound, Users, Video, type LucideIcon } from "lucide-react";
+import { Award, Bell, BookOpen, Calendar, ChevronLeft, ChevronsUpDown, FileText, GraduationCap, LayoutDashboard, Loader2, LogOut, Menu, MessageSquare, School, Settings, ShieldCheck, Star, Trash2, Upload, UserPlus, UserRound, Users, Video, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -27,6 +27,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
     { label: "الأدمن", labelEn: "Admins", icon: Users, path: "/admin?tab=admins" },
     { label: "طلبات المعلمين", labelEn: "Teacher applications", icon: GraduationCap, path: "/admin?tab=teacher-applications" },
     { label: "إدارة الفصول والمواعيد", labelEn: "Classrooms and availability", icon: School, path: "/admin/classrooms" },
+    { label: "الدورات", labelEn: "Courses", icon: BookOpen, path: "/admin/courses" },
     { label: "حسابات زوم", labelEn: "Zoom accounts", icon: Video, path: "/admin?tab=zoom-accounts" },
     { label: "ربط الصفوف بـ Zoom", labelEn: "Assign classes to Zoom", icon: Users, path: "/admin?tab=zoom-grades" },
     { label: "ربط الفصول بـ Zoom", labelEn: "Link classrooms to Zoom", icon: Video, path: "/admin/classroom-zoom" },
@@ -44,6 +45,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
     { label: "إعدادات الحساب", labelEn: "Account settings", icon: Settings, path: "/portal/teacher/settings" },
   ],
   student: [
+    { label: "دوراتي", labelEn: "My courses", icon: BookOpen, path: "/portal/student/courses" },
     { label: "جدول الحصص", labelEn: "Lesson schedule", icon: Calendar, path: "/portal/student/schedule" },
     { label: "تسجيلات الحصص", labelEn: "Lesson recordings", icon: Video, path: "/portal/student/sessions" },
     { label: "إعدادات الحساب", labelEn: "Account settings", icon: Settings, path: "/portal/student/settings" },

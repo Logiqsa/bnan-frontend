@@ -42,7 +42,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const friendlyError = (error: unknown) => {
   const apiError = error as ApiError;
-  return ERROR_MESSAGES[apiError.code] || apiError.message || "حدث خطأ غير متوقع.";
+  return apiError.message || ERROR_MESSAGES[apiError.code] || "حدث خطأ غير متوقع.";
 };
 
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
@@ -237,8 +237,8 @@ export default function StudentSignup() {
     setSubjectIds((current) => current.includes(id) ? current.filter((subjectId) => subjectId !== id) : [...current, id]);
 
   const validStep = useMemo(() => {
-    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeRegistrationPhone(parentPhone) && parentPassword.length >= 8;
-    if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && studentPassword.length >= 8;
+    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeRegistrationPhone(parentPhone) && !!parentPassword;
+    if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && !!studentPassword;
     if (step === 2) {
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0) return false;
       if (mode === "gulf") return subjectIds.length >= 1;

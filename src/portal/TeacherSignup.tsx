@@ -238,7 +238,7 @@ export default function TeacherSignup() {
     const required = [
       values.fullName?.trim().length >= 3,
       Boolean(values.email),
-      values.password?.length >= 8,
+      Boolean(values.password),
       Boolean(values.phone),
       values.termsAccepted === "true",
       Boolean(values.dateOfBirth),
@@ -280,7 +280,7 @@ export default function TeacherSignup() {
       return !!(
         values.fullName?.trim().length >= 3 &&
         values.email &&
-        values.password?.length >= 8 &&
+        values.password &&
         values.phone &&
         values.termsAccepted === "true"
       );
@@ -513,7 +513,6 @@ export default function TeacherSignup() {
                       <Input
                         type="password"
                         dir="ltr"
-                        minLength={8}
                         value={values.password || ""}
                         onChange={(e) => set("password", e.target.value)}
                       />

@@ -70,23 +70,44 @@ const normalizeUser = (item: AdminUserPayload): AdminUser => ({
 
 const normalizeUserEnvelope = (item: AdminUserEnvelope): AdminUser => normalizeUser(item.user || item);
 
-const normalizeList = (result: AdminUsersPayload): AdminUsersResponse => ({
+const normalizeList = (result: AdminUsersPayload, requestedLimit = 20): AdminUsersResponse => ({
   ...result,
   data: result.data.map(normalizeUser),
   page: result.page ?? result.currentPage,
   total: result.total ?? result.totalCount,
+  hasNextPage: result.totalPages !== undefined
+    ? (result.page ?? result.currentPage ?? 1) < result.totalPages
+    : result.hasNextPage ?? (
+      result.total !== undefined || result.totalCount !== undefined
+        ? (result.page ?? result.currentPage ?? 1) * (result.limit ?? requestedLimit) < (result.total ?? result.totalCount ?? 0)
+        : result.data.length === requestedLimit
+    ),
 });
 
 export const adminUsersApi = {
-  list: async (role?: AdminUserRole, page = 1, isVerified?: boolean, search?: string) => {
+  list: async (role?: AdminUserRole, page = 1, isVerified?: boolean, search?: string, limit = 20) => {
     const params = new URLSearchParams({
       page: String(page),
-      limit: "20",
+      limit: String(limit),
     });
     if (role) params.set("role", role);
     if (isVerified !== undefined) params.set("isVerified", String(isVerified));
     if (search?.trim()) params.set("fullName", search.trim());
-    return normalizeList(await apiRequest<AdminUsersPayload>(`/users?${params.toString()}`));
+    return normalizeList(await apiRequest<AdminUsersPayload>(`/users?${params.toString()}`), limit);
+  },
+  listAll: async (role?: AdminUserRole, isVerified?: boolean) => {
+    const users = new Map<string, AdminUser>();
+    let page = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+      const result = await adminUsersApi.list(role, page, isVerified, undefined, 100);
+      result.data.forEach((user) => users.set(user.id, user));
+      hasNextPage = result.data.length > 0 && Boolean(result.hasNextPage);
+      page += 1;
+    }
+
+    return [...users.values()];
   },
   get: async (id: string) => {
     const result = await apiRequest<{ success: true; data: AdminUserEnvelope | AdminUserEnvelope[] }>(`/users/${id}`);
@@ -128,6 +149,12 @@ export const adminUsersApi = {
     const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/users/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    });
+    return { ...result, data: normalizeUserEnvelope(result.data) };
+  },
+  markVerified: async (id: string) => {
+    const result = await apiRequest<{ success: true; data: AdminUserEnvelope }>(`/admin/users/${id}/verify`, {
+      method: "PATCH",
     });
     return { ...result, data: normalizeUserEnvelope(result.data) };
   },

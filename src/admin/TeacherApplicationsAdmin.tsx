@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MessageCircle, Phone, RefreshCw, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MessageCircle, Phone, RefreshCw, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { adminUsersApi } from "@/api/adminUsersApi";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const statusLabels: Record<TeacherApplicationStatus, string> = {
@@ -23,6 +24,13 @@ const statusLabels: Record<TeacherApplicationStatus, string> = {
 };
 
 const phoneHref = (value: string) => value === "—" ? "" : value.replace(/[^\d+]/g, "");
+const isApplicationUnverified = (item: TeacherApplication) =>
+  item.isVerified === false ||
+  item.emailVerified === false ||
+  item.verified === false ||
+  item.user?.isVerified === false ||
+  item.user?.emailVerified === false ||
+  item.user?.verified === false;
 const whatsappHref = (value: string) => {
   if (value === "—") return "";
   let digits = value.replace(/\D/g, "");
@@ -35,6 +43,10 @@ const whatsappHref = (value: string) => {
 export default function TeacherApplicationsAdmin() {
   const [status, setStatus] = useState<TeacherApplicationStatus>("pending");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pageSizeInput, setPageSizeInput] = useState("20");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<TeacherApplication[]>([]);
   const [total, setTotal] = useState<number | undefined>();
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -48,18 +60,53 @@ export default function TeacherApplicationsAdmin() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await teacherApplicationsApi.list(status, page);
-      setItems(result.data);
-      setTotal(result.total);
-      setHasNextPage(result.hasNextPage ?? result.data.length === 20);
+      const [applications, unverifiedTeachers] = await Promise.all([
+        teacherApplicationsApi.listAllByStatus(status),
+        adminUsersApi.listAll("teacher", false),
+      ]);
+      const unverifiedIds = new Set(unverifiedTeachers.map((user) => user.id));
+      const unverifiedEmails = new Set(
+        unverifiedTeachers
+          .map((user) => user.email?.trim().toLowerCase())
+          .filter((email): email is string => Boolean(email)),
+      );
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const matchingApplications = normalizedQuery ? applications.filter((item) => [
+        applicantName(item),
+        applicantEmail(item),
+        applicantPhone(item),
+        applicantWhatsapp(item),
+        item.specialization,
+      ].some((value) => value?.toLowerCase().includes(normalizedQuery))) : applications;
+      const pageApplications = matchingApplications.slice((page - 1) * pageSize, page * pageSize);
+      setItems(pageApplications.map((item) => {
+        const email = (item.email || item.user?.email)?.trim().toLowerCase();
+        const isUnverified =
+          Boolean(item.user?.id && unverifiedIds.has(item.user.id)) ||
+          Boolean(email && unverifiedEmails.has(email));
+        return isUnverified ? {
+          ...item,
+          isVerified: false,
+          user: { ...item.user, isVerified: false },
+        } : item;
+      }));
+      setTotal(matchingApplications.length);
+      setHasNextPage(page * pageSize < matchingApplications.length);
     } catch (error) {
       toast.error((error as ApiError).message || "تعذر تحميل طلبات المعلمين");
     } finally {
       setLoading(false);
     }
-  }, [page, status]);
+  }, [page, pageSize, searchQuery, status]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const openDetails = async (item: TeacherApplication) => {
     setSelected(item);
@@ -106,7 +153,7 @@ export default function TeacherApplicationsAdmin() {
     setBusy(true);
     try {
       await teacherApplicationsApi.updateStatus(target.id, nextStatus);
-      toast.success(nextStatus === "approved" ? "تم قبول طلب المعلم" : "تم رفض طلب المعلم");
+      toast.success(nextStatus === "approved" ? "تم قبول طلب المعلم وتوثيق حسابه" : "تم رفض طلب المعلم");
       setPendingDecision(null);
       setDecisionTarget(null);
       setSelected(null);
@@ -132,6 +179,40 @@ export default function TeacherApplicationsAdmin() {
           <Button key={value} size="sm" variant={status === value ? "default" : "outline"} onClick={() => changeFilter(value)}>{statusLabels[value]}</Button>
         ))}
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            className="pr-9"
+            placeholder="ابحث بالاسم أو بيانات التواصل"
+            aria-label="البحث في طلبات التقديم"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+        <span className="whitespace-nowrap text-sm text-muted-foreground">عدد الصفوف</span>
+        <Input
+          type="number"
+          min={1}
+          max={100}
+          value={pageSizeInput}
+          disabled={loading}
+          aria-label="عدد الصفوف في الصفحة"
+          className="h-9 w-20 text-center"
+          onChange={(event) => setPageSizeInput(event.target.value)}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={loading || !Number.isInteger(Number(pageSizeInput)) || Number(pageSizeInput) < 1 || Number(pageSizeInput) > 100 || Number(pageSizeInput) === pageSize}
+          onClick={() => { setPageSize(Number(pageSizeInput)); setPage(1); }}
+        >
+          تطبيق
+        </Button>
+        </div>
+      </div>
       <Card>
         <CardContent className="p-0">
           {loading ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /></div> : items.length === 0 ? (
@@ -141,7 +222,13 @@ export default function TeacherApplicationsAdmin() {
               <TableHeader><TableRow><TableHead className="text-center">المتقدم</TableHead><TableHead className="text-center">التواصل</TableHead><TableHead className="text-center">التخصص</TableHead><TableHead className="text-center">تاريخ التقديم</TableHead><TableHead className="text-center">الإجراء</TableHead></TableRow></TableHeader>
               <TableBody>{items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="text-center"><p className="font-semibold">{applicantName(item)}</p><Badge className="mt-1" variant={item.status === "rejected" ? "destructive" : item.status === "approved" ? "default" : "outline"}>{statusLabels[item.status]}</Badge></TableCell>
+                  <TableCell className="text-center">
+                    <p className="font-semibold">{applicantName(item)}</p>
+                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                      <Badge variant={item.status === "rejected" ? "destructive" : item.status === "approved" ? "default" : "outline"}>{statusLabels[item.status]}</Badge>
+                      {isApplicationUnverified(item) && <Badge variant="secondary">لم يتم التحقق</Badge>}
+                    </div>
+                  </TableCell>
                   <TableCell className="min-w-64 text-left">
                     <div className="flex w-full flex-col items-start space-y-1.5" dir="ltr">
                       {applicantEmail(item) !== "—" && <a href={`mailto:${applicantEmail(item)}`} className="flex items-center gap-1 text-primary hover:underline"><Mail className="h-3.5 w-3.5" />{applicantEmail(item)}</a>}
@@ -161,7 +248,7 @@ export default function TeacherApplicationsAdmin() {
           )}
         </CardContent>
       </Card>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">صفحة {page}{total !== undefined ? ` — إجمالي ${total} طلب` : ""}</span>
         <div className="flex gap-2"><Button size="sm" variant="outline" disabled={page === 1 || loading} onClick={() => setPage((value) => value - 1)}><ChevronRight className="h-4 w-4" />السابق</Button><Button size="sm" variant="outline" disabled={!hasNextPage || loading} onClick={() => setPage((value) => value + 1)}>التالي<ChevronLeft className="h-4 w-4" /></Button></div>
       </div>

@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, FileText, Image } from "lucide-react";
+import { ChevronDown, Eye, FileText, Image, Play } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type {
   NamedEntity,
@@ -7,6 +7,7 @@ import type {
 } from "@/api/teacherApplicationsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -104,22 +105,22 @@ const FileButton = ({
   label,
   url,
   image = false,
+  onPreview,
 }: {
   label: string;
   url?: string;
   image?: boolean;
+  onPreview: (preview: MediaPreview) => void;
 }) =>
   url ? (
-    <Button asChild variant="outline" className="justify-start gap-2">
-      <a href={url} target="_blank" rel="noopener noreferrer">
+    <Button type="button" variant="outline" className="justify-start gap-2" onClick={() => onPreview({ title: label, url, kind: image ? "image" : undefined })}>
         {image ? (
           <Image className="h-4 w-4" />
         ) : (
           <FileText className="h-4 w-4" />
         )}
         {label}
-        <ExternalLink className="mr-auto h-3.5 w-3.5" />
-      </a>
+        <Eye className="mr-auto h-3.5 w-3.5" />
     </Button>
   ) : (
     <Button variant="outline" disabled className="justify-start gap-2">
@@ -160,6 +161,7 @@ export function TeacherApplicationDetails({
 }: {
   application: TeacherApplication;
 }) {
+  const [preview, setPreview] = useState<MediaPreview | null>(null);
   const teacherAssignments = assignmentFallback(application);
   const subjectsWithGrades = groupGradesBySubject(teacherAssignments);
   return (
@@ -313,15 +315,9 @@ export function TeacherApplicationDetails({
             value={application.weakStudentHandling}
           />
           {application.introVideoUrl && (
-            <Button asChild variant="outline">
-              <a
-                href={application.introVideoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                فتح الفيديو التعريفي
-                <ExternalLink className="mr-2 h-4 w-4" />
-              </a>
+            <Button type="button" variant="outline" onClick={() => setPreview({ title: "الفيديو التعريفي", url: application.introVideoUrl!, kind: "video" })}>
+              <Play className="ml-2 h-4 w-4" />
+              تشغيل الفيديو التعريفي
             </Button>
           )}
         </div>
@@ -331,25 +327,30 @@ export function TeacherApplicationDetails({
           <FileButton
             label="السيرة الذاتية CV"
             url={fileUrl(application, "cv")}
+            onPreview={setPreview}
           />
           <FileButton
             label="الشهادة"
             url={fileUrl(application, "certificate")}
+            onPreview={setPreview}
           />
           <FileButton
             label="إثبات الهوية"
             url={fileUrl(application, "identityDocument")}
+            onPreview={setPreview}
           />
           <FileButton
             label="إثبات استقرار الإنترنت"
             image
             url={fileUrl(application, "stableInternetProof")}
+            onPreview={setPreview}
           />
           {application.experienceCertificates?.map((url, index) => (
-            <FileButton key={url} label={`شهادة خبرة ${index + 1}`} url={url} />
+            <FileButton key={url} label={`شهادة خبرة ${index + 1}`} url={url} onPreview={setPreview} />
           ))}
         </div>
       </DetailsSection>
+      <MediaPreviewDialog preview={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }

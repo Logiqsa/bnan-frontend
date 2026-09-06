@@ -11,8 +11,11 @@ import UsersAdmin from "./UsersAdmin";
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  listAll: vi.fn(),
   get: vi.fn(),
   regenerate: vi.fn(),
+  markVerified: vi.fn(),
+  listApprovedApplications: vi.fn(),
   findRegistration: vi.fn(),
   confirmPayment: vi.fn(),
   approveRegistration: vi.fn(),
@@ -23,8 +26,10 @@ vi.mock("@/api/adminUsersApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/adminUsersApi")>()),
   adminUsersApi: {
     list: mocks.list,
+    listAll: mocks.listAll,
     get: mocks.get,
     regenerateVerificationCode: mocks.regenerate,
+    markVerified: mocks.markVerified,
   },
 }));
 vi.mock("sonner", () => ({
@@ -35,6 +40,12 @@ vi.mock("@/api/egyptianRegistrationRequestsApi", () => ({
     findByUser: mocks.findRegistration,
     confirmPayment: mocks.confirmPayment,
     approve: mocks.approveRegistration,
+  },
+}));
+vi.mock("@/api/teacherApplicationsApi", () => ({
+  teacherApplicationsApi: {
+    listAllByStatus: mocks.listApprovedApplications,
+    getByUserId: vi.fn(),
   },
 }));
 
@@ -63,6 +74,7 @@ describe("UsersAdmin verification OTP", () => {
     mocks.list
       .mockReset()
       .mockResolvedValue({ success: true, data: [user], hasNextPage: false });
+    mocks.listAll.mockReset().mockResolvedValue([user]);
     mocks.get.mockReset().mockResolvedValue({ success: true, data: user });
     mocks.regenerate
       .mockReset()
@@ -71,6 +83,11 @@ describe("UsersAdmin verification OTP", () => {
         code: "4821",
         expiresAt: "2026-09-05T12:10:00Z",
       });
+    mocks.markVerified.mockReset().mockResolvedValue({
+      success: true,
+      data: { ...user, isVerified: true },
+    });
+    mocks.listApprovedApplications.mockReset().mockResolvedValue([]);
     mocks.findRegistration.mockReset().mockResolvedValue(null);
     mocks.confirmPayment.mockReset();
     mocks.approveRegistration.mockReset();
@@ -108,6 +125,53 @@ describe("UsersAdmin verification OTP", () => {
     expect(
       await screen.findByRole("link", { name: "Contact Ahmed on WhatsApp" }),
     ).toHaveAttribute("href", "https://wa.me/201000000000");
+  });
+
+  it("does not change the page size until Apply is clicked", async () => {
+    renderPage();
+    await screen.findByText("Ahmed");
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Rows per page" }), {
+      target: { value: "50" },
+    });
+    expect(mocks.list).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+    expect(mocks.list).toHaveBeenLastCalledWith("student", 1, undefined, undefined, 50);
+  });
+
+  it("lets an admin mark an unverified user as verified", async () => {
+    renderPage();
+    fireEvent.keyDown(
+      await screen.findByRole("button", { name: /Actions for Ahmed/ }),
+      { key: "Enter", code: "Enter" },
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Mark as verified" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm verification" }));
+
+    await waitFor(() => expect(mocks.markVerified).toHaveBeenCalledWith("user-1"));
+    expect(mocks.success).toHaveBeenCalledWith("User marked as verified");
+  });
+
+  it("shows only teachers with approved applications on the teachers page", async () => {
+    mocks.listAll.mockResolvedValue([
+      { ...user, id: "teacher-1", role: "teacher", fullName: "Approved Teacher", email: "approved@bnan.edu" },
+      { ...user, id: "teacher-2", role: "teacher", fullName: "Pending Teacher", email: "pending@bnan.edu" },
+    ]);
+    mocks.listApprovedApplications.mockResolvedValue([
+      { id: "application-1", status: "approved", email: "approved@bnan.edu" },
+    ]);
+
+    render(
+      <LanguageProvider>
+        <UsersAdmin title="Teachers" description="Approved teachers" roles={["teacher"]} approvedTeachersOnly />
+      </LanguageProvider>,
+    );
+
+    expect(await screen.findByText("Approved Teacher")).toBeInTheDocument();
+    expect(screen.queryByText("Pending Teacher")).not.toBeInTheDocument();
   });
 
   it("lets the admin upload the receipt before approving the student", async () => {

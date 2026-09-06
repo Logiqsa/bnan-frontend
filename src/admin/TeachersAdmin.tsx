@@ -8,6 +8,7 @@ export default function TeachersAdmin() {
         title="المعلمون"
         description="عرض وإدارة حسابات المعلمين المسجلين في النظام."
         roles={["teacher"]}
+        approvedTeachersOnly
       />
     </DashboardLayout>
   );

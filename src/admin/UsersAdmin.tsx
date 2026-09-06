@@ -78,6 +78,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 const roleLabels: Record<AdminUserRole, { ar: string; en: string }> = {
@@ -116,7 +117,11 @@ const whatsappNumberOf = (user: AdminUser) =>
   "";
 
 const whatsappHref = (user: AdminUser) => {
-  let digits = whatsappNumberOf(user).replace(/\D/g, "");
+  return whatsappHrefFromNumber(whatsappNumberOf(user));
+};
+
+const whatsappHrefFromNumber = (value: string) => {
+  let digits = value.replace(/\D/g, "");
   if (digits.startsWith("00")) digits = digits.slice(2);
   if (digits.startsWith("01")) digits = `20${digits.slice(1)}`;
   else if (digits.startsWith("05")) digits = `966${digits.slice(1)}`;
@@ -129,16 +134,6 @@ const receiptUrl = (value?: string | null) => {
   return `${API_BASE_URL.replace(/\/api\/v1$/, "")}/${value.replace(/^\//, "")}`;
 };
 
-const parentDisplay = (user: AdminUser) => {
-  const candidates = [user.parentInfo, user.parent, user.parentUser, user.guardian, user.parentId, user.guardianId];
-  const parent = candidates.find((value) => value && typeof value === "object");
-  if (parent && typeof parent === "object") {
-    return parent.fullName || parent.phone || parent.whatsappNumber || parent.whatsapp || user.phone || "—";
-  }
-  // The current backend maps a student's phone to the parent profile phone.
-  return user.role === "student" ? user.phone || "—" : "—";
-};
-
 interface UsersAdminProps {
   title: string;
   description: string;
@@ -146,6 +141,7 @@ interface UsersAdminProps {
   headerAction?: ReactNode;
   refreshKey?: number;
   allowEdit?: boolean;
+  approvedTeachersOnly?: boolean;
 }
 
 export default function UsersAdmin({
@@ -155,6 +151,7 @@ export default function UsersAdmin({
   headerAction,
   refreshKey,
   allowEdit = false,
+  approvedTeachersOnly = false,
 }: UsersAdminProps) {
   const { isArabic, pick } = useLanguage();
   const rolesKey = roles.join(",");
@@ -163,6 +160,8 @@ export default function UsersAdmin({
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pageSizeInput, setPageSizeInput] = useState("20");
   const [items, setItems] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState<number>();
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -188,17 +187,50 @@ export default function UsersAdmin({
   const [otpResult, setOtpResult] =
     useState<RegenerateVerificationCodeResponse | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [verificationUser, setVerificationUser] = useState<AdminUser | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<MediaPreview | null>(null);
 
   const load = useCallback(async () => {
     void refreshKey;
     setLoading(true);
     try {
-      const result = await adminUsersApi.list(
-        role,
-        page,
-        showUnverified ? false : undefined,
-        searchQuery || undefined,
-      );
+      if (approvedTeachersOnly) {
+        const [teacherUsers, approvedApplications] = await Promise.all([
+          adminUsersApi.listAll("teacher", showUnverified ? false : undefined),
+          teacherApplicationsApi.listAllByStatus("approved"),
+        ]);
+        const approvedUserIds = new Set(
+          approvedApplications
+            .map((application) => application.user?.id)
+            .filter((id): id is string => Boolean(id)),
+        );
+        const approvedEmails = new Set(
+          approvedApplications
+            .map((application) => (application.email || application.user?.email)?.trim().toLowerCase())
+            .filter((email): email is string => Boolean(email)),
+        );
+        const query = searchQuery.trim().toLowerCase();
+        const approvedTeachers = teacherUsers.filter((user) => {
+          const approved = approvedUserIds.has(user.id) || Boolean(user.email && approvedEmails.has(user.email.trim().toLowerCase()));
+          const matchesSearch = !query || user.fullName?.toLowerCase().includes(query);
+          return approved && matchesSearch;
+        });
+        setItems(approvedTeachers.slice((page - 1) * pageSize, page * pageSize));
+        setTotal(approvedTeachers.length);
+        setHasNextPage(page * pageSize < approvedTeachers.length);
+        return;
+      }
+
+      const [result, allRoleUsers] = await Promise.all([
+        adminUsersApi.list(
+          role,
+          page,
+          showUnverified ? false : undefined,
+          searchQuery || undefined,
+          pageSize,
+        ),
+        adminUsersApi.listAll(role, showUnverified ? false : undefined).catch(() => null),
+      ]);
       // The users module deliberately excludes admin/supervisor accounts from
       // the unfiltered "all" response.
       const allowedRoles = rolesKey.split(",") as AdminUserRole[];
@@ -206,8 +238,8 @@ export default function UsersAdmin({
         allowedRoles.includes(item.role),
       );
       setItems(visibleItems);
-      setTotal(result.total);
-      setHasNextPage(result.hasNextPage ?? result.data.length === 20);
+      setTotal(allRoleUsers?.length ?? result.total ?? result.data.length);
+      setHasNextPage(result.hasNextPage ?? result.data.length === pageSize);
     } catch (error) {
       setItems([]);
       toast.error(
@@ -219,6 +251,8 @@ export default function UsersAdmin({
     }
   }, [
     page,
+    pageSize,
+    approvedTeachersOnly,
     role,
     rolesKey,
     title,
@@ -523,6 +557,25 @@ export default function UsersAdmin({
     }
   };
 
+  const markUserVerified = async () => {
+    if (!verificationUser || busyUserId) return;
+    const target = verificationUser;
+    setBusyUserId(target.id);
+    try {
+      await adminUsersApi.markVerified(target.id);
+      setVerificationUser(null);
+      toast.success(pick("تم تأكيد التحقق من المستخدم", "User marked as verified"));
+      await load();
+    } catch (error) {
+      toast.error(
+        (error as ApiError).message ||
+          pick("تعذر تأكيد التحقق من المستخدم", "Unable to verify the user"),
+      );
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
   const copyVerificationCode = async () => {
     if (!otpResult) return;
     try {
@@ -608,6 +661,41 @@ export default function UsersAdmin({
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {(["teacher", "student", "parent"] as AdminUserRole[]).includes(role) ? (
+          <div className="rounded-lg border bg-card px-4 py-2 text-sm">
+            <span className="text-muted-foreground">
+              {pick(`إجمالي ${roleLabels[role].ar}`, `Total ${roleLabels[role].en}`)}:
+            </span>{" "}
+            <strong className="text-lg">{loading || total === undefined ? "—" : total}</strong>
+          </div>
+        ) : <span />}
+        <div className="flex items-center gap-2">
+          <span className="whitespace-nowrap text-sm text-muted-foreground">
+            {pick("عدد الصفوف", "Rows per page")}
+          </span>
+          <Input
+            type="number"
+            min={1}
+            max={100}
+            value={pageSizeInput}
+            disabled={loading}
+            aria-label={pick("عدد الصفوف في الصفحة", "Rows per page")}
+            className="h-9 w-20 text-center"
+            onChange={(event) => setPageSizeInput(event.target.value)}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={loading || !Number.isInteger(Number(pageSizeInput)) || Number(pageSizeInput) < 1 || Number(pageSizeInput) > 100 || Number(pageSizeInput) === pageSize}
+            onClick={() => { setPageSize(Number(pageSizeInput)); setPage(1); }}
+          >
+            {pick("تطبيق", "Apply")}
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -632,11 +720,6 @@ export default function UsersAdmin({
                     <TableHead className="text-center">
                       {pick("الدور", "Role")}
                     </TableHead>
-                    {roles.includes("student") && (
-                      <TableHead className="text-center">
-                        {pick("ولي الأمر", "Parent")}
-                      </TableHead>
-                    )}
                     <TableHead className="text-center">
                       {pick("الحالة", "Status")}
                     </TableHead>
@@ -705,11 +788,6 @@ export default function UsersAdmin({
                             : item.role}
                         </Badge>
                       </TableCell>
-                      {roles.includes("student") && (
-                        <TableCell className="text-center" dir="auto">
-                          {parentDisplay(item)}
-                        </TableCell>
-                      )}
                       <TableCell className="text-center">
                         <Badge
                           variant={
@@ -796,6 +874,13 @@ export default function UsersAdmin({
                               {item.isVerified === false && (
                                 <>
                                   <DropdownMenuItem
+                                    onClick={() => setVerificationUser(item)}
+                                    className="gap-3"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    {pick("تأكيد التحقق", "Mark as verified")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
                                     onClick={() => setOtpUser(item)}
                                     className="gap-3"
                                   >
@@ -865,7 +950,7 @@ export default function UsersAdmin({
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm text-muted-foreground">
           {pick(
             `صفحة ${page}${total !== undefined ? ` - إجمالي ${total}` : ""}`,
@@ -1136,12 +1221,13 @@ export default function UsersAdmin({
                     />
                   </div>
                   {receiptUrl(studentRegistration.payment?.receiptImage) ? (
-                    <a
-                      href={receiptUrl(
-                        studentRegistration.payment?.receiptImage,
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setMediaPreview({
+                        title: pick("إيصال دفع الطالب", "Student payment receipt"),
+                        url: receiptUrl(studentRegistration.payment?.receiptImage),
+                        kind: "image",
+                      })}
                       className="block overflow-hidden rounded-xl border bg-background p-2 transition hover:border-primary/50"
                     >
                       <p className="mb-2 text-sm font-semibold">
@@ -1160,7 +1246,7 @@ export default function UsersAdmin({
                         )}
                         className="max-h-72 w-full rounded-lg object-contain"
                       />
-                    </a>
+                    </button>
                   ) : (
                     <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
                       {pick(
@@ -1228,6 +1314,37 @@ export default function UsersAdmin({
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(verificationUser)}
+        onOpenChange={(open) => !open && !busyUserId && setVerificationUser(null)}
+      >
+        <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pick("تأكيد التحقق من المستخدم", "Mark user as verified")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pick(
+                `هل تريد اعتبار حساب ${verificationUser?.fullName || "هذا المستخدم"} موثقًا؟`,
+                `Mark ${verificationUser?.fullName || "this user"} as verified?`,
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(busyUserId)}>{pick("إلغاء", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={Boolean(busyUserId)}
+              onClick={(event) => { event.preventDefault(); void markUserVerified(); }}
+            >
+              {busyUserId && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {pick("تأكيد التحقق", "Confirm verification")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <MediaPreviewDialog preview={mediaPreview} onClose={() => setMediaPreview(null)} />
 
       <AlertDialog
         open={Boolean(otpUser)}

@@ -121,16 +121,48 @@ const normalizeTeacher = (item: TeacherApplicationPayload): TeacherApplication =
   };
 };
 
-const normalizeList = (result: TeacherApplicationsPayload): TeacherApplicationsResponse => ({
+const normalizeList = (result: TeacherApplicationsPayload, requestedLimit = 20): TeacherApplicationsResponse => ({
   ...result,
   data: result.data.map(normalizeTeacher),
   page: result.page ?? result.currentPage,
   total: result.total ?? result.totalCount,
+  hasNextPage: result.totalPages !== undefined
+    ? (result.page ?? result.currentPage ?? 1) < result.totalPages
+    : result.hasNextPage ?? (
+      result.total !== undefined || result.totalCount !== undefined
+        ? (result.page ?? result.currentPage ?? 1) * (result.limit ?? requestedLimit) < (result.total ?? result.totalCount ?? 0)
+        : result.data.length === requestedLimit
+    ),
 });
 
+const fetchAllByStatus = async (status: TeacherApplicationStatus) => {
+  const applications = new Map<string, TeacherApplication>();
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const result = normalizeList(
+      await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=100`),
+      100,
+    );
+    result.data.forEach((application) => applications.set(application.id, application));
+    hasNextPage = result.data.length > 0 && Boolean(result.hasNextPage);
+    page += 1;
+  }
+
+  return [...applications.values()];
+};
+
 export const teacherApplicationsApi = {
-  list: async (status: TeacherApplicationStatus, page = 1) =>
-    normalizeList(await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=20`)),
+  list: async (status: TeacherApplicationStatus, page = 1, limit = 20) =>
+    normalizeList(
+      await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=${limit}`),
+      limit,
+    ),
+  countByStatus: async (status: TeacherApplicationStatus) => {
+    return (await fetchAllByStatus(status)).length;
+  },
+  listAllByStatus: fetchAllByStatus,
   get: async (id: string) => {
     const result = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${id}`);
     return { ...result, data: normalizeTeacher(result.data) };

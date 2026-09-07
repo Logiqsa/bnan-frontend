@@ -1127,14 +1127,14 @@ export default function TeacherSignup() {
               <div
                 role="status"
                 aria-live="polite"
-                className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+                className="mt-5 rounded-xl border border-navy/30 bg-navy/5 p-4 text-navy"
               >
                 <div className="flex items-center justify-between gap-4">
                   <p className="font-bold">رفع الملفات</p>
-                  <span className="font-bold text-amber-800">{uploadProgress}%</span>
+                  <span className="font-bold text-navy">{uploadProgress}%</span>
                 </div>
                 <div
-                  className="mt-3 h-3 overflow-hidden rounded-full bg-amber-200"
+                  className="mt-3 h-3 overflow-hidden rounded-full bg-navy/15"
                   role="progressbar"
                   aria-label="تقدم رفع ملفات التسجيل"
                   aria-valuemin={0}
@@ -1142,11 +1142,11 @@ export default function TeacherSignup() {
                   aria-valuenow={uploadProgress}
                 >
                   <div
-                    className="h-full rounded-full bg-amber-600 transition-[width] duration-200"
+                    className="h-full rounded-full bg-navy transition-[width] duration-200"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-amber-800">
+                <p className="mt-3 text-sm leading-6 text-navy/80">
                   جاري رفع الملفات، يرجى عدم إغلاق الصفحة
                 </p>
               </div>

@@ -58,6 +58,11 @@ const initialValues: Record<string, string> = {};
 const TEACHER_SIGNUP_DRAFT_KEY = "bnan_teacher_signup_draft";
 const TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_teacher_signup_persistent_draft";
 const MAX_TEACHER_FILE_SIZE = 20 * 1024 * 1024;
+const formatFileSize = (size: number) =>
+  size < 1024 * 1024
+    ? `${Math.max(1, Math.round(size / 1024))} KB`
+    : `${(size / (1024 * 1024)).toFixed(2)} MB`;
+const formatTotalFileSize = (size: number) => `${(size / (1024 * 1024)).toFixed(2)} MB`;
 
 interface TeacherSignupDraft {
   idempotencyKey: string;
@@ -121,6 +126,20 @@ export default function TeacherSignup() {
   const [termsPage, setTermsPage] = useState<LegalPage | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const [termsLoading, setTermsLoading] = useState(false);
+  const filesForReview = [
+    { field: "السيرة الذاتية", file: files.cv },
+    { field: "شهادة المؤهل", file: files.certificate },
+    { field: "إثبات الهوية", file: files.identityDocument },
+    { field: "إثبات الإنترنت", file: files.stableInternetProof },
+    ...experienceCertificates.map((file, index) => ({
+      field: `شهادة خبرة ${index + 1}`,
+      file,
+    })),
+  ].filter((item): item is { field: string; file: File } => Boolean(item.file));
+  const totalFilesSize = filesForReview.reduce(
+    (total, item) => total + item.file.size,
+    0,
+  );
   const set = (name: string, value: string) =>
     setValues((current) => ({ ...current, [name]: value }));
   const previousCurriculum = useRef(selectedCurriculum);
@@ -1034,6 +1053,28 @@ export default function TeacherSignup() {
                         0,
                       )}
                     </p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-4 text-sm">
+                    <h3 className="font-bold">مراجعة الملفات</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      راجع الملفات وأحجامها قبل إرسال طلب التسجيل.
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {filesForReview.map(({ field, file }) => (
+                        <div key={`${field}-${file.name}-${file.size}`} className="rounded-lg border bg-muted/30 p-3">
+                          <p className="font-semibold text-emerald-700">✓ {field}</p>
+                          <p dir="ltr" className="mt-1 break-all text-right">{file.name}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                            <span>{formatFileSize(file.size)}</span>
+                            {file.type && <span dir="ltr">{file.type}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 grid gap-2 border-t pt-4 font-semibold sm:grid-cols-2">
+                      <p>إجمالي الملفات: {filesForReview.length}</p>
+                      <p>الحجم الإجمالي: {formatTotalFileSize(totalFilesSize)}</p>
+                    </div>
                   </div>
                 </div>
               )}

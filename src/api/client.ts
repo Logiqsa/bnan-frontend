@@ -26,12 +26,14 @@ const textFromUnknown = (value: unknown): string => {
   return "";
 };
 
-const responseErrorMessage = (payload: Record<string, unknown>, rawBody: string) =>
-  textFromUnknown(payload.message)
-  || textFromUnknown(payload.error)
-  || textFromUnknown(payload.errors)
-  || rawBody.trim()
-  || "حدث خطأ غير متوقع.";
+const responseErrorMessage = (payload: Record<string, unknown>, rawBody: string) => {
+  const fieldErrors = textFromUnknown(payload.errors);
+  return fieldErrors
+    || textFromUnknown(payload.message)
+    || textFromUnknown(payload.error)
+    || rawBody.trim()
+    || "حدث خطأ غير متوقع.";
+};
 
 export const tokenStore = {
   get: () => sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY),

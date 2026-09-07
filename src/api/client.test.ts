@@ -17,6 +17,23 @@ describe("apiRequest error details", () => {
     });
   });
 
+  it("shows Mongoose field errors instead of the generic validation message", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: "VALIDATION_ERROR",
+      message: "خطأ في البيانات المدخلة",
+      errors: {
+        email: "البريد الإلكتروني غير صالح",
+        dateOfBirth: "تاريخ الميلاد غير صالح",
+      },
+    }), { status: 422, headers: { "Content-Type": "application/json" } })));
+
+    await expect(apiRequest("/auth/register-teacher", { method: "POST" })).rejects.toMatchObject({
+      status: 422,
+      code: "VALIDATION_ERROR",
+      message: "البريد الإلكتروني غير صالح، تاريخ الميلاد غير صالح",
+    });
+  });
+
   it("preserves a plain-text backend error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Registration is currently closed", { status: 503 })));
 

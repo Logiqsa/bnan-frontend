@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { pastedLegalHtml } from "@/lib/legalContent";
+import { compressUploadImage, isImageFile } from "@/lib/compress-upload-image";
 import { cn } from "@/lib/utils";
 import AccountVerification from "@/components/AccountVerification";
 
@@ -101,6 +102,7 @@ export default function TeacherSignup() {
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...initialValues, ...savedDraft.values }));
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [busy, setBusy] = useState(false);
+  const [preparingFiles, setPreparingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const submittingRef = useRef(false);
   const [error, setError] = useState("");
@@ -387,9 +389,29 @@ export default function TeacherSignup() {
     if (!validStep || submittingRef.current) return;
     submittingRef.current = true;
     setBusy(true);
-    setUploadProgress(0);
+    setPreparingFiles(true);
+    setUploadProgress(null);
     setError("");
     try {
+      const uploadFiles = { ...files };
+      for (const key of [
+        "identityDocument",
+        "stableInternetProof",
+        "certificate",
+      ]) {
+        const file = uploadFiles[key];
+        if (file && isImageFile(file)) {
+          uploadFiles[key] = await compressUploadImage(file);
+        }
+      }
+
+      const uploadExperienceCertificates: File[] = [];
+      for (const file of experienceCertificates) {
+        uploadExperienceCertificates.push(
+          isImageFile(file) ? await compressUploadImage(file) : file,
+        );
+      }
+
       const body = new FormData();
       Object.entries(values).forEach(
         ([key, value]) => value && body.append(key, value),
@@ -410,12 +432,14 @@ export default function TeacherSignup() {
           })),
         ),
       );
-      Object.entries(files).forEach(
+      Object.entries(uploadFiles).forEach(
         ([key, value]) => value && body.append(key, value),
       );
-      experienceCertificates.forEach((file) =>
+      uploadExperienceCertificates.forEach((file) =>
         body.append("experienceCertificates", file),
       );
+      setPreparingFiles(false);
+      setUploadProgress(0);
       const response = await authApi.registerTeacher(body, idempotencyKey, (progressEvent) => {
         if (!progressEvent.total) return;
         setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
@@ -438,6 +462,7 @@ export default function TeacherSignup() {
     } finally {
       submittingRef.current = false;
       setBusy(false);
+      setPreparingFiles(false);
       setUploadProgress(null);
     }
   };
@@ -1088,7 +1113,17 @@ export default function TeacherSignup() {
                 </div>
               )}
             </div>
-            {busy && uploadProgress !== null && (
+            {busy && preparingFiles && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="mt-5 flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+              >
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <p className="font-bold">جاري تجهيز الملفات...</p>
+              </div>
+            )}
+            {busy && !preparingFiles && uploadProgress !== null && (
               <div
                 role="status"
                 aria-live="polite"
@@ -1147,7 +1182,7 @@ export default function TeacherSignup() {
                   {busy ? (
                     <>
                       <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      جاري رفع الملفات والإرسال...
+                      {preparingFiles ? "جاري تجهيز الملفات..." : "جاري رفع الملفات والإرسال..."}
                     </>
                   ) : (
                     "إرسال طلب التسجيل"

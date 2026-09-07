@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Eye, Loader2, Mail, MessageCircle, Phone, RefreshCw, Search, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Eye, KeyRound, Loader2, Mail, MessageCircle, Phone, RefreshCw, Search, ShieldAlert, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
-import { adminUsersApi } from "@/api/adminUsersApi";
+import { adminUsersApi, type RegenerateVerificationCodeResponse } from "@/api/adminUsersApi";
 import {
   teacherApplicationsApi,
   type TeacherApplication,
@@ -56,6 +56,9 @@ export default function TeacherApplicationsAdmin() {
   const [busy, setBusy] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<"approved" | "rejected" | null>(null);
   const [decisionTarget, setDecisionTarget] = useState<TeacherApplication | null>(null);
+  const [verificationCodeTarget, setVerificationCodeTarget] = useState<TeacherApplication | null>(null);
+  const [verificationCodeResult, setVerificationCodeResult] = useState<RegenerateVerificationCodeResponse | null>(null);
+  const [verificationCodeLoading, setVerificationCodeLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,11 +67,11 @@ export default function TeacherApplicationsAdmin() {
         teacherApplicationsApi.listAllByStatus(status),
         adminUsersApi.listAll("teacher", false),
       ]);
-      const unverifiedIds = new Set(unverifiedTeachers.map((user) => user.id));
-      const unverifiedEmails = new Set(
+      const unverifiedById = new Map(unverifiedTeachers.map((user) => [user.id, user]));
+      const unverifiedByEmail = new Map(
         unverifiedTeachers
-          .map((user) => user.email?.trim().toLowerCase())
-          .filter((email): email is string => Boolean(email)),
+          .filter((user) => Boolean(user.email?.trim()))
+          .map((user) => [user.email!.trim().toLowerCase(), user]),
       );
       const normalizedQuery = searchQuery.trim().toLowerCase();
       const matchingApplications = normalizedQuery ? applications.filter((item) => [
@@ -81,13 +84,12 @@ export default function TeacherApplicationsAdmin() {
       const pageApplications = matchingApplications.slice((page - 1) * pageSize, page * pageSize);
       setItems(pageApplications.map((item) => {
         const email = (item.email || item.user?.email)?.trim().toLowerCase();
-        const isUnverified =
-          Boolean(item.user?.id && unverifiedIds.has(item.user.id)) ||
-          Boolean(email && unverifiedEmails.has(email));
-        return isUnverified ? {
+        const unverifiedUser = (item.user?.id && unverifiedById.get(item.user.id)) ||
+          (email ? unverifiedByEmail.get(email) : undefined);
+        return unverifiedUser ? {
           ...item,
           isVerified: false,
-          user: { ...item.user, isVerified: false },
+          user: { ...item.user, ...unverifiedUser, isVerified: false },
         } : item;
       }));
       setTotal(matchingApplications.length);
@@ -162,6 +164,43 @@ export default function TeacherApplicationsAdmin() {
       toast.error((error as ApiError).message || `تعذر ${action} الطلب`);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const regenerateVerificationCode = async () => {
+    if (!verificationCodeTarget || verificationCodeLoading) return;
+    setVerificationCodeLoading(true);
+    try {
+      const user = verificationCodeTarget.user?.id
+        ? verificationCodeTarget.user
+        : await adminUsersApi.findTeacherByEmail(applicantEmail(verificationCodeTarget));
+      if (!user?.id) throw new Error("TEACHER_USER_NOT_FOUND");
+      const result = await adminUsersApi.regenerateVerificationCode(
+        user.id,
+        "Teacher requested a new verification code",
+      );
+      setVerificationCodeTarget(null);
+      setVerificationCodeResult(result);
+      toast.success("تم تغيير رمز التحقق بنجاح");
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(
+        apiError.code === "ACCOUNT_ALREADY_VERIFIED"
+          ? "تم التحقق من هذا الحساب بالفعل"
+          : apiError.message || "تعذر تغيير رمز التحقق",
+      );
+    } finally {
+      setVerificationCodeLoading(false);
+    }
+  };
+
+  const copyVerificationCode = async () => {
+    if (!verificationCodeResult) return;
+    try {
+      await navigator.clipboard.writeText(verificationCodeResult.code);
+      toast.success("تم نسخ رمز التحقق");
+    } catch {
+      toast.error("تعذر نسخ رمز التحقق");
     }
   };
 
@@ -240,6 +279,7 @@ export default function TeacherApplicationsAdmin() {
                   <TableCell className="text-center">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("ar-SA-u-ca-gregory") : "—"}</TableCell>
                   <TableCell className="text-center"><div className="flex flex-wrap items-center justify-center gap-2">
                     <Button size="sm" variant="outline" className="gap-1" onClick={() => openDetails(item)}><Eye className="h-4 w-4" />عرض</Button>
+                    {isApplicationUnverified(item) && <Button size="sm" variant="outline" className="gap-1" onClick={() => setVerificationCodeTarget(item)}><KeyRound className="h-4 w-4" />تغيير رمز التحقق</Button>}
                     {item.status === "pending" && <><Button size="sm" className="gap-1" onClick={() => { setDecisionTarget(item); setPendingDecision("approved"); }}><Check className="h-4 w-4" />قبول</Button><Button size="sm" variant="destructive" className="gap-1" onClick={() => { setDecisionTarget(item); setPendingDecision("rejected"); }}><X className="h-4 w-4" />رفض</Button></>}
                   </div></TableCell>
                 </TableRow>
@@ -259,7 +299,10 @@ export default function TeacherApplicationsAdmin() {
           {detailLoading || !selected ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-7 w-7 animate-spin" /></div> : <>
             <TeacherApplicationDetails application={selected} />
           </>}
-          {selected?.status === "pending" && !detailLoading && <DialogFooter className="gap-2"><Button disabled={busy} variant="destructive" onClick={() => { setDecisionTarget(selected); setPendingDecision("rejected"); }}><X className="ml-2 h-4 w-4" />رفض الطلب</Button><Button disabled={busy} onClick={() => { setDecisionTarget(selected); setPendingDecision("approved"); }}><Check className="ml-2 h-4 w-4" />قبول الطلب</Button></DialogFooter>}
+          {!detailLoading && selected && <DialogFooter className="gap-2">
+            {isApplicationUnverified(selected) && <Button disabled={busy} variant="outline" onClick={() => setVerificationCodeTarget(selected)}><KeyRound className="ml-2 h-4 w-4" />تغيير رمز التحقق</Button>}
+            {selected.status === "pending" && <><Button disabled={busy} variant="destructive" onClick={() => { setDecisionTarget(selected); setPendingDecision("rejected"); }}><X className="ml-2 h-4 w-4" />رفض الطلب</Button><Button disabled={busy} onClick={() => { setDecisionTarget(selected); setPendingDecision("approved"); }}><Check className="ml-2 h-4 w-4" />قبول الطلب</Button></>}
+          </DialogFooter>}
         </DialogContent>
       </Dialog>
 
@@ -287,6 +330,39 @@ export default function TeacherApplicationsAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={Boolean(verificationCodeTarget)} onOpenChange={(open) => !open && !verificationCodeLoading && setVerificationCodeTarget(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>تغيير رمز التحقق</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم إنشاء رمز تحقق جديد لـ {verificationCodeTarget ? applicantName(verificationCodeTarget) : "هذا المعلم"}، وسيصبح الرمز السابق غير صالح.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={verificationCodeLoading}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction disabled={verificationCodeLoading} onClick={(event) => { event.preventDefault(); void regenerateVerificationCode(); }}>
+              {verificationCodeLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              تأكيد التغيير
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={Boolean(verificationCodeResult)} onOpenChange={(open) => !open && setVerificationCodeResult(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>رمز التحقق الجديد</DialogTitle>
+            <DialogDescription>انسخ الرمز وشاركه بأمان مع المعلم المقصود.</DialogDescription>
+          </DialogHeader>
+          {verificationCodeResult && <div className="space-y-4">
+            <div className="rounded-xl border bg-muted/30 p-5 text-center"><p className="font-mono text-4xl font-bold tracking-[0.3em]" dir="ltr">{verificationCodeResult.code}</p></div>
+            <div><p className="text-xs text-muted-foreground">ينتهي في:</p><p className="font-medium">{new Date(verificationCodeResult.expiresAt).toLocaleString("ar-SA-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" })}</p></div>
+            <div role="alert" className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" /><span>هذا الرمز حساس. شاركه فقط مع المعلم المقصود.</span></div>
+          </div>}
+          <DialogFooter><Button variant="outline" onClick={() => setVerificationCodeResult(null)}>إغلاق</Button><Button className="gap-2" onClick={() => void copyVerificationCode()}><Copy className="h-4 w-4" />نسخ الرمز</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

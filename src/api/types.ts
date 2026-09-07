@@ -100,8 +100,11 @@ export interface PortalLesson {
   day: string;
   date: string | null;
   startTime: string;
+  endTime?: string;
   scheduledAt: string | null;
   activeSession: ActiveSession | null;
   scheduleKind?: "classroom" | "course";
   courseName?: string;
+  courseId?: string;
+  courseGroupId?: string;
 }

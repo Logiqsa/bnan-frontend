@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { BookOpen, Loader2, MessageCircle, Play, Video } from "lucide-react";
 import { coursesApi, type Course, type CourseGroup } from "@/api/coursesApi";
 import { classroomRecordingsApi, type SessionRecording } from "@/api/classroomRecordingsApi";
@@ -23,6 +23,7 @@ export default function CourseEnrollmentDetail() {
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
+  const [activeTab, setActiveTab] = useState("details");
   const enrollmentQuery = useQuery({ queryKey: ["my-course-enrollment", enrollmentId], queryFn: () => coursesApi.myEnrollment(enrollmentId) });
   const progressQuery = useQuery({ queryKey: ["my-course-progress", enrollmentId], queryFn: () => coursesApi.myProgress(enrollmentId), enabled: Boolean(enrollmentId) });
   const enrollment = enrollmentQuery.data;
@@ -61,14 +62,20 @@ export default function CourseEnrollmentDetail() {
       setJoining(false);
     }
   };
+  const showSchedule = () => {
+    setActiveTab("details");
+    window.setTimeout(() => {
+      document.getElementById("course-schedule")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
 
   if (enrollmentQuery.isLoading) return <DashboardLayout><p>جاري التحميل...</p></DashboardLayout>;
   if (enrollmentQuery.error || !enrollment) return <DashboardLayout><p className="text-destructive">{courseError(enrollmentQuery.error)}</p></DashboardLayout>;
 
   return <DashboardLayout><div className="mx-auto max-w-5xl space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">{course?.name || refName(enrollment.course)}</h1><div className="mt-2 flex gap-2"><Badge>{enrollment.mode === "group" ? "جماعي" : "فردي"}</Badge><Badge variant={enrollment.status === "active" ? "default" : "secondary"}>{enrollment.status}</Badge>{activeSessionQuery.data?.canJoin && <Badge className="bg-emerald-600">مباشرة الآن</Badge>}</div></div><div className="flex flex-wrap gap-2">{enrollment.status === "active" && classroomId && <Button variant="outline" asChild><Link to={`/portal/student/courses/${enrollmentId}#course-schedule`}><BookOpen className="me-2 h-4 w-4"/>جدول الدورة</Link></Button>}{activeSessionQuery.data?.canJoin && <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={joining} onClick={() => void joinActiveSession()}>{joining ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Video className="me-2 h-4 w-4" />}دخول الحصة الآن</Button>}</div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">{course?.name || refName(enrollment.course)}</h1><div className="mt-2 flex gap-2"><Badge>{enrollment.mode === "group" ? "جماعي" : "فردي"}</Badge><Badge variant={enrollment.status === "active" ? "default" : "secondary"}>{enrollment.status}</Badge>{activeSessionQuery.data?.canJoin && <Badge className="bg-emerald-600">مباشرة الآن</Badge>}</div></div><div className="flex flex-wrap gap-2">{enrollment.status === "active" && classroomId && <Button variant="outline" onClick={showSchedule}><BookOpen className="me-2 h-4 w-4"/>جدول الدورة</Button>}{enrollment.status === "active" && classroomId && <Button className={activeSessionQuery.data?.canJoin ? "bg-emerald-600 hover:bg-emerald-700" : ""} disabled={!activeSessionQuery.data?.canJoin || activeSessionQuery.isLoading || joining} onClick={() => void joinActiveSession()} title={!activeSessionQuery.data?.canJoin ? "يمكن الدخول بعد أن يبدأ المعلم الحصة" : undefined}>{joining ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Video className="me-2 h-4 w-4" />}{activeSessionQuery.data?.canJoin ? "دخول الحصة الآن" : "دخول الدورة"}</Button>}</div></div>
     {joinError && <p className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{joinError}</p>}
-    <Tabs defaultValue="details" dir="rtl" className="space-y-5">
+    <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-5">
       <TabsList className="grid h-auto w-full grid-cols-2 rounded-xl p-1.5">
         <TabsTrigger value="details" className="gap-2 py-2.5"><BookOpen className="h-4 w-4" />تفاصيل الدورة</TabsTrigger>
         <TabsTrigger value="chat" className="gap-2 py-2.5" disabled={enrollment.status !== "active" || !classroomId}><MessageCircle className="h-4 w-4" />محادثة الدورة</TabsTrigger>

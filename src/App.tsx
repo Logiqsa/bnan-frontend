@@ -46,6 +46,11 @@ import CourseEnrollmentDetail from "@/portal/CourseEnrollmentDetail";
 import CourseGroupsAdmin from "@/admin/CourseGroupsAdmin";
 import TeachersAdmin from "@/admin/TeachersAdmin";
 import CourseClassroomScheduleAdmin from "@/admin/CourseClassroomScheduleAdmin";
+import TeacherCourses from "@/portal/TeacherCourses";
+import TeacherCourseDetail from "@/portal/TeacherCourseDetail";
+import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
+import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
+import TeacherCourseGroupDetail from "@/portal/TeacherCourseGroupDetail";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +137,26 @@ export default function App() {
                           <PortalSchedule role="teacher" />
                         </PortalGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/teacher/courses"
+                      element={<PortalGuard role="teacher"><TeacherCourses /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/courses/:courseId"
+                      element={<PortalGuard role="teacher"><TeacherCourseDetail /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/courses/:courseId/groups/:groupId"
+                      element={<PortalGuard role="teacher"><TeacherCourseGroupDetail /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/course-recordings/:classroomId"
+                      element={<PortalGuard role="teacher"><TeacherCourseRecordings /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/course-classrooms/:classroomId/schedule"
+                      element={<PortalGuard role="teacher"><CourseClassroomSchedule /></PortalGuard>}
                     />
                     <Route
                       path="/portal/student/schedule"

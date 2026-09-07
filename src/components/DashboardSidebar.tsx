@@ -175,6 +175,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
   ],
   teacher: [
     {
+      label: "دوراتي",
+      labelEn: "My courses",
+      icon: BookOpen,
+      path: "/portal/teacher/courses",
+    },
+    {
       label: "جدول الحصص",
       labelEn: "Lesson schedule",
       icon: Calendar,

@@ -100,6 +100,12 @@ export interface CourseGroup {
   studentsCount?: number;
   classroom?: CourseClassroom | string | null;
   progress?: CourseProgress;
+  schedule?: CourseSchedule | null;
+  activeSession?: ActiveCourseSession | null;
+}
+export interface TeacherCourseAssignment {
+  course: Course;
+  groups: CourseGroup[];
 }
 export interface CourseProgress {
   completedHours: number;
@@ -127,6 +133,10 @@ export interface CourseEnrollment {
   currency: string;
   enrolledAt?: string;
   createdAt?: string;
+}
+export interface CourseEnrollmentsResponse {
+  enrollments: CourseEnrollment[];
+  total: number;
 }
 export interface CourseScheduleSlot {
   day:
@@ -294,6 +304,19 @@ export const coursesApi = {
     );
     return r.data.map(enrollment);
   },
+  myTeachingCourses: async () => {
+    type RawTeacherAssignment = {
+      course: Raw<Omit<Course, "id">>;
+      groups?: Raw<Omit<CourseGroup, "id">>[];
+    };
+    const response = await apiRequest<Envelope<RawTeacherAssignment[]>>(
+      "/teachers/me/courses",
+    );
+    return response.data.map((item) => ({
+      course: course(item.course),
+      groups: (item.groups || []).map(group),
+    })) satisfies TeacherCourseAssignment[];
+  },
   myEnrollment: async (id: string) =>
     enrollment(
       (
@@ -327,11 +350,45 @@ export const coursesApi = {
         `/classrooms/${classroomId}/sessions/active/join`,
       )
     ).data,
+  startCourseSession: async (classroomId: string, body: {
+    courseId: string;
+    groupId: string;
+    occurrenceDate: string;
+    scheduledStartTime: string;
+  }) => (
+    await apiRequest<Envelope<ActiveCourseSession & { meetingLink?: string; teacherStartUrl?: string }>>(
+      `/courses/classrooms/${classroomId}/sessions/start`,
+      { method: "POST", body: JSON.stringify(body) },
+    )
+  ).data,
   listGroups: async (courseId: string) => {
     const r = await apiRequest<Envelope<Raw<Omit<CourseGroup, "id">>[]>>(
       `/admin/courses/${courseId}/groups`,
     );
     return r.data.map(group);
+  },
+  listEnrollments: async (courseId: string) => {
+    type EnrollmentListPayload =
+      | Raw<Omit<CourseEnrollment, "id">>[]
+      | {
+          enrollments?: Raw<Omit<CourseEnrollment, "id">>[];
+          items?: Raw<Omit<CourseEnrollment, "id">>[];
+          total?: number;
+          totalCount?: number;
+    };
+    const response = await apiRequest<Envelope<EnrollmentListPayload>>(
+      `/admin/courses/${encodeURIComponent(courseId)}/enrollments`,
+    );
+    const payload = response.data;
+    const items = Array.isArray(payload)
+      ? payload
+      : payload.enrollments || payload.items || [];
+    return {
+      enrollments: items.map(enrollment),
+      total: Array.isArray(payload)
+        ? payload.length
+        : payload.total ?? payload.totalCount ?? items.length,
+    } satisfies CourseEnrollmentsResponse;
   },
   createGroup: async (
     courseId: string,

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BookOpen, Eye, Pencil, Plus, Users } from "lucide-react";
+import { Eye, Pencil, Plus } from "lucide-react";
 import { coursesApi } from "@/api/coursesApi";
 import { courseStaffApi } from "@/api/courseStaffApi";
 import { courseError, courseImageUrl, isFreeCourse, refId, refName } from "@/lib/courseUi";
@@ -182,17 +182,11 @@ export default function CoursesAdmin() {
                     </div>
                   </div>}
                 </CardContent>
-                <CardFooter className="grid grid-cols-3 gap-1.5 border-t bg-muted/20 p-3">
+                <CardFooter className="grid grid-cols-2 gap-1.5 border-t bg-muted/20 p-3">
                   <Button variant="outline" size="sm" asChild>
                     <Link to={`/admin/courses/${course.id}`}>
                       <Eye className="me-1 h-4 w-4" />
                       عرض
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/admin/courses/${course.id}/groups`}>
-                      <Users className="me-1 h-4 w-4" />
-                      المجموعات
                     </Link>
                   </Button>
                   <Button size="sm" asChild>

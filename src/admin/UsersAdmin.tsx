@@ -142,7 +142,10 @@ interface UsersAdminProps {
   refreshKey?: number;
   allowEdit?: boolean;
   approvedTeachersOnly?: boolean;
+  includeAllRoles?: boolean;
 }
+
+type RoleFilter = AdminUserRole | "all";
 
 export default function UsersAdmin({
   title,
@@ -152,10 +155,11 @@ export default function UsersAdmin({
   refreshKey,
   allowEdit = false,
   approvedTeachersOnly = false,
+  includeAllRoles = false,
 }: UsersAdminProps) {
   const { isArabic, pick } = useLanguage();
   const rolesKey = roles.join(",");
-  const [role, setRole] = useState<AdminUserRole>(roles[0]);
+  const [role, setRole] = useState<RoleFilter>(includeAllRoles ? "all" : roles[0]);
   const [showUnverified, setShowUnverified] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,6 +192,9 @@ export default function UsersAdmin({
     useState<RegenerateVerificationCodeResponse | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verificationUser, setVerificationUser] = useState<AdminUser | null>(null);
+  const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null);
+  const [passwordForm, setPasswordForm] = useState({ password: "", confirmation: "" });
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<MediaPreview | null>(null);
 
   const load = useCallback(async () => {
@@ -218,6 +225,30 @@ export default function UsersAdmin({
         setItems(approvedTeachers.slice((page - 1) * pageSize, page * pageSize));
         setTotal(approvedTeachers.length);
         setHasNextPage(page * pageSize < approvedTeachers.length);
+        return;
+      }
+
+      if (role === "all") {
+        const allUsers = await Promise.all(
+          roles.map((userRole) =>
+            adminUsersApi.listAll(userRole, showUnverified ? false : undefined),
+          ),
+        );
+        const query = searchQuery.trim().toLowerCase();
+        const filteredUsers = allUsers
+          .flat()
+          .filter((user) =>
+            !query ||
+            user.fullName?.toLowerCase().includes(query) ||
+            user.email?.toLowerCase().includes(query) ||
+            user.phone?.includes(query),
+          )
+          .sort((a, b) =>
+            (b.createdAt || "").localeCompare(a.createdAt || ""),
+          );
+        setItems(filteredUsers.slice((page - 1) * pageSize, page * pageSize));
+        setTotal(filteredUsers.length);
+        setHasNextPage(page * pageSize < filteredUsers.length);
         return;
       }
 
@@ -408,7 +439,7 @@ export default function UsersAdmin({
     setPaymentReceipt(file);
   };
 
-  const changeRole = (nextRole: AdminUserRole) => {
+  const changeRole = (nextRole: RoleFilter) => {
     setRole(nextRole);
     setPage(1);
   };
@@ -576,6 +607,37 @@ export default function UsersAdmin({
     }
   };
 
+  const openPasswordChange = (item: AdminUser) => {
+    setPasswordUser(item);
+    setPasswordForm({ password: "", confirmation: "" });
+  };
+
+  const changeUserPassword = async () => {
+    if (!passwordUser || passwordLoading) return;
+    if (passwordForm.password.length < 8) {
+      toast.error(pick("كلمة المرور يجب ألا تقل عن 8 أحرف", "Password must be at least 8 characters"));
+      return;
+    }
+    if (passwordForm.password !== passwordForm.confirmation) {
+      toast.error(pick("كلمتا المرور غير متطابقتين", "Passwords do not match"));
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await adminUsersApi.changePassword(passwordUser.id, passwordForm.password);
+      setPasswordUser(null);
+      setPasswordForm({ password: "", confirmation: "" });
+      toast.success(pick("تم تغيير كلمة مرور المستخدم بنجاح", "User password changed successfully"));
+    } catch (error) {
+      toast.error(
+        (error as ApiError).message ||
+          pick("تعذر تغيير كلمة مرور المستخدم", "Unable to change user password"),
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const copyVerificationCode = async () => {
     if (!otpResult) return;
     try {
@@ -616,14 +678,16 @@ export default function UsersAdmin({
             <span className="text-xs font-medium text-muted-foreground">
               {pick("الدور:", "Role:")}
             </span>
-            {roles.map((value) => (
+            {(includeAllRoles ? (["all", ...roles] as RoleFilter[]) : roles).map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={role === value ? "default" : "outline"}
                 onClick={() => changeRole(value)}
               >
-                {pick(roleLabels[value].ar, roleLabels[value].en)}
+                {value === "all"
+                  ? pick("الكل", "All")
+                  : pick(roleLabels[value].ar, roleLabels[value].en)}
               </Button>
             ))}
           </div>
@@ -662,10 +726,12 @@ export default function UsersAdmin({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {(["teacher", "student", "parent"] as AdminUserRole[]).includes(role) ? (
+        {role === "all" || (["teacher", "student", "parent"] as RoleFilter[]).includes(role) ? (
           <div className="rounded-lg border bg-card px-4 py-2 text-sm">
             <span className="text-muted-foreground">
-              {pick(`إجمالي ${roleLabels[role].ar}`, `Total ${roleLabels[role].en}`)}:
+              {role === "all"
+                ? pick("إجمالي المستخدمين", "Total users")
+                : pick(`إجمالي ${roleLabels[role].ar}`, `Total ${roleLabels[role].en}`)}:
             </span>{" "}
             <strong className="text-lg">{loading || total === undefined ? "—" : total}</strong>
           </div>
@@ -905,6 +971,14 @@ export default function UsersAdmin({
                                   <DropdownMenuSeparator />
                                 </>
                               )}
+                              <DropdownMenuItem
+                                onClick={() => openPasswordChange(item)}
+                                className="gap-2"
+                              >
+                                <KeyRound className="h-4 w-4" />
+                                {pick("تغيير كلمة المرور", "Change password")}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 disabled={item.status === "active"}
                                 onClick={() => updateStatus(item, "active")}
@@ -1525,6 +1599,63 @@ export default function UsersAdmin({
             >
               {busyUserId && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
               {pick("حفظ التغييرات", "Save changes")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(passwordUser)}
+        onOpenChange={(open) => {
+          if (!open && !passwordLoading) {
+            setPasswordUser(null);
+            setPasswordForm({ password: "", confirmation: "" });
+          }
+        }}
+      >
+        <DialogContent dir={isArabic ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{pick("تغيير كلمة مرور المستخدم", "Change user password")}</DialogTitle>
+            <DialogDescription>
+              {pick(
+                `عيّن كلمة مرور جديدة لحساب ${passwordUser?.fullName || "المستخدم"}.`,
+                `Set a new password for ${passwordUser?.fullName || "the user"}.`,
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-new-user-password">{pick("كلمة المرور الجديدة", "New password")}</Label>
+              <Input
+                id="admin-new-user-password"
+                type="password"
+                dir="ltr"
+                minLength={8}
+                autoComplete="new-password"
+                value={passwordForm.password}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, password: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-confirm-user-password">{pick("تأكيد كلمة المرور الجديدة", "Confirm new password")}</Label>
+              <Input
+                id="admin-confirm-user-password"
+                type="password"
+                dir="ltr"
+                minLength={8}
+                autoComplete="new-password"
+                value={passwordForm.confirmation}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, confirmation: event.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={passwordLoading} onClick={() => setPasswordUser(null)}>
+              {pick("إلغاء", "Cancel")}
+            </Button>
+            <Button type="button" disabled={passwordLoading} onClick={() => void changeUserPassword()}>
+              {passwordLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {pick("تغيير كلمة المرور", "Change password")}
             </Button>
           </DialogFooter>
         </DialogContent>

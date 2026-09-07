@@ -50,6 +50,12 @@ export default function AdminDashboard() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[
               [
+                "all-users",
+                Users,
+                "كل المستخدمين",
+                "All users",
+              ],
+              [
                 "teacher-applications",
                 GraduationCap,
                 "طلبات المعلمين",
@@ -129,6 +135,17 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="teacher-applications" className="mt-0">
           <TeacherApplicationsAdmin />
+        </TabsContent>
+        <TabsContent value="all-users" className="mt-0">
+          <UsersAdmin
+            title={pick("كل المستخدمين", "All users")}
+            description={pick(
+              "البحث والتصفية وإدارة جميع الحسابات المسجلة في النظام.",
+              "Search, filter, and manage every account registered in the system.",
+            )}
+            roles={["student", "parent", "teacher", "supervisor", "admin"]}
+            includeAllRoles
+          />
         </TabsContent>
         <TabsContent value="users" className="mt-0">
           <UsersAdmin

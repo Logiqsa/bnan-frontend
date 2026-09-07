@@ -186,10 +186,10 @@ export const teacherApplicationsApi = {
     return null;
   },
   updateStatus: async (id: string, status: Exclude<TeacherApplicationStatus, "pending">) => {
-    const result = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${id}/status`, {
+    const result = await apiRequest<{ success: true; data?: TeacherApplicationPayload; message?: string }>(`/teachers/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
-    return { ...result, data: normalizeTeacher(result.data) };
+    return { ...result, data: result.data ? normalizeTeacher(result.data) : undefined };
   },
 };

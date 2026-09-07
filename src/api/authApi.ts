@@ -100,6 +100,15 @@ export const authApi = {
   resendVerificationCode: (email: string) => apiRequest<{ success: true; message: string }>("/auth/resend-verification-code", {
     method: "POST", body: JSON.stringify({ email }),
   }),
+  forgotPassword: (email: string) => apiRequest<{ success: true; message: string }>("/auth/forgotPassword", {
+    method: "POST", headers: { "Accept-Language": "ar" }, body: JSON.stringify({ email }),
+  }),
+  verifyResetCode: (resetCode: string) => apiRequest<{ success: true }>("/auth/verifyResetCode", {
+    method: "POST", headers: { "Accept-Language": "ar" }, body: JSON.stringify({ resetCode }),
+  }),
+  resetPassword: (email: string, newPassword: string) => apiRequest<AuthResponse>("/auth/resetPassword", {
+    method: "POST", headers: { "Accept-Language": "ar" }, body: JSON.stringify({ email, newPassword }),
+  }),
   profile: () => apiRequest<{ success: true; data: unknown }>("/users/me"),
   updateName: (fullName: string) => apiRequest<{ success: true; data?: { fullName?: string } }>("/users/me/name", {
     method: "PATCH", body: JSON.stringify({ fullName }),

@@ -158,6 +158,11 @@ export const adminUsersApi = {
     });
     return { ...result, data: normalizeUserEnvelope(result.data) };
   },
+  changePassword: (id: string, newPassword: string) =>
+    apiRequest<{ success: true; message?: string }>(`/admin/users/${id}/password`, {
+      method: "PATCH",
+      body: JSON.stringify({ newPassword }),
+    }),
   regenerateVerificationCode: (id: string, reason?: string) =>
     apiRequest<RegenerateVerificationCodeResponse>(`/admin/users/${id}/regenerate-verification-code`, {
       method: "POST",

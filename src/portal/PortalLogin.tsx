@@ -48,7 +48,9 @@ export default function PortalLogin() {
   const [error, setError] = useState("");
   const [verificationEmail, setVerificationEmail] = useState("");
   const [notice, setNotice] = useState(() =>
-    searchParams.get("pending") === "1"
+    searchParams.get("reset") === "1"
+      ? "تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول بكلمة المرور الجديدة."
+      : searchParams.get("pending") === "1"
       ? "تم تفعيل الحساب، وطلب التسجيل قيد المراجعة. يمكنك تسجيل الدخول بعد موافقة الإدارة."
       : searchParams.get("verified") === "1"
         ? "تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن."
@@ -68,7 +70,9 @@ export default function PortalLogin() {
       navigate(homeFor(account.role), { replace: true });
     } catch (value) {
       const apiError = value as ApiError;
-      if (apiError.code === "ACCOUNT_NOT_VERIFIED") {
+      if (apiError.code === "PARENT_APP_ONLY") {
+        navigate("/portal/parent-app", { replace: true });
+      } else if (apiError.code === "ACCOUNT_NOT_VERIFIED") {
         setVerificationEmail(email.trim());
       } else
         setError(
@@ -92,7 +96,7 @@ export default function PortalLogin() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16"
+      className="relative min-h-screen overflow-x-hidden bg-hero-gradient px-4 py-16"
       dir={isArabic ? "rtl" : "ltr"}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]" />
@@ -252,6 +256,14 @@ export default function PortalLogin() {
                   </button>
                 </div>
               </label>
+              <div className="-mt-3 text-end text-sm">
+                <Link
+                  className="font-semibold text-secondary hover:underline"
+                  to="/portal/forgot-password"
+                >
+                  {pick("نسيت كلمة المرور؟", "Forgot password?")}
+                </Link>
+              </div>
               <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
                 <input
                   type="checkbox"

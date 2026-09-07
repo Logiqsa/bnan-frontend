@@ -1,4 +1,6 @@
+import { ExternalLink, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export interface MediaPreview {
   title: string;
@@ -47,7 +49,18 @@ export default function MediaPreviewDialog({ preview, onClose }: { preview: Medi
               <video src={preview.url} className="h-full w-full bg-black object-contain" controls playsInline preload="metadata" />
             )
           ) : preview ? (
-            <iframe src={preview.url} title={preview.title} className="h-full w-full rounded-lg border bg-white" />
+            <div className="grid h-full place-items-center rounded-lg border bg-background p-6 text-center">
+              <div className="space-y-4">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">هذا الملف يُفتح خارج المعاينة الداخلية.</p>
+                <Button asChild className="gap-2">
+                  <a href={preview.url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    فتح الملف في تبويب جديد
+                  </a>
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
       </DialogContent>

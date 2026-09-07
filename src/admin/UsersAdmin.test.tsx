@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   regenerate: vi.fn(),
   markVerified: vi.fn(),
+  changePassword: vi.fn(),
   listApprovedApplications: vi.fn(),
   findRegistration: vi.fn(),
   confirmPayment: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock("@/api/adminUsersApi", async (importOriginal) => ({
     get: mocks.get,
     regenerateVerificationCode: mocks.regenerate,
     markVerified: mocks.markVerified,
+    changePassword: mocks.changePassword,
   },
 }));
 vi.mock("sonner", () => ({
@@ -87,6 +89,7 @@ describe("UsersAdmin verification OTP", () => {
       success: true,
       data: { ...user, isVerified: true },
     });
+    mocks.changePassword.mockReset().mockResolvedValue({ success: true });
     mocks.listApprovedApplications.mockReset().mockResolvedValue([]);
     mocks.findRegistration.mockReset().mockResolvedValue(null);
     mocks.confirmPayment.mockReset();
@@ -155,6 +158,21 @@ describe("UsersAdmin verification OTP", () => {
     expect(mocks.success).toHaveBeenCalledWith("User marked as verified");
   });
 
+  it("lets an admin change a user's password", async () => {
+    renderPage();
+    fireEvent.keyDown(
+      await screen.findByRole("button", { name: /Actions for Ahmed/ }),
+      { key: "Enter", code: "Enter" },
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Change password" }));
+    fireEvent.change(screen.getByLabelText("New password"), { target: { value: "NewPassword123" } });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "NewPassword123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Change password" }));
+
+    await waitFor(() => expect(mocks.changePassword).toHaveBeenCalledWith("user-1", "NewPassword123"));
+    expect(mocks.success).toHaveBeenCalledWith("User password changed successfully");
+  });
+
   it("shows only teachers with approved applications on the teachers page", async () => {
     mocks.listAll.mockResolvedValue([
       { ...user, id: "teacher-1", role: "teacher", fullName: "Approved Teacher", email: "approved@bnan.edu" },
@@ -172,6 +190,40 @@ describe("UsersAdmin verification OTP", () => {
 
     expect(await screen.findByText("Approved Teacher")).toBeInTheDocument();
     expect(screen.queryByText("Pending Teacher")).not.toBeInTheDocument();
+  });
+
+  it("shows every role in the all-users view and filters the combined list", async () => {
+    mocks.listAll.mockImplementation((role: string) =>
+      Promise.resolve([
+        {
+          ...user,
+          id: `${role}-1`,
+          role,
+          fullName: role === "admin" ? "System Admin" : `${role} account`,
+        },
+      ]),
+    );
+
+    render(
+      <LanguageProvider>
+        <UsersAdmin
+          title="All users"
+          description="Manage every account"
+          roles={["student", "parent", "teacher", "supervisor", "admin"]}
+          includeAllRoles
+        />
+      </LanguageProvider>,
+    );
+
+    expect(await screen.findByText("System Admin")).toBeInTheDocument();
+    expect(screen.getByText("teacher account")).toBeInTheDocument();
+    expect(mocks.listAll).toHaveBeenCalledTimes(5);
+
+    fireEvent.change(screen.getByPlaceholderText("Search by name"), {
+      target: { value: "System" },
+    });
+    await waitFor(() => expect(screen.queryByText("teacher account")).not.toBeInTheDocument());
+    expect(screen.getByText("System Admin")).toBeInTheDocument();
   });
 
   it("lets the admin upload the receipt before approving the student", async () => {

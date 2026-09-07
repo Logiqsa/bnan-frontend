@@ -1,4 +1,4 @@
-import { ChevronDown, Eye, FileText, Image, Play } from "lucide-react";
+import { ChevronDown, ExternalLink, Eye, FileText, Image, Play } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type {
   NamedEntity,
@@ -113,15 +113,21 @@ const FileButton = ({
   onPreview: (preview: MediaPreview) => void;
 }) =>
   url ? (
-    <Button type="button" variant="outline" className="justify-start gap-2" onClick={() => onPreview({ title: label, url, kind: image ? "image" : undefined })}>
-        {image ? (
+    image ? (
+      <Button type="button" variant="outline" className="justify-start gap-2" onClick={() => onPreview({ title: label, url, kind: "image" })}>
           <Image className="h-4 w-4" />
-        ) : (
+          {label}
+          <Eye className="mr-auto h-3.5 w-3.5" />
+      </Button>
+    ) : (
+      <Button asChild variant="outline" className="justify-start gap-2">
+        <a href={url} target="_blank" rel="noopener noreferrer">
           <FileText className="h-4 w-4" />
-        )}
-        {label}
-        <Eye className="mr-auto h-3.5 w-3.5" />
-    </Button>
+          {label}
+          <ExternalLink className="mr-auto h-3.5 w-3.5" />
+        </a>
+      </Button>
+    )
   ) : (
     <Button variant="outline" disabled className="justify-start gap-2">
       <FileText className="h-4 w-4" />
@@ -315,9 +321,11 @@ export function TeacherApplicationDetails({
             value={application.weakStudentHandling}
           />
           {application.introVideoUrl && (
-            <Button type="button" variant="outline" onClick={() => setPreview({ title: "الفيديو التعريفي", url: application.introVideoUrl!, kind: "video" })}>
-              <Play className="ml-2 h-4 w-4" />
-              تشغيل الفيديو التعريفي
+            <Button asChild variant="outline">
+              <a href={application.introVideoUrl} target="_blank" rel="noopener noreferrer">
+                <Play className="ml-2 h-4 w-4" />
+                فتح الفيديو التعريفي
+              </a>
             </Button>
           )}
         </div>

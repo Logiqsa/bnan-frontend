@@ -36,18 +36,24 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("bnan:session-expired", onSessionExpired);
     return () => window.removeEventListener("bnan:session-expired", onSessionExpired);
   }, []);
-  const login = async (email: string, password: string, remember = false) => {
-    const response = await authApi.login(email, password);
+  const saveAuthenticatedUser = (response: Awaited<ReturnType<typeof authApi.login>>, remember: boolean) => {
+    if (String(response.data.role) === "parent") throw Object.assign(new Error("حساب وليّ الأمر متاح عبر تطبيق Bnan."), { code: "PARENT_APP_ONLY" });
     if (!["teacher", "student", "supervisor", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
+    const rawUser = response.data as PortalUser & { _id?: string };
+    const authenticatedUser = { ...rawUser, id: rawUser.id || rawUser._id || "" };
     tokenStore.set(response.token, response.refreshToken, remember);
     const userStorage = remember ? localStorage : sessionStorage;
     const otherStorage = remember ? sessionStorage : localStorage;
-    userStorage.setItem(USER_KEY, JSON.stringify(response.data)); otherStorage.removeItem(USER_KEY); setUser(response.data);
+    userStorage.setItem(USER_KEY, JSON.stringify(authenticatedUser)); otherStorage.removeItem(USER_KEY); setUser(authenticatedUser);
     if (remember) {
-      rememberAccount({ user: response.data, token: response.token, refreshToken: response.refreshToken, lastUsedAt: new Date().toISOString() });
+      rememberAccount({ user: authenticatedUser, token: response.token, refreshToken: response.refreshToken, lastUsedAt: new Date().toISOString() });
       setRememberedAccounts(getRememberedAccounts());
     }
-    return response.data;
+    return authenticatedUser;
+  };
+  const login = async (email: string, password: string, remember = false) => {
+    const response = await authApi.login(email, password);
+    return saveAuthenticatedUser(response, remember);
   };
   const switchAccount = (userId: string) => {
     if (user) {

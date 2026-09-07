@@ -17,6 +17,8 @@ import CourseDetails from "@/pages/CourseDetails";
 import NotFound from "@/pages/NotFound";
 import { PortalAuthProvider } from "@/portal/PortalAuthContext";
 import PortalLogin from "@/portal/PortalLogin";
+import ForgotPassword from "@/portal/ForgotPassword";
+import ParentAppNotice from "@/portal/ParentAppNotice";
 import TeacherSignup from "@/portal/TeacherSignup";
 import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
@@ -117,6 +119,8 @@ export default function App() {
                       element={<LegalPage slug="terms-and-conditions" />}
                     />
                     <Route path="/portal/login" element={<PortalLogin />} />
+                    <Route path="/portal/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/portal/parent-app" element={<ParentAppNotice />} />
                     <Route
                       path="/portal/teacher/signup"
                       element={<TeacherSignup />}

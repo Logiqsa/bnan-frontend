@@ -59,6 +59,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin",
     },
     {
+      label: "كل المستخدمين",
+      labelEn: "All users",
+      icon: Users,
+      path: "/admin?tab=all-users",
+    },
+    {
       label: "الطلاب وأولياء الأمور",
       labelEn: "Students & Parents",
       icon: UserRound,

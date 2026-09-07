@@ -155,7 +155,7 @@ export default function TeacherApplicationsAdmin() {
     setBusy(true);
     try {
       await teacherApplicationsApi.updateStatus(target.id, nextStatus);
-      toast.success(nextStatus === "approved" ? "تم قبول طلب المعلم وتوثيق حسابه" : "تم رفض طلب المعلم");
+      toast.success(nextStatus === "approved" ? "تم قبول طلب المعلم وتوثيق حسابه" : "تم رفض الطلب وحذف حساب المعلم نهائيًا");
       setPendingDecision(null);
       setDecisionTarget(null);
       setSelected(null);
@@ -311,7 +311,9 @@ export default function TeacherApplicationsAdmin() {
           <AlertDialogHeader>
             <AlertDialogTitle>{pendingDecision === "approved" ? "تأكيد قبول طلب المعلم" : "تأكيد رفض طلب المعلم"}</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من {pendingDecision === "approved" ? "قبول" : "رفض"} طلب {decisionTarget ? applicantName(decisionTarget) : "هذا المعلم"}؟
+              {pendingDecision === "approved"
+                ? `هل أنت متأكد من قبول طلب ${decisionTarget ? applicantName(decisionTarget) : "هذا المعلم"}؟`
+                : `سيتم حذف طلب ${decisionTarget ? applicantName(decisionTarget) : "هذا المعلم"} وحساب المستخدم المرتبط به نهائيًا، ولا يمكن التراجع عن ذلك.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -325,7 +327,7 @@ export default function TeacherApplicationsAdmin() {
               }}
             >
               {busy && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              {pendingDecision === "approved" ? "تأكيد القبول" : "تأكيد الرفض"}
+              {pendingDecision === "approved" ? "تأكيد القبول" : "رفض وحذف نهائي"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

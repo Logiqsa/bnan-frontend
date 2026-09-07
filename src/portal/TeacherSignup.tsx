@@ -106,6 +106,8 @@ export default function TeacherSignup() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const submittingRef = useRef(false);
   const [error, setError] = useState("");
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [emailHasServerError, setEmailHasServerError] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [catalogsLoading, setCatalogsLoading] = useState(true);
@@ -144,8 +146,10 @@ export default function TeacherSignup() {
     (total, item) => total + item.file.size,
     0,
   );
-  const set = (name: string, value: string) =>
+  const set = (name: string, value: string) => {
     setValues((current) => ({ ...current, [name]: value }));
+    if (name === "email") setEmailHasServerError(false);
+  };
   const previousCurriculum = useRef(selectedCurriculum);
 
   useEffect(() => {
@@ -374,6 +378,7 @@ export default function TeacherSignup() {
   }, [step, values, selectedCurriculum, selectedGrades, assignments, files]);
   const next = () => {
     if (!validStep) {
+      setShowValidationErrors(true);
       setError(
         step === 2
           ? "اختر منهجًا وصفًا واحدًا على الأقل ومادة واحدة لكل صف."
@@ -382,11 +387,17 @@ export default function TeacherSignup() {
       return;
     }
     setError("");
+    setShowValidationErrors(false);
     setStep((current) => Math.min(current + 1, steps.length - 1));
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validStep || submittingRef.current) return;
+    if (!validStep) {
+      setShowValidationErrors(true);
+      setError("أكمل الحقول المطلوبة قبل إرسال الطلب.");
+      return;
+    }
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setBusy(true);
     setPreparingFiles(true);
@@ -459,6 +470,7 @@ export default function TeacherSignup() {
                 : "")
           : apiError.message,
       );
+      setEmailHasServerError(apiError.code === "EMAIL_ALREADY_EXISTS");
     } finally {
       submittingRef.current = false;
       setBusy(false);
@@ -589,13 +601,13 @@ export default function TeacherSignup() {
               {step === 0 && (
                 <div className="space-y-5">
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="الاسم الكامل *">
+                    <Field label="الاسم الكامل *" error={showValidationErrors && !(values.fullName?.trim().length >= 3)}>
                       <Input
                         value={values.fullName || ""}
                         onChange={(e) => set("fullName", e.target.value)}
                       />
                     </Field>
-                    <Field label="البريد الإلكتروني *">
+                    <Field label="البريد الإلكتروني *" error={emailHasServerError || (showValidationErrors && !values.email)}>
                       <Input
                         type="email"
                         dir="ltr"
@@ -603,14 +615,14 @@ export default function TeacherSignup() {
                         onChange={(e) => set("email", e.target.value)}
                       />
                     </Field>
-                    <Field label="رقم الهاتف *">
+                    <Field label="رقم الهاتف *" error={showValidationErrors && !values.phone}>
                       <Input
                         dir="ltr"
                         value={values.phone || ""}
                         onChange={(e) => set("phone", e.target.value)}
                       />
                     </Field>
-                    <Field label="كلمة المرور *">
+                    <Field label="كلمة المرور *" error={showValidationErrors && !values.password}>
                       <Input
                         type="password"
                         dir="ltr"
@@ -619,7 +631,7 @@ export default function TeacherSignup() {
                       />
                     </Field>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl border p-4">
+                  <div className={cn("flex items-center gap-3 rounded-xl border p-4", showValidationErrors && values.termsAccepted !== "true" && "border-destructive bg-destructive/5 text-destructive")}>
                     <Checkbox
                       checked={values.termsAccepted === "true"}
                       onCheckedChange={(checked) =>
@@ -658,7 +670,7 @@ export default function TeacherSignup() {
                     </p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="تاريخ الميلاد *">
+                    <Field label="تاريخ الميلاد *" error={showValidationErrors && (!values.dateOfBirth || values.dateOfBirth > new Date().toISOString().slice(0, 10))}>
                       <Input
                         type="date"
                         dir="ltr"
@@ -667,7 +679,7 @@ export default function TeacherSignup() {
                         onChange={(e) => set("dateOfBirth", e.target.value)}
                       />
                     </Field>
-                    <Field label="رقم واتساب *">
+                    <Field label="رقم واتساب *" error={showValidationErrors && !values.whatsapp}>
                       <Input
                         dir="ltr"
                         value={values.whatsapp || ""}
@@ -680,6 +692,7 @@ export default function TeacherSignup() {
                       loading={catalogsLoading}
                       countries={countries}
                       onChange={(value) => set("nationality", value)}
+                      error={showValidationErrors && !values.nationality}
                     />
                     <CountrySelect
                       label="الدولة *"
@@ -687,8 +700,9 @@ export default function TeacherSignup() {
                       loading={catalogsLoading}
                       countries={countries}
                       onChange={(value) => set("country", value)}
+                      error={showValidationErrors && !values.country}
                     />
-                    <Field label="المدينة *">
+                    <Field label="المدينة *" error={showValidationErrors && !values.city}>
                       <Input
                         value={values.city || ""}
                         onChange={(e) => set("city", e.target.value)}
@@ -698,6 +712,7 @@ export default function TeacherSignup() {
                       label="المؤهل *"
                       value={values.degree || ""}
                       onChange={(value) => set("degree", value)}
+                      error={showValidationErrors && !values.degree}
                       options={[
                         { value: "bachelor-student", label: "طالب بكالوريوس" },
                         { value: "bachelor", label: "بكالوريوس" },
@@ -707,13 +722,13 @@ export default function TeacherSignup() {
                         { value: "phd", label: "دكتوراه" },
                       ]}
                     />
-                    <Field label="التخصص *">
+                    <Field label="التخصص *" error={showValidationErrors && !values.specialization}>
                       <Input
                         value={values.specialization || ""}
                         onChange={(e) => set("specialization", e.target.value)}
                       />
                     </Field>
-                    <Field label="سنة التخرج *">
+                    <Field label="سنة التخرج *" error={showValidationErrors && !values.graduationYear}>
                       <Input
                         type="number"
                         min="1950"
@@ -726,6 +741,7 @@ export default function TeacherSignup() {
                       label="التقدير *"
                       value={values.graduationGrade || ""}
                       onChange={(value) => set("graduationGrade", value)}
+                      error={showValidationErrors && !values.graduationGrade}
                       options={[
                         { value: "excellent", label: "ممتاز" },
                         { value: "very-good", label: "جيد جدًا" },
@@ -733,7 +749,7 @@ export default function TeacherSignup() {
                         { value: "pass", label: "مقبول" },
                       ]}
                     />
-                    <Field label="الساعات المتاحة أسبوعيًا *">
+                    <Field label="الساعات المتاحة أسبوعيًا *" error={showValidationErrors && Number(values.availableHoursPerWeek) < 1}>
                       <Input
                         type="number"
                         min="1"
@@ -743,19 +759,19 @@ export default function TeacherSignup() {
                         }
                       />
                     </Field>
-                    <Field label="السيرة الذاتية *">
+                    <Field label="السيرة الذاتية *" error={showValidationErrors && !files.cv}>
                       <Input
                         type="file"
                         onChange={(e) => chooseRequiredFile("cv", e.target.files?.[0])}
                       />
                     </Field>
-                    <Field label="شهادة التخرج *">
+                    <Field label="شهادة التخرج *" error={showValidationErrors && !files.certificate}>
                       <Input
                         type="file"
                         onChange={(e) => chooseRequiredFile("certificate", e.target.files?.[0])}
                       />
                     </Field>
-                    <Field label="البطاقة الشخصية *">
+                    <Field label="البطاقة الشخصية *" error={showValidationErrors && !files.identityDocument}>
                       <Input
                         type="file"
                         onChange={(e) => chooseRequiredFile("identityDocument", e.target.files?.[0])}
@@ -804,6 +820,7 @@ export default function TeacherSignup() {
                   {curriculumStage === "grades" && <><SelectField
                     label="المنهج الأساسي *"
                     value={selectedCurriculum}
+                    error={showValidationErrors && !selectedCurriculum}
                     onChange={(value) => {
                       setSelectedCurriculum(value);
                       setAdditionalCurriculums((current) =>
@@ -920,7 +937,7 @@ export default function TeacherSignup() {
                             </Button>
                           </div>}
 
-                          {curriculumStage === "subjects" && selectedGrades.length > 0 && <div className="rounded-2xl border bg-muted/20 p-4 sm:p-5">
+                          {curriculumStage === "subjects" && selectedGrades.length > 0 && <div className={cn("rounded-2xl border bg-muted/20 p-4 sm:p-5", showValidationErrors && selectedGrades.some((id) => !(assignments[id] || []).length) && "border-destructive bg-destructive/5")}>
                             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div><h4 className="font-bold">اختر المواد لكل صف</h4><p className="text-xs text-muted-foreground">اختر مادة واحدة على الأقل لكل صف محدد.</p></div>
                               <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{selectedGrades.length} صفوف مختارة</span>
@@ -930,7 +947,7 @@ export default function TeacherSignup() {
                                 {selectedGrades.map((gradeId) => {
                                   const grade = grades.find((item) => item.id === gradeId);
                                   const count = (assignments[gradeId] || []).length;
-                                  return <TabsTrigger key={gradeId} value={gradeId} className="gap-2 border border-transparent data-[state=active]:border-border">
+                                  return <TabsTrigger key={gradeId} value={gradeId} className={cn("gap-2 border border-transparent data-[state=active]:border-border", showValidationErrors && !count && "border-destructive text-destructive data-[state=active]:border-destructive")}>
                                     {grade?.name || "الصف"}
                                     <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", count ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{count}</span>
                                   </TabsTrigger>;
@@ -961,6 +978,7 @@ export default function TeacherSignup() {
                   <SelectField
                     label="مستوى استخدام الكمبيوتر *"
                     value={values.computerSkillLevel || ""}
+                    error={showValidationErrors && !values.computerSkillLevel}
                     onChange={(value) => set("computerSkillLevel", value)}
                     options={[
                       { value: "excellent", label: "ممتاز" },
@@ -984,11 +1002,12 @@ export default function TeacherSignup() {
                       key={name}
                       label={label}
                       value={values[name]}
+                      error={showValidationErrors && !values[name]}
                       onChange={(value) => set(name, value)}
                       options={yesNo}
                     />
                   ))}
-                  <Field label="رابط الفيديو التعريفي *">
+                  <Field label="رابط الفيديو التعريفي *" error={showValidationErrors && !values.introVideoUrl}>
                     <Input
                       dir="ltr"
                       type="url"
@@ -996,14 +1015,14 @@ export default function TeacherSignup() {
                       onChange={(e) => set("introVideoUrl", e.target.value)}
                     />
                   </Field>
-                  <Field label="لماذا تريد الانضمام؟ *">
+                  <Field label="لماذا تريد الانضمام؟ *" error={showValidationErrors && !values.joiningReason}>
                     <Textarea
                       value={values.joiningReason || ""}
                       onChange={(e) => set("joiningReason", e.target.value)}
                     />
                   </Field>
                   <div className="sm:col-span-2">
-                    <Field label="كيف تتعامل مع الطالب الضعيف؟ *">
+                    <Field label="كيف تتعامل مع الطالب الضعيف؟ *" error={showValidationErrors && !values.weakStudentHandling}>
                       <Textarea
                         value={values.weakStudentHandling || ""}
                         onChange={(e) =>
@@ -1037,7 +1056,7 @@ export default function TeacherSignup() {
                       </a>
                     </Button>
                   </div>
-                  <Field label="إثبات سرعة واستقرار الإنترنت * (صورة، حتى 5MB)">
+                  <Field label="إثبات سرعة واستقرار الإنترنت * (صورة، حتى 5MB)" error={showValidationErrors && !files.stableInternetProof}>
                     <Input
                       type="file"
                       accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
@@ -1160,6 +1179,7 @@ export default function TeacherSignup() {
                     disabled={busy}
                     onClick={() => {
                       setError("");
+                      setShowValidationErrors(false);
                       setStep((current) => current - 1);
                     }}
                   >
@@ -1224,13 +1244,15 @@ export default function TeacherSignup() {
 function Field({
   label,
   children,
+  error = false,
 }: {
   label: string;
   children: React.ReactNode;
+  error?: boolean;
 }) {
   return (
-    <label className="text-sm space-y-1.5 block">
-      <span>{label}</span>
+    <label className={cn("text-sm space-y-1.5 block", error && "text-destructive [&>input]:border-destructive [&>input]:ring-destructive/20 [&>textarea]:border-destructive [&>textarea]:ring-destructive/20")}>
+      <span className={cn(error && "font-medium")}>{label}</span>
       {children}
     </label>
   );
@@ -1241,17 +1263,19 @@ function SelectField({
   onChange,
   options,
   loading = false,
+  error = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   loading?: boolean;
+  error?: boolean;
 }) {
   return (
-    <Field label={label}>
+    <Field label={label} error={error}>
       <Select value={value} onValueChange={onChange} disabled={loading}>
-        <SelectTrigger>
+        <SelectTrigger aria-invalid={error} className={cn(error && "border-destructive ring-destructive/20")}>
           <SelectValue placeholder={loading ? "جاري التحميل..." : "اختر"} />
         </SelectTrigger>
         <SelectContent>
@@ -1271,19 +1295,21 @@ function CountrySelect({
   onChange,
   countries,
   loading,
+  error = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   countries: CountryOption[];
   loading: boolean;
+  error?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const selectedCountry = countries.find((country) => country.name === value);
 
   return (
-    <div className="block space-y-1.5 text-sm">
-      <span>{label}</span>
+    <div className={cn("block space-y-1.5 text-sm", error && "text-destructive")}>
+      <span className={cn(error && "font-medium")}>{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -1292,7 +1318,8 @@ function CountrySelect({
             role="combobox"
             aria-expanded={open}
             disabled={loading}
-            className="w-full justify-between font-normal"
+            aria-invalid={error}
+            className={cn("w-full justify-between font-normal", error && "border-destructive ring-destructive/20")}
           >
             <span className={cn("truncate", !selectedCountry && "text-muted-foreground")}>
               {loading

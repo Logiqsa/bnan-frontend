@@ -1,14 +1,93 @@
-import { apiRequest } from "./client";
+import axios, { AxiosError, type AxiosProgressEvent } from "axios";
+import { API_BASE_URL, ApiError, apiRequest, refreshAccessToken, tokenStore } from "./client";
 import type { AuthResponse, DirectRegisterBody, RegisterParentBody, RegistrationResponse } from "./types";
+
+const apiLanguage = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
+
+const errorText = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) return value.map(errorText).filter(Boolean).join("، ");
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return errorText(record.message)
+      || errorText(record.msg)
+      || errorText(record.reason)
+      || Object.values(record).map(errorText).filter(Boolean).join("، ");
+  }
+  return "";
+};
+
+async function registerTeacher(
+  body: FormData,
+  idempotencyKey?: string,
+  onUploadProgress?: (event: AxiosProgressEvent) => void,
+  retried = false,
+): Promise<RegistrationResponse> {
+  const token = tokenStore.get();
+  try {
+    const response = await axios.post<RegistrationResponse>(
+      `${API_BASE_URL}/auth/register-teacher`,
+      body,
+      {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          lang: apiLanguage(),
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
+        onUploadProgress,
+      },
+    );
+    return response.data;
+  } catch (value) {
+    const error = value as AxiosError<Record<string, unknown>>;
+    if (!error.response) {
+      const technicalReason = error.message.trim();
+      throw new ApiError(
+        0,
+        "NETWORK_ERROR",
+        technicalReason
+          ? `لم يتمكن المتصفح من إرسال الطلب إلى الخادم. السبب التقني: ${technicalReason}`
+          : "لم يتمكن المتصفح من إرسال الطلب إلى الخادم. تحقق من الاتصال وإعدادات CORS في الخادم.",
+        undefined,
+        { technicalReason, path: "/auth/register-teacher" },
+      );
+    }
+
+    if (error.response.status === 401 && token) {
+      if (!retried) {
+        const refreshResult = await refreshAccessToken();
+        if (refreshResult === "refreshed") {
+          return registerTeacher(body, idempotencyKey, onUploadProgress, true);
+        }
+        if (refreshResult === "unavailable") {
+          throw new ApiError(0, "REFRESH_UNAVAILABLE", "تعذر تجديد الجلسة مؤقتًا. تحقق من الإنترنت وحاول مجددًا.");
+        }
+      }
+      tokenStore.clear();
+      window.dispatchEvent(new Event("bnan:session-expired"));
+    }
+
+    const payload = error.response.data || {};
+    throw new ApiError(
+      error.response.status,
+      typeof payload.code === "string" ? payload.code : "API_ERROR",
+      errorText(payload.message)
+        || errorText(payload.error)
+        || errorText(payload.errors)
+        || "حدث خطأ غير متوقع.",
+      payload.errors,
+      payload.data && typeof payload.data === "object"
+        ? payload.data as Record<string, unknown>
+        : undefined,
+    );
+  }
+}
 
 export const authApi = {
   login: (email: string, password: string) => apiRequest<AuthResponse>("/auth/login", {
     method: "POST", body: JSON.stringify({ email, password }),
   }),
-  registerTeacher: (body: FormData, idempotencyKey?: string) => apiRequest<RegistrationResponse>("/auth/register-teacher", {
-    method: "POST", body,
-    ...(idempotencyKey ? { headers: { "Idempotency-Key": idempotencyKey } } : {}),
-  }),
+  registerTeacher,
   registerParent: (body: RegisterParentBody) => apiRequest<RegistrationResponse>("/auth/register-parent", {
     method: "POST", body: JSON.stringify(body),
   }),

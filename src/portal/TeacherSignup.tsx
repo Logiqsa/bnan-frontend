@@ -101,6 +101,8 @@ export default function TeacherSignup() {
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...initialValues, ...savedDraft.values }));
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const submittingRef = useRef(false);
   const [error, setError] = useState("");
   const [verificationEmail, setVerificationEmail] = useState("");
   const [countries, setCountries] = useState<CountryOption[]>([]);
@@ -382,8 +384,10 @@ export default function TeacherSignup() {
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validStep) return;
+    if (!validStep || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
+    setUploadProgress(0);
     setError("");
     try {
       const body = new FormData();
@@ -412,7 +416,10 @@ export default function TeacherSignup() {
       experienceCertificates.forEach((file) =>
         body.append("experienceCertificates", file),
       );
-      const response = await authApi.registerTeacher(body, idempotencyKey);
+      const response = await authApi.registerTeacher(body, idempotencyKey, (progressEvent) => {
+        if (!progressEvent.total) return;
+        setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
+      });
       sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
       localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
       setVerificationEmail(response.data.email || values.email);
@@ -429,7 +436,9 @@ export default function TeacherSignup() {
           : apiError.message,
       );
     } finally {
+      submittingRef.current = false;
       setBusy(false);
+      setUploadProgress(null);
     }
   };
   const openTerms = async () => {
@@ -1066,7 +1075,7 @@ export default function TeacherSignup() {
                           <p dir="ltr" className="mt-1 break-all text-right">{file.name}</p>
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                             <span>{formatFileSize(file.size)}</span>
-                            {file.type && <span dir="ltr">{file.type}</span>}
+                            <span dir="ltr">{file.type || "غير معروف"}</span>
                           </div>
                         </div>
                       ))}
@@ -1079,20 +1088,32 @@ export default function TeacherSignup() {
                 </div>
               )}
             </div>
-            {busy && (
+            {busy && uploadProgress !== null && (
               <div
                 role="status"
                 aria-live="polite"
-                className="mt-5 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+                className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
               >
-                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-amber-700" />
-                <div>
-                  <p className="font-bold">يتم الآن رفع الملفات وإرسال طلبك</p>
-                  <p className="mt-1 text-sm leading-6 text-amber-800">
-                    قد تستغرق العملية بعض الوقت حسب سرعة الاتصال. من فضلك لا
-                    تغلق الصفحة ولا تضغط زر الإرسال مرة أخرى حتى تظهر نتيجة الطلب.
-                  </p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-bold">رفع الملفات</p>
+                  <span className="font-bold text-amber-800">{uploadProgress}%</span>
                 </div>
+                <div
+                  className="mt-3 h-3 overflow-hidden rounded-full bg-amber-200"
+                  role="progressbar"
+                  aria-label="تقدم رفع ملفات التسجيل"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={uploadProgress}
+                >
+                  <div
+                    className="h-full rounded-full bg-amber-600 transition-[width] duration-200"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-amber-800">
+                  جاري رفع الملفات، يرجى عدم إغلاق الصفحة
+                </p>
               </div>
             )}
             <div className="flex justify-between border-t pt-5 mt-6">

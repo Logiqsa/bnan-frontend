@@ -82,6 +82,7 @@ export interface ActiveSession {
   canJoin?: boolean;
   recordingUrl?: string | null;
   recording_url?: string | null;
+  recordingStatus?: string | null;
   summary?: string | null;
   summaryUrl?: string | null;
   summary_url?: string | null;

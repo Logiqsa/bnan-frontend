@@ -326,16 +326,22 @@ export const coursesApi = {
       ).data,
     ),
   myProgress: async (id: string) => {
-    const result = await apiRequest<Envelope<CourseProgress & {
-      requiredMinutes?: number;
-      completedMinutes?: number;
-    }>>(
-        `/courses/me/enrollments/${id}/progress`,
-    );
+    const result = await apiRequest<
+      Envelope<
+        CourseProgress & {
+          requiredMinutes?: number;
+          completedMinutes?: number;
+        }
+      >
+    >(`/courses/me/enrollments/${id}/progress`);
     return {
       ...result.data,
-      completedHours: result.data.completedHours ?? Number(((result.data.completedMinutes || 0) / 60).toFixed(2)),
-      totalHours: result.data.totalHours ?? Number(((result.data.requiredMinutes || 0) / 60).toFixed(2)),
+      completedHours:
+        result.data.completedHours ??
+        Number(((result.data.completedMinutes || 0) / 60).toFixed(2)),
+      totalHours:
+        result.data.totalHours ??
+        Number(((result.data.requiredMinutes || 0) / 60).toFixed(2)),
     };
   },
   activeSession: async (classroomId: string) =>
@@ -346,21 +352,32 @@ export const coursesApi = {
     ).data,
   joinActiveSession: async (classroomId: string) =>
     (
-      await apiRequest<Envelope<ActiveCourseSession & { meetingLink?: string }>>(
-        `/classrooms/${classroomId}/sessions/active/join`,
-      )
+      await apiRequest<
+        Envelope<ActiveCourseSession & { meetingLink?: string }>
+      >(`/classrooms/${classroomId}/sessions/active/join`)
     ).data,
-  startCourseSession: async (classroomId: string, body: {
-    courseId: string;
-    groupId: string;
-    occurrenceDate: string;
-    scheduledStartTime: string;
-  }) => (
-    await apiRequest<Envelope<ActiveCourseSession & { meetingLink?: string; teacherStartUrl?: string }>>(
-      `/courses/classrooms/${classroomId}/sessions/start`,
-      { method: "POST", body: JSON.stringify(body) },
-    )
-  ).data,
+  startCourseSession: async (
+    classroomId: string,
+    body: {
+      courseId: string;
+      groupId: string;
+      occurrenceDate: string;
+      scheduledStartTime: string;
+    },
+  ) =>
+    (
+      await apiRequest<
+        Envelope<
+          ActiveCourseSession & {
+            meetingLink?: string;
+            teacherStartUrl?: string;
+          }
+        >
+      >(`/courses/classrooms/${classroomId}/sessions/start`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      })
+    ).data,
   listGroups: async (courseId: string) => {
     const r = await apiRequest<Envelope<Raw<Omit<CourseGroup, "id">>[]>>(
       `/admin/courses/${courseId}/groups`,
@@ -375,7 +392,7 @@ export const coursesApi = {
           items?: Raw<Omit<CourseEnrollment, "id">>[];
           total?: number;
           totalCount?: number;
-    };
+        };
     const response = await apiRequest<Envelope<EnrollmentListPayload>>(
       `/admin/courses/${encodeURIComponent(courseId)}/enrollments`,
     );
@@ -387,7 +404,7 @@ export const coursesApi = {
       enrollments: items.map(enrollment),
       total: Array.isArray(payload)
         ? payload.length
-        : payload.total ?? payload.totalCount ?? items.length,
+        : (payload.total ?? payload.totalCount ?? items.length),
     } satisfies CourseEnrollmentsResponse;
   },
   createGroup: async (

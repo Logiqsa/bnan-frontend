@@ -101,18 +101,23 @@ describe("coursesApi", () => {
   it("normalizes the deployed subjects array to the single course subject", async () => {
     vi.mocked(apiRequest).mockResolvedValue({
       success: true,
-      data: [{
-        _id: "c1",
-        name: "Course",
-        description: "Description",
-        teacher: "t1",
-        eligibleGrades: [],
-        subjects: [{ id: "s1", name: "دين" }],
-        enrollmentModes: { group: { enabled: true, price: 250 }, individual: { enabled: false, price: 0 } },
-        currency: "EGP",
-        enrollmentOpen: true,
-        status: "active",
-      }],
+      data: [
+        {
+          _id: "c1",
+          name: "Course",
+          description: "Description",
+          teacher: "t1",
+          eligibleGrades: [],
+          subjects: [{ id: "s1", name: "دين" }],
+          enrollmentModes: {
+            group: { enabled: true, price: 250 },
+            individual: { enabled: false, price: 0 },
+          },
+          currency: "EGP",
+          enrollmentOpen: true,
+          status: "active",
+        },
+      ],
     });
 
     const courses = await coursesApi.listPublic();
@@ -138,23 +143,27 @@ describe("coursesApi", () => {
     vi.mocked(apiRequest).mockResolvedValue({
       success: true,
       data: {
-        items: [{
-          _id: "enrollment-1",
-          course: "course-1",
-          student: { fullName: "Student" },
-          group: { _id: "group-1", name: "Group 1" },
-          mode: "group",
-          status: "active",
-          price: 0,
-          currency: "EGP",
-        }],
+        items: [
+          {
+            _id: "enrollment-1",
+            course: "course-1",
+            student: { fullName: "Student" },
+            group: { _id: "group-1", name: "Group 1" },
+            mode: "group",
+            status: "active",
+            price: 0,
+            currency: "EGP",
+          },
+        ],
         totalCount: 1,
       },
     });
 
     const result = await coursesApi.listEnrollments("course-1");
 
-    expect(apiRequest).toHaveBeenCalledWith("/admin/courses/course-1/enrollments");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/admin/courses/course-1/enrollments",
+    );
     expect(result.total).toBe(1);
     expect(result.enrollments[0]).toMatchObject({
       id: "enrollment-1",
@@ -164,13 +173,58 @@ describe("coursesApi", () => {
 
   it("loads teacher courses and starts a scheduled course session", async () => {
     vi.mocked(apiRequest)
-      .mockResolvedValueOnce({ success: true, data: [{ course: { _id: "course-1", name: "Course", eligibleGrades: [], enrollmentModes: { group: { enabled: true, price: 0 }, individual: { enabled: false, price: 0 } } }, groups: [{ _id: "group-1", name: "Group", status: "open", classroom: { _id: "room-1", name: "Room" } }] }] })
-      .mockResolvedValueOnce({ success: true, data: { sessionId: "session-1", status: "live", canJoin: true, teacherStartUrl: "https://zoom.test/start" } });
+      .mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            course: {
+              _id: "course-1",
+              name: "Course",
+              eligibleGrades: [],
+              enrollmentModes: {
+                group: { enabled: true, price: 0 },
+                individual: { enabled: false, price: 0 },
+              },
+            },
+            groups: [
+              {
+                _id: "group-1",
+                name: "Group",
+                status: "open",
+                classroom: { _id: "room-1", name: "Room" },
+              },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          sessionId: "session-1",
+          status: "live",
+          canJoin: true,
+          teacherStartUrl: "https://zoom.test/start",
+        },
+      });
 
     const assignments = await coursesApi.myTeachingCourses();
-    expect(assignments[0]).toMatchObject({ course: { id: "course-1" }, groups: [{ id: "group-1", classroom: { id: "room-1" } }] });
-    await coursesApi.startCourseSession("room-1", { courseId: "course-1", groupId: "group-1", occurrenceDate: "2026-09-08", scheduledStartTime: "18:00" });
-    expect(apiRequest).toHaveBeenLastCalledWith("/courses/classrooms/room-1/sessions/start", expect.objectContaining({ method: "POST" }));
+    expect(assignments[0]).toMatchObject({
+      course: { id: "course-1" },
+      groups: [{ id: "group-1", classroom: { id: "room-1" } }],
+    });
+    await coursesApi.startCourseSession("room-1", {
+      courseId: "course-1",
+      groupId: "group-1",
+      occurrenceDate: "2026-09-08",
+      scheduledStartTime: "18:00",
+    });
+    expect(apiRequest).toHaveBeenLastCalledWith(
+      "/courses/classrooms/room-1/sessions/start",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(
+      JSON.parse(String(vi.mocked(apiRequest).mock.calls.at(-1)?.[1]?.body)),
+    ).toMatchObject({ courseId: "course-1" });
   });
 
   it("uploads the course image as multipart data", async () => {

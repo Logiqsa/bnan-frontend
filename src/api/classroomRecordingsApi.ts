@@ -1,16 +1,39 @@
-import { API_BASE_URL, ApiError, apiRequest, refreshAccessToken, tokenStore } from "./client";
+import {
+  API_BASE_URL,
+  ApiError,
+  apiRequest,
+  refreshAccessToken,
+  tokenStore,
+} from "./client";
 
 export interface ClassroomOption {
   id: string;
   name: string;
-  curriculum?: { id: string; _id?: string; name: string; registrationMode?: "egyptian" | "gulf" };
+  curriculum?: {
+    id: string;
+    _id?: string;
+    name: string;
+    registrationMode?: "egyptian" | "gulf";
+  };
   grade?: { id: string; _id?: string; name: string };
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string } | string | null;
   student?: { id?: string; name?: string; fullName?: string } | string | null;
   students?: Array<{ id?: string; name?: string; fullName?: string }>;
-  schedule?: { entries?: Array<{ day: string; startTime: string; endTime?: string; subjectName?: string }> } | null;
-  scheduleEntries?: Array<{ day: string; startTime: string; endTime?: string; subjectName?: string }>;
+  schedule?: {
+    entries?: Array<{
+      day: string;
+      startTime: string;
+      endTime?: string;
+      subjectName?: string;
+    }>;
+  } | null;
+  scheduleEntries?: Array<{
+    day: string;
+    startTime: string;
+    endTime?: string;
+    subjectName?: string;
+  }>;
   zoomAssignmentMode?: "grade_default" | "manual";
   zoomMeeting?: {
     zoomMeetingId?: string;
@@ -21,7 +44,11 @@ export interface ClassroomOption {
   zoomMeetingId?: string;
   meetingLink?: string;
   provisioningStatus?: string;
-  zoomProvisioning?: { status?: "creating" | "ready" | "failed"; errorCode?: string; updatedAt?: string } | null;
+  zoomProvisioning?: {
+    status?: "creating" | "ready" | "failed";
+    errorCode?: string;
+    updatedAt?: string;
+  } | null;
   zoomAccount?: string | { id?: string; _id?: string; name?: string } | null;
   createdAt?: string;
   isActive: boolean;
@@ -46,12 +73,28 @@ export interface ClassroomSession {
   sessionKind?: string;
   classroomSubjectId?: string;
   startAt?: string;
+  scheduledStartAt?: string;
   endAt?: string;
+  occurrenceKey?: string;
+  courseGroup?: string | { id?: string; _id?: string } | null;
   recordingUrl?: string | null;
   recordingLink?: string | null;
+  recording?: {
+    status?: string;
+    localUrl?: string | null;
+    shareUrl?: string | null;
+  } | null;
+  summary?: {
+    status?: string;
+    content?: string | null;
+    docUrl?: string | null;
+  } | null;
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string } | string | null;
-  classroomSubject?: { id?: string; name?: string; subject?: { name?: string } } | string | null;
+  classroomSubject?:
+    | { id?: string; name?: string; subject?: { name?: string } }
+    | string
+    | null;
 }
 
 export interface SessionRecording {
@@ -60,31 +103,54 @@ export interface SessionRecording {
   recordingLink: string;
   localUrl?: string | null;
   shareUrl?: string | null;
+  status?: string;
+  scheduledStartAt?: string;
+  startAt?: string;
+  occurrenceKey?: string;
+  courseGroup?: string | { id?: string; _id?: string } | null;
+  summary?: {
+    status?: string;
+    content?: string | null;
+    docUrl?: string | null;
+  } | null;
 }
 
 export interface ClassroomRecordingsResponse {
   success: true;
-  data: SessionRecording[] | { recordings?: SessionRecording[]; data?: SessionRecording[] };
+  data:
+    | SessionRecording[]
+    | { recordings?: SessionRecording[]; data?: SessionRecording[] };
 }
 
 export interface ClassroomSessionsResponse {
   success: true;
-  data: ClassroomSession[] | { sessions?: ClassroomSession[]; data?: ClassroomSession[] };
+  data:
+    | ClassroomSession[]
+    | { sessions?: ClassroomSession[]; data?: ClassroomSession[] };
 }
 
 interface UploadResult {
   success: true;
   data: {
-    session: { _id: string; title: string; status: string; sessionKind: string; startAt: string };
+    session: {
+      _id: string;
+      title: string;
+      status: string;
+      sessionKind: string;
+      startAt: string;
+    };
     recordingLink: string;
   };
 }
 
-const language = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
+const language = () =>
+  localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 export const classroomRecordingsApi = {
   listAllClassrooms: () =>
-    apiRequest<{ success: true; data: ClassroomOption[] }>("/classrooms?page=1&limit=100"),
+    apiRequest<{ success: true; data: ClassroomOption[] }>(
+      "/classrooms?page=1&limit=100",
+    ),
 
   listClassrooms: (keyword = "") => {
     const query = new URLSearchParams({
@@ -93,7 +159,9 @@ export const classroomRecordingsApi = {
       limit: keyword ? "20" : "100",
     });
     if (keyword) query.set("keyword", keyword);
-    return apiRequest<{ success: true; data: ClassroomOption[] }>(`/classrooms?${query}`);
+    return apiRequest<{ success: true; data: ClassroomOption[] }>(
+      `/classrooms?${query}`,
+    );
   },
 
   listSubjects: (classroomId: string) =>
@@ -102,24 +170,43 @@ export const classroomRecordingsApi = {
     ),
 
   listRecordings: (classroomId: string) =>
-    apiRequest<ClassroomRecordingsResponse>(`/classrooms/${classroomId}/recordings`),
+    apiRequest<ClassroomRecordingsResponse>(
+      `/classrooms/${classroomId}/recordings`,
+    ),
 
   listSessions: (classroomId: string) =>
-    apiRequest<ClassroomSessionsResponse>(`/classrooms/${classroomId}/sessions`),
+    apiRequest<ClassroomSessionsResponse>(
+      `/classrooms/${classroomId}/sessions`,
+    ),
 
-  upload: (classroomId: string, body: FormData, onProgress: (value: number) => void) =>
+  upload: (
+    classroomId: string,
+    body: FormData,
+    onProgress: (value: number) => void,
+  ) =>
     new Promise<UploadResult>((resolve, reject) => {
       const send = (retried = false) => {
         const request = new XMLHttpRequest();
-        request.open("POST", `${API_BASE_URL}/classrooms/${classroomId}/recordings`);
+        request.open(
+          "POST",
+          `${API_BASE_URL}/classrooms/${classroomId}/recordings`,
+        );
         const token = tokenStore.get();
         if (token) request.setRequestHeader("Authorization", `Bearer ${token}`);
         request.setRequestHeader("lang", language());
         request.responseType = "json";
         request.upload.onprogress = ({ lengthComputable, loaded, total }) => {
-          if (lengthComputable && total) onProgress(Math.round((loaded * 100) / total));
+          if (lengthComputable && total)
+            onProgress(Math.round((loaded * 100) / total));
         };
-        request.onerror = () => reject(new ApiError(0, "NETWORK_ERROR", "تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مجددًا."));
+        request.onerror = () =>
+          reject(
+            new ApiError(
+              0,
+              "NETWORK_ERROR",
+              "تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مجددًا.",
+            ),
+          );
         request.onload = async () => {
           const payload = request.response || {};
           if (request.status === 201) {
@@ -137,13 +224,15 @@ export const classroomRecordingsApi = {
               window.dispatchEvent(new Event("bnan:session-expired"));
             }
           }
-          reject(new ApiError(
-            request.status,
-            payload.code || "API_ERROR",
-            payload.message || "حدث خطأ غير متوقع.",
-            payload.errors,
-            payload.data,
-          ));
+          reject(
+            new ApiError(
+              request.status,
+              payload.code || "API_ERROR",
+              payload.message || "حدث خطأ غير متوقع.",
+              payload.errors,
+              payload.data,
+            ),
+          );
         };
         request.send(body);
       };

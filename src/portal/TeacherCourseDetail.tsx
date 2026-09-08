@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,6 +12,10 @@ import {
   Video,
 } from "lucide-react";
 import { coursesApi, type CourseScheduleSlot } from "@/api/coursesApi";
+import {
+  classroomRecordingsApi,
+  type ClassroomSession,
+} from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
 import { courseError } from "@/lib/courseUi";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -78,6 +82,35 @@ const todaySlotPhase = (slot: CourseScheduleSlot) => {
       ? ("ended" as const)
       : ("ready" as const);
 };
+const sessionsFrom = (
+  data:
+    | ClassroomSession[]
+    | { sessions?: ClassroomSession[]; data?: ClassroomSession[] },
+) => (Array.isArray(data) ? data : data.sessions || data.data || []);
+const hasEndedSession = (
+  sessions: ClassroomSession[],
+  slot: CourseScheduleSlot,
+  groupId: string,
+) => {
+  const scheduled = new Date(`${localDate()}T${slot.startTime}:00`).getTime();
+  return sessions.some((session) => {
+    if (!["ended", "completed"].includes(session.status || "")) return false;
+    const sessionGroupId = classroomIdOf(session.courseGroup);
+    if (sessionGroupId && sessionGroupId !== groupId) return false;
+    if (
+      session.occurrenceKey?.includes(`:${localDate()}:`) &&
+      session.occurrenceKey.endsWith(`:${slot.startTime}`)
+    )
+      return true;
+    const sessionTime = session.scheduledStartAt || session.startAt;
+    if (!sessionTime) return false;
+    const started = new Date(sessionTime);
+    return (
+      localDate() === started.toLocaleDateString("en-CA") &&
+      Math.abs(started.getTime() - scheduled) <= 2 * 60 * 60 * 1000
+    );
+  });
+};
 
 const startErrors: Record<string, string> = {
   COURSE_NOT_FOUND: "الدورة غير موجودة.",
@@ -103,6 +136,20 @@ export default function TeacherCourseDetail() {
     refetchInterval: 10000,
   });
   const assignment = query.data?.find((item) => item.course.id === courseId);
+  const groupClassroomIds = (assignment?.groups || []).map((group) =>
+    classroomIdOf(group.classroom),
+  );
+  const sessionQueries = useQueries({
+    queries: groupClassroomIds.map((classroomId) => ({
+      queryKey: ["course-classroom-sessions", classroomId],
+      queryFn: async () =>
+        sessionsFrom(
+          (await classroomRecordingsApi.listSessions(classroomId)).data,
+        ),
+      enabled: Boolean(classroomId),
+      refetchInterval: 10000,
+    })),
+  });
   const start = async (
     groupId: string,
     classroomId: string,
@@ -209,7 +256,7 @@ export default function TeacherCourseDetail() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="groups" className="mt-5 space-y-4">
-                {assignment.groups.map((group) => {
+                {assignment.groups.map((group, groupIndex) => {
                   const classroomId = classroomIdOf(group.classroom);
                   const active = group.activeSession;
                   return (
@@ -274,7 +321,13 @@ export default function TeacherCourseDetail() {
                             <div className="grid gap-3 sm:grid-cols-2">
                               {group.schedule.slots.map((slot, index) => {
                                 const key = `${group.id}-${slot.day}-${slot.startTime}`;
-                                const phase = todaySlotPhase(slot);
+                                const phase = hasEndedSession(
+                                  sessionQueries[groupIndex]?.data || [],
+                                  slot,
+                                  group.id,
+                                )
+                                  ? "ended"
+                                  : todaySlotPhase(slot);
                                 return (
                                   <div
                                     key={`${slot.day}-${slot.startTime}-${index}`}

@@ -52,23 +52,30 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
             <h3 className="mt-1 font-bold">
               {message.summaryTitle || message.sessionName || "ملخص الحصة"}
             </h3>
-            {message.summaryContent && (
-              <div className="mt-3 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-background/80 p-3 text-sm leading-7">
-                {message.summaryContent}
+            <details className="mt-3 rounded-xl border bg-background/80">
+              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-sky-700">
+                عرض الملخص
+              </summary>
+              <div className="border-t p-3">
+                {message.summaryContent && (
+                  <div className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7">
+                    {message.summaryContent}
+                  </div>
+                )}
+                {message.summaryDocUrl && (
+                  <Button asChild size="sm" variant="outline" className="mt-3">
+                    <a
+                      href={message.summaryDocUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ExternalLink className="me-2 h-4 w-4" />
+                      فتح مستند الملخص
+                    </a>
+                  </Button>
+                )}
               </div>
-            )}
-            {message.summaryDocUrl && (
-              <Button asChild size="sm" variant="outline" className="mt-3">
-                <a
-                  href={message.summaryDocUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ExternalLink className="me-2 h-4 w-4" />
-                  فتح مستند الملخص
-                </a>
-              </Button>
-            )}
+            </details>
             {footer}
           </div>
         </div>
@@ -241,6 +248,11 @@ export default function CourseClassroomChat({
           <Loader2 className="mx-auto animate-spin" />
         ) : messages.data?.data.length ? (
           messages.data.data.map((message) => {
+            if (
+              message.messageType === "session_report" &&
+              user?.role !== "admin"
+            )
+              return null;
             const systemMessage = [
               "session_summary",
               "session_report",

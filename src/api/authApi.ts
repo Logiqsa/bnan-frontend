@@ -21,10 +21,18 @@ async function registerTeacher(
   body: FormData,
   idempotencyKey?: string,
   onUploadProgress?: (event: AxiosProgressEvent) => void,
+  onResponseStatus?: (status: number) => void,
   retried = false,
 ): Promise<RegistrationResponse> {
   const token = tokenStore.get();
+  let uploadCompletedLogged = false;
   try {
+    console.log("[register-teacher] before axios.post", {
+      url: `${API_BASE_URL}/auth/register-teacher`,
+      hasToken: Boolean(token),
+      hasIdempotencyKey: Boolean(idempotencyKey),
+      retried,
+    });
     const response = await axios.post<RegistrationResponse>(
       `${API_BASE_URL}/auth/register-teacher`,
       body,
@@ -34,12 +42,33 @@ async function registerTeacher(
           lang: apiLanguage(),
           ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
-        onUploadProgress,
+        onUploadProgress: (event) => {
+          if (!uploadCompletedLogged && event.total && event.loaded >= event.total) {
+            uploadCompletedLogged = true;
+            console.log("[register-teacher] onUploadProgress 100%", {
+              loaded: event.loaded,
+              total: event.total,
+            });
+          }
+          onUploadProgress?.(event);
+        },
       },
     );
+    console.log("[register-teacher] response success", {
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+    });
+    onResponseStatus?.(response.status);
     return response.data;
   } catch (value) {
     const error = value as AxiosError<Record<string, unknown>>;
+    console.error("[register-teacher] axios catch", {
+      code: error.code,
+      message: error.message,
+      responseStatus: error.response?.status,
+      responseData: error.response?.data,
+    });
     if (!error.response) {
       const technicalReason = error.message.trim();
       throw new ApiError(
@@ -57,7 +86,7 @@ async function registerTeacher(
       if (!retried) {
         const refreshResult = await refreshAccessToken();
         if (refreshResult === "refreshed") {
-          return registerTeacher(body, idempotencyKey, onUploadProgress, true);
+          return registerTeacher(body, idempotencyKey, onUploadProgress, onResponseStatus, true);
         }
         if (refreshResult === "unavailable") {
           throw new ApiError(0, "REFRESH_UNAVAILABLE", "تعذر تجديد الجلسة مؤقتًا. تحقق من الإنترنت وحاول مجددًا.");

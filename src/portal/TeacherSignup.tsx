@@ -165,17 +165,30 @@ export default function TeacherSignup() {
       additionalCurriculums,
     };
     try {
+      console.log("[TeacherSignup] before sessionStorage.setItem", {
+        key: TEACHER_SIGNUP_DRAFT_KEY,
+      });
       sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+      console.log("[TeacherSignup] after sessionStorage.setItem", {
+        key: TEACHER_SIGNUP_DRAFT_KEY,
+      });
 
       // Mobile browsers may discard a background tab, including its sessionStorage.
       // Keep a durable copy, but never persist the account password locally.
       const safeValues = { ...values };
       delete safeValues.password;
+      console.log("[TeacherSignup] before localStorage.setItem", {
+        key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+      });
       localStorage.setItem(
         TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
         JSON.stringify({ ...draft, values: safeValues }),
       );
-    } catch {
+      console.log("[TeacherSignup] after localStorage.setItem", {
+        key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+      });
+    } catch (value) {
+      console.error("[TeacherSignup] draft storage catch", { error: value });
       // Storage may be unavailable in strict private-browsing modes.
     }
   }, [idempotencyKey, step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
@@ -403,6 +416,8 @@ export default function TeacherSignup() {
     setPreparingFiles(true);
     setUploadProgress(null);
     setError("");
+    let diagnosticPhase = "preparing-request";
+    let axiosResponseStatus: number | undefined;
     try {
       const uploadFiles = { ...files };
       for (const key of [
@@ -451,23 +466,57 @@ export default function TeacherSignup() {
       );
       setPreparingFiles(false);
       setUploadProgress(0);
-      const response = await authApi.registerTeacher(body, idempotencyKey, (progressEvent) => {
-        if (!progressEvent.total) return;
-        setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
+      diagnosticPhase = "awaiting-axios-response";
+      const response = await authApi.registerTeacher(
+        body,
+        idempotencyKey,
+        (progressEvent) => {
+          if (!progressEvent.total) return;
+          setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
+        },
+        (status) => {
+          axiosResponseStatus = status;
+        },
+      );
+      diagnosticPhase = "handling-success-response";
+      console.log("[TeacherSignup] registerTeacher resolved; entering success handling", {
+        responseData: response.data,
       });
-      sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
-      localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
+      try {
+        console.log("[TeacherSignup] before sessionStorage.removeItem", {
+          key: TEACHER_SIGNUP_DRAFT_KEY,
+        });
+        sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
+        console.log("[TeacherSignup] after sessionStorage.removeItem", {
+          key: TEACHER_SIGNUP_DRAFT_KEY,
+        });
+        console.log("[TeacherSignup] before localStorage.removeItem", {
+          key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+        });
+        localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
+        console.log("[TeacherSignup] after localStorage.removeItem", {
+          key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+        });
+      } catch (storageError) {
+        console.error("[TeacherSignup] draft cleanup failed after successful registration", {
+          error: storageError,
+        });
+      }
       setVerificationEmail(response.data.email || values.email);
+      console.log("[TeacherSignup] success handling completed");
     } catch (value) {
+      console.error("[TeacherSignup] submit catch", {
+        diagnosticPhase,
+        axiosResponse201BeforeError: axiosResponseStatus === 201,
+        axiosResponseStatus,
+        error: value,
+      });
       const apiError = value as ApiError;
       setError(
         apiError.code === "EMAIL_ALREADY_EXISTS"
           ? "البريد الإلكتروني مسجل بالفعل."
           : apiError.code === "NETWORK_ERROR"
-            ? "تعذر رفع طلب التسجيل ولم يصل رد من الخادم. بيانات النموذج محفوظة؛ تأكد من ثبات الشبكة، وصغّر الملفات الكبيرة، ثم حاول مجددًا. " +
-              (typeof apiError.data?.technicalReason === "string"
-                ? `السبب التقني: ${apiError.data.technicalReason}`
-                : "")
+            ? "حدثت مشكلة مؤقتة في الاتصال، برجاء المحاولة مرة أخرى."
           : apiError.message,
       );
       setEmailHasServerError(apiError.code === "EMAIL_ALREADY_EXISTS");
@@ -544,7 +593,11 @@ export default function TeacherSignup() {
       <AccountVerification
         email={verificationEmail}
         onVerified={() => {
+          console.log("[TeacherSignup] before verification redirect", {
+            destination: "/portal/login",
+          });
           window.location.href = `/portal/login?email=${encodeURIComponent(verificationEmail)}&verified=1`;
+          console.log("[TeacherSignup] after verification redirect assignment");
         }}
       />
     );

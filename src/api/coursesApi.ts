@@ -409,7 +409,7 @@ export const coursesApi = {
   },
   createGroup: async (
     courseId: string,
-    body: { name: string; capacity?: number },
+    body: { name: string; capacity: number },
   ) =>
     group(
       (

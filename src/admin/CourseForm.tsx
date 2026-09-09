@@ -877,16 +877,18 @@ export default function CourseForm({
                   </SelectContent>
                 </Select>
               </label>
-              <label className="space-y-2">
-                <span>سعة المجموعة</span>
-                <Input
-                  type="number"
-                  min="1"
-                  value={groupCapacity}
-                  onChange={(e) => setGroupCapacity(e.target.value)}
-                  placeholder="اختياري"
-                />
-              </label>
+              {groupManagementMode === "automatic" && (
+                <label className="space-y-2">
+                  <span>سعة المجموعة</span>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={groupCapacity}
+                    onChange={(e) => setGroupCapacity(e.target.value)}
+                    placeholder="اختياري — الافتراضي 20"
+                  />
+                </label>
+              )}
             </div>
           )}
           <div

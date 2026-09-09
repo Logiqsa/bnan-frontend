@@ -1189,7 +1189,7 @@ export default function TeacherSignup() {
               <div
                 role="status"
                 aria-live="polite"
-                className="mt-5 flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+                className="mt-5 flex items-center gap-3 rounded-xl border border-navy/30 bg-navy/5 p-4 text-navy"
               >
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p className="font-bold">جاري تجهيز الملفات...</p>

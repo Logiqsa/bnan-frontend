@@ -275,6 +275,9 @@ export default function TeacherSignup() {
     ? activeGrade
     : selectedGrades[0];
   const gradeGroups = useMemo(() => {
+    if (selectedCurriculumData?.registrationMode === "gulf") {
+      return [{ key: "gulf", label: "الصفوف", grades }];
+    }
     const languages = grades.filter((grade) => grade.name.includes("لغات"));
     const arabic = grades.filter((grade) => !grade.name.includes("لغات") && (grade.name.includes("عربي") || grade.name.includes("عربى")));
     const groupedIds = new Set([...languages, ...arabic].map((grade) => grade.id));
@@ -284,7 +287,7 @@ export default function TeacherSignup() {
       { key: "arabic", label: "القسم العربي", grades: arabic },
       ...(other.length ? [{ key: "other", label: "صفوف أخرى", grades: other }] : []),
     ];
-  }, [grades]);
+  }, [grades, selectedCurriculumData?.registrationMode]);
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
     const normalize = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
     const definitions = selectedCurriculumData?.registrationMode === "egyptian"

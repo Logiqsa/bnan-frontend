@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
+  ChevronsUpDown,
   CircleHelp,
   ImagePlus,
   Loader2,
@@ -28,6 +29,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Collapsible,
   CollapsibleContent,
@@ -82,6 +96,7 @@ export default function CourseForm({
   const [subject, setSubject] = useState(refId(course?.subject));
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [subjectSearchOpen, setSubjectSearchOpen] = useState(false);
   const [groupEnabled, setGroupEnabled] = useState(
     course?.enrollmentModes.group.enabled ?? true,
   );
@@ -222,6 +237,9 @@ export default function CourseForm({
     (item) => item.id === curriculum,
   );
   const gradeGroups = useMemo(() => {
+    if (selectedCurriculumData?.registrationMode === "gulf") {
+      return [{ key: "gulf", label: "الصفوف", grades }];
+    }
     const languages = grades.filter((grade) => grade.name.includes("لغات"));
     const arabic = grades.filter(
       (grade) =>
@@ -239,7 +257,7 @@ export default function CourseForm({
         ? [{ key: "other", label: "صفوف أخرى", grades: other }]
         : []),
     ].filter((group) => group.grades.length);
-  }, [grades]);
+  }, [grades, selectedCurriculumData?.registrationMode]);
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
     const normalize = (value: string) =>
       value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
@@ -704,30 +722,50 @@ export default function CourseForm({
           </div>
           <label className="block space-y-2">
             <span>Subject / المادة *</span>
-            <Select
-              value={subject}
-              onValueChange={setSubject}
-              disabled={!gradeIds.length || subjectsLoading}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    subjectsLoading
+            <Popover open={subjectSearchOpen} onOpenChange={setSubjectSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={subjectSearchOpen}
+                  disabled={!gradeIds.length || subjectsLoading}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {subjectsLoading
                       ? "جاري تحميل المواد..."
                       : !gradeIds.length
                         ? "اختر الصفوف أولاً"
-                        : "اختر المادة"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                        : subjects.find((item) => item.id === subject)?.name || "اختر المادة"}
+                  </span>
+                  <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl">
+                <Command>
+                  <CommandInput placeholder="ابحث باسم المادة..." />
+                  <CommandList>
+                    <CommandEmpty>لا توجد مادة مطابقة.</CommandEmpty>
+                    <CommandGroup>
+                      {subjects.map((item) => (
+                        <CommandItem
+                          key={item.id}
+                          value={`${item.name} ${item.id}`}
+                          onSelect={() => {
+                            setSubject(item.id);
+                            setSubjectSearchOpen(false);
+                          }}
+                        >
+                          <Check className={cn("me-2 h-4 w-4", subject === item.id ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">{item.name}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {gradeIds.length > 0 &&
               !subjectsLoading &&
               subjects.length === 0 && (

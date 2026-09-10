@@ -84,7 +84,12 @@ const readTeacherSignupDraft = (): Partial<TeacherSignupDraft> => {
   ] as const) {
     try {
       const raw = storage.getItem(key);
-      if (raw) return JSON.parse(raw) as Partial<TeacherSignupDraft>;
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<TeacherSignupDraft>;
+        // Passwords are intentionally never restored from a registration draft.
+        if (draft.values) delete draft.values.password;
+        return draft;
+      }
     } catch {
       // Try the other storage when private browsing or a malformed draft blocks one.
     }
@@ -100,6 +105,9 @@ export default function TeacherSignup() {
   const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), 1));
   const [curriculumStage, setCurriculumStage] = useState<"grades" | "subjects">(savedDraft.curriculumStage ?? "grades");
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...initialValues, ...savedDraft.values }));
+  // Keep the password in memory for the lifetime of this mounted signup flow.
+  // It must not be persisted in either browser storage draft.
+  const [password, setPassword] = useState("");
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [busy, setBusy] = useState(false);
   const [preparingFiles, setPreparingFiles] = useState(false);
@@ -153,11 +161,13 @@ export default function TeacherSignup() {
   const previousCurriculum = useRef(selectedCurriculum);
 
   useEffect(() => {
+    const safeValues = { ...values };
+    delete safeValues.password;
     const draft: TeacherSignupDraft = {
       idempotencyKey,
       step,
       curriculumStage,
-      values,
+      values: safeValues,
       selectedCurriculum,
       selectedGrades,
       assignments,
@@ -174,15 +184,13 @@ export default function TeacherSignup() {
       });
 
       // Mobile browsers may discard a background tab, including its sessionStorage.
-      // Keep a durable copy, but never persist the account password locally.
-      const safeValues = { ...values };
-      delete safeValues.password;
+      // Keep a durable copy containing only non-sensitive registration answers.
       console.log("[TeacherSignup] before localStorage.setItem", {
         key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
       });
       localStorage.setItem(
         TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-        JSON.stringify({ ...draft, values: safeValues }),
+        JSON.stringify(draft),
       );
       console.log("[TeacherSignup] after localStorage.setItem", {
         key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
@@ -305,7 +313,7 @@ export default function TeacherSignup() {
     const required = [
       values.fullName?.trim().length >= 3,
       Boolean(values.email),
-      Boolean(values.password),
+      Boolean(password),
       Boolean(values.phone),
       values.termsAccepted === "true",
       Boolean(values.dateOfBirth),
@@ -341,13 +349,13 @@ export default function TeacherSignup() {
     return Math.round(
       (required.filter(Boolean).length / required.length) * 100,
     );
-  }, [values, files, selectedCurriculum, selectedGrades, assignments]);
+  }, [values, password, files, selectedCurriculum, selectedGrades, assignments]);
   const validStep = useMemo(() => {
     if (step === 0)
       return !!(
         values.fullName?.trim().length >= 3 &&
         values.email &&
-        values.password &&
+        password &&
         values.phone &&
         values.termsAccepted === "true"
       );
@@ -391,7 +399,7 @@ export default function TeacherSignup() {
         files.stableInternetProof
       );
     return true;
-  }, [step, values, selectedCurriculum, selectedGrades, assignments, files]);
+  }, [step, values, password, selectedCurriculum, selectedGrades, assignments, files]);
   const next = () => {
     if (!validStep) {
       setShowValidationErrors(true);
@@ -408,6 +416,11 @@ export default function TeacherSignup() {
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!password) {
+      setShowValidationErrors(true);
+      setError("كلمة المرور مطلوبة. ارجع إلى البيانات الشخصية وأدخل كلمة المرور قبل إرسال الطلب.");
+      return;
+    }
     if (!validStep) {
       setShowValidationErrors(true);
       setError("أكمل الحقول المطلوبة قبل إرسال الطلب.");
@@ -445,6 +458,11 @@ export default function TeacherSignup() {
       Object.entries(values).forEach(
         ([key, value]) => value && body.append(key, value),
       );
+      body.set("password", password);
+      console.log("[TeacherSignup] registration password diagnostic", {
+        hasPassword: body.has("password") && Boolean(password),
+        passwordLength: password.length,
+      });
       body.append("curriculum", selectedCurriculum);
       body.append(
         "additionalCurriculums",
@@ -678,12 +696,13 @@ export default function TeacherSignup() {
                         onChange={(e) => set("phone", e.target.value)}
                       />
                     </Field>
-                    <Field label="كلمة المرور *" error={showValidationErrors && !values.password}>
+                    <Field label="كلمة المرور *" error={showValidationErrors && !password}>
                       <Input
                         type="password"
                         dir="ltr"
-                        value={values.password || ""}
-                        onChange={(e) => set("password", e.target.value)}
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                     </Field>
                   </div>

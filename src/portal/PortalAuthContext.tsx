@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { authApi } from "@/api/authApi";
 import { tokenStore } from "@/api/client";
 import type { PortalUser } from "@/api/types";
+import { disconnectSocket } from "@/lib/socket";
 import { forgetAccount, getRememberedAccounts, rememberAccount, type RememberedAccount } from "./accountSessions";
 
 const USER_KEY = "bnan_portal_user";
@@ -66,6 +67,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     }
     const account = getRememberedAccounts().find((item) => item.user.id === userId);
     if (!account) return;
+    disconnectSocket();
     tokenStore.set(account.token, account.refreshToken, true);
     localStorage.setItem(USER_KEY, JSON.stringify(account.user)); sessionStorage.removeItem(USER_KEY);
     rememberAccount({ ...account, lastUsedAt: new Date().toISOString() });
@@ -92,6 +94,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     setRememberedAccounts(getRememberedAccounts()); setUser(updated);
   };
   const logout = () => {
+    disconnectSocket();
     tokenStore.clear(); localStorage.removeItem(USER_KEY); sessionStorage.removeItem(USER_KEY);
     setRememberedAccounts(getRememberedAccounts()); setUser(null);
   };

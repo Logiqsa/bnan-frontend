@@ -143,6 +143,7 @@ interface UsersAdminProps {
   allowEdit?: boolean;
   approvedTeachersOnly?: boolean;
   includeAllRoles?: boolean;
+  showDateFilter?: boolean;
 }
 
 type RoleFilter = AdminUserRole | "all";
@@ -156,6 +157,7 @@ export default function UsersAdmin({
   allowEdit = false,
   approvedTeachersOnly = false,
   includeAllRoles = false,
+  showDateFilter = false,
 }: UsersAdminProps) {
   const { isArabic, pick } = useLanguage();
   const rolesKey = roles.join(",");
@@ -163,6 +165,8 @@ export default function UsersAdmin({
   const [showUnverified, setShowUnverified] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pageSizeInput, setPageSizeInput] = useState("20");
@@ -220,7 +224,10 @@ export default function UsersAdmin({
         const approvedTeachers = teacherUsers.filter((user) => {
           const approved = approvedUserIds.has(user.id) || Boolean(user.email && approvedEmails.has(user.email.trim().toLowerCase()));
           const matchesSearch = !query || user.fullName?.toLowerCase().includes(query);
-          return approved && matchesSearch;
+          const createdAt = user.createdAt ? new Date(user.createdAt).getTime() : null;
+          const matchesFrom = !dateFrom || (createdAt !== null && createdAt >= new Date(`${dateFrom}T00:00:00`).getTime());
+          const matchesTo = !dateTo || (createdAt !== null && createdAt <= new Date(`${dateTo}T23:59:59.999`).getTime());
+          return approved && matchesSearch && matchesFrom && matchesTo;
         });
         setItems(approvedTeachers.slice((page - 1) * pageSize, page * pageSize));
         setTotal(approvedTeachers.length);
@@ -230,7 +237,7 @@ export default function UsersAdmin({
 
       if (role === "all") {
         const allUsers = await Promise.all(
-          roles.map((userRole) =>
+          (rolesKey.split(",") as AdminUserRole[]).map((userRole) =>
             adminUsersApi.listAll(userRole, showUnverified ? false : undefined),
           ),
         );
@@ -291,6 +298,8 @@ export default function UsersAdmin({
     pick,
     showUnverified,
     searchQuery,
+    dateFrom,
+    dateTo,
   ]);
 
   useEffect(() => {
@@ -708,6 +717,11 @@ export default function UsersAdmin({
               placeholder={pick("ابحث بالاسم", "Search by name")}
             />
           </div>
+          {showDateFilter && <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto">
+            <label className="space-y-1 text-sm"><span className="block text-muted-foreground">{pick("من تاريخ", "From date")}</span><Input aria-label={pick("المعلمون من تاريخ", "Teachers from date")} type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} /></label>
+            <label className="space-y-1 text-sm"><span className="block text-muted-foreground">{pick("إلى تاريخ", "To date")}</span><Input aria-label={pick("المعلمون إلى تاريخ", "Teachers to date")} type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} /></label>
+            {(dateFrom || dateTo) && <Button type="button" variant="ghost" size="sm" onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}><X className="me-1 h-4 w-4" />{pick("مسح التاريخ", "Clear dates")}</Button>}
+          </div>}
           <label
             htmlFor="show-unverified-users"
             className="flex shrink-0 cursor-pointer items-center gap-2 text-sm"

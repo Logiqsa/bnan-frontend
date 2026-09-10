@@ -2,9 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TeacherSignup from "./TeacherSignup";
+import { serializeTeacherSignupDraft } from "@/lib/teacherSignupDraft";
 
 const mocks = vi.hoisted(() => ({
   registerTeacher: vi.fn(),
+  reportClientError: vi.fn(),
   curriculums: vi.fn(),
   grades: vi.fn(),
   subjects: vi.fn(),
@@ -13,6 +15,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/api/authApi", () => ({
   authApi: { registerTeacher: mocks.registerTeacher },
 }));
+vi.mock("@/lib/clientErrorReporting", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/clientErrorReporting")>();
+  return { ...actual, reportClientError: mocks.reportClientError };
+});
 vi.mock("@/api/catalogApi", () => ({
   catalogApi: {
     curriculums: mocks.curriculums,
@@ -47,6 +53,7 @@ describe("TeacherSignup password flow", () => {
     sessionStorage.clear();
     localStorage.clear();
     mocks.registerTeacher.mockReset().mockResolvedValue({ data: { email: "teacher@example.com" } });
+    mocks.reportClientError.mockReset().mockResolvedValue(undefined);
     mocks.curriculums.mockReset().mockResolvedValue({
       data: [{ id: "curriculum-1", name: "المنهج", registrationMode: "gulf", isActive: true }],
     });
@@ -57,7 +64,7 @@ describe("TeacherSignup password flow", () => {
       data: [{ id: "subject-1", name: "رياضيات", isActive: true }],
     });
 
-    sessionStorage.setItem(draftKey, JSON.stringify({
+    sessionStorage.setItem(draftKey, serializeTeacherSignupDraft({
       idempotencyKey: "signup-key",
       step: 0,
       curriculumStage: "subjects",
@@ -97,6 +104,24 @@ describe("TeacherSignup password flow", () => {
     }));
   });
 
+  const reachFinalStep = async () => {
+    fireEvent.change(screen.getByLabelText("كلمة المرور *"), { target: { value: password } });
+    fireEvent.click(screen.getByRole("button", { name: "التالي" }));
+    fireEvent.change(screen.getByLabelText("السيرة الذاتية *"), { target: { files: [file("cv.pdf")] } });
+    fireEvent.change(screen.getByLabelText("شهادة التخرج *"), { target: { files: [file("degree.pdf")] } });
+    fireEvent.change(screen.getByLabelText("البطاقة الشخصية *"), { target: { files: [file("id.pdf")] } });
+    fireEvent.click(screen.getByRole("button", { name: "التالي" }));
+    await screen.findByText("اختر المواد لكل صف");
+    fireEvent.click(screen.getByRole("button", { name: "التالي" }));
+    await screen.findByText("مراجعة الملفات");
+    fireEvent.change(screen.getByLabelText(/إثبات سرعة واستقرار الإنترنت/), {
+      target: { files: [file("speed.png", "image/png")] },
+    });
+  };
+
+  const apiFailure = (code: string, message: string, data?: Record<string, unknown>) =>
+    Object.assign(new Error(message), { code, status: 0, data });
+
   it("keeps the current password in memory through review and includes it in the final FormData", async () => {
     render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
 
@@ -118,8 +143,8 @@ describe("TeacherSignup password flow", () => {
       target: { files: [file("speed.png", "image/png")] },
     });
     await waitFor(() => {
-      expect(JSON.parse(sessionStorage.getItem(draftKey) || "{}").values?.password).toBeUndefined();
-      expect(JSON.parse(localStorage.getItem(persistentDraftKey) || "{}").values?.password).toBeUndefined();
+      expect(JSON.parse(sessionStorage.getItem(draftKey) || "{}").data?.values?.password).toBeUndefined();
+      expect(JSON.parse(localStorage.getItem(persistentDraftKey) || "{}").data?.values?.password).toBeUndefined();
     });
     fireEvent.click(screen.getByRole("button", { name: "إرسال طلب التسجيل" }));
 
@@ -127,5 +152,55 @@ describe("TeacherSignup password flow", () => {
     const body = mocks.registerTeacher.mock.calls[0][0] as FormData;
     expect(body.has("password")).toBe(true);
     expect(body.get("password")).toBe(password);
+  });
+
+  it("reports a network error", async () => {
+    mocks.registerTeacher.mockRejectedValueOnce(apiFailure("NETWORK_ERROR", "network failed"));
+    render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
+    await reachFinalStep();
+    fireEvent.click(screen.getByRole("button", { name: "إرسال طلب التسجيل" }));
+    await waitFor(() => expect(mocks.reportClientError).toHaveBeenCalledWith(expect.objectContaining({
+      errorCode: "NETWORK_ERROR", name: "Teacher Name", email: "teacher@example.com",
+    })));
+  });
+
+  it("reports a timeout distinctly", async () => {
+    mocks.registerTeacher.mockRejectedValueOnce(apiFailure("NETWORK_ERROR", "timeout", { axiosCode: "ECONNABORTED" }));
+    render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
+    await reachFinalStep();
+    fireEvent.click(screen.getByRole("button", { name: "إرسال طلب التسجيل" }));
+    await waitFor(() => expect(mocks.reportClientError).toHaveBeenCalledWith(expect.objectContaining({ errorCode: "TIMEOUT" })));
+  });
+
+  it("does not report ordinary local validation errors", () => {
+    sessionStorage.clear();
+    render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "التالي" }));
+    expect(mocks.reportClientError).not.toHaveBeenCalled();
+  });
+
+  it("keeps the existing failure flow when reporting itself fails", async () => {
+    mocks.registerTeacher.mockRejectedValueOnce(apiFailure("NETWORK_ERROR", "network failed"));
+    mocks.reportClientError.mockRejectedValueOnce(new Error("report endpoint unavailable"));
+    render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
+    await reachFinalStep();
+    fireEvent.click(screen.getByRole("button", { name: "إرسال طلب التسجيل" }));
+    expect(await screen.findByText("حدثت مشكلة مؤقتة في الاتصال، برجاء المحاولة مرة أخرى.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "إرسال طلب التسجيل" })).toBeEnabled();
+  });
+
+  it("never passes passwords or secret fields to the reporter", async () => {
+    mocks.registerTeacher.mockRejectedValueOnce(apiFailure("NETWORK_ERROR", `password=${password} token=secret-token`));
+    render(<MemoryRouter><TeacherSignup /></MemoryRouter>);
+    await reachFinalStep();
+    fireEvent.click(screen.getByRole("button", { name: "إرسال طلب التسجيل" }));
+    await waitFor(() => expect(mocks.reportClientError).toHaveBeenCalled());
+    const report = mocks.reportClientError.mock.calls[0][0];
+    expect(JSON.stringify(report)).not.toContain(password);
+    expect(JSON.stringify(report)).not.toContain("secret-token");
+    expect(report).not.toHaveProperty("password");
+    expect(report).not.toHaveProperty("token");
+    expect(report).not.toHaveProperty("formData");
+    expect(report.name).toBe("Teacher Name");
   });
 });

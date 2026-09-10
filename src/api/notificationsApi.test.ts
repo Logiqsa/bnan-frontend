@@ -8,8 +8,10 @@ describe("notificationsApi", () => {
   beforeEach(() => vi.mocked(apiRequest).mockReset());
 
   it("uses the backend list and read contracts", async () => {
-    await notificationsApi.list(100);
+    vi.mocked(apiRequest).mockResolvedValueOnce({ data: { notifications: [], unreadCount: 4 } });
+    const list = await notificationsApi.list(100);
     expect(apiRequest).toHaveBeenCalledWith("/notifications?page=1&limit=100");
+    expect(list.unreadCount).toBe(4);
 
     await notificationsApi.markRead(["one", "two"]);
     expect(apiRequest).toHaveBeenCalledWith("/notifications/read", {

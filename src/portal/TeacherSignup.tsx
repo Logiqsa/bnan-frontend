@@ -44,6 +44,26 @@ import { pastedLegalHtml } from "@/lib/legalContent";
 import { compressUploadImage, isImageFile } from "@/lib/compress-upload-image";
 import { cn } from "@/lib/utils";
 import AccountVerification from "@/components/AccountVerification";
+import {
+  restoreTeacherSignupDraft,
+  serializeTeacherSignupDraft,
+  TEACHER_SIGNUP_DRAFT_KEY,
+  TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
+  type TeacherSignupDraftData,
+  type TeacherSignupValueField,
+  type TeacherSignupValues,
+} from "@/lib/teacherSignupDraft";
+import {
+  buildTeacherSignupFormData,
+  validateFinalSnapshot,
+  type TeacherSignupSubmitSnapshot,
+} from "@/lib/teacherSignupSubmit";
+import {
+  reportClientError,
+  sanitizeClientErrorMessage,
+  teacherSignupErrorCode,
+  type ClientErrorPhase,
+} from "@/lib/clientErrorReporting";
 
 const steps = [
   "البيانات الشخصية",
@@ -55,9 +75,7 @@ const yesNo = [
   { value: "true", label: "نعم" },
   { value: "false", label: "لا" },
 ];
-const initialValues: Record<string, string> = {};
-const TEACHER_SIGNUP_DRAFT_KEY = "bnan_teacher_signup_draft";
-const TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_teacher_signup_persistent_draft";
+const initialValues: TeacherSignupValues = {};
 const MAX_TEACHER_FILE_SIZE = 20 * 1024 * 1024;
 const formatFileSize = (size: number) =>
   size < 1024 * 1024
@@ -65,46 +83,14 @@ const formatFileSize = (size: number) =>
     : `${(size / (1024 * 1024)).toFixed(2)} MB`;
 const formatTotalFileSize = (size: number) => `${(size / (1024 * 1024)).toFixed(2)} MB`;
 
-interface TeacherSignupDraft {
-  idempotencyKey: string;
-  step: number;
-  curriculumStage: "grades" | "subjects";
-  values: Record<string, string>;
-  selectedCurriculum: string;
-  selectedGrades: string[];
-  assignments: Record<string, string[]>;
-  activeGrade: string | null;
-  additionalCurriculums: string[];
-}
-
-const readTeacherSignupDraft = (): Partial<TeacherSignupDraft> => {
-  for (const [storage, key] of [
-    [sessionStorage, TEACHER_SIGNUP_DRAFT_KEY],
-    [localStorage, TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY],
-  ] as const) {
-    try {
-      const raw = storage.getItem(key);
-      if (raw) {
-        const draft = JSON.parse(raw) as Partial<TeacherSignupDraft>;
-        // Passwords are intentionally never restored from a registration draft.
-        if (draft.values) delete draft.values.password;
-        return draft;
-      }
-    } catch {
-      // Try the other storage when private browsing or a malformed draft blocks one.
-    }
-  }
-  return {};
-};
-
 export default function TeacherSignup() {
-  const [savedDraft] = useState(readTeacherSignupDraft);
+  const [savedDraft] = useState(restoreTeacherSignupDraft);
   const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
   // Browsers do not allow restoring File inputs. Return to the documents step
   // after a reload, while keeping every serializable answer and selection.
   const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), 1));
   const [curriculumStage, setCurriculumStage] = useState<"grades" | "subjects">(savedDraft.curriculumStage ?? "grades");
-  const [values, setValues] = useState<Record<string, string>>(() => ({ ...initialValues, ...savedDraft.values }));
+  const [values, setValues] = useState<TeacherSignupValues>(() => ({ ...initialValues, ...savedDraft.values }));
   // Keep the password in memory for the lifetime of this mounted signup flow.
   // It must not be persisted in either browser storage draft.
   const [password, setPassword] = useState("");
@@ -154,20 +140,18 @@ export default function TeacherSignup() {
     (total, item) => total + item.file.size,
     0,
   );
-  const set = (name: string, value: string) => {
+  const set = (name: TeacherSignupValueField, value: string) => {
     setValues((current) => ({ ...current, [name]: value }));
     if (name === "email") setEmailHasServerError(false);
   };
   const previousCurriculum = useRef(selectedCurriculum);
 
   useEffect(() => {
-    const safeValues = { ...values };
-    delete safeValues.password;
-    const draft: TeacherSignupDraft = {
+    const draft: TeacherSignupDraftData = {
       idempotencyKey,
       step,
       curriculumStage,
-      values: safeValues,
+      values,
       selectedCurriculum,
       selectedGrades,
       assignments,
@@ -178,7 +162,7 @@ export default function TeacherSignup() {
       console.log("[TeacherSignup] before sessionStorage.setItem", {
         key: TEACHER_SIGNUP_DRAFT_KEY,
       });
-      sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+      sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, serializeTeacherSignupDraft(draft));
       console.log("[TeacherSignup] after sessionStorage.setItem", {
         key: TEACHER_SIGNUP_DRAFT_KEY,
       });
@@ -190,7 +174,7 @@ export default function TeacherSignup() {
       });
       localStorage.setItem(
         TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-        JSON.stringify(draft),
+        serializeTeacherSignupDraft(draft),
       );
       console.log("[TeacherSignup] after localStorage.setItem", {
         key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
@@ -416,14 +400,22 @@ export default function TeacherSignup() {
   };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!password) {
+    const snapshot: TeacherSignupSubmitSnapshot = Object.freeze({
+      values: Object.freeze({ ...values }),
+      password,
+      selectedCurriculum,
+      selectedGrades: Object.freeze([...selectedGrades]) as unknown as string[],
+      assignments: Object.freeze(Object.fromEntries(
+        selectedGrades.map((gradeId) => [gradeId, Object.freeze([...(assignments[gradeId] || [])])]),
+      )) as Record<string, string[]>,
+      additionalCurriculums: Object.freeze([...additionalCurriculums]) as unknown as string[],
+      files: Object.freeze({ ...files }),
+      experienceCertificates: Object.freeze([...experienceCertificates]) as unknown as File[],
+    });
+    const validationError = validateFinalSnapshot(snapshot);
+    if (validationError) {
       setShowValidationErrors(true);
-      setError("كلمة المرور مطلوبة. ارجع إلى البيانات الشخصية وأدخل كلمة المرور قبل إرسال الطلب.");
-      return;
-    }
-    if (!validStep) {
-      setShowValidationErrors(true);
-      setError("أكمل الحقول المطلوبة قبل إرسال الطلب.");
+      setError(validationError);
       return;
     }
     if (submittingRef.current) return;
@@ -432,10 +424,12 @@ export default function TeacherSignup() {
     setPreparingFiles(true);
     setUploadProgress(null);
     setError("");
-    let diagnosticPhase = "preparing-request";
+    const startedAt = performance.now();
+    let diagnosticPhase: ClientErrorPhase = "preparing-request";
     let axiosResponseStatus: number | undefined;
     try {
-      const uploadFiles = { ...files };
+      const uploadFiles = { ...snapshot.files };
+      diagnosticPhase = "compressing-files";
       for (const key of [
         "identityDocument",
         "stableInternetProof",
@@ -448,59 +442,36 @@ export default function TeacherSignup() {
       }
 
       const uploadExperienceCertificates: File[] = [];
-      for (const file of experienceCertificates) {
+      for (const file of snapshot.experienceCertificates) {
         uploadExperienceCertificates.push(
           isImageFile(file) ? await compressUploadImage(file) : file,
         );
       }
 
-      const body = new FormData();
-      Object.entries(values).forEach(
-        ([key, value]) => value && body.append(key, value),
-      );
-      body.set("password", password);
-      console.log("[TeacherSignup] registration password diagnostic", {
-        hasPassword: body.has("password") && Boolean(password),
-        passwordLength: password.length,
+      diagnosticPhase = "preparing-request";
+      const body = buildTeacherSignupFormData(snapshot, uploadFiles, uploadExperienceCertificates);
+      if (import.meta.env.DEV) console.debug("[TeacherSignup] registration password diagnostic", {
+        hasPassword: body.has("password") && Boolean(snapshot.password),
+        passwordLength: snapshot.password.length,
       });
-      body.append("curriculum", selectedCurriculum);
-      body.append(
-        "additionalCurriculums",
-        JSON.stringify(
-          additionalCurriculums.filter((id) => id !== selectedCurriculum),
-        ),
-      );
-      body.append(
-        "teacherAssignments",
-        JSON.stringify(
-          selectedGrades.map((grade) => ({
-            grade,
-            subjects: assignments[grade],
-          })),
-        ),
-      );
-      Object.entries(uploadFiles).forEach(
-        ([key, value]) => value && body.append(key, value),
-      );
-      uploadExperienceCertificates.forEach((file) =>
-        body.append("experienceCertificates", file),
-      );
       setPreparingFiles(false);
       setUploadProgress(0);
-      diagnosticPhase = "awaiting-axios-response";
+      diagnosticPhase = "uploading";
       const response = await authApi.registerTeacher(
         body,
         idempotencyKey,
         (progressEvent) => {
           if (!progressEvent.total) return;
           setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
+          if (progressEvent.loaded >= progressEvent.total) diagnosticPhase = "waiting-response";
         },
         (status) => {
           axiosResponseStatus = status;
+          diagnosticPhase = "waiting-response";
         },
       );
-      diagnosticPhase = "handling-success-response";
-      console.log("[TeacherSignup] registerTeacher resolved; entering success handling", {
+      diagnosticPhase = "success-handling";
+      if (import.meta.env.DEV) console.debug("[TeacherSignup] registerTeacher resolved; entering success handling", {
         responseData: response.data,
       });
       try {
@@ -523,7 +494,7 @@ export default function TeacherSignup() {
           error: storageError,
         });
       }
-      setVerificationEmail(response.data.email || values.email);
+      setVerificationEmail(response.data.email || snapshot.values.email || "");
       console.log("[TeacherSignup] success handling completed");
     } catch (value) {
       console.error("[TeacherSignup] submit catch", {
@@ -533,6 +504,25 @@ export default function TeacherSignup() {
         error: value,
       });
       const apiError = value as ApiError;
+      try {
+        await reportClientError({
+          phase: diagnosticPhase,
+          errorCode: teacherSignupErrorCode(value),
+          message: sanitizeClientErrorMessage(
+            value instanceof Error ? value.message : "Unknown client error",
+            [snapshot.password],
+          ),
+          durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
+          ...(snapshot.values.fullName?.trim() ? { name: snapshot.values.fullName.trim() } : {}),
+          email: snapshot.values.email || "",
+          phone: snapshot.values.phone || snapshot.values.whatsapp || "",
+          filesCount: Object.values(snapshot.files).filter(Boolean).length + snapshot.experienceCertificates.length,
+          totalSizeMB: Number(((Object.values(snapshot.files).reduce((sum, file) => sum + (file?.size || 0), 0) + snapshot.experienceCertificates.reduce((sum, file) => sum + file.size, 0)) / (1024 * 1024)).toFixed(2)),
+          lastStep: step,
+        });
+      } catch (reportError) {
+        if (import.meta.env.DEV) console.debug("[TeacherSignup] client error report failed", reportError);
+      }
       setError(
         apiError.code === "EMAIL_ALREADY_EXISTS"
           ? "البريد الإلكتروني مسجل بالفعل."

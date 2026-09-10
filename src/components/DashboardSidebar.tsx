@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   Award,
   Bell,
   BookOpen,
@@ -167,6 +168,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin?tab=legal-pages",
     },
     {
+      label: "أخطاء التطبيقات",
+      labelEn: "Client errors",
+      icon: AlertTriangle,
+      path: "/admin/client-errors",
+    },
+    {
       label: "إعدادات الحساب",
       labelEn: "Account settings",
       icon: Settings,
@@ -258,6 +265,19 @@ const isItemActive = (itemPath: string, pathname: string, search: string) =>
   itemPath.includes("?")
     ? itemPath === `${pathname}${search}`
     : itemPath === pathname && (!search || pathname !== "/admin");
+
+const adminNavGroup = (path: string) => {
+  if (path === "/admin") return { ar: "نظرة عامة", en: "Overview" };
+  if (["all-users", "tab=users", "/admin/teachers", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
+    return { ar: "المستخدمون", en: "Users" };
+  if (["/admin/classrooms", "/admin/courses"].some((part) => path.startsWith(part)))
+    return { ar: "التعليم", en: "Learning" };
+  if (["zoom", "classroom-sessions", "classroom-recordings"].some((part) => path.includes(part)))
+    return { ar: "الفصول المباشرة", en: "Live classrooms" };
+  if (["notifications", "testimonials", "testimonial-ratings", "success-stories"].some((part) => path.includes(part)))
+    return { ar: "المحتوى والتواصل", en: "Content & communication" };
+  return { ar: "النظام", en: "System" };
+};
 
 const SidebarContent = ({
   onNavigate,
@@ -453,37 +473,33 @@ const SidebarContent = ({
         dir="ltr"
         className={`sidebar-scrollbar flex-1 space-y-1 overflow-x-hidden overflow-y-auto transition-all duration-300 ${collapsed ? "p-2" : "p-3"}`}
       >
-        {items.map((item) => {
+        {items.map((item, index) => {
           const active = isItemActive(
             item.path,
             location.pathname,
             location.search,
           );
+          const group = role === "admin" ? adminNavGroup(item.path) : null;
+          const previousGroup = role === "admin" && index > 0
+            ? adminNavGroup(items[index - 1].path)
+            : null;
+          const startsGroup = group && group.en !== previousGroup?.en;
           return (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                onNavigate?.();
-              }}
-              title={collapsed ? pick(item.label, item.labelEn) : undefined}
-              aria-label={pick(item.label, item.labelEn)}
-              dir={isArabic ? "rtl" : "ltr"}
-              className={`w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${
-                active
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <span
-                  className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}
-                >
-                  {pick(item.label, item.labelEn)}
-                </span>
-              )}
-            </button>
+            <div key={item.path}>
+              {startsGroup && (collapsed
+                ? <div className="mx-2 my-2 border-t border-sidebar-border" />
+                : <p dir={isArabic ? "rtl" : "ltr"} className="mb-1 mt-4 px-3 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/40 first:mt-1">{pick(group.ar, group.en)}</p>)}
+              <button
+                onClick={() => { navigate(item.path); onNavigate?.(); }}
+                title={collapsed ? pick(item.label, item.labelEn) : undefined}
+                aria-label={pick(item.label, item.labelEn)}
+                dir={isArabic ? "rtl" : "ltr"}
+                className={`w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}>{pick(item.label, item.labelEn)}</span>}
+              </button>
+            </div>
           );
         })}
       </nav>

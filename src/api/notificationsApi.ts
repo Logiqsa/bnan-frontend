@@ -16,7 +16,7 @@ export interface ApiNotification {
   createdAt: string;
 }
 
-interface NotificationListResponse {
+export interface NotificationListResponse {
   success: true;
   results: number;
   unreadCount: number;
@@ -24,13 +24,37 @@ interface NotificationListResponse {
   pagination: { page: number; limit: number; totalResults: number; totalPages: number };
 }
 
+type RawNotificationListResponse = Partial<NotificationListResponse> & {
+  data?: ApiNotification[] | {
+    data?: ApiNotification[];
+    notifications?: ApiNotification[];
+    unreadCount?: number;
+    pagination?: NotificationListResponse["pagination"];
+  };
+  notifications?: ApiNotification[];
+};
+
+const normalizeList = (response: RawNotificationListResponse): NotificationListResponse => {
+  const nested = !Array.isArray(response.data) && response.data ? response.data : undefined;
+  const data = Array.isArray(response.data)
+    ? response.data
+    : nested?.notifications || nested?.data || response.notifications || [];
+  return {
+    success: true,
+    results: response.results ?? data.length,
+    unreadCount: response.unreadCount ?? nested?.unreadCount ?? data.filter((item) => !item.isRead).length,
+    data,
+    pagination: response.pagination ?? nested?.pagination ?? { page: 1, limit: data.length, totalResults: data.length, totalPages: 1 },
+  };
+};
+
 interface MarkReadResponse {
   success: true;
   data: { modifiedCount: number; unreadCount: number };
 }
 
 export const notificationsApi = {
-  list: (limit = 50) => apiRequest<NotificationListResponse>(`/notifications?page=1&limit=${limit}`),
+  list: async (limit = 50) => normalizeList(await apiRequest<RawNotificationListResponse>(`/notifications?page=1&limit=${limit}`)),
   markRead: (notificationIds: string[]) => apiRequest<MarkReadResponse>("/notifications/read", {
     method: "PATCH",
     body: JSON.stringify({ notificationIds }),

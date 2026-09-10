@@ -51,6 +51,7 @@ import TeacherCourseDetail from "@/portal/TeacherCourseDetail";
 import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
 import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
 import TeacherCourseGroupDetail from "@/portal/TeacherCourseGroupDetail";
+import ClientErrorsAdmin from "@/admin/ClientErrorsAdmin";
 
 const queryClient = new QueryClient();
 
@@ -181,6 +182,10 @@ export default function App() {
                           <AdminDashboard />
                         </AdminGuard>
                       }
+                    />
+                    <Route
+                      path="/admin/client-errors"
+                      element={<AdminGuard><ClientErrorsAdmin /></AdminGuard>}
                     />
                     <Route
                       path="/admin/classroom-recordings"

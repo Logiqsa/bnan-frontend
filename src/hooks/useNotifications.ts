@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notificationsApi, type ApiNotification } from "@/api/notificationsApi";
 import { getSocket } from "@/lib/socket";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ export function useNotifications(language?: "ar" | "en") {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const receivedIds = useRef(new Set<string>());
 
   const load = useCallback(async () => {
     // Changing language must refetch because the backend localizes title/body.
@@ -79,14 +80,17 @@ export function useNotifications(language?: "ar" | "en") {
         body: localizedText(payload?.body, language) || undefined,
       };
       if (!notification?.id) return;
+      if (receivedIds.current.has(notification.id)) return;
+      receivedIds.current.add(notification.id);
       setItems((current) => mergeNotifications([notification], current));
       setUnreadCount((current) => current + (notification.isRead ? 0 : 1));
       toast(notification.title, { description: notification.body });
     };
-    socket.on("notification", receive);
+    const realtimeEvents = ["notification", "newNotification", "notification:new"];
+    realtimeEvents.forEach((event) => socket.on(event, receive));
     socket.on("connect", load);
     return () => {
-      socket.off("notification", receive);
+      realtimeEvents.forEach((event) => socket.off(event, receive));
       socket.off("connect", load);
     };
   }, [load, language]);

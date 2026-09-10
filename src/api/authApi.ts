@@ -63,6 +63,7 @@ async function registerTeacher(
     return response.data;
   } catch (value) {
     const error = value as AxiosError<Record<string, unknown>>;
+    if (error.response) onResponseStatus?.(error.response.status);
     console.error("[register-teacher] axios catch", {
       code: error.code,
       message: error.message,
@@ -78,7 +79,7 @@ async function registerTeacher(
           ? `لم يتمكن المتصفح من إرسال الطلب إلى الخادم. السبب التقني: ${technicalReason}`
           : "لم يتمكن المتصفح من إرسال الطلب إلى الخادم. تحقق من الاتصال وإعدادات CORS في الخادم.",
         undefined,
-        { technicalReason, path: "/auth/register-teacher" },
+        { technicalReason, path: "/auth/register-teacher", axiosCode: error.code || "" },
       );
     }
 

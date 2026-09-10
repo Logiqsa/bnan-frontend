@@ -1,0 +1,15 @@
+import { cleanup,fireEvent,render,screen,waitFor } from "@testing-library/react";
+import { afterEach,beforeEach,describe,expect,it,vi } from "vitest";
+import ClientErrorsAdmin from "./ClientErrorsAdmin";
+const mocks=vi.hoisted(()=>({list:vi.fn(),get:vi.fn(),updateStatus:vi.fn()}));
+vi.mock("@/api/clientErrorsAdminApi",()=>({clientErrorsAdminApi:mocks}));
+vi.mock("@/layouts/DashboardLayout",()=>({default:({children}:{children:React.ReactNode})=><div>{children}</div>}));
+vi.mock("@/i18n/LanguageContext",()=>({useLanguage:()=>({isArabic:true})}));
+const item={id:"e1",name:"محمد أحمد",email:"teacher@example.com",phone:"0100",source:"teacher-signup",platform:"web",phase:"uploading",errorCode:"NETWORK_ERROR",message:"Network Error",status:"new" as const,filesCount:6,totalSizeMB:17.2,durationMs:180000,lastStep:3,createdAt:"2026-09-10T08:32:00Z"};
+describe("ClientErrorsAdmin",()=>{beforeEach(()=>{mocks.list.mockReset().mockResolvedValue({data:[item],page:1,limit:20,total:1,totalPages:1,hasNextPage:false});mocks.get.mockReset().mockResolvedValue(item);mocks.updateStatus.mockReset().mockImplementation((_id,status)=>Promise.resolve({...item,status}));Object.assign(navigator,{clipboard:{writeText:vi.fn()}})});
+ afterEach(()=>{cleanup();vi.restoreAllMocks()});
+ it("shows the name in list and details",async()=>{render(<ClientErrorsAdmin/>);expect(screen.getByLabelText("جاري التحميل")).toBeInTheDocument();expect((await screen.findAllByText("محمد أحمد")).length).toBeGreaterThan(0);fireEvent.click(screen.getByRole("button",{name:/عرض/}));expect(await screen.findByText("تفاصيل الخطأ")).toBeInTheDocument();expect((await screen.findAllByText("محمد أحمد")).length).toBeGreaterThan(1);expect(screen.getByText("3m 0s")).toBeInTheDocument();expect(screen.queryByText(/password|token|authorization/i)).not.toBeInTheDocument()});
+ it("renders legacy records without a name",async()=>{const legacy={...item,name:undefined};mocks.list.mockResolvedValueOnce({data:[legacy],page:1,limit:20,total:1,totalPages:1,hasNextPage:false});mocks.get.mockResolvedValueOnce(legacy);render(<ClientErrorsAdmin/>);await screen.findAllByText("teacher@example.com");fireEvent.click(screen.getByRole("button",{name:/عرض/}));expect(await screen.findByText("تفاصيل الخطأ")).toBeInTheDocument();expect(screen.getAllByText("—").length).toBeGreaterThan(0)});
+ it.each([["تحديد كمحلول","resolved"],["تجاهل","ignored"]])("updates status using %s",async(label,status)=>{render(<ClientErrorsAdmin/>);await screen.findAllByText("teacher@example.com");fireEvent.click(screen.getByRole("button",{name:/عرض/}));await screen.findByText("تفاصيل الخطأ");fireEvent.click(screen.getByRole("button",{name:label}));await waitFor(()=>expect(mocks.updateStatus).toHaveBeenCalledWith("e1",status))});
+ it("supports retry and empty states",async()=>{mocks.list.mockRejectedValueOnce(new Error()).mockResolvedValueOnce({data:[],page:1,limit:20,hasNextPage:false});render(<ClientErrorsAdmin/>);fireEvent.click(await screen.findByRole("button",{name:"إعادة المحاولة"}));expect(await screen.findByText("لا توجد أخطاء مسجلة")).toBeInTheDocument()});
+});

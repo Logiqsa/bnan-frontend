@@ -52,6 +52,8 @@ describe("useNotifications", () => {
     expect(result.current.items.map((item) => item.id)).toEqual(["notification-2", "notification-1"]);
     expect(result.current.unreadCount).toBe(2);
     expect(mocks.toast).toHaveBeenCalledWith("دفعة جديدة", { description: "طلب جديد" });
+    act(() => mocks.listeners.get("newNotification")?.(live));
+    expect(mocks.toast).toHaveBeenCalledTimes(1);
   });
 
   it("marks one notification and all notifications through the backend contract", async () => {

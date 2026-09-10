@@ -47,6 +47,8 @@ export default function TeacherApplicationsAdmin() {
   const [pageSizeInput, setPageSizeInput] = useState("20");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [items, setItems] = useState<TeacherApplication[]>([]);
   const [total, setTotal] = useState<number | undefined>();
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -74,13 +76,19 @@ export default function TeacherApplicationsAdmin() {
           .map((user) => [user.email!.trim().toLowerCase(), user]),
       );
       const normalizedQuery = searchQuery.trim().toLowerCase();
-      const matchingApplications = normalizedQuery ? applications.filter((item) => [
+      const matchingApplications = applications.filter((item) => {
+        const matchesSearch = !normalizedQuery || [
         applicantName(item),
         applicantEmail(item),
         applicantPhone(item),
         applicantWhatsapp(item),
         item.specialization,
-      ].some((value) => value?.toLowerCase().includes(normalizedQuery))) : applications;
+        ].some((value) => value?.toLowerCase().includes(normalizedQuery));
+        const createdAt = item.createdAt ? new Date(item.createdAt).getTime() : null;
+        const matchesFrom = !dateFrom || (createdAt !== null && createdAt >= new Date(`${dateFrom}T00:00:00`).getTime());
+        const matchesTo = !dateTo || (createdAt !== null && createdAt <= new Date(`${dateTo}T23:59:59.999`).getTime());
+        return matchesSearch && matchesFrom && matchesTo;
+      });
       const pageApplications = matchingApplications.slice((page - 1) * pageSize, page * pageSize);
       setItems(pageApplications.map((item) => {
         const email = (item.email || item.user?.email)?.trim().toLowerCase();
@@ -99,7 +107,7 @@ export default function TeacherApplicationsAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery, status]);
+  }, [dateFrom, dateTo, page, pageSize, searchQuery, status]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -228,6 +236,11 @@ export default function TeacherApplicationsAdmin() {
             placeholder="ابحث بالاسم أو بيانات التواصل"
             aria-label="البحث في طلبات التقديم"
           />
+        </div>
+        <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto">
+          <label className="space-y-1 text-sm"><span className="block text-muted-foreground">من تاريخ</span><Input aria-label="طلبات المعلمين من تاريخ" type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} /></label>
+          <label className="space-y-1 text-sm"><span className="block text-muted-foreground">إلى تاريخ</span><Input aria-label="طلبات المعلمين إلى تاريخ" type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} /></label>
+          {(dateFrom || dateTo) && <Button type="button" variant="ghost" size="sm" onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}><X className="ml-1 h-4 w-4" />مسح التاريخ</Button>}
         </div>
         <div className="flex items-center gap-2">
         <span className="whitespace-nowrap text-sm text-muted-foreground">عدد الصفوف</span>

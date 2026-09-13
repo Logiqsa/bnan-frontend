@@ -19,10 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import cover from "@/assets/course-default-cover.jpg";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useActiveCourseEnrollments } from "@/hooks/useActiveCourseEnrollments";
 export default function Courses() {
   const { isArabic, pick } = useLanguage();
   const [search, setSearch] = useState("");
   const [register, setRegister] = useState<Course | null>(null);
+  const { byCourseId } = useActiveCourseEnrollments();
   const q = useQuery({
     queryKey: ["public-courses"],
     queryFn: coursesApi.listPublic,
@@ -90,6 +92,7 @@ export default function Courses() {
             {rows.map((c) => {
               const available = c.canEnroll ?? c.enrollmentOpen;
               const free = isFreeCourse(c);
+              const activeEnrollment = byCourseId.get(c.id);
               return (
                 <Card key={c.id} className="overflow-hidden">
                   <img
@@ -105,6 +108,7 @@ export default function Courses() {
                           {pick("مجانية", "Free")}
                         </Badge>
                       )}
+                      {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {pick("المعلم:", "Teacher:")} {refName(c.teacher)}
@@ -155,15 +159,15 @@ export default function Courses() {
                           {pick("التفاصيل", "Details")}
                         </Link>
                       </Button>
-                      <Button
-                        className="flex-1"
-                        disabled={!available}
-                        onClick={() => setRegister(c)}
-                      >
-                        {available
-                          ? pick("سجّل الآن", "Enroll Now")
-                          : pick("غير متاح حاليًا", "Currently unavailable")}
-                      </Button>
+                      {activeEnrollment ? <Button className="flex-1" asChild><Link to={`/portal/student/courses/${activeEnrollment.id}`}>{pick("عرض دورتي", "View my course")}</Link></Button> : <Button
+                          className="flex-1"
+                          disabled={!available}
+                          onClick={() => setRegister(c)}
+                        >
+                          {available
+                            ? pick("سجّل الآن", "Enroll Now")
+                            : pick("غير متاح حاليًا", "Currently unavailable")}
+                        </Button>}
                     </div>
                   </CardContent>
                 </Card>

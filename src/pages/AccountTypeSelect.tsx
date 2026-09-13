@@ -7,8 +7,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 const AccountTypeSelect = () => {
   const { isArabic, toggleLanguage, pick } = useLanguage();
   const options = [
-    { id: "student", to: "/register/student", icon: GraduationCap, title: pick("طالب", "Student"), description: pick("سجّل بياناتك واختر المنهج والباقة المناسبة لبدء رحلتك التعليمية.", "Enter your details and choose the right curriculum and package to start learning.") },
-    { id: "course-student", to: "/register/course-student", icon: BookOpen, title: pick("طالب دورات", "Course student"), description: pick("أنشئ حسابًا للدورات فقط بدون اختيار باقة أكاديمية أو دفع عند التسجيل.", "Create a courses-only account without choosing an academic package or paying during signup.") },
+    { id: "student", to: "/register/student", icon: GraduationCap, title: pick("طالب أكاديمية بنان", "BNAN Academy student"), description: pick("سجّل بياناتك واختر المنهج والباقة المناسبة لبدء رحلتك التعليمية.", "Enter your details and choose the right curriculum and package to start learning.") },
+    { id: "course-student", to: "/register/course-student", icon: BookOpen, title: pick("طالب الدورات المستقلة", "Independent courses student"), description: pick("أنشئ حسابًا للدورات فقط بدون اختيار باقة أكاديمية أو دفع عند التسجيل.", "Create a courses-only account without choosing an academic package or paying during signup.") },
     { id: "teacher", to: "/portal/teacher/signup", icon: School, title: pick("معلم", "Teacher"), description: pick("انضم إلى فريق المعلمين في أكاديمية بنان وابدأ بتقديم حصصك.", "Join BNAN Academy's teaching team and start delivering your classes.") },
   ];
   return (

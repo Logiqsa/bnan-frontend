@@ -16,16 +16,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import cover from "@/assets/course-default-cover.jpg";
+import { useActiveCourseEnrollments } from "@/hooks/useActiveCourseEnrollments";
 
 export default function CourseDetails() {
   const { slug = "" } = useParams();
   const [open, setOpen] = useState(false);
+  const { byCourseId } = useActiveCourseEnrollments();
   const query = useQuery({
     queryKey: ["public-course", slug],
     queryFn: () => coursesApi.getPublic(slug),
   });
   const course = query.data;
   const free = course ? isFreeCourse(course) : false;
+  const activeEnrollment = course ? byCourseId.get(course.id) : undefined;
   const duration = course
     ? course.durationHours ||
       course.requiredDuration ||
@@ -71,6 +74,7 @@ export default function CourseDetails() {
                             مجانية
                           </Badge>
                         )}
+                        {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">مسجل بالفعل</Badge>}
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-xl border bg-muted/30 p-4">
@@ -139,18 +143,24 @@ export default function CourseDetails() {
                           )}
                         </div>
                       )}
-                      <Button
-                        className="w-full"
-                        size="lg"
-                        disabled={!course.enrollmentOpen}
-                        onClick={() => setOpen(true)}
-                      >
-                        {course.enrollmentOpen
-                          ? free
-                            ? "سجّل مجانًا"
-                            : "اختيار نمط التسجيل"
-                          : "التسجيل مغلق"}
-                      </Button>
+                      {activeEnrollment ? (
+                        <Button className="w-full" size="lg" asChild>
+                          <Link to={`/portal/student/courses/${activeEnrollment.id}`}>عرض دورتي</Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          disabled={!course.enrollmentOpen}
+                          onClick={() => setOpen(true)}
+                        >
+                          {course.enrollmentOpen
+                            ? free
+                              ? "سجّل مجانًا"
+                              : "اختيار نمط التسجيل"
+                            : "التسجيل مغلق"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

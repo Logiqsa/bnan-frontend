@@ -1072,7 +1072,7 @@ export default function TeacherSignup() {
                       options={yesNo}
                     />
                   ))}
-                  <Field label="رابط الفيديو التعريفي *" error={showValidationErrors && !values.introVideoUrl}>
+                  <Field label="رابط لجزء من الشرح *" error={showValidationErrors && !values.introVideoUrl}>
                     <Input
                       dir="ltr"
                       type="url"

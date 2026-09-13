@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Home, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, GraduationCap, Home, Loader2 } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { catalogApi, type CurriculumOption, type GradeOption, type SubjectOption, type PackageOption } from "@/api/catalogApi";
 import { paymentApi } from "@/api/paymentApi";
@@ -125,6 +125,7 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
   const [searchParams] = useSearchParams();
   const requestedReturnTo = searchParams.get("returnTo") || "";
   const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/courses";
+  const courseOnlyPath = `/register/course-student${requestedReturnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   const steps = courseOnly ? courseOnlySteps : academicSteps;
   const sessionDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_DRAFT_KEY : STUDENT_SIGNUP_DRAFT_KEY;
   const persistentDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
@@ -472,6 +473,27 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
             </div>
           </div>
           <CardTitle className="font-cairo mt-4">{courseOnly ? "إنشاء حساب طالب للدورات" : "إنشاء حساب طالب"}</CardTitle>
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-muted/60 p-1.5" aria-label="نوع تسجيل الطالب">
+            <Link
+              to="/register/student"
+              aria-current={!courseOnly ? "page" : undefined}
+              className={cn("flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors", !courseOnly ? "bg-card text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/70 hover:text-foreground")}
+            >
+              <GraduationCap className="h-4 w-4 shrink-0" />
+              طالب أكاديمية بنان
+            </Link>
+            <Link
+              to={courseOnlyPath}
+              aria-current={courseOnly ? "page" : undefined}
+              className={cn("flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors", courseOnly ? "bg-card text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/70 hover:text-foreground")}
+            >
+              <BookOpen className="h-4 w-4 shrink-0" />
+              طالب الدورات المستقلة
+            </Link>
+          </div>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {courseOnly ? "لن تختار باقة ولن تدفع أثناء إنشاء الحساب." : "هذا المسار مخصص للاشتراك في النظام الأكاديمي والباقات."}
+          </p>
           <div className={cn("grid gap-2 pt-4", courseOnly ? "grid-cols-3" : "grid-cols-4")}>
             {steps.map((title, index) => (
               <div key={title} className="text-center">

@@ -30,7 +30,6 @@ const COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_course_student_signup_p
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-  EMAIL_ALREADY_EXISTS: "البريد الإلكتروني مسجل بالفعل.",
   GULF_PAYMENT_REQUIRED: "هذا المنهج يتطلب الدفع الإلكتروني.",
   PARENT_PAYMENT_PHONE_REQUIRED: "يرجى إضافة رقم هاتف موثق لحساب ولي الأمر قبل الدفع.",
   TAMARA_ADDRESS_REQUIRED: "يرجى إدخال عنوان صحيح لإتمام الدفع.",
@@ -343,8 +342,7 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
       setParentCreds(credentials);
       setVerification({ email: response.data.email || credentials.email, kind: "parent" });
     } catch (value) {
-      const apiError = value as ApiError;
-      setError(apiError.code === "EMAIL_ALREADY_EXISTS" ? ERROR_MESSAGES.INCORRECT_LOGIN_DATA : friendlyError(value));
+      setError(friendlyError(value));
     } finally {
       setParentBusy(false);
     }

@@ -525,7 +525,7 @@ export default function TeacherSignup() {
       }
       setError(
         apiError.code === "EMAIL_ALREADY_EXISTS"
-          ? "البريد الإلكتروني مسجل بالفعل."
+          ? apiError.message
           : apiError.code === "NETWORK_ERROR"
             ? "حدثت مشكلة مؤقتة في الاتصال، برجاء المحاولة مرة أخرى."
           : apiError.message,

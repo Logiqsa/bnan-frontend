@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Play, Users, BookOpen, Phone, Tag, GraduationCap } from "lucide-react";
+import { useContactSettings, whatsappHref } from "@/contexts/ContactSettingsContext";
 
 const floatingBubbles = [
   {
@@ -38,6 +39,9 @@ const floatingBubbles = [
 ];
 
 const HeroSection = () => {
+  const { settings } = useContactSettings();
+  const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
+    || settings.phones.find((phone) => phone.isWhatsapp);
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <div className="absolute inset-0 bg-hero-gradient" />
@@ -122,7 +126,7 @@ const HeroSection = () => {
                 ابدأ رحلتك التعليمية
               </Button>
             </a>
-            <a href="https://wa.me/+966582502026?text=%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%AD%D8%AC%D8%B2%20%D8%AD%D8%B5%D8%A9%20%D9%85%D8%AC%D8%A7%D9%86%D9%8A%D8%A9" target="_blank" rel="noopener noreferrer">
+            {whatsapp && <a href={whatsappHref(whatsapp.value, "أريد حجز حصة مجانية")} target="_blank" rel="noopener noreferrer">
               <Button
                 size="lg"
                 variant="outline"
@@ -131,7 +135,7 @@ const HeroSection = () => {
                 <Play className="w-5 h-5 ml-2" />
                 اطلب حصة مجانية
               </Button>
-            </a>
+            </a>}
           </motion.div>
 
 

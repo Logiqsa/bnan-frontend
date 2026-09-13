@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosProgressEvent } from "axios";
 import { API_BASE_URL, ApiError, apiRequest, refreshAccessToken, tokenStore } from "./client";
-import type { AuthResponse, DirectRegisterBody, RegisterParentBody, RegistrationResponse } from "./types";
+import type { AuthResponse, CourseStudentRegisterBody, CourseStudentRegistrationResponse, DirectRegisterBody, RegisterParentBody, RegistrationResponse } from "./types";
 
 const apiLanguage = () => localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
@@ -122,6 +122,9 @@ export const authApi = {
     method: "POST", body: JSON.stringify(body),
   }),
   registerStudent: (body: DirectRegisterBody) => apiRequest<RegistrationResponse>("/auth/register", {
+    method: "POST", body: JSON.stringify(body),
+  }),
+  registerCourseStudent: (body: CourseStudentRegisterBody) => apiRequest<CourseStudentRegistrationResponse>("/auth/register-course-student", {
     method: "POST", body: JSON.stringify(body),
   }),
   verifyAccount: (email: string, code: string) => apiRequest<{ success: true; message: string }>("/auth/verify-account", {

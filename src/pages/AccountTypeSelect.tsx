@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, Home, School, ArrowLeft, Globe } from "lucide-react";
+import { BookOpen, GraduationCap, Home, School, ArrowLeft, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/logo-bnan.png";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -8,6 +8,7 @@ const AccountTypeSelect = () => {
   const { isArabic, toggleLanguage, pick } = useLanguage();
   const options = [
     { id: "student", to: "/register/student", icon: GraduationCap, title: pick("طالب", "Student"), description: pick("سجّل بياناتك واختر المنهج والباقة المناسبة لبدء رحلتك التعليمية.", "Enter your details and choose the right curriculum and package to start learning.") },
+    { id: "course-student", to: "/register/course-student", icon: BookOpen, title: pick("طالب دورات", "Course student"), description: pick("أنشئ حسابًا للدورات فقط بدون اختيار باقة أكاديمية أو دفع عند التسجيل.", "Create a courses-only account without choosing an academic package or paying during signup.") },
     { id: "teacher", to: "/portal/teacher/signup", icon: School, title: pick("معلم", "Teacher"), description: pick("انضم إلى فريق المعلمين في أكاديمية بنان وابدأ بتقديم حصصك.", "Join BNAN Academy's teaching team and start delivering your classes.") },
   ];
   return (
@@ -41,7 +42,7 @@ const AccountTypeSelect = () => {
           <p className="mt-2 text-sm text-white/60 font-tajawal">{pick("اختر نوع الحساب المناسب لك للمتابعة", "Choose your account type to continue")}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
           {options.map((option) => (
             <Link key={option.id} to={option.to}>
               <Card className="h-full border-white/10 bg-card/95 shadow-2xl hover:shadow-sky hover:-translate-y-1 transition-all">

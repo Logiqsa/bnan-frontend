@@ -52,6 +52,8 @@ import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
 import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
 import TeacherCourseGroupDetail from "@/portal/TeacherCourseGroupDetail";
 import ClientErrorsAdmin from "@/admin/ClientErrorsAdmin";
+import ContactSettingsAdmin from "@/admin/ContactSettingsAdmin";
+import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 
 const queryClient = new QueryClient();
 
@@ -73,7 +75,7 @@ export default function App() {
             <TooltipProvider>
               <Sonner />
               <BrowserRouter>
-                <PortalAuthProvider>
+                <ContactSettingsProvider><PortalAuthProvider>
                   <ScrollToHash />
                   <FloatingWhatsApp />
                   <ScrollToTopButton />
@@ -88,6 +90,10 @@ export default function App() {
                     <Route
                       path="/register/student"
                       element={<StudentSignup />}
+                    />
+                    <Route
+                      path="/register/course-student"
+                      element={<StudentSignup courseOnly />}
                     />
                     <Route
                       path="/payment/tamara/success"
@@ -186,6 +192,10 @@ export default function App() {
                     <Route
                       path="/admin/client-errors"
                       element={<AdminGuard><ClientErrorsAdmin /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/contact-settings"
+                      element={<AdminGuard><ContactSettingsAdmin /></AdminGuard>}
                     />
                     <Route
                       path="/admin/classroom-recordings"
@@ -405,7 +415,7 @@ export default function App() {
                     />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </PortalAuthProvider>
+                </PortalAuthProvider></ContactSettingsProvider>
               </BrowserRouter>
             </TooltipProvider>
           </CurrencyProvider>

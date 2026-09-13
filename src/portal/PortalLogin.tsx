@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -37,7 +37,12 @@ export default function PortalLogin() {
     forgetRememberedAccount,
   } = usePortalAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const stateFrom = (location.state as { from?: unknown } | null)?.from;
+  const queryReturnTo = searchParams.get("returnTo");
+  const requestedReturnTo = typeof stateFrom === "string" ? stateFrom : queryReturnTo || "";
+  const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "";
   const { isArabic, pick } = useLanguage();
   const addingAccount = searchParams.get("addAccount") === "1";
   const [email, setEmail] = useState(() => searchParams.get("email") || "");
@@ -67,7 +72,7 @@ export default function PortalLogin() {
     setNotice("");
     try {
       const account = await login(email.trim(), password, remember);
-      navigate(homeFor(account.role), { replace: true });
+      navigate(returnTo || homeFor(account.role), { replace: true });
     } catch (value) {
       const apiError = value as ApiError;
       if (apiError.code === "PARENT_APP_ONLY") {
@@ -294,6 +299,16 @@ export default function PortalLogin() {
                 >
                   {pick("سجّل الآن", "Sign up now")}
                 </Link>
+                {returnTo.startsWith("/courses/") && (
+                  <div className="mt-3">
+                    <Link
+                      className="font-semibold text-secondary hover:underline"
+                      to={`/register/course-student?returnTo=${encodeURIComponent(returnTo)}`}
+                    >
+                      {pick("إنشاء حساب للدورات فقط", "Create a courses-only account")}
+                    </Link>
+                  </div>
+                )}
               </div>
             </form>
           </CardContent>

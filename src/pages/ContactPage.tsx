@@ -4,51 +4,17 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-
-const WHATSAPP_URL = "https://wa.me/+966582502026?text=" + encodeURIComponent("مرحبًا، أرغب في الاستفسار عن أكاديمية بنان.");
-
-const contactInfo = [
-  {
-    icon: Phone,
-    title: "اتصل بنا",
-    value: "+966 58 250 2026",
-    href: "tel:+966582502026",
-    subtitle: "متاح 24/7",
-  },
-  {
-    icon: Phone,
-    title: "خط إضافي",
-    value: "+966 53 080 8189",
-    href: "tel:+966530808189",
-    subtitle: "خط إضافي",
-  },
-  {
-    icon: Phone,
-    title: "خط مصر",
-    value: "+20 10 9156 9792",
-    href: "tel:+201091569792",
-    subtitle: "للتواصل من مصر",
-  },
-  {
-    icon: MessageCircle,
-    title: "واتساب",
-    value: "+966 58 250 2026",
-    href: "https://wa.me/+966582502026",
-  },
-  {
-    icon: Mail,
-    title: "البريد الإلكتروني",
-    value: "info@bnanacademysa.com",
-    href: "mailto:info@bnanacademysa.com",
-  },
-  {
-    icon: MapPin,
-    title: "العنوان",
-    value: "الرياض، المملكة العربية السعودية",
-  },
-];
+import { phoneHref, useContactSettings, whatsappHref } from "@/contexts/ContactSettingsContext";
 
 const ContactPage = () => {
+  const { settings } = useContactSettings();
+  const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
+    || settings.phones.find((phone) => phone.isWhatsapp);
+  const contactInfo = [
+    ...settings.phones.map((phone) => ({ icon: Phone, title: phone.label || "اتصل بنا", value: phone.value, href: phoneHref(phone.value) })),
+    ...settings.emails.map((email) => ({ icon: Mail, title: email.label || "البريد الإلكتروني", value: email.value, href: `mailto:${email.value}` })),
+    { icon: MapPin, title: "العنوان", value: "الرياض، المملكة العربية السعودية", href: undefined },
+  ];
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -98,15 +64,12 @@ const ContactPage = () => {
                     ) : (
                       <p dir="ltr" className="text-foreground">{item.value}</p>
                     )}
-                    {item.subtitle && (
-                      <p className="text-xs text-muted-foreground mt-1">{item.subtitle}</p>
-                    )}
                   </div>
                 </motion.div>
               ))}
             </div>
 
-            <motion.div
+            {whatsapp && <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -122,12 +85,12 @@ const ContactPage = () => {
                 تواصل معنا مباشرة عبر واتساب وسيقوم فريقنا بالرد عليك في أقرب وقت.
               </p>
               <Button size="lg" asChild className="font-cairo bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-2">
-                <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                <a href={whatsappHref(whatsapp.value, "مرحبًا، أرغب في الاستفسار عن أكاديمية بنان.")} target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="w-4 h-4" />
                   تواصل عبر واتساب
                 </a>
               </Button>
-            </motion.div>
+            </motion.div>}
           </div>
         </div>
       </section>

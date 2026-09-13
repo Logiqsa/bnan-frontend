@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  ContactRound,
   School,
   Settings,
   ShieldCheck,
@@ -166,6 +167,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Legal pages",
       icon: FileText,
       path: "/admin?tab=legal-pages",
+    },
+    {
+      label: "وسائل التواصل",
+      labelEn: "Contact settings",
+      icon: ContactRound,
+      path: "/admin/contact-settings",
     },
     {
       label: "أخطاء التطبيقات",

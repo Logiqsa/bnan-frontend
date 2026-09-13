@@ -25,6 +25,28 @@ export interface DirectRegisterBody {
   discountCode?: string;
 }
 
+export interface CourseStudentRegisterBody {
+  parent: { email: string; password: string };
+  student: Omit<StudentRegistrationInput, "subjects">;
+  curriculum: string;
+}
+
+export interface CourseStudentRegistrationResponse {
+  success: true;
+  message: string;
+  data: {
+    user: PortalUser & { isVerified: boolean };
+    student: {
+      id: string;
+      userId: string;
+      registrationType: "course_only";
+      registrationStatus: "approved";
+      curriculum: string;
+      grade: string;
+    };
+  };
+}
+
 export interface TamaraPaymentAddress {
   city: string;
   region: string;

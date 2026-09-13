@@ -22,8 +22,11 @@ import mastercardImg from "@/assets/payment/mastercard.png";
 import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
 
-const steps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
+const academicSteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
+const courseOnlySteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف"];
 const STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_student_signup_persistent_draft";
+const COURSE_STUDENT_SIGNUP_DRAFT_KEY = "bnan_course_student_signup_draft";
+const COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_course_student_signup_persistent_draft";
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -43,6 +46,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   PAYMENT_ACCESS_DENIED: "لا يمكن إتمام هذه العملية بهذا الحساب.",
   CHILD_CURRICULUM_MISMATCH: "يجب أن يلتحق إخوة الطالب بنفس منهج أول طفل مسجّل.",
   WRONG_PARENT_ACCOUNT: "هذه البيانات لا تخص حساب ولي أمر.",
+  INVALID_COURSE_ONLY_REGISTRATION_DATA: "راجع بيانات الطالب والمنهج والصف ثم حاول مجددًا.",
+  PARENT_REQUIRED: "بيانات ولي الأمر مطلوبة.",
+  PARENT_CREDENTIALS_REQUIRED: "البريد وكلمة المرور لولي الأمر مطلوبان.",
+  STUDENT_REQUIRED: "بيانات الطالب مطلوبة.",
+  CURRICULUM_REQUIRED: "اختيار المنهج مطلوب.",
+  INVALID_ID: "أحد الاختيارات غير صالح. أعد اختيار المنهج والصف.",
+  INVALID_GRADE: "الصف المختار غير صالح لهذا المنهج.",
+  INVALID_PARENT_CREDENTIALS: "بيانات دخول ولي الأمر غير صحيحة.",
+  PARENT_PROFILE_NOT_FOUND: "لم يتم العثور على ملف ولي الأمر.",
+  CURRICULUM_NOT_FOUND: "المنهج المختار غير موجود.",
 };
 
 const friendlyError = (error: unknown) => {
@@ -90,10 +103,12 @@ interface SignupDraft {
   idempotencyKey: string;
 }
 
-const readSignupDraft = (): Partial<SignupDraft> => {
+const readSignupDraft = (courseOnly: boolean): Partial<SignupDraft> => {
+  const sessionKey = courseOnly ? COURSE_STUDENT_SIGNUP_DRAFT_KEY : STUDENT_SIGNUP_DRAFT_KEY;
+  const persistentKey = courseOnly ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
   for (const [storage, key] of [
-    [sessionStorage, STUDENT_SIGNUP_DRAFT_KEY],
-    [localStorage, STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY],
+    [sessionStorage, sessionKey],
+    [localStorage, persistentKey],
   ] as const) {
     try {
       const raw = storage.getItem(key);
@@ -105,10 +120,15 @@ const readSignupDraft = (): Partial<SignupDraft> => {
   return {};
 };
 
-export default function StudentSignup() {
+export default function StudentSignup({ courseOnly = false }: { courseOnly?: boolean }) {
   const { isArabic, pick } = useLanguage();
   const [searchParams] = useSearchParams();
-  const [savedDraft] = useState(readSignupDraft);
+  const requestedReturnTo = searchParams.get("returnTo") || "";
+  const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/courses";
+  const steps = courseOnly ? courseOnlySteps : academicSteps;
+  const sessionDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_DRAFT_KEY : STUDENT_SIGNUP_DRAFT_KEY;
+  const persistentDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
+  const [savedDraft] = useState(() => readSignupDraft(courseOnly));
   const [step, setStep] = useState(() => savedDraft.parentCreds
     ? Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1)
     : 0);
@@ -195,7 +215,7 @@ export default function StudentSignup() {
   }, [curriculumId]);
 
   useEffect(() => {
-    if (!gradeId) { setSubjects([]); return; }
+    if (!gradeId || courseOnly) { setSubjects([]); return; }
     const gradeChanged = previousGradeId.current !== gradeId;
     previousGradeId.current = gradeId;
     setSubjectsLoading(true);
@@ -204,7 +224,7 @@ export default function StudentSignup() {
       .then((result) => setSubjects(result.data))
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setSubjectsLoading(false));
-  }, [gradeId]);
+  }, [gradeId, courseOnly]);
 
   useEffect(() => {
     const draft: SignupDraft = {
@@ -214,7 +234,7 @@ export default function StudentSignup() {
       verification, idempotencyKey,
     };
     try {
-      sessionStorage.setItem(STUDENT_SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+      sessionStorage.setItem(sessionDraftKey, JSON.stringify(draft));
     } catch {
       // sessionStorage may be discarded or unavailable on mobile browsers.
     }
@@ -227,14 +247,14 @@ export default function StudentSignup() {
         parentCreds: null,
         verification: null,
       };
-      localStorage.setItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY, JSON.stringify(persistentDraft));
+      localStorage.setItem(persistentDraftKey, JSON.stringify(persistentDraft));
     } catch {
       // Strict private browsing can disable persistent storage.
     }
-  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, packageId, discountCode, paymentProvider, city, region, line1, verification, idempotencyKey]);
+  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, packageId, discountCode, paymentProvider, city, region, line1, verification, idempotencyKey, sessionDraftKey, persistentDraftKey]);
 
   useEffect(() => {
-    if (!curriculumId) { setPackages([]); setPackageId(""); return; }
+    if (!curriculumId || courseOnly) { setPackages([]); setPackageId(""); return; }
     setPackagesLoading(true);
     catalogApi.packages(curriculumId)
       .then((result) => {
@@ -245,7 +265,7 @@ export default function StudentSignup() {
       })
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setPackagesLoading(false));
-  }, [curriculumId, mode]);
+  }, [curriculumId, mode, courseOnly]);
 
   useEffect(() => {
     if (!selectedPackage || subjectsLoading) return;
@@ -270,6 +290,7 @@ export default function StudentSignup() {
     if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeRegistrationPhone(parentPhone) && !!parentPassword;
     if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && !!studentPassword;
     if (step === 2) {
+      if (courseOnly) return !!curriculumId && !!gradeId;
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0) return false;
       if (mode === "gulf") return subjectIds.length >= 1;
       if (isSingleSubjectPackage) return subjectIds.length === 1;
@@ -282,7 +303,7 @@ export default function StudentSignup() {
       return true;
     }
     return true;
-  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, subjects.length, packageId, isSingleSubjectPackage, isAllSubjectsPackage, mode, paymentProvider, city, region, line1]);
+  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, subjects.length, packageId, isSingleSubjectPackage, isAllSubjectsPackage, mode, paymentProvider, city, region, line1, courseOnly]);
 
   const submitParentStep = async () => {
     setError("");
@@ -346,6 +367,20 @@ export default function StudentSignup() {
     setSubmitting(true);
     setError("");
     try {
+      if (courseOnly) {
+        await authApi.registerCourseStudent({
+          parent: parentCreds,
+          student: {
+            fullName: studentFullName.trim(),
+            email: studentEmail.trim(),
+            password: studentPassword,
+            grade: gradeId,
+          },
+          curriculum: curriculumId,
+        });
+        setVerification({ email: studentEmail.trim(), kind: "student" });
+        return;
+      }
       const studentPayload = {
         fullName: studentFullName.trim(),
         email: studentEmail.trim(),
@@ -362,8 +397,8 @@ export default function StudentSignup() {
           discountCode: discountCode.trim() || undefined,
         });
         const pendingStudentEmail = studentEmail.trim();
-        sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
-        localStorage.removeItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY);
+        sessionStorage.removeItem(sessionDraftKey);
+        localStorage.removeItem(persistentDraftKey);
         window.location.href = `/portal/login?email=${encodeURIComponent(pendingStudentEmail)}&pending=1`;
       } else {
         const { data } = await paymentApi.checkout(
@@ -412,9 +447,11 @@ export default function StudentSignup() {
       setStep(1);
     } else {
       const verifiedStudentEmail = verification.email || studentEmail.trim();
-      sessionStorage.removeItem(STUDENT_SIGNUP_DRAFT_KEY);
-      localStorage.removeItem(STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY);
-      window.location.href = `/portal/login?email=${encodeURIComponent(verifiedStudentEmail)}&pending=1`;
+      sessionStorage.removeItem(sessionDraftKey);
+      localStorage.removeItem(persistentDraftKey);
+      const loginParams = new URLSearchParams({ email: verifiedStudentEmail, verified: "1" });
+      if (courseOnly) loginParams.set("returnTo", returnTo);
+      window.location.href = `/portal/login?${loginParams.toString()}`;
     }
   }} />;
 
@@ -434,8 +471,8 @@ export default function StudentSignup() {
               </Link>
             </div>
           </div>
-          <CardTitle className="font-cairo mt-4">إنشاء حساب طالب</CardTitle>
-          <div className="grid grid-cols-4 gap-2 pt-4">
+          <CardTitle className="font-cairo mt-4">{courseOnly ? "إنشاء حساب طالب للدورات" : "إنشاء حساب طالب"}</CardTitle>
+          <div className={cn("grid gap-2 pt-4", courseOnly ? "grid-cols-3" : "grid-cols-4")}>
             {steps.map((title, index) => (
               <div key={title} className="text-center">
                 <div className={`h-2 rounded-full ${index <= step ? "bg-secondary" : "bg-muted"}`} />
@@ -488,7 +525,7 @@ export default function StudentSignup() {
                       >
                         <span className="font-cairo font-semibold">{c.name}</span>
                         <span className="block text-xs text-muted-foreground mt-1">
-                          {c.registrationMode === "gulf" ? "دفع فوري عبر البطاقة أو Tamara" : "مراجعة وتفعيل يدوي"}
+                          {courseOnly ? "لتخصيص بيانات الطالب والدورات المناسبة" : c.registrationMode === "gulf" ? "دفع فوري عبر البطاقة أو Tamara" : "مراجعة وتفعيل يدوي"}
                         </span>
                       </button>
                     ))}
@@ -515,7 +552,7 @@ export default function StudentSignup() {
                 </div>
               )}
 
-              {gradeId && (
+              {gradeId && !courseOnly && (
                 <div>
                   <h3 className="font-cairo font-bold mb-3">اختر الباقة أولًا *</h3>
                   {packagesLoading ? <LoaderRow /> : packages.length === 0 ? (
@@ -540,7 +577,7 @@ export default function StudentSignup() {
                 </div>
               )}
 
-              {gradeId && packageId && (
+              {gradeId && packageId && !courseOnly && (
                 <div>
                   <h3 className="font-cairo font-bold mb-1">{mode === "gulf" ? "اختر مادة أو أكثر *" : isSingleSubjectPackage ? "اختر مادة واحدة *" : "المواد المشمولة في الباقة"}</h3>
                   <p className="text-sm text-muted-foreground font-tajawal mb-3">
@@ -588,7 +625,7 @@ export default function StudentSignup() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 3 && !courseOnly && (
             <div className="space-y-5">
               <div className="rounded-xl border bg-muted/40 p-4">
                 <h3 className="font-cairo font-bold">ملخص الاشتراك</h3>
@@ -651,7 +688,7 @@ export default function StudentSignup() {
               {step === 0
                 ? "التحقق والمتابعة"
                 : step === steps.length - 1
-                  ? (mode === "gulf" ? "المتابعة للدفع" : "إرسال الطلب")
+                  ? (courseOnly ? "إنشاء الحساب" : mode === "gulf" ? "المتابعة للدفع" : "إرسال الطلب")
                   : "التالي"}
             </Button>
           </div>

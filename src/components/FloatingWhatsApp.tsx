@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import { useContactSettings, whatsappHref } from "@/contexts/ContactSettingsContext";
 
 const WhatsAppIcon = () => (
   <svg viewBox="0 0 448 512" className="w-7 h-7 fill-current" aria-hidden="true">
@@ -8,13 +9,16 @@ const WhatsAppIcon = () => (
 
 const FloatingWhatsApp = () => {
   const { pathname } = useLocation();
+  const { settings } = useContactSettings();
+  const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
+    || settings.phones.find((phone) => phone.isWhatsapp);
   const isAdminOrSupervisorDashboard = pathname.startsWith("/admin")
     || pathname.startsWith("/portal/supervisor");
-  if (isAdminOrSupervisorDashboard) return null;
+  if (isAdminOrSupervisorDashboard || !whatsapp) return null;
 
   return (
     <a
-      href="https://wa.me/+966582502026"
+      href={whatsappHref(whatsapp.value)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="تواصل عبر الواتساب"

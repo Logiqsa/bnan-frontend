@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageCircle,
   Send,
+  Trash2,
   Users,
   Video,
 } from "lucide-react";
@@ -149,6 +150,7 @@ export default function CourseClassroomChat({
   const cache = useQueryClient();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const rooms = useQuery({
     queryKey: ["course-chat-room", classroomId, user?.role],
@@ -216,6 +218,22 @@ export default function CourseClassroomChat({
     }
   };
 
+  const deleteMessage = async (messageId: string) => {
+    if (!roomId || deletingId || !window.confirm("حذف هذه الرسالة؟")) return;
+    setDeletingId(messageId);
+    try {
+      await chatApi.deleteMessage(roomId, messageId);
+      cache.setQueryData<MessagesResult>(messageKey, (current) =>
+        current ? { ...current, data: current.data.filter((message) => message.id !== messageId) } : current,
+      );
+      toast.success("تم حذف الرسالة");
+    } catch (error) {
+      toast.error(courseError(error));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (rooms.isLoading) {
     return (
       <div className="grid min-h-48 place-items-center">
@@ -270,6 +288,11 @@ export default function CourseClassroomChat({
                 key={message.id}
                 className={`flex ${mine ? "justify-start" : "justify-end"}`}
               >
+                {user?.role === "admin" && message.id && (
+                  <Button type="button" variant="ghost" size="icon" className="mx-1 shrink-0 self-center text-destructive hover:text-destructive" aria-label="حذف الرسالة" title="حذف الرسالة" disabled={Boolean(deletingId)} onClick={() => void deleteMessage(message.id)}>
+                    {deletingId === message.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                )}
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                 >

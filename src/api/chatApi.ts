@@ -80,4 +80,6 @@ export const chatApi = {
     ),
   read: (roomId: string) =>
     apiRequest(`/chats/rooms/${roomId}/read`, { method: "PATCH" }),
+  deleteMessage: (roomId: string, messageId: string) =>
+    apiRequest(`/chats/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(messageId)}`, { method: "DELETE" }),
 };

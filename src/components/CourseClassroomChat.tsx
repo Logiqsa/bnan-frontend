@@ -188,13 +188,34 @@ export default function CourseClassroomChat({
       });
       socket.emit("markAsRead", roomId);
     };
+    const removeDeletedMessage = ({
+      roomId: deletedRoomId,
+      messageId,
+    }: {
+      roomId: string;
+      messageId: string;
+    }) => {
+      if (String(deletedRoomId) !== roomId) return;
+      cache.setQueryData<MessagesResult>(messageKey, (current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.filter(
+                (message) => message.id !== String(messageId),
+              ),
+            }
+          : current,
+      );
+    };
 
     socket.on("newMessage", receiveMessage);
+    socket.on("messageDeleted", removeDeletedMessage);
     socket.emit("joinRoom", roomId);
     socket.emit("markAsRead", roomId);
 
     return () => {
       socket.off("newMessage", receiveMessage);
+      socket.off("messageDeleted", removeDeletedMessage);
       socket.emit("leaveRoom", roomId);
     };
   }, [cache, messageKey, roomId]);

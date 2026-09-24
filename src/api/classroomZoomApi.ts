@@ -85,8 +85,10 @@ export interface ClassroomScheduleEntry {
 export interface ClassroomZoomDetails {
   id: string;
   name: string;
+  isActive?: boolean;
   curriculum?: string | { id?: string; _id?: string; name?: string; registrationMode?: "egyptian" | "gulf" };
   grade?: string | { id?: string; _id?: string; name?: string };
+  teacher?: string | { id?: string; _id?: string; name?: string; fullName?: string } | null;
   zoomAssignmentMode?: "grade_default" | "manual";
   schedule?: { entries?: ClassroomScheduleEntry[] } | ClassroomScheduleEntry[] | null;
   scheduleEntries?: ClassroomScheduleEntry[];

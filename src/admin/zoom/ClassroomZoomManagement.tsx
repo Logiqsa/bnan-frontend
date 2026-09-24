@@ -225,11 +225,17 @@ function ClassroomDetailHeader({ item }: { item: ClassroomOption }) {
   return <Card className="overflow-hidden shadow-elegant"><CardContent className="flex flex-col gap-4 bg-gradient-to-l from-primary/[0.06] to-transparent p-5 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-2"><ClassroomStatusBadge item={item}/><Badge variant="outline">{referenceName(item.grade)}</Badge></div><h2 className="break-words text-xl font-bold sm:text-2xl">{item.name}</h2>{subject && <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><BookOpen className="h-4 w-4"/>{subject}</p>}</div><div className="rounded-xl border bg-background/80 px-4 py-3 text-sm"><p className="text-xs text-muted-foreground">{pick("القسم الحالي", "Current section")}</p><p className="mt-1 flex items-center gap-2 font-semibold"><Video className="h-4 w-4 text-primary"/>{pick("إدارة رابط Zoom", "Zoom link management")}</p></div></CardContent></Card>;
 }
 
-export default function ClassroomZoomManagement() {
+export default function ClassroomZoomManagement({
+  classroomId: classroomIdProp,
+  embedded = false,
+}: {
+  classroomId?: string;
+  embedded?: boolean;
+} = {}) {
   const { isArabic, pick } = useLanguage();
   const { user } = usePortalAuth();
   const [params, setParams] = useSearchParams();
-  const classroomId = params.get("classroomId") || "";
+  const classroomId = classroomIdProp || params.get("classroomId") || "";
   const [classrooms, setClassrooms] = useState<ClassroomOption[]>([]);
   const [classroom, setClassroom] = useState<ClassroomZoomDetails | null>(null);
   const [scheduleEntries, setScheduleEntries] = useState<ClassroomScheduleEntry[]>([]);
@@ -242,7 +248,10 @@ export default function ClassroomZoomManagement() {
   const [gradeId, setGradeId] = useState("");
   const [filter, setFilter] = useState<ClassroomFilter>("all");
   const manualClassrooms = useMemo(() => classrooms.filter((item) => item.zoomAssignmentMode === "manual"), [classrooms]);
-  const selected = useMemo(() => manualClassrooms.find((item) => item.id === classroomId), [manualClassrooms, classroomId]);
+  const selected = useMemo(
+    () => (classroomIdProp ? classrooms : manualClassrooms).find((item) => item.id === classroomId),
+    [classroomId, classroomIdProp, classrooms, manualClassrooms],
+  );
   const curricula = useMemo(() => Array.from(new Map(manualClassrooms.map((item) => {
     const id = referenceId(item.curriculum);
     return id ? [id, { id, name: referenceName(item.curriculum), registrationMode: typeof item.curriculum === "string" ? undefined : item.curriculum?.registrationMode }] as const : null;
@@ -291,10 +300,13 @@ export default function ClassroomZoomManagement() {
     setScheduleEntries([]);
     setScheduleTimezone(undefined);
     if (!classroomId || loadingClassrooms) return;
-    if (!selected) { setParams({}); return; }
+    if (!selected) {
+      if (!classroomIdProp) setParams({});
+      return;
+    }
     setLoadingDetails(true);
     loadClassroom().catch((e) => toast.error(safeError(e, pick))).finally(() => setLoadingDetails(false));
-  }, [classroomId, loadClassroom, loadingClassrooms, pick, selected, setParams]);
+  }, [classroomId, classroomIdProp, loadClassroom, loadingClassrooms, pick, selected, setParams]);
 
   useEffect(() => {
     if (!classroomId || !classroom || classroom.zoomAssignmentMode !== "manual") return;
@@ -335,16 +347,18 @@ export default function ClassroomZoomManagement() {
   const backToClassrooms = () => { setClassroom(null); setParams({}); };
   const BackArrow = isArabic ? ArrowRight : ArrowLeft;
 
-  return <DashboardLayout><div className="mx-auto max-w-7xl space-y-5">
-    <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 shadow-sm sm:p-6"><div className="absolute -start-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl"/><div className="relative"><div className="mb-2 flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1 text-xs font-semibold text-primary"><Video className="h-3.5 w-3.5"/>{pick("الفصول الخاصة", "Private classrooms")}</div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{pick("إدارة روابط Zoom للفصول الخاصة", "Private classroom Zoom links")}</h1><p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">{pick("اختر المنهج والصف، ثم افتح الفصل لإدارة رابط Zoom الخاص به.", "Choose a curriculum and grade, then open a classroom to manage its Zoom link.")}</p></div></header>
-    {(curriculumId || gradeId || classroomId) && <nav aria-label={pick("مسار التنقل", "Breadcrumb")} className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
+  const content = <div className="mx-auto max-w-7xl space-y-5">
+    {!embedded && <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 shadow-sm sm:p-6"><div className="absolute -start-10 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl"/><div className="relative"><div className="mb-2 flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-background/70 px-3 py-1 text-xs font-semibold text-primary"><Video className="h-3.5 w-3.5"/>{pick("الفصول الخاصة", "Private classrooms")}</div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{pick("إدارة روابط Zoom للفصول الخاصة", "Private classroom Zoom links")}</h1><p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">{pick("اختر المنهج والصف، ثم افتح الفصل لإدارة رابط Zoom الخاص به.", "Choose a curriculum and grade, then open a classroom to manage its Zoom link.")}</p></div></header>}
+    {!embedded && (curriculumId || gradeId || classroomId) && <nav aria-label={pick("مسار التنقل", "Breadcrumb")} className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
       {selectedCurriculum && <button onClick={() => chooseCurriculum(selectedCurriculum.id)} className="rounded-md px-2 py-1 font-medium transition-colors hover:bg-muted hover:text-primary">{selectedCurriculum.name}</button>}
       {selectedGrade && <><span dir="ltr" aria-hidden="true" className="px-1 text-base font-bold text-primary/45">&gt;</span><button onClick={() => chooseGrade(selectedGrade.id)} className="rounded-md px-2 py-1 font-medium transition-colors hover:bg-muted hover:text-primary">{selectedGrade.name}</button></>}
       {gradeId && <><span dir="ltr" aria-hidden="true" className="px-1 text-base font-bold text-primary/45">&gt;</span><button onClick={backToClassrooms} className={cn("rounded-md px-2 py-1 font-medium", !classroomId ? "bg-primary/10 text-primary" : "hover:bg-muted hover:text-primary")}>{pick("الفصول الخاصة", "Private classrooms")}</button></>}
       {selected && classroomId && <><span dir="ltr" aria-hidden="true" className="px-1 text-base font-bold text-primary/45">&gt;</span><span className="font-semibold text-foreground">{selected.name}</span></>}
     </nav>}
 
-    {loadingClassrooms ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : manualClassrooms.length === 0 || curricula.length === 0 ? <Card><CardContent className="grid min-h-64 place-items-center text-center text-muted-foreground"><div><School className="mx-auto mb-3 h-10 w-10 opacity-40"/><p>{pick("لا توجد فصول خاصة متاحة", "No private classrooms available")}</p></div></CardContent></Card> : <>
+    {loadingClassrooms ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : embedded ? (!selected ? <Card><CardContent className="grid min-h-64 place-items-center text-center text-muted-foreground"><div><School className="mx-auto mb-3 h-10 w-10 opacity-40"/><p>{pick("تعذر تحميل بيانات Zoom لهذا الفصل", "Unable to load Zoom data for this classroom")}</p></div></CardContent></Card> : <>
+      {classroomId && <section className="space-y-5">{selected && <ClassroomDetailHeader item={{ ...selected, ...classroom } as ClassroomOption}/>} {loadingDetails || loadingSchedule ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : classroom?.zoomAssignmentMode === "manual" && (typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : selected?.curriculum?.registrationMode) ? <ZoomSection key={classroomId} classroomId={classroomId} classroom={classroom} registrationMode={(typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : selected?.curriculum?.registrationMode) as "egyptian" | "gulf"} scheduleEntries={scheduleEntries} scheduleTimezone={scheduleTimezone} scheduleLoading={loadingSchedule} onRefreshClassroom={loadClassroom} onScheduleSaved={() => setScheduleRevision((value) => value + 1)}/> : classroom ? <Card><CardContent className="flex flex-wrap items-center justify-between gap-3 p-5"><div><p className="font-semibold">{pick("يستخدم الفصل ربط Zoom الافتراضي للصف", "This classroom uses the grade default Zoom assignment")}</p><p className="mt-1 text-sm text-muted-foreground">{normalizeZoomState(classroom).accountName || pick("لا يوجد حساب ظاهر حاليًا", "No account is currently shown")}</p></div>{normalizeZoomState(classroom).meetingLink && <Button asChild><a href={normalizeZoomState(classroom).meetingLink} target="_blank" rel="noreferrer">{pick("فتح رابط الاجتماع", "Open meeting link")}<ExternalLink className="ms-2 h-4 w-4"/></a></Button>}</CardContent></Card> : null}</section>}
+    </>) : manualClassrooms.length === 0 || curricula.length === 0 ? <Card><CardContent className="grid min-h-64 place-items-center text-center text-muted-foreground"><div><School className="mx-auto mb-3 h-10 w-10 opacity-40"/><p>{pick("لا توجد فصول خاصة متاحة", "No private classrooms available")}</p></div></CardContent></Card> : <>
       {!classroomId && <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5"><div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">1</span><div><h2 className="font-bold">{pick("اختر المنهج", "Choose curriculum")}</h2><p className="text-xs text-muted-foreground">{pick("ابدأ بتحديد المنهج", "Start by selecting a curriculum")}</p></div></div><div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">{curricula.map((item) => { const count = manualClassrooms.filter((classroomItem) => referenceId(classroomItem.curriculum) === item.id).length; const active = curriculumId === item.id; return <button key={item.id} className={cn("flex items-center justify-between gap-3 rounded-xl border bg-background p-3.5 text-start transition-all hover:border-primary/40 hover:bg-primary/[0.03]", active && "border-primary bg-primary/[0.07] ring-1 ring-primary/20")} onClick={() => chooseCurriculum(item.id)}><span className="flex min-w-0 items-center gap-3"><span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><BookOpen className="h-4 w-4"/></span><span className="truncate font-bold">{item.name}</span></span><Badge variant={active ? "default" : "secondary"} className="shrink-0">{count} {pick("فصل", "classes")}</Badge></button>})}</div></section>}
 
       {!classroomId && curriculumId && <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-sm sm:p-5"><div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">2</span><div><h2 className="font-bold">{pick("اختر الصف", "Choose grade")}</h2><p className="text-xs text-muted-foreground">{selectedCurriculum?.name}</p></div></div>{grades.length ? <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{grades.map((item) => { const active = gradeId === item.id; return <button key={item.id} className={cn("flex items-center gap-2.5 rounded-xl border bg-background px-3.5 py-3 text-start text-sm font-semibold transition-colors hover:border-primary/40", active && "border-primary bg-primary text-primary-foreground shadow-sm")} onClick={() => chooseGrade(item.id)}><GraduationCap className="h-4 w-4 shrink-0"/><span className="truncate">{item.name}</span>{active && <Check className="ms-auto h-4 w-4"/>}</button>})}</div> : <div className="rounded-xl border border-dashed py-7 text-center text-sm text-muted-foreground">{pick("لا توجد صفوف متاحة", "No grades available")}</div>}</section>}
@@ -359,5 +373,7 @@ export default function ClassroomZoomManagement() {
 
       {classroomId && <section className="space-y-5"><Button variant="ghost" className="gap-2 px-1 hover:bg-transparent hover:text-primary" onClick={backToClassrooms}><BackArrow className="h-4 w-4"/>{pick("العودة إلى الفصول الخاصة", "Back to private classrooms")}</Button>{selected && <ClassroomDetailHeader item={{ ...selected, ...classroom } as ClassroomOption}/>} {loadingDetails || loadingSchedule ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : classroom?.zoomAssignmentMode === "manual" && (typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : selected?.curriculum?.registrationMode) ? <ZoomSection key={classroomId} classroomId={classroomId} classroom={classroom} registrationMode={(typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : selected?.curriculum?.registrationMode) as "egyptian" | "gulf"} scheduleEntries={scheduleEntries} scheduleTimezone={scheduleTimezone} scheduleLoading={loadingSchedule} onRefreshClassroom={loadClassroom} onScheduleSaved={() => setScheduleRevision((value) => value + 1)}/> : null}</section>}
     </>}
-  </div></DashboardLayout>;
+  </div>;
+
+  return embedded ? content : <DashboardLayout>{content}</DashboardLayout>;
 }

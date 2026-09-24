@@ -112,7 +112,8 @@ export const adminUsersApi = {
   get: async (id: string) => {
     const result = await apiRequest<{ success: true; data: AdminUserEnvelope | AdminUserEnvelope[] }>(`/users/${id}`);
     const details = Array.isArray(result.data) ? result.data[0] : result.data;
-    return { ...result, data: details ? normalizeUserEnvelope(details) : normalizeUser({ id }) };
+    if (!details) throw new Error("User details were not returned by the API");
+    return { ...result, data: normalizeUserEnvelope(details) };
   },
   findTeacherByEmail: async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase();

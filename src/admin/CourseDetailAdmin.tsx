@@ -52,6 +52,7 @@ const enrollmentGroupName = (enrollment: CourseEnrollment) => {
 const enrollmentStatusNames: Record<CourseEnrollment["status"], string> = {
   pending: "قيد الانتظار",
   active: "نشط",
+  completed: "مكتمل",
   cancelled: "ملغي",
   refunded: "مسترد",
   expired: "منتهي",

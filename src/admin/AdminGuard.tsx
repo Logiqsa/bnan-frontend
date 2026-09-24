@@ -6,6 +6,11 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   const location = useLocation();
   if (loading) return <div className="min-h-screen grid place-items-center font-cairo">جاري التحقق من الجلسة...</div>;
   if (!user) return <Navigate to="/portal/login" state={{ from: location.pathname }} replace />;
-  if (user.role !== "admin") return <Navigate to={`/portal/${user.role}/schedule`} replace />;
+  if (user.role !== "admin") {
+    const destination = user.role === "teacher"
+      ? "/portal/teacher"
+      : `/portal/${user.role}/schedule`;
+    return <Navigate to={destination} replace />;
+  }
   return <>{children}</>;
 }

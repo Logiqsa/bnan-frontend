@@ -27,12 +27,11 @@ export const testimonialApi = {
       body: JSON.stringify(body),
     }),
   admin: {
-    list: (status: "all" | "pending" | "approved") =>
-      apiRequest<TestimonialsResponse>(`/admin/testimonials?page=1&limit=50&status=${status}`),
+    list: (status: "all" | "pending" | "approved", page = 1, limit = 50) =>
+      apiRequest<TestimonialsResponse>(`/admin/testimonials?page=${page}&limit=${limit}&status=${status}`),
     approve: (id: string) =>
       apiRequest<{ success: true; data: Testimonial }>(`/admin/testimonials/${id}/approve`, { method: "PATCH" }),
     unapprove: (id: string) =>
       apiRequest<{ success: true; data: Testimonial }>(`/admin/testimonials/${id}/unapprove`, { method: "PATCH" }),
-    delete: (id: string) => apiRequest<{ success: true }>(`/admin/testimonials/${id}`, { method: "DELETE" }),
   },
 };

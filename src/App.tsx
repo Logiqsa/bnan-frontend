@@ -34,9 +34,11 @@ import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
 import ZoomAccountUsageAdmin from "@/admin/zoom/ZoomAccountUsageAdmin";
 import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
+import AdminClassroomHub from "@/admin/AdminClassroomHub";
 import AccountSettings from "@/portal/AccountSettings";
 import SupervisorSchedule from "@/portal/SupervisorSchedule";
 import GlobalNotificationAdmin from "@/admin/GlobalNotificationAdmin";
+import AdminNotificationHistory from "@/admin/AdminNotificationHistory";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import CoursesAdmin from "@/admin/CoursesAdmin";
 import CourseEditorAdmin from "@/admin/CourseEditorAdmin";
@@ -53,6 +55,20 @@ import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
 import TeacherCourseGroupDetail from "@/portal/TeacherCourseGroupDetail";
 import ClientErrorsAdmin from "@/admin/ClientErrorsAdmin";
 import ContactSettingsAdmin from "@/admin/ContactSettingsAdmin";
+import ClassroomChangeRequestsAdmin from "@/admin/ClassroomChangeRequestsAdmin";
+import AdminMessages from "@/admin/AdminMessages";
+import AdminPayroll from "@/admin/AdminPayroll";
+import AdminSubscriptions, { AdminSubscriptionDetail } from "@/admin/AdminSubscriptions";
+import AdminCertificates, { AdminCertificateDetail } from "@/admin/AdminCertificates";
+import AdminPayments, { AdminPaymentDetail } from "@/admin/AdminPayments";
+import { AdminGulfSubjectRequestDetail } from "@/admin/AdminGulfSubjectRequests";
+import AdminSubjectRequestsHub from "@/admin/AdminSubjectRequestsHub";
+import AdminStudents from "@/admin/AdminStudents";
+import AdminStudentDetails from "@/admin/AdminStudentDetails";
+import AdminParents from "@/admin/AdminParents";
+import AdminParentDetails from "@/admin/AdminParentDetails";
+import AdminCatalog from "@/admin/AdminCatalog";
+import AdminAssignments, { AdminAssignmentDetails, AdminAssignmentSubmissionDetails } from "@/admin/AdminAssignments";
 import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 
 const queryClient = new QueryClient();
@@ -198,6 +214,10 @@ export default function App() {
                       element={<AdminGuard><ContactSettingsAdmin /></AdminGuard>}
                     />
                     <Route
+                      path="/admin/classroom-change-requests"
+                      element={<AdminGuard><ClassroomChangeRequestsAdmin /></AdminGuard>}
+                    />
+                    <Route
                       path="/admin/classroom-recordings"
                       element={
                         <AdminGuard>
@@ -238,10 +258,22 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/admin/notifications/history"
+                      element={<AdminGuard><AdminNotificationHistory /></AdminGuard>}
+                    />
+                    <Route
                       path="/admin/classrooms"
                       element={
                         <AdminGuard>
                           <ClassroomManagement />
+                        </AdminGuard>
+                      }
+                    />
+                    <Route
+                      path="/admin/classrooms/:classroomId"
+                      element={
+                        <AdminGuard>
+                          <AdminClassroomHub />
                         </AdminGuard>
                       }
                     />
@@ -261,6 +293,10 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/catalog/curriculums" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
+                    <Route path="/admin/catalog/grades" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
+                    <Route path="/admin/catalog/subjects" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
+                    <Route path="/admin/catalog/packages" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
                     <Route
                       path="/admin/teachers"
                       element={

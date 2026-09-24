@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Star, Check, X, Trash2, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Check, X, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +14,27 @@ const TestimonialRatingsAdmin = () => {
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, total: 0, hasNextPage: false });
+  const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    testimonialApi.admin.list(filter)
-      .then((result) => setItems(result.data))
-      .catch((error) => toast.error(error instanceof Error ? error.message : "تعذر تحميل التقييمات"))
+    setError(false);
+    testimonialApi.admin.list(filter, page)
+      .then((result) => {
+        setItems(result.data);
+        setPagination({ page: result.page, total: result.total, hasNextPage: result.hasNextPage });
+      })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, [filter, page, retryKey]);
+
+  const changeFilter = (value: Filter) => {
+    setFilter(value);
+    setPage(1);
+  };
 
   const approve = async (id: string, approved: boolean) => {
     setBusyId(id);
@@ -33,20 +46,6 @@ const TestimonialRatingsAdmin = () => {
       toast.success(approved ? "تم اعتماد التقييم" : "تم إلغاء اعتماد التقييم");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر تحديث التقييم");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const remove = async (id: string) => {
-    if (!confirm("حذف هذا التقييم؟")) return;
-    setBusyId(id);
-    try {
-      await testimonialApi.admin.delete(id);
-      setItems((current) => current.filter((item) => item.id !== id));
-      toast.success("تم الحذف");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "تعذر حذف التقييم");
     } finally {
       setBusyId(null);
     }
@@ -64,19 +63,21 @@ const TestimonialRatingsAdmin = () => {
       <LegacyVisibilityToggle contentKey="testimonialRatings" label="التقييمات النصية القديمة الموجودة داخل الموقع" />
 
       <div className="flex gap-2">
-        <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>
+        <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => changeFilter("all")}>
           الكل
         </Button>
-        <Button size="sm" variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")}>
+        <Button size="sm" variant={filter === "pending" ? "default" : "outline"} onClick={() => changeFilter("pending")}>
           قيد المراجعة
         </Button>
-        <Button size="sm" variant={filter === "approved" ? "default" : "outline"} onClick={() => setFilter("approved")}>
+        <Button size="sm" variant={filter === "approved" ? "default" : "outline"} onClick={() => changeFilter("approved")}>
           معتمد
         </Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : error ? (
+        <div role="alert" className="flex flex-col items-center gap-3 py-12 text-center"><p className="text-destructive">تعذر تحميل التقييمات</p><Button variant="outline" onClick={() => setRetryKey((current) => current + 1)}><RefreshCw className="h-4 w-4" />إعادة المحاولة</Button></div>
       ) : items.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">لا توجد تقييمات</p>
       ) : (
@@ -102,16 +103,13 @@ const TestimonialRatingsAdmin = () => {
                     {t.approved ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
                     {t.approved ? "إلغاء الاعتماد" : "اعتماد"}
                   </Button>
-                  <Button disabled={busyId === t.id} size="sm" variant="destructive" className="gap-1" onClick={() => remove(t.id)}>
-                    <Trash2 className="w-4 h-4" />
-                    حذف
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+      {!loading && !error && pagination.total > 0 && <div className="flex items-center justify-between border-t pt-4"><span className="text-sm text-muted-foreground">صفحة {pagination.page}{pagination.hasNextPage ? " — توجد صفحات أخرى" : ""}</span><div className="flex gap-2"><Button size="icon" variant="outline" aria-label="الصفحة السابقة" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}><ChevronRight /></Button><Button size="icon" variant="outline" aria-label="الصفحة التالية" disabled={!pagination.hasNextPage} onClick={() => setPage((current) => current + 1)}><ChevronLeft /></Button></div></div>}
     </div>
   );
 };

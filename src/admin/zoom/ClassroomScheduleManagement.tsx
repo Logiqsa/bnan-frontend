@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CalendarDays, ChevronLeft, Clock3, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronLeft, Clock3, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { classroomRecordingsApi, type ClassroomSubjectOption } from "@/api/classroomRecordingsApi";
@@ -31,8 +31,15 @@ const errorMessage = (error: unknown) => {
   return apiError.message || "تعذر إكمال الطلب. حاول مرة أخرى.";
 };
 
-export default function ClassroomScheduleManagement() {
-  const { classroomId = "" } = useParams();
+export default function ClassroomScheduleManagement({
+  classroomId: classroomIdProp,
+  embedded = false,
+}: {
+  classroomId?: string;
+  embedded?: boolean;
+} = {}) {
+  const { classroomId: routeClassroomId = "" } = useParams();
+  const classroomId = classroomIdProp || routeClassroomId;
   const navigate = useNavigate();
   const { user } = usePortalAuth();
   const [classroom, setClassroom] = useState<ClassroomZoomDetails | null>(null);
@@ -43,8 +50,10 @@ export default function ClassroomScheduleManagement() {
   const [gulfSubjectId, setGulfSubjectId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const mode = classroom && typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : undefined;
   const backPath = user?.role === "supervisor" ? "/portal/supervisor/classrooms" : "/admin/classrooms";
+  const canEdit = isEditing;
 
   useEffect(() => {
     let active = true;
@@ -127,25 +136,28 @@ export default function ClassroomScheduleManagement() {
       }
       setOriginalDays(new Set(rows.map((row) => row.day)));
       toast.success("تم حفظ جدول الفصل بنجاح.");
+      setIsEditing(false);
     } catch (error) { toast.error(errorMessage(error)); }
     finally { setSaving(false); }
   };
 
-  return <DashboardLayout><div dir="rtl" className="mx-auto max-w-6xl space-y-5">
-    <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><Link to={backPath} className="hover:text-primary">إدارة الفصول والمواعيد</Link><ChevronLeft className="h-4 w-4"/><span className="text-foreground">{classroom?.name || "تعديل الجدول"}</span></nav>
+  const content = <div dir="rtl" className="mx-auto max-w-6xl space-y-5">
+    {!embedded && <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><Link to={backPath} className="hover:text-primary">{user?.role === "admin" ? "إدارة الفصول" : "إدارة الفصول والمواعيد"}</Link><ChevronLeft className="h-4 w-4"/><span className="text-foreground">{classroom?.name || "تعديل الجدول"}</span></nav>}
     {loading ? <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : !classroom || !mode ? <Card><CardContent className="py-16 text-center"><p>تعذر تحميل بيانات جدول الفصل.</p><Button className="mt-4" variant="outline" onClick={() => navigate(backPath)}>العودة إلى الفصول</Button></CardContent></Card> : <>
-      <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant="outline">{mode === "egyptian" ? "منهج مصري" : "منهج سعودي"}</Badge><Badge variant="outline">{referenceName(classroom.grade)}</Badge></div><h1 className="text-2xl font-bold sm:text-3xl">تعديل جدول {classroom.name}</h1><p className="mt-2 text-sm text-muted-foreground">اختر اليوم، ثم أضف المادة وحدد موعد كل حصة.</p></div><Button onClick={() => void save()} disabled={saving} size="lg" className="shrink-0 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button></div></header>
+      <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant="outline">{mode === "egyptian" ? "منهج مصري" : "منهج سعودي"}</Badge><Badge variant="outline">{referenceName(classroom.grade)}</Badge></div><h1 className="text-2xl font-bold sm:text-3xl">{canEdit ? "تعديل " : ""}جدول {classroom.name}</h1><p className="mt-2 text-sm text-muted-foreground">{canEdit ? "اختر اليوم، ثم أضف المادة وحدد موعد كل حصة." : "راجع جدول الفصل، ثم اضغط تعديل الجدول لإجراء أي تغيير."}</p></div>{canEdit ? <Button onClick={() => void save()} disabled={saving} size="lg" className="shrink-0 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button> : <Button onClick={() => setIsEditing(true)} size="lg" className="shrink-0 gap-2"><Pencil className="h-4 w-4"/>تعديل الجدول</Button>}</div></header>
       <Tabs value={activeDay} onValueChange={(value) => setActiveDay(value as Day)} dir="rtl">
         <div className="schedule-day-tabs-scroll w-full max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch]"><TabsList className="h-auto w-max min-w-full justify-start gap-1 p-1.5 sm:justify-center">{CLASSROOM_DAYS.map((day) => <TabsTrigger key={day} value={day} className="shrink-0 snap-start gap-2 px-4 py-2.5"><span>{CLASSROOM_DAY_NAMES[day]}</span>{(rowsByDay.get(day)?.length || 0) > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{rowsByDay.get(day)?.length}</Badge>}</TabsTrigger>)}</TabsList></div>
-        {CLASSROOM_DAYS.map((day) => { const dayRows = rowsByDay.get(day) || []; return <TabsContent key={day} value={day} className="mt-3"><Card><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>حصص يوم {CLASSROOM_DAY_NAMES[day]}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{dayRows.length ? `${dayRows.length} حصة` : "لا توجد حصص في هذا اليوم"}</p></div><Button variant="outline" onClick={() => addLesson(day)} disabled={mode === "gulf" && dayRows.length > 0} className="gap-2"><Plus className="h-4 w-4"/>إضافة حصة</Button></CardHeader><CardContent className="space-y-3 p-4 sm:p-6">
-          {!dayRows.length ? <button type="button" onClick={() => addLesson(day)} className="grid min-h-48 w-full place-items-center rounded-xl border border-dashed text-center text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.02]"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>اضغط لإضافة أول حصة في هذا اليوم</span></button> : dayRows.map((row, index) => <div key={row.key} className="rounded-xl border bg-muted/15 p-4"><div className="mb-4 flex items-center justify-between"><h3 className="font-bold">الحصة {index + 1}</h3><Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))} aria-label="حذف الحصة"><Trash2 className="h-4 w-4"/></Button></div><div className="grid gap-4 lg:grid-cols-3">
-            <div className="space-y-2"><Label className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary"/>المادة</Label><Select value={mode === "gulf" ? gulfSubjectId : row.classroomSubjectId} onValueChange={(classroomSubjectId) => mode === "gulf" ? setGulfSubjectId(classroomSubjectId) : updateRow(row.key, { classroomSubjectId })}><SelectTrigger><SelectValue placeholder="اختر المادة"/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>من</Label><Time12Input value={row.startTime} onChange={(startTime) => updateRow(row.key, { startTime })}/></div>
-            <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>إلى</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })}/></div>
+        {CLASSROOM_DAYS.map((day) => { const dayRows = rowsByDay.get(day) || []; return <TabsContent key={day} value={day} className="mt-3"><Card><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>حصص يوم {CLASSROOM_DAY_NAMES[day]}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{dayRows.length ? `${dayRows.length} حصة` : "لا توجد حصص في هذا اليوم"}</p></div>{canEdit && <Button variant="outline" onClick={() => addLesson(day)} disabled={mode === "gulf" && dayRows.length > 0} className="gap-2"><Plus className="h-4 w-4"/>إضافة حصة</Button>}</CardHeader><CardContent className="space-y-3 p-4 sm:p-6">
+          {!dayRows.length ? canEdit ? <button type="button" onClick={() => addLesson(day)} className="grid min-h-48 w-full place-items-center rounded-xl border border-dashed text-center text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.02]"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>اضغط لإضافة أول حصة في هذا اليوم</span></button> : <div className="grid min-h-48 place-items-center rounded-xl border border-dashed text-center text-muted-foreground"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>لا توجد حصص في هذا اليوم</span></div> : dayRows.map((row, index) => <div key={row.key} className="rounded-xl border bg-muted/15 p-4"><div className="mb-4 flex items-center justify-between"><h3 className="font-bold">الحصة {index + 1}</h3>{canEdit && <Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))} aria-label="حذف الحصة"><Trash2 className="h-4 w-4"/></Button>}</div><div className="grid gap-4 lg:grid-cols-3">
+            <div className="space-y-2"><Label className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary"/>المادة</Label><Select value={mode === "gulf" ? gulfSubjectId : row.classroomSubjectId} onValueChange={(classroomSubjectId) => mode === "gulf" ? setGulfSubjectId(classroomSubjectId) : updateRow(row.key, { classroomSubjectId })} disabled={!canEdit}><SelectTrigger><SelectValue placeholder="اختر المادة"/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>من</Label><Time12Input value={row.startTime} onChange={(startTime) => updateRow(row.key, { startTime })} disabled={!canEdit}/></div>
+            <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>إلى</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })} disabled={!canEdit}/></div>
           </div><p className="mt-3 flex flex-wrap items-center gap-1 rounded-lg bg-primary/5 px-3 py-2 text-sm font-medium text-primary">الموعد: من <ScheduleTimeText value={row.startTime}/>{row.endTime && <> إلى <ScheduleTimeText value={row.endTime}/></>}</p></div>)}
         </CardContent></Card></TabsContent>; })}
       </Tabs>
-      <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur"><p className="hidden text-sm text-muted-foreground sm:block">راجع المواد والمواعيد في كل الأيام قبل الحفظ.</p><Button onClick={() => void save()} disabled={saving} className="w-full gap-2 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button></div>
+      {canEdit && <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur"><p className="hidden text-sm text-muted-foreground sm:block">راجع المواد والمواعيد في كل الأيام قبل الحفظ.</p><Button onClick={() => void save()} disabled={saving} className="w-full gap-2 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button></div>}
     </>}
-  </div></DashboardLayout>;
+  </div>;
+
+  return embedded ? content : <DashboardLayout>{content}</DashboardLayout>;
 }

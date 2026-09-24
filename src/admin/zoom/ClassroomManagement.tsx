@@ -24,8 +24,9 @@ const safeError = (error: ApiError) => {
 };
 
 const formatDate = (value?: string) => value ? new Date(value).toLocaleDateString("ar-EG-u-ca-gregory") : "—";
-const ScheduleWindowText = ({ window }: { window: ZoomScheduleWindow }) => <span className="inline-flex flex-wrap items-center gap-1">من <ScheduleTimeText value={window.startTime}/>{window.endTime && <> إلى <ScheduleTimeText value={window.endTime}/></>}</span>;
-const windowKey = (window: ZoomScheduleWindow) => `${window.startTime}-${window.endTime || ""}`;
+type ScheduleWindow = Pick<ZoomScheduleWindow, "startTime"> & { endTime?: string };
+const ScheduleWindowText = ({ window }: { window: ScheduleWindow }) => <span className="inline-flex flex-wrap items-center gap-1">من <ScheduleTimeText value={window.startTime}/>{window.endTime && <> إلى <ScheduleTimeText value={window.endTime}/></>}</span>;
+const windowKey = (window: ScheduleWindow) => `${window.startTime}-${window.endTime || ""}`;
 
 function CurrentSchedule({ entries, loading, action }: { entries: ClassroomScheduleEntry[]; loading: boolean; action?: React.ReactNode }) {
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-primary"/>;
@@ -70,8 +71,8 @@ export default function ClassroomManagement() {
   };
   useEffect(loadClassrooms, [user?.role]);
 
-  const curricula = useMemo(() => Array.from(new Map(classrooms.map((item) => [referenceId(item.curriculum), item.curriculum]).filter(([id]) => id)).values()), [classrooms]);
-  const grades = useMemo(() => Array.from(new Map(classrooms.filter((item) => referenceId(item.curriculum) === curriculumId).map((item) => [referenceId(item.grade), item.grade]).filter(([id]) => id)).values()), [classrooms, curriculumId]);
+  const curricula = useMemo(() => Array.from(new Map(classrooms.map((item) => [referenceId(item.curriculum), item.curriculum] as const).filter(([id]) => Boolean(id))).values()), [classrooms]);
+  const grades = useMemo(() => Array.from(new Map(classrooms.filter((item) => referenceId(item.curriculum) === curriculumId).map((item) => [referenceId(item.grade), item.grade] as const).filter(([id]) => Boolean(id))).values()), [classrooms, curriculumId]);
   const selectedCurriculum = classrooms.find((item) => referenceId(item.curriculum) === curriculumId)?.curriculum;
   const curriculumMode = typeof selectedCurriculum === "string" ? undefined : selectedCurriculum?.registrationMode;
   const gradeOptions = useMemo(() => grades.map((grade) => ({ id: referenceId(grade), name: referenceName(grade) })).filter((grade) => grade.id), [grades]);
@@ -111,11 +112,17 @@ export default function ClassroomManagement() {
   const zoom = normalizeZoomState(details);
   const registrationMode = details?.curriculum?.registrationMode || selected?.curriculum?.registrationMode;
   const schedulePath = selected ? `${user?.role === "supervisor" ? "/portal/supervisor/classrooms" : "/admin/classrooms"}/${encodeURIComponent(selected.id)}/schedule` : "";
+  const isAdmin = user?.role === "admin";
   return <DashboardLayout><div dir="rtl" className="mx-auto max-w-7xl space-y-5">
-    <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><h1 className="text-2xl font-bold sm:text-3xl">إدارة الفصول والمواعيد</h1><p className="mt-2 text-sm text-muted-foreground">عرض الفصول والجداول ومعرفة المواعيد المتاحة على حساب Zoom.</p></header>
+    <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><h1 className="text-2xl font-bold sm:text-3xl">{isAdmin ? "إدارة الفصول" : "إدارة الفصول والمواعيد"}</h1><p className="mt-2 text-sm text-muted-foreground">{isAdmin ? "استعرض الفصول وافتح الفصل لمتابعة تفاصيله." : "عرض الفصول والجداول ومعرفة المواعيد المتاحة على حساب Zoom."}</p></header>
     {loading ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : error && !selected ? <Card><CardContent className="grid min-h-48 place-items-center text-center"><div><p>{error}</p><Button className="mt-3" onClick={loadClassrooms}>إعادة المحاولة</Button></div></CardContent></Card> : classrooms.length === 0 ? <Card><CardContent className="grid min-h-48 place-items-center text-muted-foreground"><div><School className="mx-auto mb-3 h-9 w-9"/><p>لا توجد فصول متاحة</p></div></CardContent></Card> : !selected ? <>
       <Card><CardContent className="grid gap-4 p-4 sm:grid-cols-3"><label className="text-sm font-semibold">المنهج<select value={curriculumId} onChange={(event) => { setCurriculumId(event.target.value); setGradeId(""); }} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="">اختر المنهج</option>{curricula.map((value) => <option key={referenceId(value)} value={referenceId(value)}>{referenceName(value)}</option>)}</select></label><GradeStageFilter grades={gradeOptions} gradeId={gradeId} mode={curriculumMode} disabled={!curriculumId} onGradeChange={setGradeId}/></CardContent></Card>
-      {gradeId && <section><h2 className="mb-3 text-lg font-bold">الفصول</h2>{visible.length === 0 ? <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد فصول متاحة</CardContent></Card> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visible.map((item) => <button key={item.id} onClick={() => openClassroom(item)} className="text-start"><Card className="h-full transition hover:border-primary/40 hover:shadow-md"><CardContent className="space-y-3 p-4"><div className="flex justify-between gap-3"><h3 className="font-bold">{item.name}</h3><ChevronLeft className="h-4 w-4 text-muted-foreground"/></div><p className="text-sm text-muted-foreground">{referenceName(item.curriculum)} · {referenceName(item.grade)}</p><div className="flex flex-wrap gap-2"><Badge variant="outline">{item.zoomAssignmentMode === "manual" ? "يدوي" : "ربط تلقائي"}</Badge><Badge variant="outline">{classroomZoomLabel(item)}</Badge></div><p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(item.createdAt)}</p></CardContent></Card></button>)}</div>}</section>}
+      {gradeId && <section><h2 className="mb-3 text-lg font-bold">الفصول</h2>{visible.length === 0 ? <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد فصول متاحة</CardContent></Card> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visible.map((item) => {
+        const card = <Card className="h-full transition hover:border-primary/40 hover:shadow-md"><CardContent className="space-y-3 p-4"><div className="flex justify-between gap-3"><h3 className={isAdmin ? "min-w-0 truncate font-bold" : "font-bold"}>{item.name}</h3><ChevronLeft className={`h-4 w-4 text-muted-foreground${isAdmin ? " shrink-0" : ""}`}/></div><p className="text-sm text-muted-foreground">{referenceName(item.curriculum)} · {referenceName(item.grade)}</p><div className="flex flex-wrap gap-2"><Badge variant="outline">{item.zoomAssignmentMode === "manual" ? "يدوي" : "ربط تلقائي"}</Badge><Badge variant="outline">{classroomZoomLabel(item)}</Badge></div><p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(item.createdAt)}</p></CardContent></Card>;
+        return isAdmin
+          ? <Link key={item.id} to={`/admin/classrooms/${encodeURIComponent(item.id)}`} aria-label={`إدارة الفصل ${item.name}`} className="block rounded-xl text-start outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{card}</Link>
+          : <div key={item.id} className="space-y-2"><button onClick={() => openClassroom(item)} className="block w-full text-start">{card}</button><Button asChild variant="outline" className="w-full"><Link to={`/admin/classrooms/${encodeURIComponent(item.id)}`}>فتح الفصل</Link></Button></div>;
+      })}</div>}</section>}
     </> : <>
       <Button variant="ghost" className="px-1" onClick={() => { setSelected(null); setDetails(null); setAvailability(null); setError(""); }}><ChevronLeft className="ml-2 h-4 w-4 rotate-180"/>العودة إلى الفصول</Button>
       {error && <div role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}

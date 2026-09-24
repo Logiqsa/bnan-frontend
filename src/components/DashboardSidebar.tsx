@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
+  BarChart3,
   Award,
+  Banknote,
   Bell,
   BookOpen,
+  BookPlus,
   Calendar,
   ChevronLeft,
   ChevronsUpDown,
+  ClipboardList,
+  CreditCard,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -15,6 +20,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Repeat2,
   ContactRound,
   School,
   Settings,
@@ -61,16 +67,58 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin",
     },
     {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/admin/messages",
+    },
+    {
+      label: "مستحقات المعلمين",
+      labelEn: "Teacher payroll",
+      icon: Banknote,
+      path: "/admin/payroll",
+    },
+    {
+      label: "الاشتراكات",
+      labelEn: "Subscriptions",
+      icon: CreditCard,
+      path: "/admin/subscriptions",
+    },
+    {
+      label: "الشهادات",
+      labelEn: "Certificates",
+      icon: Award,
+      path: "/admin/certificates",
+    },
+    {
+      label: "المدفوعات",
+      labelEn: "Payments",
+      icon: Banknote,
+      path: "/admin/payments",
+    },
+    {
+      label: "طلبات المواد",
+      labelEn: "Subject requests",
+      icon: ClipboardList,
+      path: "/admin/subject-requests",
+    },
+    {
+      label: "الطلاب",
+      labelEn: "Students",
+      icon: UserRound,
+      path: "/admin/students",
+    },
+    {
+      label: "أولياء الأمور",
+      labelEn: "Parents",
+      icon: Users,
+      path: "/admin/parents",
+    },
+    {
       label: "كل المستخدمين",
       labelEn: "All users",
       icon: Users,
       path: "/admin?tab=all-users",
-    },
-    {
-      label: "الطلاب وأولياء الأمور",
-      labelEn: "Students & Parents",
-      icon: UserRound,
-      path: "/admin?tab=users",
     },
     {
       label: "المعلمون",
@@ -97,8 +145,14 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin?tab=teacher-applications",
     },
     {
-      label: "إدارة الفصول والمواعيد",
-      labelEn: "Classrooms and availability",
+      label: "طلبات تغيير المعلم",
+      labelEn: "Classroom change requests",
+      icon: Repeat2,
+      path: "/admin/classroom-change-requests",
+    },
+    {
+      label: "الفصول",
+      labelEn: "Classrooms",
       icon: School,
       path: "/admin/classrooms",
     },
@@ -107,6 +161,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Courses",
       icon: BookOpen,
       path: "/admin/courses",
+    },
+    {
+      label: "الكتالوج التعليمي",
+      labelEn: "Catalog",
+      icon: BookOpen,
+      path: "/admin/catalog/curriculums",
     },
     {
       label: "حسابات زوم",
@@ -143,6 +203,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Send notification",
       icon: Bell,
       path: "/admin/notifications",
+    },
+    {
+      label: "سجل الإشعارات",
+      labelEn: "Notification history",
+      icon: Bell,
+      path: "/admin/notifications/history",
     },
     {
       label: "آراء العملاء",
@@ -268,16 +334,25 @@ const roleLabels: Record<string, string> = {
   supervisor: "مشرف",
 };
 
-const isItemActive = (itemPath: string, pathname: string, search: string) =>
-  itemPath.includes("?")
-    ? itemPath === `${pathname}${search}`
-    : itemPath === pathname && (!search || pathname !== "/admin");
+// Exported so nested Admin route highlighting can be verified independently.
+// eslint-disable-next-line react-refresh/only-export-components
+export const isItemActive = (itemPath: string, pathname: string, search: string) => {
+  if (itemPath.includes("?")) return itemPath === `${pathname}${search}`;
+  if (itemPath === "/admin/classrooms") {
+    return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+  }
+  return itemPath === pathname && (!search || pathname !== "/admin");
+};
 
 const adminNavGroup = (path: string) => {
   if (path === "/admin") return { ar: "نظرة عامة", en: "Overview" };
-  if (["all-users", "tab=users", "/admin/teachers", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
+  if (["/admin/messages", "/admin/payroll"].includes(path))
+    return { ar: "التشغيل اليومي", en: "Daily operations" };
+  if (["/admin/subscriptions", "/admin/payments", "/admin/certificates", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
+    return { ar: "المالية", en: "Finance" };
+  if (["all-users", "/admin/teachers", "/admin/students", "/admin/parents", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
     return { ar: "المستخدمون", en: "Users" };
-  if (["/admin/classrooms", "/admin/courses"].some((part) => path.startsWith(part)))
+  if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/classroom-change-requests"].some((part) => path.startsWith(part)))
     return { ar: "التعليم", en: "Learning" };
   if (["zoom", "classroom-sessions", "classroom-recordings"].some((part) => path.includes(part)))
     return { ar: "الفصول المباشرة", en: "Live classrooms" };
@@ -308,8 +383,23 @@ const SidebarContent = ({
   const role = user?.role || "student";
   const items = roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
+  const navRef = useRef<HTMLElement>(null);
+  const scrollStorageKey = `bnan_sidebar_scroll_${role}`;
+
+  useLayoutEffect(() => {
+    const savedScrollTop = Number(sessionStorage.getItem(scrollStorageKey));
+    if (Number.isFinite(savedScrollTop) && navRef.current) {
+      navRef.current.scrollTop = savedScrollTop;
+    }
+  }, [scrollStorageKey]);
   const homeFor = (accountRole: string) =>
-    accountRole === "admin" ? "/admin" : `/portal/${accountRole}/schedule`;
+    accountRole === "admin"
+      ? "/admin"
+      : accountRole === "teacher"
+        ? "/portal/teacher"
+        : accountRole === "student"
+          ? "/portal/student"
+          : `/portal/${accountRole}/schedule`;
   const switchableAccounts = rememberedAccounts.filter(
     (account) => account.user.id !== user?.id,
   );
@@ -477,7 +567,11 @@ const SidebarContent = ({
       </div>
 
       <nav
+        ref={navRef}
         dir="ltr"
+        onScroll={(event) => {
+          sessionStorage.setItem(scrollStorageKey, String(event.currentTarget.scrollTop));
+        }}
         className={`sidebar-scrollbar flex-1 space-y-1 overflow-x-hidden overflow-y-auto transition-all duration-300 ${collapsed ? "p-2" : "p-3"}`}
       >
         {items.map((item, index) => {
@@ -497,7 +591,11 @@ const SidebarContent = ({
                 ? <div className="mx-2 my-2 border-t border-sidebar-border" />
                 : <p dir={isArabic ? "rtl" : "ltr"} className="mb-1 mt-4 px-3 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/40 first:mt-1">{pick(group.ar, group.en)}</p>)}
               <button
-                onClick={() => { navigate(item.path); onNavigate?.(); }}
+                onClick={() => {
+                  sessionStorage.setItem(scrollStorageKey, String(navRef.current?.scrollTop || 0));
+                  navigate(item.path);
+                  onNavigate?.();
+                }}
                 title={collapsed ? pick(item.label, item.labelEn) : undefined}
                 aria-label={pick(item.label, item.labelEn)}
                 dir={isArabic ? "rtl" : "ltr"}

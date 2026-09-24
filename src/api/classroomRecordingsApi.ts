@@ -64,6 +64,24 @@ export interface ClassroomSubjectOption {
   isActive: boolean;
 }
 
+export interface ClassroomStudentOption {
+  studentId: string;
+  fullName: string;
+  attendance?: {
+    id?: string;
+    status?: string;
+    joinedAt?: string;
+    leftAt?: string;
+    duration?: number;
+  } | null;
+}
+
+export interface ClassroomStudentsResponse {
+  success: true;
+  results: number;
+  data: ClassroomStudentOption[];
+}
+
 export interface ClassroomSession {
   id?: string;
   _id?: string;
@@ -75,8 +93,15 @@ export interface ClassroomSession {
   startAt?: string;
   scheduledStartAt?: string;
   endAt?: string;
+  actualStartedAt?: string;
+  actualEndedAt?: string;
   occurrenceKey?: string;
-  courseGroup?: string | { id?: string; _id?: string } | null;
+  courseGroup?: string | {
+    id?: string;
+    _id?: string;
+    name?: string;
+    course?: string | { id?: string; _id?: string; name?: string } | null;
+  } | null;
   recordingUrl?: string | null;
   recordingLink?: string | null;
   recording?: {
@@ -86,15 +111,29 @@ export interface ClassroomSession {
   } | null;
   summary?: {
     status?: string;
+    title?: string | null;
     content?: string | null;
     docUrl?: string | null;
+    nextSteps?: string[] | null;
+  } | null;
+  report?: {
+    status?: string;
+    participantRows?: number;
+    uniqueParticipants?: number;
+    durationMinutes?: number;
   } | null;
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string } | string | null;
   classroomSubject?:
-    | { id?: string; name?: string; subject?: { name?: string } }
+    | {
+        id?: string;
+        name?: string;
+        classroom?: { id?: string; _id?: string; name?: string };
+        subject?: { id?: string; _id?: string; name?: string };
+      }
     | string
     | null;
+  classroom?: string | { id?: string; _id?: string; name?: string } | null;
 }
 
 export interface SessionRecording {
@@ -127,6 +166,25 @@ export interface ClassroomSessionsResponse {
   data:
     | ClassroomSession[]
     | { sessions?: ClassroomSession[]; data?: ClassroomSession[] };
+}
+
+export interface ClassroomSessionReport {
+  sessionId?: string;
+  sessionName?: string;
+  status?: string;
+  summary?: Record<string, unknown> | null;
+  participants?: Array<Record<string, unknown>>;
+}
+
+export interface ClassroomSessionReportResponse {
+  success: true;
+  pagination?: {
+    currentPage: number;
+    perPage: number;
+    total: number;
+    lastPage: number;
+  };
+  data: ClassroomSessionReport;
 }
 
 interface UploadResult {
@@ -169,6 +227,11 @@ export const classroomRecordingsApi = {
       `/classrooms/${classroomId}/subjects`,
     ),
 
+  listStudents: (classroomId: string) =>
+    apiRequest<ClassroomStudentsResponse>(
+      `/classrooms/${classroomId}/students`,
+    ),
+
   listRecordings: (classroomId: string) =>
     apiRequest<ClassroomRecordingsResponse>(
       `/classrooms/${classroomId}/recordings`,
@@ -177,6 +240,16 @@ export const classroomRecordingsApi = {
   listSessions: (classroomId: string) =>
     apiRequest<ClassroomSessionsResponse>(
       `/classrooms/${classroomId}/sessions`,
+    ),
+
+  getSession: (sessionId: string) =>
+    apiRequest<{ success: true; data: ClassroomSession }>(
+      `/sessions/${encodeURIComponent(sessionId)}`,
+    ),
+
+  getSessionReport: (sessionId: string) =>
+    apiRequest<ClassroomSessionReportResponse>(
+      `/sessions/${encodeURIComponent(sessionId)}/report`,
     ),
 
   upload: (

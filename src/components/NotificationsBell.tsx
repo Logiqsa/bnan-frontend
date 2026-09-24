@@ -3,17 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { adminNotificationLink, useNotifications } from "@/hooks/useNotifications";
+import { notificationLink } from "@/hooks/useNotifications";
+import { useNotificationsContext } from "@/contexts/notifications-context";
+import type { PortalRole } from "@/api/types";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
 
-const NotificationsBell = () => {
+const NotificationsBell = ({ role }: { role: PortalRole }) => {
   const navigate = useNavigate();
-  const { isArabic, language, pick } = useLanguage();
-  const { items, unreadCount, loading, error, reload, markRead, markAllRead } = useNotifications(language);
+  const { isArabic, pick } = useLanguage();
+  const { items, unreadCount, loading, error, reload, markRead, markAllRead } = useNotificationsContext();
   const run = (operation: Promise<void>) => {
     void operation.catch(() => toast.error(pick("تعذر تحديث الإشعارات.", "Unable to update notifications.")));
   };
@@ -25,7 +27,7 @@ const NotificationsBell = () => {
         {unreadCount > 0 && <Badge className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center px-1 text-[10px]">{unreadCount > 99 ? "99+" : unreadCount}</Badge>}
       </Button>
     </PopoverTrigger>
-    <PopoverContent className="w-80 p-0" align="end" dir={isArabic ? "rtl" : "ltr"}>
+    <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 p-0" align="end" dir={isArabic ? "rtl" : "ltr"}>
       <div className="flex items-center justify-between border-b p-3">
         <h4 className="font-cairo font-semibold">{pick("الإشعارات", "Notifications")}</h4>
         {unreadCount > 0 && <Button variant="ghost" size="sm" onClick={() => run(markAllRead())} className="gap-1 text-xs"><Check className="h-3 w-3" />{pick("قراءة الكل", "Mark all read")}</Button>}
@@ -36,7 +38,7 @@ const NotificationsBell = () => {
           : items.length === 0 ? <div className="p-6 text-center font-cairo text-sm text-muted-foreground">{pick("لا توجد إشعارات", "No notifications")}</div>
           : <ul className="divide-y">{items.map((notification) => <li key={notification.id} onClick={() => {
             if (!notification.isRead) run(markRead(notification.id));
-            const link = adminNotificationLink(notification);
+            const link = notificationLink(notification, role);
             if (link) navigate(link);
           }} className={`cursor-pointer p-3 transition hover:bg-muted/50 ${!notification.isRead ? "bg-primary/5" : ""}`}>
             <div className="flex items-start justify-between gap-2"><p className="font-cairo text-sm font-medium">{notification.title}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>

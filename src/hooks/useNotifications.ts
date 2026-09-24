@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notificationsApi, type ApiNotification } from "@/api/notificationsApi";
+import type { PortalRole } from "@/api/types";
 import { getSocket } from "@/lib/socket";
 import { toast } from "sonner";
 
@@ -25,25 +26,117 @@ const mergeNotifications = (incoming: Notification[], current: Notification[]) =
     .slice(0, 100);
 };
 
-export const adminNotificationLink = (notification: Notification): string | undefined => {
-  const target = notification.navigation?.target || notification.navigation?.screen;
-  const routes: Record<string, string> = {
-    teacher_approval: "/admin?tab=teacher-applications",
-    registration_requests: "/admin?tab=users",
-    students: "/admin?tab=users",
-    parents: "/admin?tab=users",
-    users: "/admin?tab=all-users",
-    classroom_change_requests: "/admin/classrooms",
-    classroom_details: "/admin/classrooms",
-    global_notification_details: "/admin/notifications",
-    admin_payments: "/admin",
-    admin_subscriptions: "/admin",
-    salary_approvals: "/admin",
-    system_health: "/admin",
-    chat_room: "/admin",
-  };
-  return typeof target === "string" ? routes[target] : undefined;
+const adminNotificationRoutes: Record<string, string> = {
+  teacher_approval: "/admin?tab=teacher-applications",
+  registration_requests: "/admin/students",
+  students: "/admin/students",
+  parents: "/admin/parents",
+  users: "/admin?tab=all-users",
+  classroom_change_requests: "/admin/classrooms",
+  classroom_details: "/admin/classrooms",
+  global_notification_details: "/admin/notifications",
+  admin_payments: "/admin",
+  admin_subscriptions: "/admin",
+  salary_approvals: "/admin",
+  system_health: "/admin",
+  chat_room: "/admin/messages",
 };
+
+const teacherNotificationRoutes: Record<string, string> = {
+  teacher_home: "/portal/teacher",
+  teacher_requests: "/portal/teacher/requests",
+  chat_room: "/portal/teacher/messages",
+  schedule: "/portal/teacher/schedule",
+  session_details: "/portal/teacher/schedule",
+  active_session: "/portal/teacher/schedule",
+  session_summary: "/portal/teacher/schedule",
+  teacher_students: "/portal/teacher/courses",
+  classroom_details: "/portal/teacher/courses",
+  courses: "/portal/teacher/courses",
+};
+
+const studentNotificationRoutes: Record<string, string> = {
+  student_home: "/portal/student",
+  schedule: "/portal/student/schedule",
+  active_session: "/portal/student/schedule",
+  session_summary: "/portal/student/schedule",
+  global_notification_details: "/portal/student/notifications",
+  chat_room: "/portal/student/messages",
+};
+
+const notificationParam = (
+  notification: Notification,
+  key: string,
+): string | undefined => {
+  const value = notification.navigation?.params?.[key];
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+};
+
+const teacherNotificationLink = (
+  notification: Notification,
+  target: string | undefined,
+): string | undefined => {
+  if (notification.type === "chat_room" || target === "chat_room") {
+    const roomId = notificationParam(notification, "roomId");
+    return roomId
+      ? `/portal/teacher/messages?${new URLSearchParams({ roomId }).toString()}`
+      : teacherNotificationRoutes.chat_room;
+  }
+
+  if (target === "session_details" || target === "session_summary") {
+    const classroomId = notificationParam(notification, "classroomId");
+    const sessionId = notificationParam(notification, "sessionId");
+    if (classroomId && sessionId) {
+      return `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}/sessions/${encodeURIComponent(sessionId)}`;
+    }
+    return teacherNotificationRoutes[target];
+  }
+
+  if (target === "classroom_details") {
+    const classroomId = notificationParam(notification, "classroomId");
+    return classroomId
+      ? `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}`
+      : teacherNotificationRoutes.classroom_details;
+  }
+
+  return target ? teacherNotificationRoutes[target] : undefined;
+};
+
+export const notificationLink = (
+  notification: Notification,
+  role: PortalRole,
+): string | undefined => {
+  const target = notification.navigation?.target || notification.navigation?.screen;
+  if (role === "admin") {
+    if (notification.type === "chat_room" || target === "chat_room") {
+      const roomId = notificationParam(notification, "roomId");
+      return roomId
+        ? `/admin/messages?${new URLSearchParams({ roomId }).toString()}`
+        : adminNotificationRoutes.chat_room;
+    }
+    return typeof target === "string" ? adminNotificationRoutes[target] : undefined;
+  }
+  if (role === "teacher")
+    return teacherNotificationLink(
+      notification,
+      typeof target === "string" ? target : undefined,
+    );
+  if (role === "student") {
+    if (notification.type === "chat_room" || target === "chat_room") {
+      const roomId = notificationParam(notification, "roomId");
+      return roomId
+        ? `/portal/student/messages?${new URLSearchParams({ roomId }).toString()}`
+        : studentNotificationRoutes.chat_room;
+    }
+    return typeof target === "string" ? studentNotificationRoutes[target] : undefined;
+  }
+  return undefined;
+};
+
+export const adminNotificationLink = (notification: Notification): string | undefined =>
+  notificationLink(notification, "admin");
 
 export function useNotifications(language?: "ar" | "en") {
   const [items, setItems] = useState<Notification[]>([]);

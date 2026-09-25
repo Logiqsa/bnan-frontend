@@ -1,51 +1,86 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, GraduationCap, Home, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  GraduationCap,
+  Home,
+  Loader2,
+} from "lucide-react";
 import { authApi } from "@/api/authApi";
-import { catalogApi, type CurriculumOption, type GradeOption, type SubjectOption, type PackageOption } from "@/api/catalogApi";
+import {
+  catalogApi,
+  type CurriculumOption,
+  type GradeOption,
+  type SubjectOption,
+  type PackageOption,
+} from "@/api/catalogApi";
 import { paymentApi } from "@/api/paymentApi";
 import type { GulfPaymentProvider } from "@/api/types";
 import { ApiError, tokenStore } from "@/api/client";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
-import { STUDENT_SIGNUP_DRAFT_KEY, studentSignupSession } from "@/lib/studentSignupSession";
+import { STUDENT_SIGNUP_DRAFT_KEY } from "@/lib/studentSignupSession";
 import { cn } from "@/lib/utils";
+import { egyptianGradeLanguage } from "@/lib/egyptianGradeLanguage";
 import visaImg from "@/assets/payment/visa.png";
 import mastercardImg from "@/assets/payment/mastercard.png";
 import madaImg from "@/assets/payment/mada.png";
 import tamaraImg from "@/assets/payment/tamara.png";
 
-const academicSteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف والباقة", "الدفع والتأكيد"];
+const academicSteps = [
+  "بيانات ولي الأمر",
+  "بيانات الطالب",
+  "المنهج والصف والباقة",
+  "الدفع والتأكيد",
+];
 const courseOnlySteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف"];
-const STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_student_signup_persistent_draft";
+const STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY =
+  "bnan_student_signup_persistent_draft";
 const COURSE_STUDENT_SIGNUP_DRAFT_KEY = "bnan_course_student_signup_draft";
-const COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY = "bnan_course_student_signup_persistent_draft";
+const COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY =
+  "bnan_course_student_signup_persistent_draft";
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
   GULF_PAYMENT_REQUIRED: "هذا المنهج يتطلب الدفع الإلكتروني.",
-  PARENT_PAYMENT_PHONE_REQUIRED: "يرجى إضافة رقم هاتف موثق لحساب ولي الأمر قبل الدفع.",
+  PARENT_PAYMENT_PHONE_REQUIRED:
+    "يرجى إضافة رقم هاتف موثق لحساب ولي الأمر قبل الدفع.",
   TAMARA_ADDRESS_REQUIRED: "يرجى إدخال عنوان صحيح لإتمام الدفع.",
   TAMARA_NOT_SUPPORTED: "عملة هذه الباقة غير مدعومة في الدفع حاليًا.",
   PAYMENT_PROVIDER_NOT_SUPPORTED: "وسيلة الدفع المختارة غير متاحة.",
-  PAYMENT_PROVIDER_CURRENCY_NOT_SUPPORTED: "وسيلة الدفع المختارة لا تدعم عملة هذه الباقة.",
+  PAYMENT_PROVIDER_CURRENCY_NOT_SUPPORTED:
+    "وسيلة الدفع المختارة لا تدعم عملة هذه الباقة.",
   PAYMOB_NOT_CONFIGURED: "الدفع بالبطاقة غير متاح مؤقتًا. يمكنك اختيار Tamara.",
   PAYMOB_CHECKOUT_FAILED: "تعذر فتح صفحة الدفع بالبطاقة. حاول مرة أخرى.",
-  INVALID_PAYMENT_PHONE: "رقم هاتف ولي الأمر غير صالح للدفع. أدخل رقمًا سعوديًا صحيحًا.",
-  IDEMPOTENCY_KEY_REQUIRED: "تعذر بدء محاولة الدفع. أعد تحميل الصفحة وحاول مجددًا.",
-  IDEMPOTENCY_KEY_REUSED: "بيانات محاولة الدفع تغيرت. أعد تحميل الصفحة وحاول مجددًا.",
-  GULF_PRIVATE_PURCHASE_ITEMS_REQUIRED: "تعذر تحديد الباقة الخاصة بكل مادة. راجع المواد والباقة المختارة ثم حاول مجددًا.",
+  INVALID_PAYMENT_PHONE:
+    "رقم هاتف ولي الأمر غير صالح للدفع. أدخل رقمًا سعوديًا صحيحًا.",
+  IDEMPOTENCY_KEY_REQUIRED:
+    "تعذر بدء محاولة الدفع. أعد تحميل الصفحة وحاول مجددًا.",
+  IDEMPOTENCY_KEY_REUSED:
+    "بيانات محاولة الدفع تغيرت. أعد تحميل الصفحة وحاول مجددًا.",
+  GULF_PRIVATE_PURCHASE_ITEMS_REQUIRED:
+    "تعذر تحديد الباقة الخاصة بكل مادة. راجع المواد والباقة المختارة ثم حاول مجددًا.",
   PAYMENT_ACCESS_DENIED: "لا يمكن إتمام هذه العملية بهذا الحساب.",
-  CHILD_CURRICULUM_MISMATCH: "يجب أن يلتحق إخوة الطالب بنفس منهج أول طفل مسجّل.",
+  CHILD_CURRICULUM_MISMATCH:
+    "يجب أن يلتحق إخوة الطالب بنفس منهج أول طفل مسجّل.",
   WRONG_PARENT_ACCOUNT: "هذه البيانات لا تخص حساب ولي أمر.",
-  INVALID_COURSE_ONLY_REGISTRATION_DATA: "راجع بيانات الطالب والمنهج والصف ثم حاول مجددًا.",
+  INVALID_COURSE_ONLY_REGISTRATION_DATA:
+    "راجع بيانات الطالب والمنهج والصف ثم حاول مجددًا.",
   PARENT_REQUIRED: "بيانات ولي الأمر مطلوبة.",
   PARENT_CREDENTIALS_REQUIRED: "البريد وكلمة المرور لولي الأمر مطلوبان.",
   STUDENT_REQUIRED: "بيانات الطالب مطلوبة.",
@@ -59,7 +94,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const friendlyError = (error: unknown) => {
   const apiError = error as ApiError;
-  return apiError.message || ERROR_MESSAGES[apiError.code] || "حدث خطأ غير متوقع.";
+  return (
+    apiError.message || ERROR_MESSAGES[apiError.code] || "حدث خطأ غير متوقع."
+  );
 };
 
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
@@ -84,11 +121,8 @@ interface SignupDraft {
   parentFullName: string;
   parentEmail: string;
   parentPhone: string;
-  parentPassword: string;
-  parentCreds: { email: string; password: string } | null;
   studentFullName: string;
   studentEmail: string;
-  studentPassword: string;
   curriculumId: string;
   gradeId: string;
   subjectIds: string[];
@@ -102,16 +136,44 @@ interface SignupDraft {
   idempotencyKey: string;
 }
 
+export const safeSignupDraft = (draft: Partial<SignupDraft>): Partial<SignupDraft> => ({
+  step: draft.step,
+  parentFullName: draft.parentFullName,
+  parentEmail: draft.parentEmail,
+  parentPhone: draft.parentPhone,
+  studentFullName: draft.studentFullName,
+  studentEmail: draft.studentEmail,
+  curriculumId: draft.curriculumId,
+  gradeId: draft.gradeId,
+  subjectIds: draft.subjectIds,
+  packageId: draft.packageId,
+  discountCode: draft.discountCode,
+  paymentProvider: draft.paymentProvider,
+  city: draft.city,
+  region: draft.region,
+  line1: draft.line1,
+  verification: draft.verification,
+  idempotencyKey: draft.idempotencyKey,
+});
+
 const readSignupDraft = (courseOnly: boolean): Partial<SignupDraft> => {
-  const sessionKey = courseOnly ? COURSE_STUDENT_SIGNUP_DRAFT_KEY : STUDENT_SIGNUP_DRAFT_KEY;
-  const persistentKey = courseOnly ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
+  const sessionKey = courseOnly
+    ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
+    : STUDENT_SIGNUP_DRAFT_KEY;
+  const persistentKey = courseOnly
+    ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY
+    : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
   for (const [storage, key] of [
     [sessionStorage, sessionKey],
     [localStorage, persistentKey],
   ] as const) {
     try {
       const raw = storage.getItem(key);
-      if (raw) return JSON.parse(raw) as Partial<SignupDraft>;
+      if (raw) {
+        const safe = safeSignupDraft(JSON.parse(raw) as Partial<SignupDraft>);
+        if (JSON.stringify(safe) !== raw) storage.setItem(key, JSON.stringify(safe));
+        return safe;
+      }
     } catch {
       // Continue to the other storage when mobile private mode blocks one.
     }
@@ -119,64 +181,101 @@ const readSignupDraft = (courseOnly: boolean): Partial<SignupDraft> => {
   return {};
 };
 
-export default function StudentSignup({ courseOnly = false }: { courseOnly?: boolean }) {
+export default function StudentSignup({
+  courseOnly = false,
+}: {
+  courseOnly?: boolean;
+}) {
   const { isArabic, pick } = useLanguage();
   const [searchParams] = useSearchParams();
   const requestedReturnTo = searchParams.get("returnTo") || "";
-  const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/courses";
+  const returnTo =
+    requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/courses";
   const courseOnlyPath = `/register/course-student${requestedReturnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   const steps = courseOnly ? courseOnlySteps : academicSteps;
-  const sessionDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_DRAFT_KEY : STUDENT_SIGNUP_DRAFT_KEY;
-  const persistentDraftKey = courseOnly ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
+  const sessionDraftKey = courseOnly
+    ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
+    : STUDENT_SIGNUP_DRAFT_KEY;
+  const persistentDraftKey = courseOnly
+    ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY
+    : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
   const [savedDraft] = useState(() => readSignupDraft(courseOnly));
-  const [step, setStep] = useState(() => savedDraft.parentCreds
-    ? Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1)
-    : 0);
+  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
   const [error, setError] = useState("");
 
   // Step 0: parent
-  const [parentFullName, setParentFullName] = useState(savedDraft.parentFullName ?? "");
+  const [parentFullName, setParentFullName] = useState(
+    savedDraft.parentFullName ?? "",
+  );
   const [parentEmail, setParentEmail] = useState(savedDraft.parentEmail ?? "");
   const [parentPhone, setParentPhone] = useState(savedDraft.parentPhone ?? "");
-  const [parentPassword, setParentPassword] = useState(savedDraft.parentPassword ?? "");
+  const [parentPassword, setParentPassword] = useState("");
   const [parentBusy, setParentBusy] = useState(false);
-  const [parentCreds, setParentCreds] = useState<{ email: string; password: string } | null>(savedDraft.parentCreds ?? null);
+  const [parentCreds, setParentCreds] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
 
   // Step 1: student
-  const [studentFullName, setStudentFullName] = useState(savedDraft.studentFullName ?? "");
-  const [studentEmail, setStudentEmail] = useState(savedDraft.studentEmail ?? "");
-  const [studentPassword, setStudentPassword] = useState(savedDraft.studentPassword ?? "");
+  const [studentFullName, setStudentFullName] = useState(
+    savedDraft.studentFullName ?? "",
+  );
+  const [studentEmail, setStudentEmail] = useState(
+    savedDraft.studentEmail ?? "",
+  );
+  const [studentPassword, setStudentPassword] = useState("");
 
   // Step 2: curriculum / grade / package / subjects
   const [curriculums, setCurriculums] = useState<CurriculumOption[]>([]);
   const [curriculumsLoading, setCurriculumsLoading] = useState(true);
-  const [curriculumId, setCurriculumId] = useState(() => savedDraft.curriculumId || searchParams.get("curriculum") || "");
+  const [curriculumId, setCurriculumId] = useState(
+    () => savedDraft.curriculumId || searchParams.get("curriculum") || "",
+  );
   const [grades, setGrades] = useState<GradeOption[]>([]);
   const [gradesLoading, setGradesLoading] = useState(false);
   const [gradeId, setGradeId] = useState(savedDraft.gradeId ?? "");
-  const [openGradeGroups,setOpenGradeGroups]=useState<Record<string,boolean>>({});
-  const [openGradeStages,setOpenGradeStages]=useState<Record<string,boolean>>({});
+  const [openGradeGroups, setOpenGradeGroups] = useState<
+    Record<string, boolean>
+  >({});
+  const [openGradeStages, setOpenGradeStages] = useState<
+    Record<string, boolean>
+  >({});
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
-  const [subjectIds, setSubjectIds] = useState<string[]>(savedDraft.subjectIds ?? []);
+  const [subjectIds, setSubjectIds] = useState<string[]>(
+    savedDraft.subjectIds ?? [],
+  );
 
   // Step 3: payment
   const [packages, setPackages] = useState<PackageOption[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
-  const [packageId, setPackageId] = useState(() => savedDraft.packageId || searchParams.get("package") || "");
-  const [discountCode, setDiscountCode] = useState(savedDraft.discountCode ?? "");
-  const [paymentProvider, setPaymentProvider] = useState<GulfPaymentProvider>(savedDraft.paymentProvider ?? "paymob");
+  const [packageId, setPackageId] = useState(
+    () => savedDraft.packageId || searchParams.get("package") || "",
+  );
+  const [discountCode, setDiscountCode] = useState(
+    savedDraft.discountCode ?? "",
+  );
+  const [paymentProvider, setPaymentProvider] = useState<GulfPaymentProvider>(
+    savedDraft.paymentProvider ?? "paymob",
+  );
   const [city, setCity] = useState(savedDraft.city ?? "");
   const [region, setRegion] = useState(savedDraft.region ?? "");
   const [line1, setLine1] = useState(savedDraft.line1 ?? "");
   const [submitting, setSubmitting] = useState(false);
   // Student registrations remain pending until admin approval, so an old student
   // verification draft must not reopen the OTP screen on a later registration.
-  const [verification, setVerification] = useState<{ email: string; kind: "parent" | "student" } | null>(
+  const [verification, setVerification] = useState<{
+    email: string;
+    kind: "parent" | "student";
+  } | null>(
     savedDraft.verification?.kind === "parent" ? savedDraft.verification : null,
   );
 
-  const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
+  const [idempotencyKey] = useState(
+    () => savedDraft.idempotencyKey || crypto.randomUUID(),
+  );
   const previousCurriculumId = useRef(curriculumId);
   const previousGradeId = useRef(gradeId);
 
@@ -186,18 +285,78 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
   const selectedAccessScope = selectedPackage?.accessScope;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
   const isAllSubjectsPackage = selectedAccessScope === "all_subjects";
-  const splitGradesByStage=(groupGrades:GradeOption[])=>{const normalize=(value:string)=>value.replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");const definitions=mode==="egyptian"?[{key:"primary",label:"المرحلة الابتدائية",keyword:"ابتدائي"},{key:"preparatory",label:"المرحلة الإعدادية",keyword:"اعدادي"},{key:"secondary",label:"المرحلة الثانوية",keyword:"ثانوي"}]:[{key:"primary",label:"المرحلة الابتدائية",keyword:"ابتدائي"},{key:"middle",label:"المرحلة المتوسطة",keyword:"متوسط"},{key:"secondary",label:"المرحلة الثانوية",keyword:"ثانوي"}];const stages=definitions.map(stage=>({...stage,grades:groupGrades.filter(grade=>normalize(grade.name).includes(stage.keyword))})).filter(stage=>stage.grades.length);const stagedIds=new Set(stages.flatMap(stage=>stage.grades.map(grade=>grade.id)));const other=groupGrades.filter(grade=>!stagedIds.has(grade.id));return [...stages,...(other.length?[{key:"other",label:"مراحل أخرى",keyword:"",grades:other}]:[])];};
-  const splitGradesByTrack=(stageGrades:GradeOption[])=>{const languages=stageGrades.filter(grade=>grade.name.includes("لغات"));const arabic=stageGrades.filter(grade=>!grade.name.includes("لغات")&&(grade.name.includes("عربي")||grade.name.includes("عربى")));const groupedIds=new Set([...languages,...arabic].map(grade=>grade.id));const other=stageGrades.filter(grade=>!groupedIds.has(grade.id));return [{key:"languages",label:"قسم اللغات",grades:languages},{key:"arabic",label:"القسم العربي",grades:arabic},...(other.length?[{key:"other",label:"صفوف أخرى",grades:other}]:[])].filter(group=>group.grades.length);};
+  const splitGradesByStage = (groupGrades: GradeOption[]) => {
+    const normalize = (value: string) =>
+      value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
+    const definitions =
+      mode === "egyptian"
+        ? [
+            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
+            {
+              key: "preparatory",
+              label: "المرحلة الإعدادية",
+              keyword: "اعدادي",
+            },
+            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
+          ]
+        : [
+            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
+            { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" },
+            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
+          ];
+    const stages = definitions
+      .map((stage) => ({
+        ...stage,
+        grades: groupGrades.filter((grade) =>
+          normalize(grade.name).includes(stage.keyword),
+        ),
+      }))
+      .filter((stage) => stage.grades.length);
+    const stagedIds = new Set(
+      stages.flatMap((stage) => stage.grades.map((grade) => grade.id)),
+    );
+    const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
+    return [
+      ...stages,
+      ...(other.length
+        ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }]
+        : []),
+    ];
+  };
+  const splitGradesByTrack = (stageGrades: GradeOption[]) => {
+    const languages = stageGrades.filter(
+      (grade) => egyptianGradeLanguage(grade.name) === "languages",
+    );
+    const arabic = stageGrades.filter(
+      (grade) => egyptianGradeLanguage(grade.name) === "arabic",
+    );
+    const groupedIds = new Set(
+      [...languages, ...arabic].map((grade) => grade.id),
+    );
+    const other = stageGrades.filter((grade) => !groupedIds.has(grade.id));
+    return [
+      { key: "languages", label: "قسم اللغات", grades: languages },
+      { key: "arabic", label: "القسم العربي", grades: arabic },
+      ...(other.length
+        ? [{ key: "other", label: "صفوف أخرى", grades: other }]
+        : []),
+    ].filter((group) => group.grades.length);
+  };
 
   useEffect(() => {
-    catalogApi.curriculums()
+    catalogApi
+      .curriculums()
       .then((result) => setCurriculums(result.data))
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setCurriculumsLoading(false));
   }, []);
 
   useEffect(() => {
-    if (!curriculumId) { setGrades([]); setGradeId(""); return; }
+    if (!curriculumId) {
+      setGrades([]);
+      setGradeId("");
+      return;
+    }
     const curriculumChanged = previousCurriculumId.current !== curriculumId;
     previousCurriculumId.current = curriculumId;
     setGradesLoading(true);
@@ -208,19 +367,26 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
       setSubjects([]);
       setSubjectIds([]);
     }
-    catalogApi.grades(curriculumId)
-      .then((result) => setGrades(result.data.filter((g) => g.isActive !== false)))
+    catalogApi
+      .grades(curriculumId)
+      .then((result) =>
+        setGrades(result.data.filter((g) => g.isActive !== false)),
+      )
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setGradesLoading(false));
   }, [curriculumId]);
 
   useEffect(() => {
-    if (!gradeId || courseOnly) { setSubjects([]); return; }
+    if (!gradeId || courseOnly) {
+      setSubjects([]);
+      return;
+    }
     const gradeChanged = previousGradeId.current !== gradeId;
     previousGradeId.current = gradeId;
     setSubjectsLoading(true);
     if (gradeChanged) setSubjectIds([]);
-    catalogApi.subjects(gradeId)
+    catalogApi
+      .subjects(gradeId)
       .then((result) => setSubjects(result.data))
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setSubjectsLoading(false));
@@ -228,40 +394,81 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
 
   useEffect(() => {
     const draft: SignupDraft = {
-      step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds,
-      studentFullName, studentEmail, studentPassword, curriculumId, gradeId,
-      subjectIds, packageId, discountCode, paymentProvider, city, region, line1,
-      verification, idempotencyKey,
+      step,
+      parentFullName,
+      parentEmail,
+      parentPhone,
+      studentFullName,
+      studentEmail,
+      curriculumId,
+      gradeId,
+      subjectIds,
+      packageId,
+      discountCode,
+      paymentProvider,
+      city,
+      region,
+      line1,
+      verification,
+      idempotencyKey,
     };
+    const safeDraft = safeSignupDraft(draft);
     try {
-      sessionStorage.setItem(sessionDraftKey, JSON.stringify(draft));
+      sessionStorage.setItem(sessionDraftKey, JSON.stringify(safeDraft));
     } catch {
       // sessionStorage may be discarded or unavailable on mobile browsers.
     }
     try {
       const persistentDraft: Partial<SignupDraft> = {
-        ...draft,
+        ...safeDraft,
         step: 0,
-        parentPassword: "",
-        studentPassword: "",
-        parentCreds: null,
         verification: null,
       };
       localStorage.setItem(persistentDraftKey, JSON.stringify(persistentDraft));
     } catch {
       // Strict private browsing can disable persistent storage.
     }
-  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, parentCreds, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, packageId, discountCode, paymentProvider, city, region, line1, verification, idempotencyKey, sessionDraftKey, persistentDraftKey]);
+  }, [
+    step,
+    parentFullName,
+    parentEmail,
+    parentPhone,
+    studentFullName,
+    studentEmail,
+    curriculumId,
+    gradeId,
+    subjectIds,
+    packageId,
+    discountCode,
+    paymentProvider,
+    city,
+    region,
+    line1,
+    verification,
+    idempotencyKey,
+    sessionDraftKey,
+    persistentDraftKey,
+  ]);
 
   useEffect(() => {
-    if (!curriculumId || courseOnly) { setPackages([]); setPackageId(""); return; }
+    if (!curriculumId || courseOnly) {
+      setPackages([]);
+      setPackageId("");
+      return;
+    }
     setPackagesLoading(true);
-    catalogApi.packages(curriculumId)
+    catalogApi
+      .packages(curriculumId)
       .then((result) => {
-        const allowedCurrency = mode === "gulf" ? GULF_CURRENCIES : new Set(["EGP"]);
-        const filtered = result.data.filter((p) => p.isActive !== false && allowedCurrency.has(p.currency));
+        const allowedCurrency =
+          mode === "gulf" ? GULF_CURRENCIES : new Set(["EGP"]);
+        const filtered = result.data.filter(
+          (p) => p.isActive !== false && allowedCurrency.has(p.currency),
+        );
         setPackages(filtered);
-        setPackageId((current) => (filtered.some((p) => p.id === current) ? current : ""));
+        setPackageId((current) =>
+          filtered.some((p) => p.id === current) ? current : "",
+        );
       })
       .catch((value) => setError(friendlyError(value)))
       .finally(() => setPackagesLoading(false));
@@ -270,7 +477,9 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
   useEffect(() => {
     if (!selectedPackage || subjectsLoading) return;
     if (mode === "gulf") {
-      setSubjectIds((current) => current.filter((id) => subjects.some((subject) => subject.id === id)));
+      setSubjectIds((current) =>
+        current.filter((id) => subjects.some((subject) => subject.id === id)),
+      );
       return;
     }
     if (selectedAccessScope === "all_subjects") {
@@ -278,20 +487,40 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
       return;
     }
     if (selectedAccessScope === "single_subject") {
-      setSubjectIds((current) => current.filter((id) => subjects.some((subject) => subject.id === id)).slice(0, 1));
+      setSubjectIds((current) =>
+        current
+          .filter((id) => subjects.some((subject) => subject.id === id))
+          .slice(0, 1),
+      );
     }
   }, [selectedPackage, selectedAccessScope, subjects, subjectsLoading, mode]);
 
   const selectSubject = (id: string) => setSubjectIds([id]);
   const toggleSubject = (id: string) =>
-    setSubjectIds((current) => current.includes(id) ? current.filter((subjectId) => subjectId !== id) : [...current, id]);
+    setSubjectIds((current) =>
+      current.includes(id)
+        ? current.filter((subjectId) => subjectId !== id)
+        : [...current, id],
+    );
 
   const validStep = useMemo(() => {
-    if (step === 0) return parentFullName.trim().length >= 3 && !!parentEmail && !!normalizeRegistrationPhone(parentPhone) && !!parentPassword;
-    if (step === 1) return studentFullName.trim().length >= 3 && !!studentEmail && !!studentPassword;
+    if (step === 0)
+      return (
+        parentFullName.trim().length >= 3 &&
+        !!parentEmail &&
+        !!normalizeRegistrationPhone(parentPhone) &&
+        !!parentPassword
+      );
+    if (step === 1)
+      return (
+        studentFullName.trim().length >= 3 &&
+        !!studentEmail &&
+        !!studentPassword
+      );
     if (step === 2) {
       if (courseOnly) return !!curriculumId && !!gradeId;
-      if (!curriculumId || !gradeId || !packageId || subjects.length === 0) return false;
+      if (!curriculumId || !gradeId || !packageId || subjects.length === 0)
+        return false;
       if (mode === "gulf") return subjectIds.length >= 1;
       if (isSingleSubjectPackage) return subjectIds.length === 1;
       if (isAllSubjectsPackage) return subjectIds.length === subjects.length;
@@ -299,11 +528,34 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
     }
     if (step === 3) {
       if (!packageId) return false;
-      if (mode === "gulf" && paymentProvider === "tamara") return !!city.trim() && !!region.trim() && !!line1.trim();
+      if (mode === "gulf" && paymentProvider === "tamara")
+        return !!city.trim() && !!region.trim() && !!line1.trim();
       return true;
     }
     return true;
-  }, [step, parentFullName, parentEmail, parentPhone, parentPassword, studentFullName, studentEmail, studentPassword, curriculumId, gradeId, subjectIds, subjects.length, packageId, isSingleSubjectPackage, isAllSubjectsPackage, mode, paymentProvider, city, region, line1, courseOnly]);
+  }, [
+    step,
+    parentFullName,
+    parentEmail,
+    parentPhone,
+    parentPassword,
+    studentFullName,
+    studentEmail,
+    studentPassword,
+    curriculumId,
+    gradeId,
+    subjectIds,
+    subjects.length,
+    packageId,
+    isSingleSubjectPackage,
+    isAllSubjectsPackage,
+    mode,
+    paymentProvider,
+    city,
+    region,
+    line1,
+    courseOnly,
+  ]);
 
   const submitParentStep = async () => {
     setError("");
@@ -314,11 +566,21 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
     }
     setParentBusy(true);
     try {
-      const credentials = { email: parentEmail.trim(), password: parentPassword };
+      const credentials = {
+        email: parentEmail.trim(),
+        password: parentPassword,
+      };
       try {
-        const login = await authApi.login(credentials.email, credentials.password);
+        const login = await authApi.login(
+          credentials.email,
+          credentials.password,
+        );
         if ((login.data as { role?: string }).role !== "parent") {
-          throw new ApiError(403, "WRONG_PARENT_ACCOUNT", "هذه البيانات لا تخص حساب ولي أمر.");
+          throw new ApiError(
+            403,
+            "WRONG_PARENT_ACCOUNT",
+            "هذه البيانات لا تخص حساب ولي أمر.",
+          );
         }
         tokenStore.set(login.token, login.refreshToken);
         setParentCreds(credentials);
@@ -338,9 +600,13 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
         whatsappNumber: registrationPhone,
         password: credentials.password,
       });
-      if (response.token) tokenStore.set(response.token, response.refreshToken || "");
+      if (response.token)
+        tokenStore.set(response.token, response.refreshToken || "");
       setParentCreds(credentials);
-      setVerification({ email: response.data.email || credentials.email, kind: "parent" });
+      setVerification({
+        email: response.data.email || credentials.email,
+        kind: "parent",
+      });
     } catch (value) {
       setError(friendlyError(value));
     } finally {
@@ -350,14 +616,25 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
 
   const next = async () => {
     if (!validStep) {
-      setError(step === 0 && parentPhone.trim() && !normalizeRegistrationPhone(parentPhone)
-        ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
-        : "أكمل الحقول المطلوبة قبل المتابعة.");
+      setError(
+        step === 0 &&
+          parentPhone.trim() &&
+          !normalizeRegistrationPhone(parentPhone)
+          ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
+          : "أكمل الحقول المطلوبة قبل المتابعة.",
+      );
       return;
     }
     setError("");
-    if (step === 0) { if (parentCreds) setStep(1); else await submitParentStep(); return; }
-    if (step === steps.length - 1) { await submit(); return; }
+    if (step === 0) {
+      if (parentCreds) setStep(1);
+      else await submitParentStep();
+      return;
+    }
+    if (step === steps.length - 1) {
+      await submit();
+      return;
+    }
     setStep((current) => current + 1);
   };
 
@@ -385,7 +662,10 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
         email: studentEmail.trim(),
         password: studentPassword,
         grade: gradeId,
-        subjects: mode !== "gulf" && isAllSubjectsPackage ? subjects.map((subject) => subject.id) : subjectIds,
+        subjects:
+          mode !== "gulf" && isAllSubjectsPackage
+            ? subjects.map((subject) => subject.id)
+            : subjectIds,
       };
       if (mode === "egyptian") {
         await authApi.registerStudent({
@@ -409,9 +689,15 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
             packageId,
             items: subjectIds.map((subjectId) => ({ subjectId, packageId })),
             discountCode: discountCode.trim() || undefined,
-            ...(paymentProvider === "tamara" ? {
-              paymentAddress: { city: city.trim(), region: region.trim(), line1: line1.trim() },
-            } : {}),
+            ...(paymentProvider === "tamara"
+              ? {
+                  paymentAddress: {
+                    city: city.trim(),
+                    region: region.trim(),
+                    line1: line1.trim(),
+                  },
+                }
+              : {}),
             locale: "ar_SA",
             isMobile: false,
           },
@@ -426,8 +712,8 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
           studentEmail: studentEmail.trim(),
           createdAt: new Date().toISOString(),
         });
-        if (paymentProvider === "tamara") localStorage.setItem("tamaraPaymentId", data.paymentId);
-        studentSignupSession.savePaymentCredentials(data.paymentId, studentEmail.trim(), studentPassword);
+        if (paymentProvider === "tamara")
+          localStorage.setItem("tamaraPaymentId", data.paymentId);
         window.location.href = data.checkoutUrl;
       }
     } catch (value) {
@@ -437,25 +723,42 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
     }
   };
 
-  if (verification) return <AccountVerification email={verification.email} onVerified={async () => {
-    if (verification.kind === "parent") {
-      if (!parentCreds) throw new Error("تعذر استعادة بيانات دخول ولي الأمر.");
-      const login = await authApi.login(parentCreds.email, parentCreds.password);
-      tokenStore.set(login.token, login.refreshToken);
-      setVerification(null);
-      setStep(1);
-    } else {
-      const verifiedStudentEmail = verification.email || studentEmail.trim();
-      sessionStorage.removeItem(sessionDraftKey);
-      localStorage.removeItem(persistentDraftKey);
-      const loginParams = new URLSearchParams({ email: verifiedStudentEmail, verified: "1" });
-      if (courseOnly) loginParams.set("returnTo", returnTo);
-      window.location.href = `/portal/login?${loginParams.toString()}`;
-    }
-  }} />;
+  if (verification)
+    return (
+      <AccountVerification
+        email={verification.email}
+        onVerified={async () => {
+          if (verification.kind === "parent") {
+            if (!parentCreds)
+              throw new Error("تعذر استعادة بيانات دخول ولي الأمر.");
+            const login = await authApi.login(
+              parentCreds.email,
+              parentCreds.password,
+            );
+            tokenStore.set(login.token, login.refreshToken);
+            setVerification(null);
+            setStep(1);
+          } else {
+            const verifiedStudentEmail =
+              verification.email || studentEmail.trim();
+            sessionStorage.removeItem(sessionDraftKey);
+            localStorage.removeItem(persistentDraftKey);
+            const loginParams = new URLSearchParams({
+              email: verifiedStudentEmail,
+              verified: "1",
+            });
+            if (courseOnly) loginParams.set("returnTo", returnTo);
+            window.location.href = `/portal/login?${loginParams.toString()}`;
+          }
+        }}
+      />
+    );
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-hero-gradient px-3 py-6 sm:px-4 sm:py-16" dir={isArabic ? "rtl" : "ltr"}>
+    <main
+      className="relative flex min-h-screen items-center justify-center overflow-x-hidden bg-hero-gradient px-3 py-6 sm:px-4 sm:py-16"
+      dir={isArabic ? "rtl" : "ltr"}
+    >
       <Card className="max-w-3xl w-full mx-auto min-h-[640px] flex flex-col">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -464,18 +767,31 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
             </Link>
             <div className="flex items-center gap-1 sm:gap-2">
               <LanguageToggle className="h-9 border bg-muted/50 px-2.5 text-foreground hover:bg-muted" />
-              <Link to="/" className="flex items-center gap-1 whitespace-nowrap text-sm text-muted-foreground hover:text-primary">
+              <Link
+                to="/"
+                className="flex items-center gap-1 whitespace-nowrap text-sm text-muted-foreground hover:text-primary"
+              >
                 <Home className="w-4 h-4" />
                 {pick("الرئيسية", "Home")}
               </Link>
             </div>
           </div>
-          <CardTitle className="font-cairo mt-4">{courseOnly ? "إنشاء حساب طالب للدورات" : "إنشاء حساب طالب"}</CardTitle>
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-muted/60 p-1.5" aria-label="نوع تسجيل الطالب">
+          <CardTitle className="font-cairo mt-4">
+            {courseOnly ? "إنشاء حساب طالب للدورات" : "إنشاء حساب طالب"}
+          </CardTitle>
+          <div
+            className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-muted/60 p-1.5"
+            aria-label="نوع تسجيل الطالب"
+          >
             <Link
               to="/register/student"
               aria-current={!courseOnly ? "page" : undefined}
-              className={cn("flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors", !courseOnly ? "bg-card text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/70 hover:text-foreground")}
+              className={cn(
+                "flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors",
+                !courseOnly
+                  ? "bg-card text-primary shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
+              )}
             >
               <GraduationCap className="h-4 w-4 shrink-0" />
               طالب أكاديمية بنان
@@ -483,20 +799,36 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
             <Link
               to={courseOnlyPath}
               aria-current={courseOnly ? "page" : undefined}
-              className={cn("flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors", courseOnly ? "bg-card text-primary shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/70 hover:text-foreground")}
+              className={cn(
+                "flex min-h-12 items-center justify-center gap-2 rounded-lg px-3 text-center text-sm font-semibold transition-colors",
+                courseOnly
+                  ? "bg-card text-primary shadow-sm ring-1 ring-border"
+                  : "text-muted-foreground hover:bg-card/70 hover:text-foreground",
+              )}
             >
               <BookOpen className="h-4 w-4 shrink-0" />
               طالب الدورات المستقلة
             </Link>
           </div>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            {courseOnly ? "لن تختار باقة ولن تدفع أثناء إنشاء الحساب." : "هذا المسار مخصص للاشتراك في النظام الأكاديمي والباقات."}
+            {courseOnly
+              ? "لن تختار باقة ولن تدفع أثناء إنشاء الحساب."
+              : "هذا المسار مخصص للاشتراك في النظام الأكاديمي والباقات."}
           </p>
-          <div className={cn("grid gap-2 pt-4", courseOnly ? "grid-cols-3" : "grid-cols-4")}>
+          <div
+            className={cn(
+              "grid gap-2 pt-4",
+              courseOnly ? "grid-cols-3" : "grid-cols-4",
+            )}
+          >
             {steps.map((title, index) => (
               <div key={title} className="text-center">
-                <div className={`h-2 rounded-full ${index <= step ? "bg-secondary" : "bg-muted"}`} />
-                <span className={`hidden sm:block text-xs mt-2 font-tajawal ${index === step ? "font-bold" : "text-muted-foreground"}`}>
+                <div
+                  className={`h-2 rounded-full ${index <= step ? "bg-secondary" : "bg-muted"}`}
+                />
+                <span
+                  className={`hidden sm:block text-xs mt-2 font-tajawal ${index === step ? "font-bold" : "text-muted-foreground"}`}
+                >
                   {title}
                 </span>
               </div>
@@ -504,192 +836,498 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col justify-center space-y-5">
-          {error && (
-            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm font-tajawal">
-              {error}
-            </div>
-          )}
-
-          {step === 0 && (
-            <div className="grid sm:grid-cols-2 gap-4">
-              <LabeledInput label="اسم ولي الأمر الكامل *" value={parentFullName} onChange={setParentFullName} />
-              <LabeledInput label="البريد الإلكتروني *" type="email" dir="ltr" value={parentEmail} onChange={(value) => { setParentEmail(value); setParentCreds(null); }} />
-              <LabeledInput label="رقم الهاتف / واتساب *" dir="ltr" value={parentPhone} onChange={setParentPhone} />
-              <LabeledInput label="كلمة المرور *" type="password" dir="ltr" value={parentPassword} onChange={(value) => { setParentPassword(value); setParentCreds(null); }} />
-            </div>
-          )}
-
-          {step === 1 && (
-            <div className="grid sm:grid-cols-2 gap-4">
-              <LabeledInput label="اسم الطالب الكامل *" value={studentFullName} onChange={setStudentFullName} />
-              <LabeledInput label="البريد الإلكتروني للطالب *" type="email" dir="ltr" value={studentEmail} onChange={setStudentEmail} />
-              <LabeledInput label="كلمة مرور الطالب *" type="password" dir="ltr" value={studentPassword} onChange={setStudentPassword} />
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <h3 className="font-cairo font-bold mb-3">اختر المنهج الدراسي *</h3>
-                {curriculumsLoading ? <LoaderRow /> : (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {curriculums.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setCurriculumId(c.id)}
-                        className={`text-right rounded-xl border p-4 transition-colors ${
-                          curriculumId === c.id ? "border-secondary bg-secondary/10" : "hover:border-secondary/50"
-                        }`}
-                      >
-                        <span className="font-cairo font-semibold">{c.name}</span>
-                        <span className="block text-xs text-muted-foreground mt-1">
-                          {courseOnly ? "لتخصيص بيانات الطالب والدورات المناسبة" : c.registrationMode === "gulf" ? "دفع فوري عبر البطاقة أو Tamara" : "مراجعة وتفعيل يدوي"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+          <div className="flex-1 flex flex-col justify-center space-y-5">
+            {error && (
+              <div
+                role="alert"
+                className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm font-tajawal"
+              >
+                {error}
               </div>
+            )}
 
-              {curriculumId && (
-                <div>
-                  <h3 className="font-cairo font-bold mb-3">اختر الصف *</h3>
-                  {gradesLoading ? <LoaderRow /> : grades.length === 0 ? (
-                    <p className="text-muted-foreground font-tajawal text-sm">لا توجد صفوف نشطة لهذا المنهج.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {splitGradesByStage(grades).map((stage) => { const isStageOpen=Boolean(openGradeStages[stage.key]);const selectedInStage=stage.grades.some(grade=>grade.id===gradeId);return <Collapsible key={stage.key} open={isStageOpen} onOpenChange={(open)=>setOpenGradeStages(current=>({...current,[stage.key]:open}))} className="overflow-hidden rounded-xl border bg-card">
-                        <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50"><span className="flex items-center gap-2"><span className="font-cairo font-bold">{stage.label}</span>{selectedInStage&&<span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">تم الاختيار</span>}</span><ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform",isStageOpen&&"rotate-180")}/></button></CollapsibleTrigger>
-                        <CollapsibleContent><div className="space-y-3 border-t bg-muted/10 p-3">{splitGradesByTrack(stage.grades).map((group)=>{const groupId=`${stage.key}-${group.key}`;const isGroupOpen=Boolean(openGradeGroups[groupId]);const selectedInGroup=group.grades.some(grade=>grade.id===gradeId);return <Collapsible key={groupId} open={isGroupOpen} onOpenChange={(open)=>setOpenGradeGroups(current=>({...current,[groupId]:open}))} className="overflow-hidden rounded-lg border bg-card">
-                          <CollapsibleTrigger asChild><button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50"><span className="flex items-center gap-2"><span className="text-sm font-cairo font-bold">{group.label}</span>{selectedInGroup&&<span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">تم الاختيار</span>}</span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform",isGroupOpen&&"rotate-180")}/></button></CollapsibleTrigger>
-                          <CollapsibleContent><div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3">{group.grades.map((grade)=>{const selected=grade.id===gradeId;return <button key={grade.id} type="button" aria-pressed={selected} onClick={()=>setGradeId(grade.id)} className={cn("relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",selected?"border-secondary bg-secondary/10 text-secondary-foreground":"border-border bg-card hover:border-secondary/40 hover:bg-muted/40")}>{selected&&<span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-secondary text-secondary-foreground"><Check className="h-3.5 w-3.5"/></span>}{grade.name}</button>;})}</div></CollapsibleContent>
-                        </Collapsible>;})}</div></CollapsibleContent>
-                      </Collapsible>;})}
-                    </div>
-                  )}
-                </div>
-              )}
+            {step === 0 && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <LabeledInput
+                  label="اسم ولي الأمر الكامل *"
+                  value={parentFullName}
+                  onChange={setParentFullName}
+                />
+                <LabeledInput
+                  label="البريد الإلكتروني *"
+                  type="email"
+                  dir="ltr"
+                  value={parentEmail}
+                  onChange={(value) => {
+                    setParentEmail(value);
+                    setParentCreds(null);
+                  }}
+                />
+                <LabeledInput
+                  label="رقم الهاتف / واتساب *"
+                  dir="ltr"
+                  value={parentPhone}
+                  onChange={setParentPhone}
+                />
+                <LabeledInput
+                  label="كلمة المرور *"
+                  type="password"
+                  dir="ltr"
+                  value={parentPassword}
+                  onChange={(value) => {
+                    setParentPassword(value);
+                    setParentCreds(null);
+                  }}
+                />
+              </div>
+            )}
 
-              {gradeId && !courseOnly && (
+            {step === 1 && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <LabeledInput
+                  label="اسم الطالب الكامل *"
+                  value={studentFullName}
+                  onChange={setStudentFullName}
+                />
+                <LabeledInput
+                  label="البريد الإلكتروني للطالب *"
+                  type="email"
+                  dir="ltr"
+                  value={studentEmail}
+                  onChange={setStudentEmail}
+                />
+                <LabeledInput
+                  label="كلمة مرور الطالب *"
+                  type="password"
+                  dir="ltr"
+                  value={studentPassword}
+                  onChange={setStudentPassword}
+                />
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-5">
                 <div>
-                  <h3 className="font-cairo font-bold mb-3">اختر الباقة أولًا *</h3>
-                  {packagesLoading ? <LoaderRow /> : packages.length === 0 ? (
-                    <p className="text-muted-foreground font-tajawal text-sm">لا توجد باقات متاحة لهذا المنهج حاليًا.</p>
+                  <h3 className="font-cairo font-bold mb-3">
+                    اختر المنهج الدراسي *
+                  </h3>
+                  {curriculumsLoading ? (
+                    <LoaderRow />
                   ) : (
                     <div className="grid sm:grid-cols-2 gap-3">
-                      {packages.map((p) => (
-                        <button key={p.id} type="button" onClick={() => setPackageId(p.id)} className={`text-right rounded-xl border p-4 transition-colors ${packageId === p.id ? "border-secondary bg-secondary/10" : "hover:border-secondary/50"}`}>
-                          <span className="font-cairo font-semibold block">{p.name}</span>
-                          <span className="block text-xs text-muted-foreground mt-1">
-                            {mode === "gulf" ? "اختر مادة واحدة أو أكثر" : p.accessScope === "single_subject" ? "تشمل مادة واحدة من اختيارك" : "تشمل جميع مواد الصف"}
+                      {curriculums.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setCurriculumId(c.id)}
+                          className={`text-right rounded-xl border p-4 transition-colors ${
+                            curriculumId === c.id
+                              ? "border-secondary bg-secondary/10"
+                              : "hover:border-secondary/50"
+                          }`}
+                        >
+                          <span className="font-cairo font-semibold">
+                            {c.name}
                           </span>
-                          {(p.hours || p.months) && <span className="block text-xs text-muted-foreground mt-1">{p.hours ? `${p.hours} ساعات` : `${p.months} شهر`}</span>}
-                          <span className="flex items-baseline gap-2 mt-2">
-                            {p.oldPrice && <span className="text-xs line-through text-muted-foreground">{p.oldPrice} {p.currency}</span>}
-                            <span className="text-lg font-cairo font-bold">{p.price} {p.currency}</span>
+                          <span className="block text-xs text-muted-foreground mt-1">
+                            {courseOnly
+                              ? "لتخصيص بيانات الطالب والدورات المناسبة"
+                              : c.registrationMode === "gulf"
+                                ? "دفع فوري عبر البطاقة أو Tamara"
+                                : "مراجعة وتفعيل يدوي"}
                           </span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              )}
 
-              {gradeId && packageId && !courseOnly && (
-                <div>
-                  <h3 className="font-cairo font-bold mb-1">{mode === "gulf" ? "اختر مادة أو أكثر *" : isSingleSubjectPackage ? "اختر مادة واحدة *" : "المواد المشمولة في الباقة"}</h3>
-                  <p className="text-sm text-muted-foreground font-tajawal mb-3">
-                    {mode === "gulf" ? "حدد المواد التي يرغب الطالب في دراستها." : isSingleSubjectPackage ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة." : isAllSubjectsPackage ? "هذه جميع مواد الصف التي سيحصل عليها الطالب." : "تعذر تحديد المواد لأن نوع الباقة غير مدعوم."}
+                {curriculumId && (
+                  <div>
+                    <h3 className="font-cairo font-bold mb-3">اختر الصف *</h3>
+                    {gradesLoading ? (
+                      <LoaderRow />
+                    ) : grades.length === 0 ? (
+                      <p className="text-muted-foreground font-tajawal text-sm">
+                        لا توجد صفوف نشطة لهذا المنهج.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {splitGradesByStage(grades).map((stage) => {
+                          const isStageOpen = Boolean(
+                            openGradeStages[stage.key],
+                          );
+                          const selectedInStage = stage.grades.some(
+                            (grade) => grade.id === gradeId,
+                          );
+                          return (
+                            <Collapsible
+                              key={stage.key}
+                              open={isStageOpen}
+                              onOpenChange={(open) =>
+                                setOpenGradeStages((current) => ({
+                                  ...current,
+                                  [stage.key]: open,
+                                }))
+                              }
+                              className="overflow-hidden rounded-xl border bg-card"
+                            >
+                              <CollapsibleTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span className="font-cairo font-bold">
+                                      {stage.label}
+                                    </span>
+                                    {selectedInStage && (
+                                      <span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">
+                                        تم الاختيار
+                                      </span>
+                                    )}
+                                  </span>
+                                  <ChevronDown
+                                    className={cn(
+                                      "h-5 w-5 shrink-0 transition-transform",
+                                      isStageOpen && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="space-y-3 border-t bg-muted/10 p-3">
+                                  {splitGradesByTrack(stage.grades).map(
+                                    (group) => {
+                                      const groupId = `${stage.key}-${group.key}`;
+                                      const isGroupOpen = Boolean(
+                                        openGradeGroups[groupId],
+                                      );
+                                      const selectedInGroup = group.grades.some(
+                                        (grade) => grade.id === gradeId,
+                                      );
+                                      return (
+                                        <Collapsible
+                                          key={groupId}
+                                          open={isGroupOpen}
+                                          onOpenChange={(open) =>
+                                            setOpenGradeGroups((current) => ({
+                                              ...current,
+                                              [groupId]: open,
+                                            }))
+                                          }
+                                          className="overflow-hidden rounded-lg border bg-card"
+                                        >
+                                          <CollapsibleTrigger asChild>
+                                            <button
+                                              type="button"
+                                              className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50"
+                                            >
+                                              <span className="flex items-center gap-2">
+                                                <span className="text-sm font-cairo font-bold">
+                                                  {group.label}
+                                                </span>
+                                                {selectedInGroup && (
+                                                  <span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] text-secondary">
+                                                    تم الاختيار
+                                                  </span>
+                                                )}
+                                              </span>
+                                              <ChevronDown
+                                                className={cn(
+                                                  "h-4 w-4 shrink-0 transition-transform",
+                                                  isGroupOpen && "rotate-180",
+                                                )}
+                                              />
+                                            </button>
+                                          </CollapsibleTrigger>
+                                          <CollapsibleContent>
+                                            <div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3">
+                                              {group.grades.map((grade) => {
+                                                const selected =
+                                                  grade.id === gradeId;
+                                                return (
+                                                  <button
+                                                    key={grade.id}
+                                                    type="button"
+                                                    aria-pressed={selected}
+                                                    onClick={() =>
+                                                      setGradeId(grade.id)
+                                                    }
+                                                    className={cn(
+                                                      "relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",
+                                                      selected
+                                                        ? "border-secondary bg-secondary/10 text-secondary-foreground"
+                                                        : "border-border bg-card hover:border-secondary/40 hover:bg-muted/40",
+                                                    )}
+                                                  >
+                                                    {selected && (
+                                                      <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-secondary text-secondary-foreground">
+                                                        <Check className="h-3.5 w-3.5" />
+                                                      </span>
+                                                    )}
+                                                    {grade.name}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      );
+                                    },
+                                  )}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {gradeId && !courseOnly && (
+                  <div>
+                    <h3 className="font-cairo font-bold mb-3">
+                      اختر الباقة أولًا *
+                    </h3>
+                    {packagesLoading ? (
+                      <LoaderRow />
+                    ) : packages.length === 0 ? (
+                      <p className="text-muted-foreground font-tajawal text-sm">
+                        لا توجد باقات متاحة لهذا المنهج حاليًا.
+                      </p>
+                    ) : (
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {packages.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setPackageId(p.id)}
+                            className={`text-right rounded-xl border p-4 transition-colors ${packageId === p.id ? "border-secondary bg-secondary/10" : "hover:border-secondary/50"}`}
+                          >
+                            <span className="font-cairo font-semibold block">
+                              {p.name}
+                            </span>
+                            <span className="block text-xs text-muted-foreground mt-1">
+                              {mode === "gulf"
+                                ? "اختر مادة واحدة أو أكثر"
+                                : p.accessScope === "single_subject"
+                                  ? "تشمل مادة واحدة من اختيارك"
+                                  : "تشمل جميع مواد الصف"}
+                            </span>
+                            {(p.hours || p.months) && (
+                              <span className="block text-xs text-muted-foreground mt-1">
+                                {p.hours
+                                  ? `${p.hours} ساعات`
+                                  : `${p.months} شهر`}
+                              </span>
+                            )}
+                            <span className="flex items-baseline gap-2 mt-2">
+                              {p.oldPrice && (
+                                <span className="text-xs line-through text-muted-foreground">
+                                  {p.oldPrice} {p.currency}
+                                </span>
+                              )}
+                              <span className="text-lg font-cairo font-bold">
+                                {p.price} {p.currency}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {gradeId && packageId && !courseOnly && (
+                  <div>
+                    <h3 className="font-cairo font-bold mb-1">
+                      {mode === "gulf"
+                        ? "اختر مادة أو أكثر *"
+                        : isSingleSubjectPackage
+                          ? "اختر مادة واحدة *"
+                          : "المواد المشمولة في الباقة"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground font-tajawal mb-3">
+                      {mode === "gulf"
+                        ? "حدد المواد التي يرغب الطالب في دراستها."
+                        : isSingleSubjectPackage
+                          ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة."
+                          : isAllSubjectsPackage
+                            ? "هذه جميع مواد الصف التي سيحصل عليها الطالب."
+                            : "تعذر تحديد المواد لأن نوع الباقة غير مدعوم."}
+                    </p>
+                    {subjectsLoading ? (
+                      <LoaderRow />
+                    ) : subjects.length === 0 ? (
+                      <p className="text-muted-foreground font-tajawal text-sm">
+                        لا توجد مواد متاحة لهذا الصف.
+                      </p>
+                    ) : mode === "gulf" ? (
+                      <div className="flex flex-wrap gap-3">
+                        {subjects.map((s) => {
+                          const checked = subjectIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSubject(s.id)}
+                              />
+                              {s.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : isSingleSubjectPackage ? (
+                      <div className="flex flex-wrap gap-3">
+                        {subjects.map((s) => {
+                          const checked = subjectIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="registration-subject"
+                                checked={checked}
+                                onChange={() => selectSubject(s.id)}
+                              />
+                              {s.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : isAllSubjectsPackage ? (
+                      <div className="flex flex-wrap gap-3">
+                        {subjects.map((s) => (
+                          <span
+                            key={s.id}
+                            className="rounded-lg border border-secondary/40 bg-secondary/10 px-3 py-2 text-sm font-tajawal"
+                          >
+                            {s.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-destructive font-tajawal text-sm">
+                        نوع الباقة غير مدعوم.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 3 && !courseOnly && (
+              <div className="space-y-5">
+                <div className="rounded-xl border bg-muted/40 p-4">
+                  <h3 className="font-cairo font-bold">ملخص الاشتراك</h3>
+                  <p className="font-tajawal mt-2">
+                    الباقة:{" "}
+                    <span className="font-semibold">
+                      {selectedPackage?.name}
+                    </span>
                   </p>
-                  {subjectsLoading ? <LoaderRow /> : subjects.length === 0 ? (
-                    <p className="text-muted-foreground font-tajawal text-sm">لا توجد مواد متاحة لهذا الصف.</p>
-                  ) : mode === "gulf" ? (
-                    <div className="flex flex-wrap gap-3">
-                      {subjects.map((s) => {
-                        const checked = subjectIds.includes(s.id);
-                        return (
-                          <label key={s.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}>
-                            <input type="checkbox" checked={checked} onChange={() => toggleSubject(s.id)} />
-                            {s.name}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : isSingleSubjectPackage ? (
-                    <div className="flex flex-wrap gap-3">
-                      {subjects.map((s) => {
-                        const checked = subjectIds.includes(s.id);
-                        return (
-                          <label key={s.id} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}>
-                            <input type="radio" name="registration-subject" checked={checked} onChange={() => selectSubject(s.id)} />
-                            {s.name}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : isAllSubjectsPackage ? (
-                    <div className="flex flex-wrap gap-3">
-                      {subjects.map((s) => (
-                        <span key={s.id} className="rounded-lg border border-secondary/40 bg-secondary/10 px-3 py-2 text-sm font-tajawal">
-                          {s.name}
+                  <p className="text-sm text-muted-foreground font-tajawal mt-2 mb-2">
+                    المواد التي سيحصل عليها الطالب:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {subjects
+                      .filter((subject) => subjectIds.includes(subject.id))
+                      .map((subject) => (
+                        <span
+                          key={subject.id}
+                          className="rounded-full bg-secondary/15 px-3 py-1 text-sm font-tajawal"
+                        >
+                          <Check className="inline h-3.5 w-3.5 ml-1" />
+                          {subject.name}
                         </span>
                       ))}
-                    </div>
-                  ) : (
-                    <p className="text-destructive font-tajawal text-sm">نوع الباقة غير مدعوم.</p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {step === 3 && !courseOnly && (
-            <div className="space-y-5">
-              <div className="rounded-xl border bg-muted/40 p-4">
-                <h3 className="font-cairo font-bold">ملخص الاشتراك</h3>
-                <p className="font-tajawal mt-2">الباقة: <span className="font-semibold">{selectedPackage?.name}</span></p>
-                <p className="text-sm text-muted-foreground font-tajawal mt-2 mb-2">المواد التي سيحصل عليها الطالب:</p>
-                <div className="flex flex-wrap gap-2">
-                  {subjects.filter((subject) => subjectIds.includes(subject.id)).map((subject) => (
-                    <span key={subject.id} className="rounded-full bg-secondary/15 px-3 py-1 text-sm font-tajawal"><Check className="inline h-3.5 w-3.5 ml-1" />{subject.name}</span>
-                  ))}
-                </div>
-              </div>
-
-              {mode === "gulf" ? (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="font-cairo font-bold mb-3">طريقة الدفع *</h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <PaymentProviderOption provider="paymob" selected={paymentProvider} onSelect={setPaymentProvider} />
-                      <PaymentProviderOption provider="tamara" selected={paymentProvider} onSelect={setPaymentProvider} />
-                    </div>
                   </div>
-                  <LabeledInput label="كود الخصم (اختياري)" dir="ltr" value={discountCode} onChange={setDiscountCode} />
-                  {paymentProvider === "tamara" && (
+                </div>
+
+                {mode === "gulf" ? (
+                  <div className="space-y-5">
                     <div>
-                      <h3 className="font-cairo font-bold mb-3">عنوان الدفع لـ Tamara *</h3>
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <LabeledInput label="المدينة *" value={city} onChange={setCity} />
-                        <LabeledInput label="المنطقة *" value={region} onChange={setRegion} />
-                        <div className="sm:col-span-2"><LabeledInput label="العنوان التفصيلي *" value={line1} onChange={setLine1} /></div>
+                      <h3 className="font-cairo font-bold mb-3">
+                        طريقة الدفع *
+                      </h3>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <PaymentProviderOption
+                          provider="paymob"
+                          selected={paymentProvider}
+                          onSelect={setPaymentProvider}
+                        />
+                        <PaymentProviderOption
+                          provider="tamara"
+                          selected={paymentProvider}
+                          onSelect={setPaymentProvider}
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <LabeledInput label="كود الخصم (اختياري)" dir="ltr" value={discountCode} onChange={setDiscountCode} />
-              )}
-            </div>
-          )}
-        </div>
+                    <LabeledInput
+                      label="كود الخصم (اختياري)"
+                      dir="ltr"
+                      value={discountCode}
+                      onChange={setDiscountCode}
+                    />
+                    {paymentProvider === "tamara" && (
+                      <div>
+                        <h3 className="font-cairo font-bold mb-3">
+                          عنوان الدفع لـ Tamara *
+                        </h3>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <LabeledInput
+                            label="المدينة *"
+                            value={city}
+                            onChange={setCity}
+                          />
+                          <LabeledInput
+                            label="المنطقة *"
+                            value={region}
+                            onChange={setRegion}
+                          />
+                          <div className="sm:col-span-2">
+                            <LabeledInput
+                              label="العنوان التفصيلي *"
+                              value={line1}
+                              onChange={setLine1}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <LabeledInput
+                    label="كود الخصم (اختياري)"
+                    dir="ltr"
+                    value={discountCode}
+                    onChange={setDiscountCode}
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-between border-t pt-5 mt-6">
             <div>
               {step > 0 ? (
-                <Button type="button" variant="outline" onClick={() => { setError(""); setStep((current) => current - 1); }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setError("");
+                    setStep((current) => current - 1);
+                  }}
+                >
                   <ArrowRight className="h-4 w-4 ml-2" />
                   السابق
                 </Button>
@@ -708,7 +1346,11 @@ export default function StudentSignup({ courseOnly = false }: { courseOnly?: boo
               {step === 0
                 ? "التحقق والمتابعة"
                 : step === steps.length - 1
-                  ? (courseOnly ? "إنشاء الحساب" : mode === "gulf" ? "المتابعة للدفع" : "إرسال الطلب")
+                  ? courseOnly
+                    ? "إنشاء الحساب"
+                    : mode === "gulf"
+                      ? "المتابعة للدفع"
+                      : "إرسال الطلب"
                   : "التالي"}
             </Button>
           </div>
@@ -734,7 +1376,12 @@ function LabeledInput({
   return (
     <label className="text-sm font-tajawal space-y-1.5 block">
       <span>{label}</span>
-      <Input type={type} dir={dir} value={value} onChange={(e) => onChange(e.target.value)} />
+      <Input
+        type={type}
+        dir={dir}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </label>
   );
 }
@@ -765,8 +1412,26 @@ function PaymentProviderOption({
       aria-pressed={selected === provider}
       className={`flex min-h-28 items-center justify-between gap-4 rounded-xl border p-4 text-right transition-colors ${selected === provider ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
     >
-      <span className="font-cairo font-semibold">{isTamara ? "قسّط فاتورتك مع تمارا" : "بطاقة بنكية"}</span>
-      {isTamara ? <img src={tamaraImg} alt="تمارا" className="h-10 w-24 rounded-md object-contain" /> : <span className="flex items-center gap-2" dir="ltr"><img src={visaImg} alt="Visa" className="h-8 w-12 object-contain" /><img src={mastercardImg} alt="Mastercard" className="h-8 w-12 object-contain" /><img src={madaImg} alt="مدى" className="h-8 w-12 object-contain" /></span>}
+      <span className="font-cairo font-semibold">
+        {isTamara ? "قسّط فاتورتك مع تمارا" : "بطاقة بنكية"}
+      </span>
+      {isTamara ? (
+        <img
+          src={tamaraImg}
+          alt="تمارا"
+          className="h-10 w-24 rounded-md object-contain"
+        />
+      ) : (
+        <span className="flex items-center gap-2" dir="ltr">
+          <img src={visaImg} alt="Visa" className="h-8 w-12 object-contain" />
+          <img
+            src={mastercardImg}
+            alt="Mastercard"
+            className="h-8 w-12 object-contain"
+          />
+          <img src={madaImg} alt="مدى" className="h-8 w-12 object-contain" />
+        </span>
+      )}
     </button>
   );
 }

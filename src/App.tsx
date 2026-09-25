@@ -10,7 +10,10 @@ import Index from "@/pages/Index";
 import AllCurricula from "@/pages/AllCurricula";
 import AccountTypeSelect from "@/pages/AccountTypeSelect";
 import StudentSignup from "@/pages/StudentSignup";
-import TamaraReturn from "@/pages/TamaraReturn";
+import PaymentReturnDispatcher from "@/pages/PaymentReturnDispatcher";
+import StudentSubjectRequestReturn from "@/pages/StudentSubjectRequestReturn";
+import StudentSubscriptionRenewalReturn from "@/pages/StudentSubscriptionRenewalReturn";
+import StudentCourseEnrollmentReturn from "@/pages/StudentCourseEnrollmentReturn";
 import ContactPage from "@/pages/ContactPage";
 import Courses from "@/pages/Courses";
 import CourseDetails from "@/pages/CourseDetails";
@@ -20,9 +23,27 @@ import PortalLogin from "@/portal/PortalLogin";
 import ForgotPassword from "@/portal/ForgotPassword";
 import ParentAppNotice from "@/portal/ParentAppNotice";
 import TeacherSignup from "@/portal/TeacherSignup";
+import TeacherDashboard from "@/portal/TeacherDashboard";
+import TeacherRequests from "@/portal/TeacherRequests";
+import TeacherMessages from "@/portal/TeacherMessages";
+import TeacherPayroll from "@/portal/TeacherPayroll";
 import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
+import StudentSchedule from "@/portal/StudentSchedule";
 import StudentSessions from "@/portal/StudentSessions";
+import StudentAssignments from "@/portal/StudentAssignments";
+import StudentCertificates from "@/portal/StudentCertificates";
+import StudentEvaluationHistory from "@/portal/StudentEvaluationHistory";
+import StudentDashboard from "@/portal/StudentDashboard";
+import StudentNotifications from "@/portal/StudentNotifications";
+import StudentNotificationPreferences from "@/portal/StudentNotificationPreferences";
+import StudentMessages from "@/portal/StudentMessages";
+import StudentSubscriptions from "@/portal/StudentSubscriptions";
+import StudentSubscriptionRenewal from "@/portal/StudentSubscriptionRenewal";
+import StudentSubjects from "@/portal/StudentSubjects";
+import StudentAddSubject from "@/portal/StudentAddSubject";
+import StudentSubjectRequestHistory from "@/portal/StudentSubjectRequestHistory";
+import StudentClassroomChangeRequests from "@/portal/StudentClassroomChangeRequests";
 import AdminGuard from "@/admin/AdminGuard";
 import AdminDashboard from "@/admin/AdminDashboard";
 import ClassroomRecordingsAdmin from "@/admin/ClassroomRecordingsAdmin";
@@ -49,6 +70,9 @@ import CourseGroupsAdmin from "@/admin/CourseGroupsAdmin";
 import TeachersAdmin from "@/admin/TeachersAdmin";
 import CourseClassroomScheduleAdmin from "@/admin/CourseClassroomScheduleAdmin";
 import TeacherCourses from "@/portal/TeacherCourses";
+import TeacherClassrooms from "@/portal/TeacherClassrooms";
+import TeacherClassroomSessions from "@/portal/TeacherClassroomSessions";
+import TeacherSessionDetails from "@/portal/TeacherSessionDetails";
 import TeacherCourseDetail from "@/portal/TeacherCourseDetail";
 import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
 import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
@@ -76,7 +100,7 @@ const queryClient = new QueryClient();
 function HomeOrTamaraReturn() {
   const params = new URLSearchParams(window.location.search);
   return params.has("paymentStatus") && params.has("orderId") ? (
-    <TamaraReturn kind="success" />
+    <PaymentReturnDispatcher kind="success" />
   ) : (
     <Index />
   );
@@ -113,27 +137,37 @@ export default function App() {
                     />
                     <Route
                       path="/payment/tamara/success"
-                      element={<TamaraReturn kind="success" />}
+                      element={<PaymentReturnDispatcher kind="success" />}
                     />
                     <Route
                       path="/payment/tamara/failure"
-                      element={<TamaraReturn kind="failure" />}
+                      element={<PaymentReturnDispatcher kind="failure" />}
                     />
                     <Route
                       path="/payment/tamara/cancel"
-                      element={<TamaraReturn kind="cancel" />}
+                      element={<PaymentReturnDispatcher kind="cancel" />}
                     />
                     <Route
                       path="/payment/paymob/success"
-                      element={<TamaraReturn kind="success" />}
+                      element={<PaymentReturnDispatcher kind="success" />}
                     />
                     <Route
                       path="/payment/paymob/failure"
-                      element={<TamaraReturn kind="failure" />}
+                      element={<PaymentReturnDispatcher kind="failure" />}
                     />
                     <Route
                       path="/payment/paymob/cancel"
-                      element={<TamaraReturn kind="cancel" />}
+                      element={<PaymentReturnDispatcher kind="cancel" />}
+                    />
+                    <Route path="/payment/student-subject-request" element={<StudentSubjectRequestReturn />} />
+                    <Route path="/portal/student/subscription-renewal-return" element={<StudentSubscriptionRenewalReturn />} />
+                    <Route
+                      path="/portal/student/course-enrollment-return"
+                      element={
+                        <PortalGuard role="student">
+                          <StudentCourseEnrollmentReturn />
+                        </PortalGuard>
+                      }
                     />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/courses" element={<Courses />} />
@@ -154,12 +188,56 @@ export default function App() {
                       element={<TeacherSignup />}
                     />
                     <Route
+                      path="/portal/teacher"
+                      element={
+                        <PortalGuard role="teacher">
+                          <TeacherDashboard />
+                        </PortalGuard>
+                      }
+                    />
+                    <Route
                       path="/portal/teacher/schedule"
                       element={
                         <PortalGuard role="teacher">
                           <PortalSchedule role="teacher" />
                         </PortalGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/teacher/requests"
+                      element={
+                        <PortalGuard role="teacher">
+                          <TeacherRequests />
+                        </PortalGuard>
+                      }
+                    />
+                    <Route
+                      path="/portal/teacher/messages"
+                      element={
+                        <PortalGuard role="teacher">
+                          <TeacherMessages />
+                        </PortalGuard>
+                      }
+                    />
+                    <Route
+                      path="/portal/teacher/payroll"
+                      element={<PortalGuard role="teacher"><TeacherPayroll /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/payroll/:payrollId"
+                      element={<PortalGuard role="teacher"><TeacherPayroll /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/classrooms"
+                      element={<PortalGuard role="teacher"><TeacherClassrooms /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/classrooms/:classroomId"
+                      element={<PortalGuard role="teacher"><TeacherClassroomSessions /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/classrooms/:classroomId/sessions/:sessionId"
+                      element={<PortalGuard role="teacher"><TeacherSessionDetails /></PortalGuard>}
                     />
                     <Route
                       path="/portal/teacher/courses"
@@ -182,10 +260,62 @@ export default function App() {
                       element={<PortalGuard role="teacher"><CourseClassroomSchedule /></PortalGuard>}
                     />
                     <Route
+                      path="/portal/student"
+                      element={<PortalGuard role="student"><StudentDashboard /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/notifications"
+                      element={<PortalGuard role="student"><StudentNotifications /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/settings/notifications"
+                      element={
+                        <PortalGuard role="student">
+                          <StudentNotificationPreferences />
+                        </PortalGuard>
+                      }
+                    />
+                    <Route
+                      path="/portal/student/settings"
+                      element={
+                        <PortalGuard role="student">
+                          <AccountSettings />
+                        </PortalGuard>
+                      }
+                    />
+                    <Route
+                      path="/portal/student/messages"
+                      element={<PortalGuard role="student"><StudentMessages /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/subscriptions"
+                      element={<PortalGuard role="student"><StudentSubscriptions /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/subscriptions/:subscriptionId/renew"
+                      element={<PortalGuard role="student"><StudentSubscriptionRenewal /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/subjects"
+                      element={<PortalGuard role="student"><StudentSubjects /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/subjects/add"
+                      element={<PortalGuard role="student"><StudentAddSubject /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/subject-requests"
+                      element={<PortalGuard role="student"><StudentSubjectRequestHistory /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/change-requests"
+                      element={<PortalGuard role="student"><StudentClassroomChangeRequests /></PortalGuard>}
+                    />
+                    <Route
                       path="/portal/student/schedule"
                       element={
                         <PortalGuard role="student">
-                          <PortalSchedule role="student" />
+                          <StudentSchedule />
                         </PortalGuard>
                       }
                     />
@@ -198,6 +328,18 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/portal/student/assignments"
+                      element={<PortalGuard role="student"><StudentAssignments /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/certificates"
+                      element={<PortalGuard role="student"><StudentCertificates /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/evaluations"
+                      element={<PortalGuard role="student"><StudentEvaluationHistory /></PortalGuard>}
+                    />
+                    <Route
                       path="/admin"
                       element={
                         <AdminGuard>
@@ -205,6 +347,34 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route
+                      path="/admin/messages"
+                      element={<AdminGuard><AdminMessages /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/payroll"
+                      element={<AdminGuard><AdminPayroll /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/payroll/:payrollId"
+                      element={<AdminGuard><AdminPayroll /></AdminGuard>}
+                    />
+                    <Route path="/admin/subscriptions" element={<AdminGuard><AdminSubscriptions /></AdminGuard>} />
+                    <Route path="/admin/subscriptions/:id" element={<AdminGuard><AdminSubscriptionDetail /></AdminGuard>} />
+                    <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
+                    <Route path="/admin/certificates/:certificateId" element={<AdminGuard><AdminCertificateDetail /></AdminGuard>} />
+                    <Route path="/admin/payments" element={<AdminGuard><AdminPayments /></AdminGuard>} />
+                    <Route path="/admin/payments/:id" element={<AdminGuard><AdminPaymentDetail /></AdminGuard>} />
+                    <Route path="/admin/assignments" element={<AdminGuard><AdminAssignments /></AdminGuard>} />
+                    <Route path="/admin/assignments/:id" element={<AdminGuard><AdminAssignmentDetails /></AdminGuard>} />
+                    <Route path="/admin/assignments/:id/submissions/:submissionId" element={<AdminGuard><AdminAssignmentSubmissionDetails /></AdminGuard>} />
+                    <Route path="/admin/gulf-subject-requests" element={<AdminGuard><AdminSubjectRequestsHub defaultTab="gulf" /></AdminGuard>} />
+                    <Route path="/admin/gulf-subject-requests/:id" element={<AdminGuard><AdminGulfSubjectRequestDetail /></AdminGuard>} />
+                    <Route path="/admin/subject-requests" element={<AdminGuard><AdminSubjectRequestsHub /></AdminGuard>} />
+                    <Route path="/admin/students" element={<AdminGuard><AdminStudents /></AdminGuard>} />
+                    <Route path="/admin/students/:id" element={<AdminGuard><AdminStudentDetails /></AdminGuard>} />
+                    <Route path="/admin/parents" element={<AdminGuard><AdminParents /></AdminGuard>} />
+                    <Route path="/admin/parents/:id" element={<AdminGuard><AdminParentDetails /></AdminGuard>} />
                     <Route
                       path="/admin/client-errors"
                       element={<AdminGuard><ClientErrorsAdmin /></AdminGuard>}
@@ -405,14 +575,6 @@ export default function App() {
                       path="/portal/teacher/settings"
                       element={
                         <PortalGuard role="teacher">
-                          <AccountSettings />
-                        </PortalGuard>
-                      }
-                    />
-                    <Route
-                      path="/portal/student/settings"
-                      element={
-                        <PortalGuard role="student">
                           <AccountSettings />
                         </PortalGuard>
                       }

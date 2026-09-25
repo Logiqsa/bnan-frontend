@@ -6,6 +6,7 @@ export type CourseStatus = "active" | "completed" | "cancelled";
 export type EnrollmentStatus =
   | "pending"
   | "active"
+  | "completed"
   | "cancelled"
   | "refunded"
   | "expired"
@@ -111,13 +112,20 @@ export interface CourseProgress {
   completedHours: number;
   totalHours: number;
   percentage: number;
+  remainingHours?: number;
 }
 export interface ActiveCourseSession {
   sessionId: string;
+  title?: string;
   status: string;
   canJoin: boolean;
   chatRoomId?: string;
   teacher?: { id?: string; userId?: string; fullName?: string } | null;
+  startAt?: string;
+  classroomId?: string;
+  subjectId?: string;
+  classroomSubjectId?: string;
+  occurrenceKey?: string;
 }
 export interface CourseEnrollment {
   id: string;

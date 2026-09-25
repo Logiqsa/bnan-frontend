@@ -9,7 +9,12 @@ import logoImg from "@/assets/logo-bnan.png";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { scrollToSection } from "@/lib/hash-scroll";
 
-const dashboardPathFor = (role: string) => (role === "admin" ? "/admin" : `/portal/${role}/schedule`);
+const dashboardPathFor = (role: string) =>
+  role === "admin"
+    ? "/admin"
+    : role === "teacher"
+      ? "/portal/teacher"
+      : `/portal/${role}/schedule`;
 
 
 const Navbar = () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Loader2, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,6 @@ import { ApiError } from "@/api/client";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import logo from "@/assets/logo-bnan.png";
 import AccountVerification from "@/components/AccountVerification";
-import { authApi } from "@/api/authApi";
-import { tokenStore } from "@/api/client";
-import { studentSignupSession } from "@/lib/studentSignupSession";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_AUTO_ATTEMPTS = 20; // 60 seconds of automatic polling
@@ -32,13 +29,15 @@ const INITIAL_MESSAGE: Record<"success" | "failure" | "cancel", string> = {
 };
 
 export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "cancel" }) {
-  const draft = useMemo(() => gulfPaymentDraftStore.read(), []);
+  const draft = useMemo(() => {
+    const stored = gulfPaymentDraftStore.read();
+    return stored?.purpose === "registration" ? stored : null;
+  }, []);
   const [phase, setPhase] = useState<"polling" | "settled" | "missing">(draft ? "polling" : "missing");
   const [result, setResult] = useState<GulfPaymentStatusResult | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(0);
-  const [studentLoginState, setStudentLoginState] = useState<"idle" | "logging-in" | "error">("idle");
 
   useEffect(() => {
     if (!draft) return;
@@ -87,29 +86,6 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
 
     verifyThenPoll();
     return () => { cancelled = true; };
-  }, [draft]);
-
-  const loginStudent = useCallback(async () => {
-    if (!draft) return;
-    const credentials = studentSignupSession.credentials(draft.paymentId);
-    if (!credentials) {
-      setStudentLoginState("error");
-      setError("تم الدفع، لكن تعذر استعادة بيانات دخول الطالب. سجّل الدخول يدويًا.");
-      return;
-    }
-    setStudentLoginState("logging-in");
-    setError("");
-    try {
-      const login = await authApi.login(credentials.email, credentials.password);
-      tokenStore.set(login.token, login.refreshToken);
-      localStorage.setItem("bnan_portal_user", JSON.stringify(login.data));
-      studentSignupSession.clear();
-      gulfPaymentDraftStore.clear();
-      window.location.href = "/portal/student/schedule";
-    } catch (value) {
-      setStudentLoginState("error");
-      setError(friendlyError(value));
-    }
   }, [draft]);
 
   const manualRefresh = async () => {
@@ -168,15 +144,14 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           )}
 
           {phase === "settled" && result && isRegistrationCompleted(result) && (
-            studentLoginState === "idle" && draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={loginStudent} /> :
-            result.status === "completed" && studentLoginState === "logging-in" ? <>
-              <Loader2 className="h-12 w-12 animate-spin text-secondary mx-auto" />
-              <h1 className="text-xl font-cairo font-bold">جاري تسجيل دخول الطالب...</h1>
-            </> : <>
+            draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={async () => {
+              gulfPaymentDraftStore.clear();
+              window.location.href = `/portal/login?email=${encodeURIComponent(draft.studentEmail || "")}&verified=1`;
+            }} /> : <>
               <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto"><Check /></div>
               <h1 className="text-2xl font-cairo font-bold">تم الدفع بنجاح</h1>
               <p className="text-muted-foreground font-tajawal">تم الدفع وتفعيل الاشتراك بنجاح.</p>
-              {studentLoginState === "error" ? <Button asChild><Link to={`/portal/login?email=${encodeURIComponent(draft?.studentEmail || "")}`}>تسجيل الدخول يدويًا</Link></Button> : <Button asChild><Link to="/portal/login">تسجيل الدخول</Link></Button>}
+              <Button asChild><Link to="/portal/login">تسجيل الدخول</Link></Button>
             </>
           )}
 

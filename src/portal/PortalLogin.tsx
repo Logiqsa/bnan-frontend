@@ -62,7 +62,13 @@ export default function PortalLogin() {
         : "",
   );
   const homeFor = (role: string) =>
-    role === "admin" ? "/admin" : `/portal/${role}/schedule`;
+    role === "admin"
+      ? "/admin"
+      : role === "teacher"
+        ? "/portal/teacher"
+        : role === "student"
+          ? "/portal/student"
+          : `/portal/${role}/schedule`;
   if (user && !addingAccount)
     return <Navigate to={homeFor(user.role)} replace />;
   const submit = async (event: React.FormEvent) => {

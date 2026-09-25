@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Award, ChevronLeft, ChevronRight, Eye, FileText, Image, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { certificateFilesApi } from "@/api/certificateFilesApi";
 import { adminCertificatesApi, type AdminCertificateFilters, type AdminCertificateListItem } from "@/api/adminCertificatesApi";
+import { useProtectedCertificateFile } from "@/hooks/useProtectedCertificateFile";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { ApiError } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +86,40 @@ export function AdminCertificateDetail() {
   const { certificateId = "" } = useParams();
   const query = useQuery({ queryKey: ["admin-certificate", certificateId], queryFn: () => adminCertificatesApi.getById(certificateId), enabled: Boolean(certificateId), retry: false });
   const certificate = query.data;
+  const preview = useProtectedCertificateFile(certificateId, "preview", Boolean(certificate?.previewImagePath));
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const field = (label: string, value: unknown) => <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{value == null || value === "" ? "—" : String(value)}</p></div>;
   const recipientName = typeof certificate?.recipient === "string" ? certificate.recipient : certificate?.recipient?.fullName || certificate?.recipientSnapshot?.fullName;
-  return <DashboardLayout><div className="mx-auto max-w-5xl space-y-5" dir="rtl"><Button variant="ghost" onClick={() => navigate("/admin/certificates")}><ArrowLeft className="ml-1 h-4 w-4" />العودة للشهادات</Button><Card><CardHeader><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" />تفاصيل الشهادة</CardTitle></CardHeader><CardContent>{query.isLoading ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-14" />)}</div> : query.isError ? <CertificateState message={errorText(query.error)} retry={() => void query.refetch()} fetching={query.isFetching} /> : certificate ? <div className="space-y-5"><div className="grid gap-3 sm:grid-cols-2">{field("رقم الشهادة", certificate.certificateNumber)}{field("المستفيد", recipientName)}{field("نوع الشهادة", typeLabel(certificate.certificateType))}{field("الحالة", statusLabel(certificate.status))}{field("الفترة", periodLabel(certificate.period))}{field("الموقّع", certificate.signerName)}{field("تاريخ الإنشاء", dateLabel(certificate.createdAt))}{field("تاريخ الإصدار", dateLabel(certificate.issuedAt))}{field("المنهج", certificate.academicContext?.curriculumNameSnapshot)}{field("الصف", certificate.academicContext?.gradeNameSnapshot)}{field("الفصل", certificate.academicContext?.classroomNameSnapshot)}{field("المجموع", certificate.totalScore != null && certificate.totalMaxScore != null ? `${certificate.totalScore} / ${certificate.totalMaxScore}` : undefined)}{field("النسبة", certificate.percentage != null ? `${certificate.percentage}%` : undefined)}</div>{certificate.previewImagePath && <div><h2 className="mb-2 font-semibold">المعاينة</h2><img src={certificate.previewImagePath} alt="معاينة الشهادة" className="max-h-[32rem] w-full rounded-xl border bg-muted object-contain" /></div>}{certificate.pdfPath && <Button asChild><a href={certificate.pdfPath} target="_blank" rel="noreferrer"><FileText className="ml-1 h-4 w-4" />فتح ملف الشهادة</a></Button>}{!!certificate.subjects?.length && <div><h2 className="mb-2 font-semibold">المواد والدرجات</h2><div className="space-y-2">{certificate.subjects.map((subject, index) => <div key={`${subject.subject || "subject"}-${index}`} className="flex justify-between gap-3 rounded-lg border p-3"><span>{subject.nameSnapshot || "—"}</span><span>{subject.score ?? "—"} / {subject.maxScore ?? "—"}</span></div>)}</div></div>}</div> : <p className="py-10 text-center">الشهادة غير موجودة.</p>}</CardContent></Card></div></DashboardLayout>;
+  const openPdf = async () => {
+    const popup = window.open("about:blank", "_blank");
+    if (!popup) {
+      setPdfError("تعذر فتح نافذة الشهادة. اسمح بالنوافذ المنبثقة ثم حاول مجددًا.");
+      return;
+    }
+
+    setPdfLoading(true);
+    setPdfError(null);
+
+    try {
+      const blob = await certificateFilesApi.getCertificateFile(certificateId, "pdf");
+      const objectUrl = URL.createObjectURL(blob);
+      let revoked = false;
+      const revokeObjectUrl = () => {
+        if (revoked) return;
+        revoked = true;
+        if (typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(objectUrl);
+      };
+
+      popup.location.href = objectUrl;
+      window.setTimeout(revokeObjectUrl, 60_000);
+    } catch {
+      setPdfError("تعذر تحميل الشهادة. حاول مرة أخرى.");
+      if (!popup.closed) popup.close();
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  return <DashboardLayout><div className="mx-auto max-w-5xl space-y-5" dir="rtl"><Button variant="ghost" onClick={() => navigate("/admin/certificates")}><ArrowLeft className="ml-1 h-4 w-4" />العودة للشهادات</Button><Card><CardHeader><CardTitle className="flex items-center gap-2"><Award className="h-5 w-5" />تفاصيل الشهادة</CardTitle></CardHeader><CardContent>{query.isLoading ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-14" />)}</div> : query.isError ? <CertificateState message={errorText(query.error)} retry={() => void query.refetch()} fetching={query.isFetching} /> : certificate ? <div className="space-y-5"><div className="grid gap-3 sm:grid-cols-2">{field("رقم الشهادة", certificate.certificateNumber)}{field("المستفيد", recipientName)}{field("نوع الشهادة", typeLabel(certificate.certificateType))}{field("الحالة", statusLabel(certificate.status))}{field("الفترة", periodLabel(certificate.period))}{field("الموقّع", certificate.signerName)}{field("تاريخ الإنشاء", dateLabel(certificate.createdAt))}{field("تاريخ الإصدار", dateLabel(certificate.issuedAt))}{field("المنهج", certificate.academicContext?.curriculumNameSnapshot)}{field("الصف", certificate.academicContext?.gradeNameSnapshot)}{field("الفصل", certificate.academicContext?.classroomNameSnapshot)}{field("المجموع", certificate.totalScore != null && certificate.totalMaxScore != null ? `${certificate.totalScore} / ${certificate.totalMaxScore}` : undefined)}{field("النسبة", certificate.percentage != null ? `${certificate.percentage}%` : undefined)}</div>{certificate.previewImagePath && <div><h2 className="mb-2 font-semibold">المعاينة</h2>{preview.isLoading ? <p className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground" role="status">جاري تحميل المعاينة...</p> : preview.error ? <div className="grid gap-2 rounded-lg border bg-muted/20 p-4 text-sm text-destructive" role="alert"><p>تعذر تحميل المعاينة.</p><Button type="button" variant="outline" size="sm" onClick={preview.retry}>إعادة تحميل المعاينة</Button></div> : preview.url ? <img src={preview.url} alt="معاينة الشهادة" className="max-h-[32rem] w-full rounded-xl border bg-muted object-contain" /> : <p className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">لا توجد معاينة.</p>}</div>}{certificate.pdfPath && <div className="space-y-2"><Button type="button" onClick={() => void openPdf()} disabled={pdfLoading}>{pdfLoading ? <Loader2 className="ml-1 h-4 w-4 animate-spin" /> : <FileText className="ml-1 h-4 w-4" />}{pdfLoading ? "جاري التحميل..." : "فتح ملف الشهادة"}</Button>{pdfError && <p className="text-sm text-destructive" role="alert">{pdfError}</p>}</div>}{!!certificate.subjects?.length && <div><h2 className="mb-2 font-semibold">المواد والدرجات</h2><div className="space-y-2">{certificate.subjects.map((subject, index) => <div key={`${subject.subject || "subject"}-${index}`} className="flex justify-between gap-3 rounded-lg border p-3"><span>{subject.nameSnapshot || "—"}</span><span>{subject.score ?? "—"} / {subject.maxScore ?? "—"}</span></div>)}</div></div>}</div> : <p className="py-10 text-center">الشهادة غير موجودة.</p>}</CardContent></Card></div></DashboardLayout>;
 }

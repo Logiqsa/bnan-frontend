@@ -29,7 +29,7 @@ export default function TeacherCourses() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link to="/portal/teacher/schedule">الرئيسية</Link>
+                <Link to="/portal/teacher">الرئيسية</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="rotate-180" />

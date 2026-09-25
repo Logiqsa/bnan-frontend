@@ -11,6 +11,9 @@ export class ApiError extends Error {
   }
 }
 
+export type ApiResponseType = "json" | "blob";
+export type ApiRequestOptions = RequestInit & { responseType?: ApiResponseType };
+
 const textFromUnknown = (value: unknown): string => {
   if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) {
@@ -86,19 +89,20 @@ export async function refreshAccessToken(): Promise<RefreshResult> {
   return refreshPromise;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}, _retried = false): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}, _retried = false): Promise<T> {
   if (!API_BASE_URL) throw new ApiError(0, "API_NOT_CONFIGURED", "عنوان خدمة Bnan غير مضبوط.");
+  const { responseType = "json", ...requestOptions } = options;
   const token = tokenStore.get();
-  const isForm = options.body instanceof FormData;
+  const isForm = requestOptions.body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
+      ...requestOptions,
       headers: {
         ...(isForm ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         lang: apiLanguage(),
-        ...options.headers,
+        ...requestOptions.headers,
       },
     });
   } catch (error) {
@@ -113,14 +117,18 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
       { technicalReason, path },
     );
   }
-  const rawBody = await response.text().catch(() => "");
+  let rawBody = "";
   let payload: Record<string, unknown> = {};
-  if (rawBody) {
-    try {
-      const parsed = JSON.parse(rawBody) as unknown;
-      payload = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
-    } catch {
-      payload = {};
+
+  if (!response.ok || responseType !== "blob") {
+    rawBody = await response.text().catch(() => "");
+    if (rawBody) {
+      try {
+        const parsed = JSON.parse(rawBody) as unknown;
+        payload = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+      } catch {
+        payload = {};
+      }
     }
   }
   if (!response.ok) {
@@ -145,5 +153,6 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, _re
       payload.data && typeof payload.data === "object" ? payload.data as Record<string, unknown> : undefined,
     );
   }
+  if (responseType === "blob") return await response.blob() as T;
   return payload as T;
 }

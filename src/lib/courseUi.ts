@@ -1,5 +1,16 @@
 import { API_BASE_URL, ApiError } from "@/api/client";
-import type { Course, NamedRef } from "@/api/coursesApi";
+import type { Course, EnrollmentStatus, NamedRef } from "@/api/coursesApi";
+
+const terminalEnrollmentStatuses = new Set<EnrollmentStatus>([
+  "completed",
+  "cancelled",
+  "refunded",
+  "expired",
+  "removed",
+]);
+
+export const canRepurchaseCourseEnrollment = (status: EnrollmentStatus) =>
+  terminalEnrollmentStatuses.has(status);
 
 export const isFreeCourse = (course: Course) =>
   course.enrollmentModes.group.enabled &&

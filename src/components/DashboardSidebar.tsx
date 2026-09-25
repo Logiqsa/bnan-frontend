@@ -255,6 +255,36 @@ export const roleNavItems: Record<string, NavItem[]> = {
   ],
   teacher: [
     {
+      label: "الرئيسية",
+      labelEn: "Dashboard",
+      icon: LayoutDashboard,
+      path: "/portal/teacher",
+    },
+    {
+      label: "طلباتي",
+      labelEn: "My requests",
+      icon: ClipboardList,
+      path: "/portal/teacher/requests",
+    },
+    {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/portal/teacher/messages",
+    },
+    {
+      label: "مستحقاتي",
+      labelEn: "My earnings",
+      icon: Banknote,
+      path: "/portal/teacher/payroll",
+    },
+    {
+      label: "الفصول",
+      labelEn: "Classrooms",
+      icon: School,
+      path: "/portal/teacher/classrooms",
+    },
+    {
       label: "دوراتي",
       labelEn: "My courses",
       icon: BookOpen,
@@ -275,6 +305,66 @@ export const roleNavItems: Record<string, NavItem[]> = {
   ],
   student: [
     {
+      label: "الرئيسية",
+      labelEn: "Dashboard",
+      icon: LayoutDashboard,
+      path: "/portal/student",
+    },
+    {
+      label: "الإشعارات",
+      labelEn: "Notifications",
+      icon: Bell,
+      path: "/portal/student/notifications",
+    },
+    {
+      label: "إعدادات الإشعارات",
+      labelEn: "Notification settings",
+      icon: Settings,
+      path: "/portal/student/settings/notifications",
+    },
+    {
+      label: "إعدادات الحساب",
+      labelEn: "Account settings",
+      icon: Settings,
+      path: "/portal/student/settings",
+    },
+    {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/portal/student/messages",
+    },
+    {
+      label: "الاشتراكات",
+      labelEn: "Subscriptions",
+      icon: CreditCard,
+      path: "/portal/student/subscriptions",
+    },
+    {
+      label: "المواد",
+      labelEn: "Subjects",
+      icon: BookOpen,
+      path: "/portal/student/subjects",
+    },
+    {
+      label: "إضافة مادة",
+      labelEn: "Add subject",
+      icon: UserPlus,
+      path: "/portal/student/subjects/add",
+    },
+    {
+      label: "طلبات المواد",
+      labelEn: "Subject requests",
+      icon: BookPlus,
+      path: "/portal/student/subject-requests",
+    },
+    {
+      label: "طلبات التغيير",
+      labelEn: "Change requests",
+      icon: Repeat2,
+      path: "/portal/student/change-requests",
+    },
+    {
       label: "دوراتي",
       labelEn: "My courses",
       icon: BookOpen,
@@ -293,10 +383,22 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/sessions",
     },
     {
-      label: "إعدادات الحساب",
-      labelEn: "Account settings",
-      icon: Settings,
-      path: "/portal/student/settings",
+      label: "الواجبات",
+      labelEn: "Assignments",
+      icon: ClipboardList,
+      path: "/portal/student/assignments",
+    },
+    {
+      label: "تقييماتي",
+      labelEn: "My evaluations",
+      icon: BarChart3,
+      path: "/portal/student/evaluations",
+    },
+    {
+      label: "الشهادات",
+      labelEn: "Certificates",
+      icon: Award,
+      path: "/portal/student/certificates",
     },
   ],
   supervisor: [

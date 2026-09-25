@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { coursesApi, type Course, type CourseMode } from "@/api/coursesApi";
 import { courseError } from "@/lib/courseUi";
+import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import {
   Dialog,
@@ -34,11 +36,18 @@ export default function CourseRegistrationDialog({
   const [region, setRegion] = useState("");
   const [line1, setLine1] = useState("");
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const freeSubmissionLocked = useRef(false);
+  const paidSubmissionLocked = useRef(false);
   const { user } = usePortalAuth();
+  const queryClient = useQueryClient();
   const nav = useNavigate();
   const location = useLocation();
   const price = course.enrollmentModes[mode]?.price || 0;
+  const startNewPaymentAttempt = () => setIdempotencyKey(crypto.randomUUID());
   const submit = async () => {
+    if (price === 0 && freeSubmissionLocked.current) return;
+    if (price > 0 && paidSubmissionLocked.current) return;
     if (!user) {
       nav("/portal/login", { state: { from: location.pathname } });
       return;
@@ -55,10 +64,13 @@ export default function CourseRegistrationDialog({
       toast.error("أدخل عنوان الدفع المطلوب لـ Tamara.");
       return;
     }
+    if (price === 0) freeSubmissionLocked.current = true;
+    if (price > 0) paidSubmissionLocked.current = true;
     setBusy(true);
     try {
       if (price === 0) {
         await coursesApi.enrollFree(course.id, mode);
+        await queryClient.invalidateQueries({ queryKey: ["my-course-enrollments"] });
         toast.success("تم تفعيل تسجيلك في الدورة");
         nav("/portal/student/courses");
       } else {
@@ -79,13 +91,23 @@ export default function CourseRegistrationDialog({
                 }
               : {}),
           },
-          crypto.randomUUID(),
+          idempotencyKey,
         );
-        if (!r.data.checkoutUrl)
+        if (!r.data.paymentId?.trim() || !r.data.checkoutUrl?.trim())
           throw new Error("لم يرجع مزود الدفع رابط إتمام العملية.");
+        gulfPaymentDraftStore.saveCourseEnrollment({
+          paymentId: r.data.paymentId,
+          provider,
+          checkoutUrl: r.data.checkoutUrl,
+          courseId: course.id,
+          mode,
+          createdAt: Date.now(),
+        });
         window.location.assign(r.data.checkoutUrl);
       }
     } catch (e) {
+      freeSubmissionLocked.current = false;
+      paidSubmissionLocked.current = false;
       toast.error(courseError(e));
       setBusy(false);
     }
@@ -102,7 +124,8 @@ export default function CourseRegistrationDialog({
           <div className="space-y-5">
             <RadioGroup
               value={mode}
-              onValueChange={(x) => setMode(x as CourseMode)}
+              onValueChange={(x) => { setMode(x as CourseMode); startNewPaymentAttempt(); }}
+              disabled={busy}
               className="grid gap-3"
             >
               {modes.map((m) => (
@@ -128,8 +151,9 @@ export default function CourseRegistrationDialog({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
+                    disabled={busy}
                     aria-pressed={provider === "paymob"}
-                    onClick={() => setProvider("paymob")}
+                    onClick={() => { setProvider("paymob"); startNewPaymentAttempt(); }}
                     className={`flex min-h-28 items-center justify-between gap-3 rounded-xl border p-4 text-right transition-colors ${provider === "paymob" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
                   >
                     <span className="font-semibold">بطاقة بنكية</span>
@@ -137,8 +161,9 @@ export default function CourseRegistrationDialog({
                   </button>
                   <button
                     type="button"
+                    disabled={busy}
                     aria-pressed={provider === "tamara"}
-                    onClick={() => setProvider("tamara")}
+                    onClick={() => { setProvider("tamara"); startNewPaymentAttempt(); }}
                     className={`flex min-h-28 items-center justify-between gap-3 rounded-xl border p-4 text-right transition-colors ${provider === "tamara" ? "border-secondary bg-secondary/10 ring-1 ring-secondary" : "hover:border-secondary/50"}`}
                   >
                     <span className="font-semibold">قسّط فاتورتك مع تمارا</span>

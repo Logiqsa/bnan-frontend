@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { coursesApi, type Course } from "@/api/coursesApi";
-import { courseError, courseImageUrl, refName } from "@/lib/courseUi";
+import { canRepurchaseCourseEnrollment, courseError, courseImageUrl, refName } from "@/lib/courseUi";
+import CourseRegistrationDialog from "@/components/CourseRegistrationDialog";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import cover from "@/assets/course-default-cover.jpg";
 
 export default function MyCourses() {
+  const [repurchaseCourse, setRepurchaseCourse] = useState<Course | null>(null);
   const query = useQuery({ queryKey: ["my-course-enrollments"], queryFn: coursesApi.myEnrollments });
   const publicCoursesQuery = useQuery({ queryKey: ["courses", "public"], queryFn: coursesApi.listPublic });
   return <DashboardLayout><div className="space-y-5">
@@ -30,9 +33,24 @@ export default function MyCourses() {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" asChild><Link to={`/portal/student/courses/${enrollment.id}`}>عرض التفاصيل</Link></Button>
             {enrollment.status === "active" && classroom && <Button size="sm" asChild><Link to={`/portal/student/courses/${enrollment.id}#course-schedule`}>جدول {classroom.name}</Link></Button>}
+            {canRepurchaseCourseEnrollment(enrollment.status) && (
+              <Button
+                size="sm"
+                disabled={!publicCourse}
+                onClick={() => publicCourse && setRepurchaseCourse(publicCourse)}
+              >
+                إعادة الاشتراك
+              </Button>
+            )}
           </div>
         </div>
       </CardContent></Card>;
     })}</div>}
+    {repurchaseCourse && (
+      <CourseRegistrationDialog
+        course={repurchaseCourse}
+        onClose={() => setRepurchaseCourse(null)}
+      />
+    )}
   </div></DashboardLayout>;
 }

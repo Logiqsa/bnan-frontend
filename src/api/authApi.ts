@@ -146,6 +146,9 @@ export const authApi = {
   updateName: (fullName: string) => apiRequest<{ success: true; data?: { fullName?: string } }>("/users/me/name", {
     method: "PATCH", body: JSON.stringify({ fullName }),
   }),
+  updatePhone: (phone: string) => apiRequest<{ success: true; data?: { phone?: string } }>("/users/me/phone", {
+    method: "PATCH", body: JSON.stringify({ phone }),
+  }),
   updatePassword: (currentPassword: string, updatedPassword: string) =>
     apiRequest<{ success: true; token?: string; refreshToken?: string; data?: { token?: string; refreshToken?: string } }>("/auth/updatePassword", {
       method: "PATCH", body: JSON.stringify({ currentPassword, updatedPassword }),

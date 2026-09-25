@@ -26,7 +26,7 @@ const messageFor = (error: ApiError, fallback: string) => {
   return messages[error.code] || error.message || fallback;
 };
 
-const homeFor = (role: string) => role === "admin" ? "/admin" : `/portal/${role}/schedule`;
+const homeFor = (role: string) => role === "admin" ? "/admin" : role === "teacher" ? "/portal/teacher" : role === "student" ? "/portal/student" : `/portal/${role}/schedule`;
 
 export default function ForgotPassword() {
   const { user } = usePortalAuth();

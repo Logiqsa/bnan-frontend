@@ -76,6 +76,7 @@ export interface PortalUser {
   id: string;
   fullName: string;
   email: string;
+  parentEmail?: string | null;
   role: PortalRole;
   status: string;
   registrationMode?: RegistrationMode;
@@ -102,6 +103,11 @@ export interface ActiveSession {
   sessionId?: string;
   status: "starting" | "live" | "awaiting_zoom_end" | "ended";
   canJoin?: boolean;
+  classroomId?: string;
+  subjectId?: string;
+  classroomSubjectId?: string;
+  occurrenceKey?: string;
+  chatRoomId?: string;
   recordingUrl?: string | null;
   recording_url?: string | null;
   recordingStatus?: string | null;

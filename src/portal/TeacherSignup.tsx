@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronsUpDown, Loader2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ChevronsUpDown,
+  Loader2,
+  X,
+} from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { ApiError } from "@/api/client";
 import {
@@ -14,7 +22,11 @@ import { contentApi, type LegalPage } from "@/api/contentApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Command,
   CommandEmpty,
@@ -24,7 +36,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -43,6 +59,7 @@ import {
 import { pastedLegalHtml } from "@/lib/legalContent";
 import { compressUploadImage, isImageFile } from "@/lib/compress-upload-image";
 import { cn } from "@/lib/utils";
+import { egyptianGradeLanguage } from "@/lib/egyptianGradeLanguage";
 import AccountVerification from "@/components/AccountVerification";
 import {
   restoreTeacherSignupDraft,
@@ -81,16 +98,26 @@ const formatFileSize = (size: number) =>
   size < 1024 * 1024
     ? `${Math.max(1, Math.round(size / 1024))} KB`
     : `${(size / (1024 * 1024)).toFixed(2)} MB`;
-const formatTotalFileSize = (size: number) => `${(size / (1024 * 1024)).toFixed(2)} MB`;
+const formatTotalFileSize = (size: number) =>
+  `${(size / (1024 * 1024)).toFixed(2)} MB`;
 
 export default function TeacherSignup() {
   const [savedDraft] = useState(restoreTeacherSignupDraft);
-  const [idempotencyKey] = useState(() => savedDraft.idempotencyKey || crypto.randomUUID());
+  const [idempotencyKey] = useState(
+    () => savedDraft.idempotencyKey || crypto.randomUUID(),
+  );
   // Browsers do not allow restoring File inputs. Return to the documents step
   // after a reload, while keeping every serializable answer and selection.
-  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), 1));
-  const [curriculumStage, setCurriculumStage] = useState<"grades" | "subjects">(savedDraft.curriculumStage ?? "grades");
-  const [values, setValues] = useState<TeacherSignupValues>(() => ({ ...initialValues, ...savedDraft.values }));
+  const [step, setStep] = useState(() =>
+    Math.min(Math.max(savedDraft.step ?? 0, 0), 1),
+  );
+  const [curriculumStage, setCurriculumStage] = useState<"grades" | "subjects">(
+    savedDraft.curriculumStage ?? "grades",
+  );
+  const [values, setValues] = useState<TeacherSignupValues>(() => ({
+    ...initialValues,
+    ...savedDraft.values,
+  }));
   // Keep the password in memory for the lifetime of this mounted signup flow.
   // It must not be persisted in either browser storage draft.
   const [password, setPassword] = useState("");
@@ -107,19 +134,33 @@ export default function TeacherSignup() {
   const [catalogsLoading, setCatalogsLoading] = useState(true);
   const [countriesError, setCountriesError] = useState("");
   const [curriculums, setCurriculums] = useState<CurriculumOption[]>([]);
-  const [selectedCurriculum, setSelectedCurriculum] = useState(savedDraft.selectedCurriculum ?? "");
+  const [selectedCurriculum, setSelectedCurriculum] = useState(
+    savedDraft.selectedCurriculum ?? "",
+  );
   const [grades, setGrades] = useState<GradeOption[]>([]);
-  const [selectedGrades, setSelectedGrades] = useState<string[]>(savedDraft.selectedGrades ?? []);
-  const [activeGrade, setActiveGrade] = useState<string | null>(savedDraft.activeGrade ?? null);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>(
+    savedDraft.selectedGrades ?? [],
+  );
+  const [activeGrade, setActiveGrade] = useState<string | null>(
+    savedDraft.activeGrade ?? null,
+  );
   const [subjects, setSubjects] = useState<Record<string, SubjectOption[]>>({});
-  const [assignments, setAssignments] = useState<Record<string, string[]>>(savedDraft.assignments ?? {});
+  const [assignments, setAssignments] = useState<Record<string, string[]>>(
+    savedDraft.assignments ?? {},
+  );
   const [loadingGrades, setLoadingGrades] = useState(false);
   const [loadingSubjects, setLoadingSubjects] = useState<
     Record<string, boolean>
   >({});
-  const [openGradeGroups, setOpenGradeGroups] = useState<Record<string, boolean>>({});
-  const [openGradeStages, setOpenGradeStages] = useState<Record<string, boolean>>({});
-  const [additionalCurriculums, setAdditionalCurriculums] = useState<string[]>(savedDraft.additionalCurriculums ?? []);
+  const [openGradeGroups, setOpenGradeGroups] = useState<
+    Record<string, boolean>
+  >({});
+  const [openGradeStages, setOpenGradeStages] = useState<
+    Record<string, boolean>
+  >({});
+  const [additionalCurriculums, setAdditionalCurriculums] = useState<string[]>(
+    savedDraft.additionalCurriculums ?? [],
+  );
   const [experienceCertificates, setExperienceCertificates] = useState<File[]>(
     [],
   );
@@ -159,31 +200,31 @@ export default function TeacherSignup() {
       additionalCurriculums,
     };
     try {
-      console.log("[TeacherSignup] before sessionStorage.setItem", {
-        key: TEACHER_SIGNUP_DRAFT_KEY,
-      });
-      sessionStorage.setItem(TEACHER_SIGNUP_DRAFT_KEY, serializeTeacherSignupDraft(draft));
-      console.log("[TeacherSignup] after sessionStorage.setItem", {
-        key: TEACHER_SIGNUP_DRAFT_KEY,
-      });
+      sessionStorage.setItem(
+        TEACHER_SIGNUP_DRAFT_KEY,
+        serializeTeacherSignupDraft(draft),
+      );
 
       // Mobile browsers may discard a background tab, including its sessionStorage.
       // Keep a durable copy containing only non-sensitive registration answers.
-      console.log("[TeacherSignup] before localStorage.setItem", {
-        key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-      });
       localStorage.setItem(
         TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
         serializeTeacherSignupDraft(draft),
       );
-      console.log("[TeacherSignup] after localStorage.setItem", {
-        key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-      });
-    } catch (value) {
-      console.error("[TeacherSignup] draft storage catch", { error: value });
+    } catch {
       // Storage may be unavailable in strict private-browsing modes.
     }
-  }, [idempotencyKey, step, curriculumStage, values, selectedCurriculum, selectedGrades, assignments, activeGrade, additionalCurriculums]);
+  }, [
+    idempotencyKey,
+    step,
+    curriculumStage,
+    values,
+    selectedCurriculum,
+    selectedGrades,
+    assignments,
+    activeGrade,
+    additionalCurriculums,
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -215,11 +256,15 @@ export default function TeacherSignup() {
     catalogApi
       .grades(selectedCurriculum)
       .then((result) => {
-        const activeGrades = result.data.filter((grade) => grade.isActive !== false);
+        const activeGrades = result.data.filter(
+          (grade) => grade.isActive !== false,
+        );
         setGrades(activeGrades);
         if (!curriculumChanged) {
           const validIds = new Set(activeGrades.map((grade) => grade.id));
-          setSelectedGrades((current) => current.filter((id) => validIds.has(id)));
+          setSelectedGrades((current) =>
+            current.filter((id) => validIds.has(id)),
+          );
         }
       })
       .catch((value) => setError((value as ApiError).message))
@@ -228,7 +273,7 @@ export default function TeacherSignup() {
   const toggleGrade = (gradeId: string, checked: boolean) => {
     if (!checked) {
       setSelectedGrades((current) => current.filter((id) => id !== gradeId));
-      setActiveGrade((current) => current === gradeId ? null : current);
+      setActiveGrade((current) => (current === gradeId ? null : current));
       setAssignments((current) => {
         const next = { ...current };
         delete next[gradeId];
@@ -243,10 +288,15 @@ export default function TeacherSignup() {
     selectedGrades.forEach((gradeId) => {
       if (subjects[gradeId] || loadingSubjects[gradeId]) return;
       setLoadingSubjects((current) => ({ ...current, [gradeId]: true }));
-      catalogApi.subjects(gradeId)
-        .then((result) => setSubjects((current) => ({ ...current, [gradeId]: result.data })))
+      catalogApi
+        .subjects(gradeId)
+        .then((result) =>
+          setSubjects((current) => ({ ...current, [gradeId]: result.data })),
+        )
         .catch((value) => setError((value as ApiError).message))
-        .finally(() => setLoadingSubjects((current) => ({ ...current, [gradeId]: false })));
+        .finally(() =>
+          setLoadingSubjects((current) => ({ ...current, [gradeId]: false })),
+        );
     });
   }, [selectedGrades, subjects, loadingSubjects]);
   const toggleSubject = (
@@ -263,35 +313,69 @@ export default function TeacherSignup() {
   const selectedCurriculumData = curriculums.find(
     (item) => item.id === selectedCurriculum,
   );
-  const displayedGrade = activeGrade && selectedGrades.includes(activeGrade)
-    ? activeGrade
-    : selectedGrades[0];
+  const displayedGrade =
+    activeGrade && selectedGrades.includes(activeGrade)
+      ? activeGrade
+      : selectedGrades[0];
   const gradeGroups = useMemo(() => {
     if (selectedCurriculumData?.registrationMode === "gulf") {
       return [{ key: "gulf", label: "الصفوف", grades }];
     }
-    const languages = grades.filter((grade) => grade.name.includes("لغات"));
-    const arabic = grades.filter((grade) => !grade.name.includes("لغات") && (grade.name.includes("عربي") || grade.name.includes("عربى")));
-    const groupedIds = new Set([...languages, ...arabic].map((grade) => grade.id));
+    const languages = grades.filter(
+      (grade) => egyptianGradeLanguage(grade.name) === "languages",
+    );
+    const arabic = grades.filter(
+      (grade) => egyptianGradeLanguage(grade.name) === "arabic",
+    );
+    const groupedIds = new Set(
+      [...languages, ...arabic].map((grade) => grade.id),
+    );
     const other = grades.filter((grade) => !groupedIds.has(grade.id));
     return [
       { key: "languages", label: "قسم اللغات", grades: languages },
       { key: "arabic", label: "القسم العربي", grades: arabic },
-      ...(other.length ? [{ key: "other", label: "صفوف أخرى", grades: other }] : []),
+      ...(other.length
+        ? [{ key: "other", label: "صفوف أخرى", grades: other }]
+        : []),
     ];
   }, [grades, selectedCurriculumData?.registrationMode]);
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
-    const normalize = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
-    const definitions = selectedCurriculumData?.registrationMode === "egyptian"
-      ? [{ key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" }, { key: "preparatory", label: "المرحلة الإعدادية", keyword: "اعدادي" }, { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" }]
-      : [{ key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" }, { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" }, { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" }];
-    const stages = definitions.map((stage) => ({
-      ...stage,
-      grades: groupGrades.filter((grade) => normalize(grade.name).includes(stage.keyword)),
-    })).filter((stage) => stage.grades.length > 0);
-    const stagedIds = new Set(stages.flatMap((stage) => stage.grades.map((grade) => grade.id)));
+    const normalize = (value: string) =>
+      value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
+    const definitions =
+      selectedCurriculumData?.registrationMode === "egyptian"
+        ? [
+            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
+            {
+              key: "preparatory",
+              label: "المرحلة الإعدادية",
+              keyword: "اعدادي",
+            },
+            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
+          ]
+        : [
+            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
+            { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" },
+            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
+          ];
+    const stages = definitions
+      .map((stage) => ({
+        ...stage,
+        grades: groupGrades.filter((grade) =>
+          normalize(grade.name).includes(stage.keyword),
+        ),
+      }))
+      .filter((stage) => stage.grades.length > 0);
+    const stagedIds = new Set(
+      stages.flatMap((stage) => stage.grades.map((grade) => grade.id)),
+    );
     const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
-    return [...stages, ...(other.length ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }] : [])];
+    return [
+      ...stages,
+      ...(other.length
+        ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }]
+        : []),
+    ];
   };
   const progress = useMemo(() => {
     const required = [
@@ -333,7 +417,14 @@ export default function TeacherSignup() {
     return Math.round(
       (required.filter(Boolean).length / required.length) * 100,
     );
-  }, [values, password, files, selectedCurriculum, selectedGrades, assignments]);
+  }, [
+    values,
+    password,
+    files,
+    selectedCurriculum,
+    selectedGrades,
+    assignments,
+  ]);
   const validStep = useMemo(() => {
     if (step === 0)
       return !!(
@@ -383,7 +474,15 @@ export default function TeacherSignup() {
         files.stableInternetProof
       );
     return true;
-  }, [step, values, password, selectedCurriculum, selectedGrades, assignments, files]);
+  }, [
+    step,
+    values,
+    password,
+    selectedCurriculum,
+    selectedGrades,
+    assignments,
+    files,
+  ]);
   const next = () => {
     if (!validStep) {
       setShowValidationErrors(true);
@@ -405,12 +504,21 @@ export default function TeacherSignup() {
       password,
       selectedCurriculum,
       selectedGrades: Object.freeze([...selectedGrades]) as unknown as string[],
-      assignments: Object.freeze(Object.fromEntries(
-        selectedGrades.map((gradeId) => [gradeId, Object.freeze([...(assignments[gradeId] || [])])]),
-      )) as Record<string, string[]>,
-      additionalCurriculums: Object.freeze([...additionalCurriculums]) as unknown as string[],
+      assignments: Object.freeze(
+        Object.fromEntries(
+          selectedGrades.map((gradeId) => [
+            gradeId,
+            Object.freeze([...(assignments[gradeId] || [])]),
+          ]),
+        ),
+      ) as Record<string, string[]>,
+      additionalCurriculums: Object.freeze([
+        ...additionalCurriculums,
+      ]) as unknown as string[],
       files: Object.freeze({ ...files }),
-      experienceCertificates: Object.freeze([...experienceCertificates]) as unknown as File[],
+      experienceCertificates: Object.freeze([
+        ...experienceCertificates,
+      ]) as unknown as File[],
     });
     const validationError = validateFinalSnapshot(snapshot);
     if (validationError) {
@@ -449,11 +557,11 @@ export default function TeacherSignup() {
       }
 
       diagnosticPhase = "preparing-request";
-      const body = buildTeacherSignupFormData(snapshot, uploadFiles, uploadExperienceCertificates);
-      if (import.meta.env.DEV) console.debug("[TeacherSignup] registration password diagnostic", {
-        hasPassword: body.has("password") && Boolean(snapshot.password),
-        passwordLength: snapshot.password.length,
-      });
+      const body = buildTeacherSignupFormData(
+        snapshot,
+        uploadFiles,
+        uploadExperienceCertificates,
+      );
       setPreparingFiles(false);
       setUploadProgress(0);
       diagnosticPhase = "uploading";
@@ -462,8 +570,14 @@ export default function TeacherSignup() {
         idempotencyKey,
         (progressEvent) => {
           if (!progressEvent.total) return;
-          setUploadProgress(Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
-          if (progressEvent.loaded >= progressEvent.total) diagnosticPhase = "waiting-response";
+          setUploadProgress(
+            Math.min(
+              100,
+              Math.round((progressEvent.loaded / progressEvent.total) * 100),
+            ),
+          );
+          if (progressEvent.loaded >= progressEvent.total)
+            diagnosticPhase = "waiting-response";
         },
         (status) => {
           axiosResponseStatus = status;
@@ -471,38 +585,14 @@ export default function TeacherSignup() {
         },
       );
       diagnosticPhase = "success-handling";
-      if (import.meta.env.DEV) console.debug("[TeacherSignup] registerTeacher resolved; entering success handling", {
-        responseData: response.data,
-      });
       try {
-        console.log("[TeacherSignup] before sessionStorage.removeItem", {
-          key: TEACHER_SIGNUP_DRAFT_KEY,
-        });
         sessionStorage.removeItem(TEACHER_SIGNUP_DRAFT_KEY);
-        console.log("[TeacherSignup] after sessionStorage.removeItem", {
-          key: TEACHER_SIGNUP_DRAFT_KEY,
-        });
-        console.log("[TeacherSignup] before localStorage.removeItem", {
-          key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-        });
         localStorage.removeItem(TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY);
-        console.log("[TeacherSignup] after localStorage.removeItem", {
-          key: TEACHER_SIGNUP_PERSISTENT_DRAFT_KEY,
-        });
-      } catch (storageError) {
-        console.error("[TeacherSignup] draft cleanup failed after successful registration", {
-          error: storageError,
-        });
+      } catch {
+        // Storage cleanup failure must not block successful registration.
       }
       setVerificationEmail(response.data.email || snapshot.values.email || "");
-      console.log("[TeacherSignup] success handling completed");
     } catch (value) {
-      console.error("[TeacherSignup] submit catch", {
-        diagnosticPhase,
-        axiosResponse201BeforeError: axiosResponseStatus === 201,
-        axiosResponseStatus,
-        error: value,
-      });
       const apiError = value as ApiError;
       try {
         await reportClientError({
@@ -513,22 +603,38 @@ export default function TeacherSignup() {
             [snapshot.password],
           ),
           durationMs: Math.max(0, Math.round(performance.now() - startedAt)),
-          ...(snapshot.values.fullName?.trim() ? { name: snapshot.values.fullName.trim() } : {}),
+          ...(snapshot.values.fullName?.trim()
+            ? { name: snapshot.values.fullName.trim() }
+            : {}),
           email: snapshot.values.email || "",
           phone: snapshot.values.phone || snapshot.values.whatsapp || "",
-          filesCount: Object.values(snapshot.files).filter(Boolean).length + snapshot.experienceCertificates.length,
-          totalSizeMB: Number(((Object.values(snapshot.files).reduce((sum, file) => sum + (file?.size || 0), 0) + snapshot.experienceCertificates.reduce((sum, file) => sum + file.size, 0)) / (1024 * 1024)).toFixed(2)),
+          filesCount:
+            Object.values(snapshot.files).filter(Boolean).length +
+            snapshot.experienceCertificates.length,
+          totalSizeMB: Number(
+            (
+              (Object.values(snapshot.files).reduce(
+                (sum, file) => sum + (file?.size || 0),
+                0,
+              ) +
+                snapshot.experienceCertificates.reduce(
+                  (sum, file) => sum + file.size,
+                  0,
+                )) /
+              (1024 * 1024)
+            ).toFixed(2),
+          ),
           lastStep: step,
         });
-      } catch (reportError) {
-        if (import.meta.env.DEV) console.debug("[TeacherSignup] client error report failed", reportError);
+      } catch {
+        // Client-error reporting is best effort and must not hide the form error.
       }
       setError(
         apiError.code === "EMAIL_ALREADY_EXISTS"
           ? apiError.message
           : apiError.code === "NETWORK_ERROR"
             ? "حدثت مشكلة مؤقتة في الاتصال، برجاء المحاولة مرة أخرى."
-          : apiError.message,
+            : apiError.message,
       );
       setEmailHasServerError(apiError.code === "EMAIL_ALREADY_EXISTS");
     } finally {
@@ -590,7 +696,9 @@ export default function TeacherSignup() {
       setError("يمكن إرفاق 10 شهادات خبرة بحد أقصى.");
       return;
     }
-    const oversizedFile = selected.find((file) => file.size > MAX_TEACHER_FILE_SIZE);
+    const oversizedFile = selected.find(
+      (file) => file.size > MAX_TEACHER_FILE_SIZE,
+    );
     if (oversizedFile) {
       setError(`حجم الملف «${oversizedFile.name}» يتجاوز الحد الأقصى 20MB.`);
       return;
@@ -604,11 +712,7 @@ export default function TeacherSignup() {
       <AccountVerification
         email={verificationEmail}
         onVerified={() => {
-          console.log("[TeacherSignup] before verification redirect", {
-            destination: "/portal/login",
-          });
           window.location.href = `/portal/login?email=${encodeURIComponent(verificationEmail)}&verified=1`;
-          console.log("[TeacherSignup] after verification redirect assignment");
         }}
       />
     );
@@ -665,13 +769,25 @@ export default function TeacherSignup() {
               {step === 0 && (
                 <div className="space-y-5">
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="الاسم الكامل *" error={showValidationErrors && !(values.fullName?.trim().length >= 3)}>
+                    <Field
+                      label="الاسم الكامل *"
+                      error={
+                        showValidationErrors &&
+                        !(values.fullName?.trim().length >= 3)
+                      }
+                    >
                       <Input
                         value={values.fullName || ""}
                         onChange={(e) => set("fullName", e.target.value)}
                       />
                     </Field>
-                    <Field label="البريد الإلكتروني *" error={emailHasServerError || (showValidationErrors && !values.email)}>
+                    <Field
+                      label="البريد الإلكتروني *"
+                      error={
+                        emailHasServerError ||
+                        (showValidationErrors && !values.email)
+                      }
+                    >
                       <Input
                         type="email"
                         dir="ltr"
@@ -679,14 +795,20 @@ export default function TeacherSignup() {
                         onChange={(e) => set("email", e.target.value)}
                       />
                     </Field>
-                    <Field label="رقم الهاتف *" error={showValidationErrors && !values.phone}>
+                    <Field
+                      label="رقم الهاتف *"
+                      error={showValidationErrors && !values.phone}
+                    >
                       <Input
                         dir="ltr"
                         value={values.phone || ""}
                         onChange={(e) => set("phone", e.target.value)}
                       />
                     </Field>
-                    <Field label="كلمة المرور *" error={showValidationErrors && !password}>
+                    <Field
+                      label="كلمة المرور *"
+                      error={showValidationErrors && !password}
+                    >
                       <Input
                         type="password"
                         dir="ltr"
@@ -696,7 +818,14 @@ export default function TeacherSignup() {
                       />
                     </Field>
                   </div>
-                  <div className={cn("flex items-center gap-3 rounded-xl border p-4", showValidationErrors && values.termsAccepted !== "true" && "border-destructive bg-destructive/5 text-destructive")}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border p-4",
+                      showValidationErrors &&
+                        values.termsAccepted !== "true" &&
+                        "border-destructive bg-destructive/5 text-destructive",
+                    )}
+                  >
                     <Checkbox
                       checked={values.termsAccepted === "true"}
                       onCheckedChange={(checked) =>
@@ -735,7 +864,15 @@ export default function TeacherSignup() {
                     </p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <Field label="تاريخ الميلاد *" error={showValidationErrors && (!values.dateOfBirth || values.dateOfBirth > new Date().toISOString().slice(0, 10))}>
+                    <Field
+                      label="تاريخ الميلاد *"
+                      error={
+                        showValidationErrors &&
+                        (!values.dateOfBirth ||
+                          values.dateOfBirth >
+                            new Date().toISOString().slice(0, 10))
+                      }
+                    >
                       <Input
                         type="date"
                         dir="ltr"
@@ -744,7 +881,10 @@ export default function TeacherSignup() {
                         onChange={(e) => set("dateOfBirth", e.target.value)}
                       />
                     </Field>
-                    <Field label="رقم واتساب *" error={showValidationErrors && !values.whatsapp}>
+                    <Field
+                      label="رقم واتساب *"
+                      error={showValidationErrors && !values.whatsapp}
+                    >
                       <Input
                         dir="ltr"
                         value={values.whatsapp || ""}
@@ -767,7 +907,10 @@ export default function TeacherSignup() {
                       onChange={(value) => set("country", value)}
                       error={showValidationErrors && !values.country}
                     />
-                    <Field label="المدينة *" error={showValidationErrors && !values.city}>
+                    <Field
+                      label="المدينة *"
+                      error={showValidationErrors && !values.city}
+                    >
                       <Input
                         value={values.city || ""}
                         onChange={(e) => set("city", e.target.value)}
@@ -787,13 +930,19 @@ export default function TeacherSignup() {
                         { value: "phd", label: "دكتوراه" },
                       ]}
                     />
-                    <Field label="التخصص *" error={showValidationErrors && !values.specialization}>
+                    <Field
+                      label="التخصص *"
+                      error={showValidationErrors && !values.specialization}
+                    >
                       <Input
                         value={values.specialization || ""}
                         onChange={(e) => set("specialization", e.target.value)}
                       />
                     </Field>
-                    <Field label="سنة التخرج *" error={showValidationErrors && !values.graduationYear}>
+                    <Field
+                      label="سنة التخرج *"
+                      error={showValidationErrors && !values.graduationYear}
+                    >
                       <Input
                         type="number"
                         min="1950"
@@ -814,7 +963,13 @@ export default function TeacherSignup() {
                         { value: "pass", label: "مقبول" },
                       ]}
                     />
-                    <Field label="الساعات المتاحة أسبوعيًا *" error={showValidationErrors && Number(values.availableHoursPerWeek) < 1}>
+                    <Field
+                      label="الساعات المتاحة أسبوعيًا *"
+                      error={
+                        showValidationErrors &&
+                        Number(values.availableHoursPerWeek) < 1
+                      }
+                    >
                       <Input
                         type="number"
                         min="1"
@@ -824,22 +979,40 @@ export default function TeacherSignup() {
                         }
                       />
                     </Field>
-                    <Field label="السيرة الذاتية *" error={showValidationErrors && !files.cv}>
+                    <Field
+                      label="السيرة الذاتية *"
+                      error={showValidationErrors && !files.cv}
+                    >
                       <Input
                         type="file"
-                        onChange={(e) => chooseRequiredFile("cv", e.target.files?.[0])}
+                        onChange={(e) =>
+                          chooseRequiredFile("cv", e.target.files?.[0])
+                        }
                       />
                     </Field>
-                    <Field label="شهادة التخرج *" error={showValidationErrors && !files.certificate}>
+                    <Field
+                      label="شهادة التخرج *"
+                      error={showValidationErrors && !files.certificate}
+                    >
                       <Input
                         type="file"
-                        onChange={(e) => chooseRequiredFile("certificate", e.target.files?.[0])}
+                        onChange={(e) =>
+                          chooseRequiredFile("certificate", e.target.files?.[0])
+                        }
                       />
                     </Field>
-                    <Field label="البطاقة الشخصية *" error={showValidationErrors && !files.identityDocument}>
+                    <Field
+                      label="البطاقة الشخصية *"
+                      error={showValidationErrors && !files.identityDocument}
+                    >
                       <Input
                         type="file"
-                        onChange={(e) => chooseRequiredFile("identityDocument", e.target.files?.[0])}
+                        onChange={(e) =>
+                          chooseRequiredFile(
+                            "identityDocument",
+                            e.target.files?.[0],
+                          )
+                        }
                       />
                     </Field>
                     <Field label="شهادات الخبرة (اختياري، حتى 10 ملفات)">
@@ -882,63 +1055,96 @@ export default function TeacherSignup() {
               )}
               {step === 2 && (
                 <div className="space-y-5">
-                  {curriculumStage === "grades" && <><SelectField
-                    label="المنهج الأساسي *"
-                    value={selectedCurriculum}
-                    error={showValidationErrors && !selectedCurriculum}
-                    onChange={(value) => {
-                      setSelectedCurriculum(value);
-                      setAdditionalCurriculums((current) =>
-                        current.filter((id) => id !== value),
-                      );
-                    }}
-                    loading={catalogsLoading}
-                    options={curriculums.map((item) => ({
-                      value: item.id,
-                      label: `${item.name} — ${item.registrationMode === "egyptian" ? "مصري" : "خليجي"}`,
-                    }))}
-                  />
-                  {selectedCurriculum && (
-                    <div className="rounded-xl border p-4">
-                      <h3 className="font-bold mb-1">مناهج إضافية</h3>
-                      <p className="mb-3 text-xs text-muted-foreground">
-                        اختياري — اخترها فقط إذا كنت ترغب في تدريس مناهج أخرى.
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        {curriculums
-                          .filter((item) => item.id !== selectedCurriculum)
-                          .map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
-                            >
-                              <Checkbox
-                                checked={additionalCurriculums.includes(
-                                  item.id,
-                                )}
-                                onCheckedChange={(checked) =>
-                                  setAdditionalCurriculums((current) =>
-                                    checked === true
-                                      ? [...current, item.id]
-                                      : current.filter((id) => id !== item.id),
-                                  )
-                                }
-                              />
-                              {item.name}
-                            </label>
-                          ))}
-                      </div>
-                    </div>
-                  )}</>}
+                  {curriculumStage === "grades" && (
+                    <>
+                      <SelectField
+                        label="المنهج الأساسي *"
+                        value={selectedCurriculum}
+                        error={showValidationErrors && !selectedCurriculum}
+                        onChange={(value) => {
+                          setSelectedCurriculum(value);
+                          setAdditionalCurriculums((current) =>
+                            current.filter((id) => id !== value),
+                          );
+                        }}
+                        loading={catalogsLoading}
+                        options={curriculums.map((item) => ({
+                          value: item.id,
+                          label: `${item.name} — ${item.registrationMode === "egyptian" ? "مصري" : "خليجي"}`,
+                        }))}
+                      />
+                      {selectedCurriculum && (
+                        <div className="rounded-xl border p-4">
+                          <h3 className="font-bold mb-1">مناهج إضافية</h3>
+                          <p className="mb-3 text-xs text-muted-foreground">
+                            اختياري — اخترها فقط إذا كنت ترغب في تدريس مناهج
+                            أخرى.
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            {curriculums
+                              .filter((item) => item.id !== selectedCurriculum)
+                              .map((item) => (
+                                <label
+                                  key={item.id}
+                                  className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
+                                >
+                                  <Checkbox
+                                    checked={additionalCurriculums.includes(
+                                      item.id,
+                                    )}
+                                    onCheckedChange={(checked) =>
+                                      setAdditionalCurriculums((current) =>
+                                        checked === true
+                                          ? [...current, item.id]
+                                          : current.filter(
+                                              (id) => id !== item.id,
+                                            ),
+                                      )
+                                    }
+                                  />
+                                  {item.name}
+                                </label>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                   {selectedCurriculum && (
                     <div>
-                      {curriculumStage === "grades" ? <div className="mb-4">
-                        <h3 className="font-bold">اختر الصفوف التي تدرّسها</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">يمكنك اختيار أكثر من صف، ثم تحديد المواد لكل صف بالأسفل.</p>
-                      </div> : <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div><h3 className="font-bold">اختر المواد لكل صف</h3><p className="mt-1 text-xs text-muted-foreground">تنقل بين الصفوف المختارة وحدد مادة واحدة على الأقل لكل صف.</p></div>
-                        <Button type="button" size="sm" variant="outline" onClick={() => { setError(""); setCurriculumStage("grades"); }}><ArrowRight className="ml-2 h-4 w-4" />تعديل الصفوف</Button>
-                      </div>}
+                      {curriculumStage === "grades" ? (
+                        <div className="mb-4">
+                          <h3 className="font-bold">
+                            اختر الصفوف التي تدرّسها
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            يمكنك اختيار أكثر من صف، ثم تحديد المواد لكل صف
+                            بالأسفل.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="font-bold">اختر المواد لكل صف</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              تنقل بين الصفوف المختارة وحدد مادة واحدة على الأقل
+                              لكل صف.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setError("");
+                              setCurriculumStage("grades");
+                            }}
+                          >
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                            تعديل الصفوف
+                          </Button>
+                        </div>
+                      )}
                       {loadingGrades ? (
                         <Loader />
                       ) : grades.length === 0 ? (
@@ -947,91 +1153,305 @@ export default function TeacherSignup() {
                         </p>
                       ) : (
                         <div className="space-y-5">
-                          {curriculumStage === "grades" && <div className="space-y-3">
-                            {gradeGroups.map((group) => {
-                              const isOpen = Boolean(openGradeGroups[group.key]);
-                              const selectedCount = group.grades.filter((grade) => selectedGrades.includes(grade.id)).length;
-                              return <Collapsible key={group.key} open={isOpen} onOpenChange={(open) => setOpenGradeGroups((current) => ({ ...current, [group.key]: open }))} className="overflow-hidden rounded-xl border bg-card">
-                                <CollapsibleTrigger asChild>
-                                  <button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50">
-                                    <span><span className="block font-bold">{group.label}</span><span className="text-xs text-muted-foreground">{group.grades.length} صفوف{selectedCount ? ` — تم اختيار ${selectedCount}` : ""}</span></span>
-                                    <ChevronDown className={cn("h-5 w-5 shrink-0 transition-transform", isOpen && "rotate-180")} />
-                                  </button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                  <div className="space-y-4 border-t bg-muted/10 p-3">
-                                    {splitGradesByStage(group.grades).map((stage) => {
-                                      const stageId = `${group.key}-${stage.key}`;
-                                      const isStageOpen = Boolean(openGradeStages[stageId]);
-                                      const stageSelectedCount = stage.grades.filter((grade) => selectedGrades.includes(grade.id)).length;
-                                      return <Collapsible key={stageId} open={isStageOpen} onOpenChange={(open) => setOpenGradeStages((current) => ({ ...current, [stageId]: open }))} className="overflow-hidden rounded-lg border bg-card">
-                                        <CollapsibleTrigger asChild>
-                                          <button type="button" className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50">
-                                            <span className="flex items-center gap-2"><span className="text-sm font-bold">{stage.label}</span><span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{stage.grades.length}{stageSelectedCount ? ` / مختار ${stageSelectedCount}` : ""}</span></span>
-                                            <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isStageOpen && "rotate-180")} />
-                                          </button>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                                            {stage.grades.map((grade) => {
-                                              const selected = selectedGrades.includes(grade.id);
-                                              return <button
-                                                key={grade.id}
-                                                type="button"
-                                                aria-pressed={selected}
-                                                onClick={() => toggleGrade(grade.id, !selected)}
-                                                className={cn("relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors", selected ? "border-primary bg-primary/10 text-primary" : "border-border bg-card hover:border-primary/40 hover:bg-muted/40")}
+                          {curriculumStage === "grades" && (
+                            <div className="space-y-3">
+                              {gradeGroups.map((group) => {
+                                const isOpen = Boolean(
+                                  openGradeGroups[group.key],
+                                );
+                                const selectedCount = group.grades.filter(
+                                  (grade) => selectedGrades.includes(grade.id),
+                                ).length;
+                                return (
+                                  <Collapsible
+                                    key={group.key}
+                                    open={isOpen}
+                                    onOpenChange={(open) =>
+                                      setOpenGradeGroups((current) => ({
+                                        ...current,
+                                        [group.key]: open,
+                                      }))
+                                    }
+                                    className="overflow-hidden rounded-xl border bg-card"
+                                  >
+                                    <CollapsibleTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right transition-colors hover:bg-muted/50"
+                                      >
+                                        <span>
+                                          <span className="block font-bold">
+                                            {group.label}
+                                          </span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {group.grades.length} صفوف
+                                            {selectedCount
+                                              ? ` — تم اختيار ${selectedCount}`
+                                              : ""}
+                                          </span>
+                                        </span>
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-5 w-5 shrink-0 transition-transform",
+                                            isOpen && "rotate-180",
+                                          )}
+                                        />
+                                      </button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <div className="space-y-4 border-t bg-muted/10 p-3">
+                                        {splitGradesByStage(group.grades).map(
+                                          (stage) => {
+                                            const stageId = `${group.key}-${stage.key}`;
+                                            const isStageOpen = Boolean(
+                                              openGradeStages[stageId],
+                                            );
+                                            const stageSelectedCount =
+                                              stage.grades.filter((grade) =>
+                                                selectedGrades.includes(
+                                                  grade.id,
+                                                ),
+                                              ).length;
+                                            return (
+                                              <Collapsible
+                                                key={stageId}
+                                                open={isStageOpen}
+                                                onOpenChange={(open) =>
+                                                  setOpenGradeStages(
+                                                    (current) => ({
+                                                      ...current,
+                                                      [stageId]: open,
+                                                    }),
+                                                  )
+                                                }
+                                                className="overflow-hidden rounded-lg border bg-card"
                                               >
-                                                {selected && <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="h-3.5 w-3.5" /></span>}
-                                                {grade.name}
-                                              </button>;
-                                            })}
-                                          </div>
-                                        </CollapsibleContent>
-                                      </Collapsible>;
-                                    })}
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>;
-                            })}
-                          </div>}
-
-                          {curriculumStage === "grades" && <div className="flex justify-end border-t pt-4">
-                            <Button type="button" disabled={selectedGrades.length === 0} onClick={() => { setError(""); setActiveGrade((current) => current && selectedGrades.includes(current) ? current : selectedGrades[0]); setCurriculumStage("subjects"); }}>
-                              التالي: اختيار المواد<ArrowLeft className="mr-2 h-4 w-4" />
-                            </Button>
-                          </div>}
-
-                          {curriculumStage === "subjects" && selectedGrades.length > 0 && <div className={cn("rounded-2xl border bg-muted/20 p-4 sm:p-5", showValidationErrors && selectedGrades.some((id) => !(assignments[id] || []).length) && "border-destructive bg-destructive/5")}>
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                              <div><h4 className="font-bold">اختر المواد لكل صف</h4><p className="text-xs text-muted-foreground">اختر مادة واحدة على الأقل لكل صف محدد.</p></div>
-                              <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{selectedGrades.length} صفوف مختارة</span>
+                                                <CollapsibleTrigger asChild>
+                                                  <button
+                                                    type="button"
+                                                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted/50"
+                                                  >
+                                                    <span className="flex items-center gap-2">
+                                                      <span className="text-sm font-bold">
+                                                        {stage.label}
+                                                      </span>
+                                                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                                                        {stage.grades.length}
+                                                        {stageSelectedCount
+                                                          ? ` / مختار ${stageSelectedCount}`
+                                                          : ""}
+                                                      </span>
+                                                    </span>
+                                                    <ChevronDown
+                                                      className={cn(
+                                                        "h-4 w-4 shrink-0 transition-transform",
+                                                        isStageOpen &&
+                                                          "rotate-180",
+                                                      )}
+                                                    />
+                                                  </button>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent>
+                                                  <div className="grid grid-cols-2 gap-2 border-t bg-muted/10 p-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                                    {stage.grades.map(
+                                                      (grade) => {
+                                                        const selected =
+                                                          selectedGrades.includes(
+                                                            grade.id,
+                                                          );
+                                                        return (
+                                                          <button
+                                                            key={grade.id}
+                                                            type="button"
+                                                            aria-pressed={
+                                                              selected
+                                                            }
+                                                            onClick={() =>
+                                                              toggleGrade(
+                                                                grade.id,
+                                                                !selected,
+                                                              )
+                                                            }
+                                                            className={cn(
+                                                              "relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",
+                                                              selected
+                                                                ? "border-primary bg-primary/10 text-primary"
+                                                                : "border-border bg-card hover:border-primary/40 hover:bg-muted/40",
+                                                            )}
+                                                          >
+                                                            {selected && (
+                                                              <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground">
+                                                                <Check className="h-3.5 w-3.5" />
+                                                              </span>
+                                                            )}
+                                                            {grade.name}
+                                                          </button>
+                                                        );
+                                                      },
+                                                    )}
+                                                  </div>
+                                                </CollapsibleContent>
+                                              </Collapsible>
+                                            );
+                                          },
+                                        )}
+                                      </div>
+                                    </CollapsibleContent>
+                                  </Collapsible>
+                                );
+                              })}
                             </div>
-                            {displayedGrade && <Tabs dir="rtl" value={displayedGrade} onValueChange={setActiveGrade}>
-                              <TabsList className="mb-3 h-auto w-full flex-wrap justify-start gap-1 p-1.5">
-                                {selectedGrades.map((gradeId) => {
-                                  const grade = grades.find((item) => item.id === gradeId);
-                                  const count = (assignments[gradeId] || []).length;
-                                  return <TabsTrigger key={gradeId} value={gradeId} className={cn("gap-2 border border-transparent data-[state=active]:border-border", showValidationErrors && !count && "border-destructive text-destructive data-[state=active]:border-destructive")}>
-                                    {grade?.name || "الصف"}
-                                    <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", count ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>{count}</span>
-                                  </TabsTrigger>;
-                                })}
-                              </TabsList>
-                              {selectedGrades.map((gradeId) => <TabsContent key={gradeId} value={gradeId} className="mt-0 rounded-xl border bg-card p-4">
-                                <p className="mb-3 font-semibold">مواد {grades.find((item) => item.id === gradeId)?.name}</p>
-                                {loadingSubjects[gradeId] ? <Loader /> : (subjects[gradeId] || []).length === 0 ? <p className="text-sm text-muted-foreground">لا توجد مواد متاحة لهذا الصف.</p> : <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                  {(subjects[gradeId] || []).map((subject) => {
-                                    const selected = (assignments[gradeId] || []).includes(subject.id);
-                                    return <label key={subject.id} className={cn("flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors", selected ? "border-primary bg-primary/5" : "hover:bg-muted/50")}>
-                                      <Checkbox checked={selected} onCheckedChange={(checked) => toggleSubject(gradeId, subject.id, checked === true)} />
-                                      {subject.name}
-                                    </label>;
-                                  })}
-                                </div>}
-                              </TabsContent>)}
-                            </Tabs>}
-                          </div>}
+                          )}
+
+                          {curriculumStage === "grades" && (
+                            <div className="flex justify-end border-t pt-4">
+                              <Button
+                                type="button"
+                                disabled={selectedGrades.length === 0}
+                                onClick={() => {
+                                  setError("");
+                                  setActiveGrade((current) =>
+                                    current && selectedGrades.includes(current)
+                                      ? current
+                                      : selectedGrades[0],
+                                  );
+                                  setCurriculumStage("subjects");
+                                }}
+                              >
+                                التالي: اختيار المواد
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+
+                          {curriculumStage === "subjects" &&
+                            selectedGrades.length > 0 && (
+                              <div
+                                className={cn(
+                                  "rounded-2xl border bg-muted/20 p-4 sm:p-5",
+                                  showValidationErrors &&
+                                    selectedGrades.some(
+                                      (id) => !(assignments[id] || []).length,
+                                    ) &&
+                                    "border-destructive bg-destructive/5",
+                                )}
+                              >
+                                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div>
+                                    <h4 className="font-bold">
+                                      اختر المواد لكل صف
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      اختر مادة واحدة على الأقل لكل صف محدد.
+                                    </p>
+                                  </div>
+                                  <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                                    {selectedGrades.length} صفوف مختارة
+                                  </span>
+                                </div>
+                                {displayedGrade && (
+                                  <Tabs
+                                    dir="rtl"
+                                    value={displayedGrade}
+                                    onValueChange={setActiveGrade}
+                                  >
+                                    <TabsList className="mb-3 h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+                                      {selectedGrades.map((gradeId) => {
+                                        const grade = grades.find(
+                                          (item) => item.id === gradeId,
+                                        );
+                                        const count = (
+                                          assignments[gradeId] || []
+                                        ).length;
+                                        return (
+                                          <TabsTrigger
+                                            key={gradeId}
+                                            value={gradeId}
+                                            className={cn(
+                                              "gap-2 border border-transparent data-[state=active]:border-border",
+                                              showValidationErrors &&
+                                                !count &&
+                                                "border-destructive text-destructive data-[state=active]:border-destructive",
+                                            )}
+                                          >
+                                            {grade?.name || "الصف"}
+                                            <span
+                                              className={cn(
+                                                "rounded-full px-1.5 py-0.5 text-[10px]",
+                                                count
+                                                  ? "bg-emerald-100 text-emerald-700"
+                                                  : "bg-amber-100 text-amber-700",
+                                              )}
+                                            >
+                                              {count}
+                                            </span>
+                                          </TabsTrigger>
+                                        );
+                                      })}
+                                    </TabsList>
+                                    {selectedGrades.map((gradeId) => (
+                                      <TabsContent
+                                        key={gradeId}
+                                        value={gradeId}
+                                        className="mt-0 rounded-xl border bg-card p-4"
+                                      >
+                                        <p className="mb-3 font-semibold">
+                                          مواد{" "}
+                                          {
+                                            grades.find(
+                                              (item) => item.id === gradeId,
+                                            )?.name
+                                          }
+                                        </p>
+                                        {loadingSubjects[gradeId] ? (
+                                          <Loader />
+                                        ) : (subjects[gradeId] || []).length ===
+                                          0 ? (
+                                          <p className="text-sm text-muted-foreground">
+                                            لا توجد مواد متاحة لهذا الصف.
+                                          </p>
+                                        ) : (
+                                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                            {(subjects[gradeId] || []).map(
+                                              (subject) => {
+                                                const selected = (
+                                                  assignments[gradeId] || []
+                                                ).includes(subject.id);
+                                                return (
+                                                  <label
+                                                    key={subject.id}
+                                                    className={cn(
+                                                      "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                                                      selected
+                                                        ? "border-primary bg-primary/5"
+                                                        : "hover:bg-muted/50",
+                                                    )}
+                                                  >
+                                                    <Checkbox
+                                                      checked={selected}
+                                                      onCheckedChange={(
+                                                        checked,
+                                                      ) =>
+                                                        toggleSubject(
+                                                          gradeId,
+                                                          subject.id,
+                                                          checked === true,
+                                                        )
+                                                      }
+                                                    />
+                                                    {subject.name}
+                                                  </label>
+                                                );
+                                              },
+                                            )}
+                                          </div>
+                                        )}
+                                      </TabsContent>
+                                    ))}
+                                  </Tabs>
+                                )}
+                              </div>
+                            )}
                         </div>
                       )}
                     </div>
@@ -1072,7 +1492,10 @@ export default function TeacherSignup() {
                       options={yesNo}
                     />
                   ))}
-                  <Field label="رابط لجزء من الشرح *" error={showValidationErrors && !values.introVideoUrl}>
+                  <Field
+                    label="رابط لجزء من الشرح *"
+                    error={showValidationErrors && !values.introVideoUrl}
+                  >
                     <Input
                       dir="ltr"
                       type="url"
@@ -1080,14 +1503,22 @@ export default function TeacherSignup() {
                       onChange={(e) => set("introVideoUrl", e.target.value)}
                     />
                   </Field>
-                  <Field label="لماذا تريد الانضمام؟ *" error={showValidationErrors && !values.joiningReason}>
+                  <Field
+                    label="لماذا تريد الانضمام؟ *"
+                    error={showValidationErrors && !values.joiningReason}
+                  >
                     <Textarea
                       value={values.joiningReason || ""}
                       onChange={(e) => set("joiningReason", e.target.value)}
                     />
                   </Field>
                   <div className="sm:col-span-2">
-                    <Field label="كيف تتعامل مع الطالب الضعيف؟ *" error={showValidationErrors && !values.weakStudentHandling}>
+                    <Field
+                      label="كيف تتعامل مع الطالب الضعيف؟ *"
+                      error={
+                        showValidationErrors && !values.weakStudentHandling
+                      }
+                    >
                       <Textarea
                         value={values.weakStudentHandling || ""}
                         onChange={(e) =>
@@ -1121,7 +1552,10 @@ export default function TeacherSignup() {
                       </a>
                     </Button>
                   </div>
-                  <Field label="إثبات سرعة واستقرار الإنترنت * (صورة، حتى 5MB)" error={showValidationErrors && !files.stableInternetProof}>
+                  <Field
+                    label="إثبات سرعة واستقرار الإنترنت * (صورة، حتى 5MB)"
+                    error={showValidationErrors && !files.stableInternetProof}
+                  >
                     <Input
                       type="file"
                       accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
@@ -1179,9 +1613,16 @@ export default function TeacherSignup() {
                     </p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       {filesForReview.map(({ field, file }) => (
-                        <div key={`${field}-${file.name}-${file.size}`} className="rounded-lg border bg-muted/30 p-3">
-                          <p className="font-semibold text-emerald-700">✓ {field}</p>
-                          <p dir="ltr" className="mt-1 break-all text-right">{file.name}</p>
+                        <div
+                          key={`${field}-${file.name}-${file.size}`}
+                          className="rounded-lg border bg-muted/30 p-3"
+                        >
+                          <p className="font-semibold text-emerald-700">
+                            ✓ {field}
+                          </p>
+                          <p dir="ltr" className="mt-1 break-all text-right">
+                            {file.name}
+                          </p>
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                             <span>{formatFileSize(file.size)}</span>
                             <span dir="ltr">{file.type || "غير معروف"}</span>
@@ -1191,7 +1632,9 @@ export default function TeacherSignup() {
                     </div>
                     <div className="mt-4 grid gap-2 border-t pt-4 font-semibold sm:grid-cols-2">
                       <p>إجمالي الملفات: {filesForReview.length}</p>
-                      <p>الحجم الإجمالي: {formatTotalFileSize(totalFilesSize)}</p>
+                      <p>
+                        الحجم الإجمالي: {formatTotalFileSize(totalFilesSize)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1257,7 +1700,8 @@ export default function TeacherSignup() {
                   </Button>
                 )}
               </div>
-              {step === 2 && curriculumStage === "grades" ? null : step < steps.length - 1 ? (
+              {step === 2 && curriculumStage === "grades" ? null : step <
+                steps.length - 1 ? (
                 <Button type="button" onClick={next}>
                   التالي
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -1267,7 +1711,9 @@ export default function TeacherSignup() {
                   {busy ? (
                     <>
                       <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      {preparingFiles ? "جاري تجهيز الملفات..." : "جاري رفع الملفات والإرسال..."}
+                      {preparingFiles
+                        ? "جاري تجهيز الملفات..."
+                        : "جاري رفع الملفات والإرسال..."}
                     </>
                   ) : (
                     "إرسال طلب التسجيل"
@@ -1316,7 +1762,13 @@ function Field({
   error?: boolean;
 }) {
   return (
-    <label className={cn("text-sm space-y-1.5 block", error && "text-destructive [&>input]:border-destructive [&>input]:ring-destructive/20 [&>textarea]:border-destructive [&>textarea]:ring-destructive/20")}>
+    <label
+      className={cn(
+        "text-sm space-y-1.5 block",
+        error &&
+          "text-destructive [&>input]:border-destructive [&>input]:ring-destructive/20 [&>textarea]:border-destructive [&>textarea]:ring-destructive/20",
+      )}
+    >
       <span className={cn(error && "font-medium")}>{label}</span>
       {children}
     </label>
@@ -1340,7 +1792,10 @@ function SelectField({
   return (
     <Field label={label} error={error}>
       <Select value={value} onValueChange={onChange} disabled={loading}>
-        <SelectTrigger aria-invalid={error} className={cn(error && "border-destructive ring-destructive/20")}>
+        <SelectTrigger
+          aria-invalid={error}
+          className={cn(error && "border-destructive ring-destructive/20")}
+        >
           <SelectValue placeholder={loading ? "جاري التحميل..." : "اختر"} />
         </SelectTrigger>
         <SelectContent>
@@ -1373,7 +1828,9 @@ function CountrySelect({
   const selectedCountry = countries.find((country) => country.name === value);
 
   return (
-    <div className={cn("block space-y-1.5 text-sm", error && "text-destructive")}>
+    <div
+      className={cn("block space-y-1.5 text-sm", error && "text-destructive")}
+    >
       <span className={cn(error && "font-medium")}>{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -1384,9 +1841,17 @@ function CountrySelect({
             aria-expanded={open}
             disabled={loading}
             aria-invalid={error}
-            className={cn("w-full justify-between font-normal", error && "border-destructive ring-destructive/20")}
+            className={cn(
+              "w-full justify-between font-normal",
+              error && "border-destructive ring-destructive/20",
+            )}
           >
-            <span className={cn("truncate", !selectedCountry && "text-muted-foreground")}>
+            <span
+              className={cn(
+                "truncate",
+                !selectedCountry && "text-muted-foreground",
+              )}
+            >
               {loading
                 ? "جاري التحميل..."
                 : selectedCountry

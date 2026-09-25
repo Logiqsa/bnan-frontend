@@ -6,6 +6,15 @@ export default function PortalGuard({ role, children }: { role: PortalRole; chil
   const { user, loading } = usePortalAuth(); const location = useLocation();
   if (loading) return <div className="min-h-screen grid place-items-center font-cairo">جاري التحقق من الجلسة...</div>;
   if (!user) return <Navigate to="/portal/login" state={{ from: location.pathname }} replace />;
-  if (user.role !== role) return <Navigate to={user.role === "admin" ? "/admin" : `/portal/${user.role}/schedule`} replace />;
+  if (user.role !== role) {
+    const destination = user.role === "admin"
+      ? "/admin"
+      : user.role === "teacher"
+        ? "/portal/teacher"
+        : user.role === "student"
+          ? "/portal/student"
+          : `/portal/${user.role}/schedule`;
+    return <Navigate to={destination} replace />;
+  }
   return <>{children}</>;
 }

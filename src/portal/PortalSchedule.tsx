@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
+  ClipboardList,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -9,7 +11,7 @@ import {
   RefreshCw,
   Video,
 } from "lucide-react";
-import { getSchedule, joinLesson, startLesson } from "@/api/scheduleApi";
+import { endSession, getActiveClassroomSession, getSchedule, joinLesson, startLesson } from "@/api/scheduleApi";
 import { coursesApi, type Course } from "@/api/coursesApi";
 import {
   classroomRecordingsApi,
@@ -31,6 +33,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "./PortalAuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import TeacherSessionAttendance from "./TeacherSessionAttendance";
 
 const dayNames = [
   "السبت",
@@ -68,7 +71,7 @@ const calendarDays = (month: Date) => {
 };
 const isLessonEnded = (lesson: PortalLesson) =>
   lesson.activeSession?.status === "ended" ||
-  lesson.activeSession?.status === "awaiting_zoom_end";
+  (lesson.scheduleKind === "course" && lesson.activeSession?.status === "awaiting_zoom_end");
 const sessionRecording = (lesson: PortalLesson) =>
   lesson.activeSession?.recordingUrl ||
   lesson.activeSession?.recording_url ||
@@ -201,6 +204,7 @@ export default function PortalSchedule({
   role: "teacher" | "student";
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = usePortalAuth();
   const { isArabic, pick } = useLanguage();
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
@@ -247,10 +251,45 @@ export default function PortalSchedule({
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | RegistrationMode>("all");
   const [selected, setSelected] = useState<PortalLesson | null>(null);
+  const [attendanceContext, setAttendanceContext] = useState<{
+    sessionId: string;
+    classroomId: string;
+    readOnly: boolean;
+  } | null>(null);
   const [joining, setJoining] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState("");
+  const [endTarget, setEndTarget] = useState<{ sessionId: string; classroomId: string } | null>(null);
+  const [ending, setEnding] = useState(false);
+  const endingRef = useRef(false);
+  const [endError, setEndError] = useState("");
+  const [awaitingEnd, setAwaitingEnd] = useState<{ sessionId: string; classroomId: string; until: number } | null>(null);
+  const endStateRefreshRef = useRef<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
+  const selectedRegularActive = role === "teacher" && selected?.scheduleKind !== "course" &&
+    (selected?.activeSession?.status === "starting" || selected?.activeSession?.status === "live" || selected?.activeSession?.status === "awaiting_zoom_end");
+  const activeSessionQuery = useQuery({
+    queryKey: ["teacher-regular-active-session", selectedRegularActive ? selected.classroom.id : ""],
+    queryFn: () => getActiveClassroomSession(selected!.classroom.id),
+    enabled: Boolean(selectedRegularActive),
+    staleTime: 0,
+    retry: 1,
+    refetchInterval: (query) =>
+      awaitingEnd && selected?.classroom.id === awaitingEnd.classroomId &&
+      Date.now() < awaitingEnd.until && query.state.data?.status !== "ended" && query.state.data !== null
+        ? 5000
+        : false,
+  });
+  const selectedSessionId = selected?.activeSession?.id || selected?.activeSession?.sessionId;
+  const verifiedActiveSession = activeSessionQuery.data?.sessionId &&
+    activeSessionQuery.data.sessionId === selectedSessionId &&
+    activeSessionQuery.data.teacher?.userId === user?.id
+      ? activeSessionQuery.data
+      : null;
+  const waitingForZoom = selected?.scheduleKind !== "course" && (
+    selected?.activeSession?.status === "awaiting_zoom_end" ||
+    (awaitingEnd?.sessionId && awaitingEnd.sessionId === selectedSessionId)
+  );
   const grid = useMemo(() => calendarDays(month), [month]);
   const weekKey = useMemo(
     () =>
@@ -494,6 +533,15 @@ export default function PortalSchedule({
         : null,
     );
   }, [lessons]);
+  useEffect(() => {
+    if (!awaitingEnd || !selected || selected.classroom.id !== awaitingEnd.classroomId) return;
+    if (selected.activeSession?.status === "ended") {
+      setAwaitingEnd(null);
+    } else if (activeSessionQuery.isSuccess && activeSessionQuery.data === null && endStateRefreshRef.current !== awaitingEnd.sessionId) {
+      endStateRefreshRef.current = awaitingEnd.sessionId;
+      void load();
+    }
+  }, [activeSessionQuery.data, activeSessionQuery.isSuccess, awaitingEnd, load, selected]);
 
   const visible = useMemo(
     () =>
@@ -541,6 +589,35 @@ export default function PortalSchedule({
     } finally {
       setJoining(false);
       setSelected(null);
+    }
+  };
+  const requestEnd = async () => {
+    if (!endTarget || endingRef.current || !verifiedActiveSession ||
+      verifiedActiveSession.sessionId !== endTarget.sessionId ||
+      !["starting", "live"].includes(verifiedActiveSession.status)) return;
+    endingRef.current = true;
+    setEnding(true);
+    setEndError("");
+    try {
+      await endSession(endTarget.sessionId);
+      endStateRefreshRef.current = null;
+      setAwaitingEnd({ ...endTarget, until: Date.now() + 120_000 });
+      setEndTarget(null);
+      void activeSessionQuery.refetch();
+      void load();
+      void queryClient.invalidateQueries({ queryKey: ["teacher-schedule", selected?.registrationMode] });
+    } catch (value) {
+      const apiError = value as ApiError;
+      setEndError(
+        apiError.status === 403 ? pick("غير مصرح لك بإنهاء هذه الحصة.", "You are not allowed to end this session.") :
+        apiError.status === 404 ? pick("الحصة غير موجودة أو لم تعد متاحة.", "The session was not found or is no longer available.") :
+        apiError.status === 409 ? pick("الحصة لم تعد قابلة للإنهاء. حدّث الجدول وحاول مجددًا.", "This session can no longer be ended. Refresh the schedule and try again.") :
+        apiError.status === 401 ? pick("انتهت صلاحية الجلسة. سجّل الدخول مرة أخرى.", "Your sign-in expired. Please sign in again.") :
+        apiError.message || pick("تعذر إرسال طلب الإنهاء. حاول مرة أخرى.", "Unable to request session ending. Please try again."),
+      );
+    } finally {
+      endingRef.current = false;
+      setEnding(false);
     }
   };
   const start = async () => {
@@ -798,6 +875,9 @@ export default function PortalSchedule({
                       .sort((a, b) => a.startTime.localeCompare(b.startTime))
                       .map((lesson) => {
                         const ended = isLessonEnded(lesson);
+                        const waiting = !ended && lesson.scheduleKind !== "course" &&
+                          (lesson.activeSession?.status === "awaiting_zoom_end" ||
+                            (awaitingEnd?.sessionId && awaitingEnd.sessionId === (lesson.activeSession?.id || lesson.activeSession?.sessionId)));
                         return (
                           <button
                             key={lesson.key}
@@ -831,9 +911,9 @@ export default function PortalSchedule({
                               )}
                             <div className="flex items-center justify-between mt-3">
                               <span
-                                className={`text-xs font-semibold ${lesson.activeSession?.status === "live" || (role === "teacher" && isLiveForTeacher(lesson)) ? "text-green-600" : ended ? "text-destructive" : "text-muted-foreground"}`}
+                                className={`text-xs font-semibold ${waiting ? "text-amber-700" : lesson.activeSession?.status === "live" || (role === "teacher" && isLiveForTeacher(lesson)) ? "text-green-600" : ended ? "text-destructive" : "text-muted-foreground"}`}
                               >
-                                {statusText(lesson, role === "student")}
+                                {waiting ? pick("في انتظار انتهاء Zoom...", "Waiting for Zoom to end...") : statusText(lesson, role === "student")}
                               </span>
                               <span className="text-xs rounded-full bg-secondary/20 px-2 py-1">
                                 {lesson.scheduleKind === "course"
@@ -856,7 +936,7 @@ export default function PortalSchedule({
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {
-          if (!open && !starting) {
+          if (!open && !starting && !endTarget) {
             setSelected(null);
             setStartError("");
           }
@@ -867,6 +947,8 @@ export default function PortalSchedule({
             <DialogTitle>
               {selected && isLessonEnded(selected)
                 ? pick("الحصة انتهت", "Lesson ended")
+                : waitingForZoom
+                  ? pick("في انتظار انتهاء Zoom", "Waiting for Zoom to end")
                 : role === "teacher" && selected && isLiveForTeacher(selected)
                   ? pick("الحصة مباشرة الآن", "Lesson is live now")
                   : selected?.scheduleKind === "course"
@@ -903,6 +985,12 @@ export default function PortalSchedule({
                 <FileText className="h-5 w-5" />
                 {pick("فتح الملخص", "Open summary")}
               </Button>
+            </div>
+          ) : waitingForZoom ? (
+            <div className="rounded-xl border bg-muted/50 p-4 text-sm leading-7 text-muted-foreground">
+              {awaitingEnd?.sessionId === selectedSessionId
+                ? pick("تم إرسال طلب إنهاء الحصة، في انتظار تأكيد انتهاء Zoom...", "Session ending was requested. Waiting for Zoom to confirm it has ended...")
+                : pick("الحصة في انتظار انتهاء Zoom...", "Waiting for Zoom to end...")}
             </div>
           ) : (
             <>
@@ -983,9 +1071,60 @@ export default function PortalSchedule({
                       : pick("دخول الحصة", "Join lesson")}
                   </Button>
                 )}
+                {role === "teacher" && selected?.scheduleKind !== "course" &&
+                  selected && isLiveForTeacher(selected) && verifiedActiveSession &&
+                  (verifiedActiveSession.status === "live" || verifiedActiveSession.status === "starting") &&
+                  awaitingEnd?.sessionId !== selectedSessionId && (
+                    <Button
+                      variant="destructive"
+                      disabled={ending}
+                      onClick={() => {
+                        setEndError("");
+                        setEndTarget({ sessionId: verifiedActiveSession.sessionId, classroomId: selected.classroom.id });
+                      }}
+                    >
+                      {pick("طلب إنهاء الحصة", "Request session end")}
+                    </Button>
+                  )}
               </DialogFooter>
             </>
           )}
+          {role === "teacher" && selectedSessionId && (
+            <Button variant="outline" className="w-full gap-2" onClick={() => {
+              setAttendanceContext({
+                sessionId: selectedSessionId,
+                classroomId: selected.classroom.id,
+                readOnly: selected.registrationMode !== "gulf",
+              });
+              setSelected(null);
+            }}>
+              <ClipboardList className="h-4 w-4" />
+              {pick("الحضور", "Attendance")}
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
+      {role === "teacher" && attendanceContext && (
+        <TeacherSessionAttendance
+          sessionId={attendanceContext.sessionId}
+          classroomId={attendanceContext.classroomId}
+          readOnly={attendanceContext.readOnly}
+          onClose={() => setAttendanceContext(null)}
+        />
+      )}
+      <Dialog open={Boolean(endTarget)} onOpenChange={(open) => { if (!open && !ending) { setEndTarget(null); setEndError(""); } }}>
+        <DialogContent dir={isArabic ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{pick("طلب إنهاء الحصة", "Request session end")}</DialogTitle>
+            <DialogDescription>{pick("هل تريد طلب إنهاء هذه الحصة؟ سيتم تأكيد انتهائها بعد انتهاء Zoom.", "Do you want to request ending this session? Completion will be confirmed after Zoom ends.")}</DialogDescription>
+          </DialogHeader>
+          {endError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{endError}</p>}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={ending} onClick={() => { setEndTarget(null); setEndError(""); }}>{pick("إلغاء", "Cancel")}</Button>
+            <Button variant="destructive" disabled={ending} onClick={() => void requestEnd()}>
+              {ending ? pick("جاري إرسال الطلب...", "Sending request...") : pick("طلب الإنهاء", "Request end")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog

@@ -12,6 +12,7 @@ vi.mock("@/api/adminStudentsApi", () => ({ listAdminStudents: optionMocks.listSt
 vi.mock("@/api/catalogApi", () => ({ catalogApi: { curriculums: optionMocks.curriculums, subjectsByCurriculum: optionMocks.subjectsByCurriculum, packages: optionMocks.packages } }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
 Element.prototype.scrollIntoView = vi.fn();
+Object.assign(globalThis, { ResizeObserver: class { observe() {} unobserve() {} disconnect() {} } });
 
 const response = { success: true, results: 1, data: [{ id: "request-1", status: "assigned", student: { user: { fullName: "طالب خليجي" } }, subject: { name: "الرياضيات" }, package: { name: "باقة" }, payment: { paymentStatus: "paid", provider: "tamara", amount: 250, currency: "SAR" }, requestedAt: "2026-01-01T00:00:00.000Z" }], pagination: { current_page: 1, last_page: 2, per_page: 20, total: 21 } };
 const configureOptions = () => {

@@ -27,6 +27,7 @@ import TeacherDashboard from "@/portal/TeacherDashboard";
 import TeacherRequests from "@/portal/TeacherRequests";
 import TeacherMessages from "@/portal/TeacherMessages";
 import TeacherPayroll from "@/portal/TeacherPayroll";
+import TeacherPayrollStatementDetail from "@/portal/TeacherPayrollStatementDetail";
 import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
 import StudentSchedule from "@/portal/StudentSchedule";
@@ -81,7 +82,8 @@ import ClientErrorsAdmin from "@/admin/ClientErrorsAdmin";
 import ContactSettingsAdmin from "@/admin/ContactSettingsAdmin";
 import ClassroomChangeRequestsAdmin from "@/admin/ClassroomChangeRequestsAdmin";
 import AdminMessages from "@/admin/AdminMessages";
-import AdminPayroll from "@/admin/AdminPayroll";
+import AdminPayroll, { AdminTeacherPayrollStatementPage } from "@/admin/AdminPayroll";
+import AdminPayrollStatementDetailPage from "@/admin/AdminPayrollStatementDetailPage";
 import AdminSubscriptions, { AdminSubscriptionDetail } from "@/admin/AdminSubscriptions";
 import AdminCertificates, { AdminCertificateDetail } from "@/admin/AdminCertificates";
 import AdminPayments, { AdminPaymentDetail } from "@/admin/AdminPayments";
@@ -228,6 +230,10 @@ export default function App() {
                       element={<PortalGuard role="teacher"><TeacherPayroll /></PortalGuard>}
                     />
                     <Route
+                      path="/portal/teacher/payroll-statements/:statementId"
+                      element={<PortalGuard role="teacher"><TeacherPayrollStatementDetail /></PortalGuard>}
+                    />
+                    <Route
                       path="/portal/teacher/classrooms"
                       element={<PortalGuard role="teacher"><TeacherClassrooms /></PortalGuard>}
                     />
@@ -354,6 +360,14 @@ export default function App() {
                     <Route
                       path="/admin/payroll"
                       element={<AdminGuard><AdminPayroll /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/payroll/statement"
+                      element={<AdminGuard><AdminTeacherPayrollStatementPage /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/payroll/statements/:statementId"
+                      element={<AdminGuard><AdminPayrollStatementDetailPage /></AdminGuard>}
                     />
                     <Route
                       path="/admin/payroll/:payrollId"

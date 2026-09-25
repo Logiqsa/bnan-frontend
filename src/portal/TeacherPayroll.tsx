@@ -3,15 +3,17 @@ import { ArrowRight, Banknote, ExternalLink, RefreshCw } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "@/api/client";
 import { teacherPayrollApi, type TeacherPayroll, type TeacherPayrollStatus } from "@/api/teacherPayrollApi";
+import { teacherPayrollStatementsApi, type TeacherPayrollStatement } from "@/api/teacherPayrollStatementsApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import { formatPayrollStatementMoney } from "@/lib/payrollStatementCurrency";
 
 const formatAmount = (value: number, currency: string, locale: string) =>
-  `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)} ${currency}`;
+  formatPayrollStatementMoney(value, currency, locale);
 
 const formatDate = (value: string | undefined, locale: string) => {
   if (!value) return null;
@@ -52,6 +54,13 @@ const TeacherPayroll = () => {
     staleTime: 30_000,
     retry: 1,
   });
+  const statements = useQuery({
+    queryKey: ["teacher-payroll-statements"],
+    queryFn: teacherPayrollStatementsApi.list,
+    enabled: !payrollId,
+    staleTime: 30_000,
+    retry: 1,
+  });
 
   const statusBadge = (value: TeacherPayrollStatus) => (
     <Badge variant={value === "paid" ? "default" : "secondary"}>
@@ -66,6 +75,7 @@ const TeacherPayroll = () => {
       <span dir="ltr" className="whitespace-nowrap">{formatAmount(amount, currency, locale)}</span>
     </div>
   );
+  const statementStatus = (value: TeacherPayrollStatement["status"]) => value === "paid" ? pick("مدفوع", "Paid") : value === "cancelled" ? pick("ملغي", "Cancelled") : pick("مرسل", "Sent");
 
   return (
     <DashboardLayout>
@@ -121,6 +131,10 @@ const TeacherPayroll = () => {
           </div>
         ) : (
           <div className="space-y-5">
+            <section className="space-y-3" aria-labelledby="teacher-statements-title">
+              <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="teacher-statements-title" className="text-xl font-bold">{pick("كشوف المستحقات", "Payroll statements")}</h2></div>
+              {statements.isLoading ? <Skeleton className="h-28 w-full" /> : statements.isError ? <Card><CardContent className="space-y-2 p-6 text-center"><p className="text-sm text-destructive">{pick("تعذر تحميل كشوف المستحقات.", "Unable to load payroll statements.")}</p><Button variant="outline" onClick={() => void statements.refetch()}><RefreshCw className="me-2 h-4 w-4" />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card> : !statements.data?.length ? <Card><CardContent className="p-7 text-center text-sm text-muted-foreground">{pick("لا توجد كشوف مستحقات مرسلة حتى الآن.", "No sent payroll statements yet.")}</CardContent></Card> : <div className="grid gap-3 md:grid-cols-2">{statements.data.map((item) => <Card key={item.id}><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold">{item.curriculum.name || "—"}</p><p className="text-xs text-muted-foreground">{formatDate(item.period.from, locale) || "—"} — {formatDate(item.period.to, locale) || "—"}</p></div><Badge variant={item.status === "paid" ? "default" : "secondary"}>{statementStatus(item.status)}</Badge></div><p className="text-lg font-bold" dir="ltr">{formatAmount(item.finalAmount, item.currency, locale)}</p><p className="text-xs text-muted-foreground">{pick("تاريخ الإرسال", "Sent")}: {formatDate(item.sentAt || undefined, locale) || "—"}{item.payment?.paidAt ? ` · ${pick("الدفع", "Paid")}: ${formatDate(item.payment.paidAt, locale) || "—"}` : ""}</p><Button asChild variant="outline" size="sm"><Link to={`/portal/teacher/payroll-statements/${encodeURIComponent(item.id)}`}>{pick("عرض الكشف", "View statement")}</Link></Button></CardContent></Card>)}</div>}
+            </section>
             <div className="flex flex-wrap gap-2" role="group" aria-label={pick("تصفية الكشوف", "Filter payrolls")}>
               {([undefined, "draft", "paid"] as const).map((value) => <Button key={value || "all"} size="sm" variant={status === value ? "default" : "outline"} onClick={() => setSearchParams(value ? { status: value } : {})}>
                 {value === "draft" ? pick("قيد التجهيز", "In preparation") : value === "paid" ? pick("مدفوع", "Paid") : pick("الكل", "All")}

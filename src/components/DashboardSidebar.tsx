@@ -163,7 +163,7 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/courses",
     },
     {
-      label: "الكتالوج التعليمي",
+      label: "إدارة المحتوى الدراسي",
       labelEn: "Catalog",
       icon: BookOpen,
       path: "/admin/catalog/curriculums",
@@ -261,24 +261,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/teacher",
     },
     {
-      label: "طلباتي",
-      labelEn: "My requests",
-      icon: ClipboardList,
-      path: "/portal/teacher/requests",
-    },
-    {
-      label: "الرسائل",
-      labelEn: "Messages",
-      icon: MessageSquare,
-      path: "/portal/teacher/messages",
-    },
-    {
-      label: "مستحقاتي",
-      labelEn: "My earnings",
-      icon: Banknote,
-      path: "/portal/teacher/payroll",
-    },
-    {
       label: "الفصول",
       labelEn: "Classrooms",
       icon: School,
@@ -297,6 +279,24 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/teacher/schedule",
     },
     {
+      label: "طلباتي",
+      labelEn: "My requests",
+      icon: ClipboardList,
+      path: "/portal/teacher/requests",
+    },
+    {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/portal/teacher/messages",
+    },
+    {
+      label: "المستحقات",
+      labelEn: "Earnings",
+      icon: Banknote,
+      path: "/portal/teacher/payroll",
+    },
+    {
       label: "إعدادات الحساب",
       labelEn: "Account settings",
       icon: Settings,
@@ -311,34 +311,16 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student",
     },
     {
-      label: "الإشعارات",
-      labelEn: "Notifications",
-      icon: Bell,
-      path: "/portal/student/notifications",
+      label: "دوراتي",
+      labelEn: "My courses",
+      icon: BookOpen,
+      path: "/portal/student/courses",
     },
     {
-      label: "إعدادات الإشعارات",
-      labelEn: "Notification settings",
-      icon: Settings,
-      path: "/portal/student/settings/notifications",
-    },
-    {
-      label: "إعدادات الحساب",
-      labelEn: "Account settings",
-      icon: Settings,
-      path: "/portal/student/settings",
-    },
-    {
-      label: "الرسائل",
-      labelEn: "Messages",
-      icon: MessageSquare,
-      path: "/portal/student/messages",
-    },
-    {
-      label: "الاشتراكات",
-      labelEn: "Subscriptions",
-      icon: CreditCard,
-      path: "/portal/student/subscriptions",
+      label: "تسجيلات الحصص",
+      labelEn: "Lesson recordings",
+      icon: Video,
+      path: "/portal/student/sessions",
     },
     {
       label: "المواد",
@@ -347,40 +329,10 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/subjects",
     },
     {
-      label: "إضافة مادة",
-      labelEn: "Add subject",
-      icon: UserPlus,
-      path: "/portal/student/subjects/add",
-    },
-    {
-      label: "طلبات المواد",
-      labelEn: "Subject requests",
-      icon: BookPlus,
-      path: "/portal/student/subject-requests",
-    },
-    {
-      label: "طلبات التغيير",
-      labelEn: "Change requests",
-      icon: Repeat2,
-      path: "/portal/student/change-requests",
-    },
-    {
-      label: "دوراتي",
-      labelEn: "My courses",
-      icon: BookOpen,
-      path: "/portal/student/courses",
-    },
-    {
-      label: "جدول الحصص",
-      labelEn: "Lesson schedule",
+      label: "الجدول الدراسي",
+      labelEn: "Study schedule",
       icon: Calendar,
       path: "/portal/student/schedule",
-    },
-    {
-      label: "تسجيلات الحصص",
-      labelEn: "Lesson recordings",
-      icon: Video,
-      path: "/portal/student/sessions",
     },
     {
       label: "الواجبات",
@@ -399,6 +351,54 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Certificates",
       icon: Award,
       path: "/portal/student/certificates",
+    },
+    {
+      label: "الاشتراكات",
+      labelEn: "Subscriptions",
+      icon: CreditCard,
+      path: "/portal/student/subscriptions",
+    },
+    {
+      label: "إضافة مادة",
+      labelEn: "Add subject",
+      icon: UserPlus,
+      path: "/portal/student/subjects/add",
+    },
+    {
+      label: "طلبات المواد",
+      labelEn: "Subject requests",
+      icon: BookPlus,
+      path: "/portal/student/subject-requests",
+    },
+    {
+      label: "طلبات تغيير المعلم",
+      labelEn: "Teacher change requests",
+      icon: Repeat2,
+      path: "/portal/student/change-requests",
+    },
+    {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/portal/student/messages",
+    },
+    {
+      label: "الإشعارات",
+      labelEn: "Notifications",
+      icon: Bell,
+      path: "/portal/student/notifications",
+    },
+    {
+      label: "إعدادات الإشعارات",
+      labelEn: "Notification settings",
+      icon: Settings,
+      path: "/portal/student/settings/notifications",
+    },
+    {
+      label: "إعدادات الحساب",
+      labelEn: "Account settings",
+      icon: Settings,
+      path: "/portal/student/settings",
     },
   ],
   supervisor: [
@@ -429,6 +429,45 @@ export const roleNavItems: Record<string, NavItem[]> = {
   ],
 };
 
+const adminNavOrder = [
+  "/admin",
+  "/admin/messages",
+  "/admin?tab=teacher-applications",
+  "/admin/classroom-change-requests",
+  "/admin/subject-requests",
+  "/admin/students",
+  "/admin/parents",
+  "/admin?tab=all-users",
+  "/admin/teachers",
+  "/admin?tab=supervisors",
+  "/admin?tab=admins",
+  "/admin/classrooms",
+  "/admin/courses",
+  "/admin/catalog/curriculums",
+  "/admin/certificates",
+  "/admin/subscriptions",
+  "/admin/payments",
+  "/admin/payroll",
+  "/admin?tab=zoom-accounts",
+  "/admin?tab=zoom-grades",
+  "/admin/classroom-zoom",
+  "/admin/classroom-sessions",
+  "/admin/classroom-recordings",
+  "/admin/notifications",
+  "/admin/notifications/history",
+  "/admin?tab=testimonials",
+  "/admin?tab=testimonial-ratings",
+  "/admin?tab=success-stories",
+  "/admin?tab=legal-pages",
+  "/admin/contact-settings",
+  "/admin/client-errors",
+  "/admin/settings",
+];
+
+roleNavItems.admin = adminNavOrder
+  .map((path) => roleNavItems.admin.find((item) => item.path === path))
+  .filter((item): item is NavItem => Boolean(item));
+
 const roleLabels: Record<string, string> = {
   admin: "مدير النظام",
   teacher: "معلم",
@@ -440,7 +479,19 @@ const roleLabels: Record<string, string> = {
 // eslint-disable-next-line react-refresh/only-export-components
 export const isItemActive = (itemPath: string, pathname: string, search: string) => {
   if (itemPath.includes("?")) return itemPath === `${pathname}${search}`;
-  if (itemPath === "/admin/classrooms") {
+  const nestedParentPaths = [
+    "/admin/classrooms",
+    "/admin/payroll",
+    "/admin/subscriptions",
+    "/admin/payments",
+    "/admin/certificates",
+    "/portal/teacher/classrooms",
+    "/portal/teacher/courses",
+    "/portal/teacher/payroll",
+    "/portal/student/courses",
+    "/portal/student/subscriptions",
+  ];
+  if (nestedParentPaths.includes(itemPath)) {
     return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
   }
   return itemPath === pathname && (!search || pathname !== "/admin");
@@ -448,19 +499,72 @@ export const isItemActive = (itemPath: string, pathname: string, search: string)
 
 const adminNavGroup = (path: string) => {
   if (path === "/admin") return { ar: "نظرة عامة", en: "Overview" };
-  if (["/admin/messages", "/admin/payroll"].includes(path))
-    return { ar: "التشغيل اليومي", en: "Daily operations" };
-  if (["/admin/subscriptions", "/admin/payments", "/admin/certificates", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
-    return { ar: "المالية", en: "Finance" };
+  if (["/admin/messages", "/admin/classroom-change-requests", "/admin/subject-requests"].includes(path) || path.includes("teacher-applications"))
+    return { ar: "التشغيل والطلبات", en: "Operations & requests" };
   if (["all-users", "/admin/teachers", "/admin/students", "/admin/parents", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
     return { ar: "المستخدمون", en: "Users" };
-  if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/classroom-change-requests"].some((part) => path.startsWith(part)))
+  if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests"].some((part) => path.startsWith(part)))
     return { ar: "التعليم", en: "Learning" };
+  if (["/admin/subscriptions", "/admin/payments", "/admin/payroll", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
+    return { ar: "المالية", en: "Finance" };
   if (["zoom", "classroom-sessions", "classroom-recordings"].some((part) => path.includes(part)))
     return { ar: "الفصول المباشرة", en: "Live classrooms" };
   if (["notifications", "testimonials", "testimonial-ratings", "success-stories"].some((part) => path.includes(part)))
     return { ar: "المحتوى والتواصل", en: "Content & communication" };
   return { ar: "النظام", en: "System" };
+};
+
+const roleNavGroup = (role: string, path: string) => {
+  if (role === "admin") return adminNavGroup(path);
+
+  if (role === "teacher") {
+    if (path === "/portal/teacher") return { ar: "الرئيسية", en: "Overview" };
+    if (["/portal/teacher/classrooms", "/portal/teacher/courses", "/portal/teacher/schedule"].includes(path)) {
+      return { ar: "التدريس", en: "Teaching" };
+    }
+    if (path === "/portal/teacher/requests") return { ar: "الطلبات", en: "Requests" };
+    if (path === "/portal/teacher/messages") return { ar: "التواصل", en: "Communication" };
+    if (path === "/portal/teacher/payroll") return { ar: "المستحقات", en: "Earnings" };
+    return { ar: "الحساب", en: "Account" };
+  }
+
+  if (role === "student") {
+    if (path === "/portal/student") return { ar: "الرئيسية", en: "Overview" };
+    if ([
+      "/portal/student/courses",
+      "/portal/student/subjects",
+      "/portal/student/schedule",
+      "/portal/student/sessions",
+      "/portal/student/assignments",
+      "/portal/student/evaluations",
+      "/portal/student/certificates",
+    ].includes(path)) {
+      return { ar: "الدراسة", en: "Learning" };
+    }
+    if ([
+      "/portal/student/subscriptions",
+      "/portal/student/subjects/add",
+      "/portal/student/subject-requests",
+      "/portal/student/change-requests",
+    ].includes(path)) {
+      return { ar: "الاشتراكات والطلبات", en: "Subscriptions & requests" };
+    }
+    if ([
+      "/portal/student/messages",
+      "/portal/student/notifications",
+      "/portal/student/settings/notifications",
+    ].includes(path)) {
+      return { ar: "التواصل", en: "Communication" };
+    }
+    return { ar: "الحساب", en: "Account" };
+  }
+
+  if (role === "supervisor") {
+    if (path === "/portal/supervisor/settings") return { ar: "الحساب", en: "Account" };
+    return { ar: "الفصول والمواعيد", en: "Classrooms & schedule" };
+  }
+
+  return { ar: "القائمة", en: "Navigation" };
 };
 
 const SidebarContent = ({
@@ -682,9 +786,9 @@ const SidebarContent = ({
             location.pathname,
             location.search,
           );
-          const group = role === "admin" ? adminNavGroup(item.path) : null;
-          const previousGroup = role === "admin" && index > 0
-            ? adminNavGroup(items[index - 1].path)
+          const group = roleNavGroup(role, item.path);
+          const previousGroup = index > 0
+            ? roleNavGroup(role, items[index - 1].path)
             : null;
           const startsGroup = group && group.en !== previousGroup?.en;
           return (

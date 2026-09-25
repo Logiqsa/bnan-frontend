@@ -55,6 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import SearchableTeacherSelect from "./SearchableTeacherSelect";
+import AdminSearchableSelect from "@/components/admin/AdminSearchableSelect";
 import { toast } from "sonner";
 import {
   Tooltip,
@@ -499,30 +500,21 @@ export default function CourseForm({
                   </p>
                 )}
               </label>
-              <label className="space-y-2">
-                <span>المشرف (اختياري)</span>
-                <Select
-                  value={supervisor || "none"}
-                  onValueChange={(x) => setSupervisor(x === "none" ? "" : x)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون مشرف</SelectItem>
-                    {allowedSupervisors.map((x) => (
-                      <SelectItem key={x.id} value={x.id}>
-                        {x.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div>
+                <AdminSearchableSelect
+                  label="المشرف (اختياري)"
+                  value={supervisor}
+                  placeholder="اختر المشرف"
+                  allLabel="بدون مشرف"
+                  options={allowedSupervisors.map((x) => ({ value: x.id, label: x.name }))}
+                  onChange={(value) => setSupervisor(value || "")}
+                />
                 {curriculum && allowedSupervisors.length === 0 && (
                   <p className="text-xs text-muted-foreground">
                     لا يوجد مشرفون مرتبطون بهذا المنهج.
                   </p>
                 )}
-              </label>
+              </div>
             </div>
             {grades.length > 0 && (
               <label className="flex items-center justify-between gap-4 rounded-xl border bg-muted/20 px-4 py-3">

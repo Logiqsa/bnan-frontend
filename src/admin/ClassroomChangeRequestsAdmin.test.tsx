@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import ClassroomChangeRequestsAdmin from "./ClassroomChangeRequestsAdmin";
 
 Element.prototype.scrollIntoView = vi.fn();
+Object.assign(globalThis, { ResizeObserver: class { observe() {} unobserve() {} disconnect() {} } });
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(), get: vi.fn(), approve: vi.fn(), reject: vi.fn(), listAll: vi.fn(),

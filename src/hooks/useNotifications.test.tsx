@@ -123,6 +123,20 @@ describe("useNotifications", () => {
     }, "teacher")).toBe("/portal/teacher/messages?roomId=room-1");
   });
 
+  it("opens the correct Teacher Payroll Statement from payroll notifications", () => {
+    expect(notificationLink({
+      ...stored,
+      type: "salary",
+      key: "TEACHER_PAYROLL_STATEMENT_SENT",
+      navigation: {
+        target: "teacher_payroll_statement",
+        params: { statementId: "statement/with spaces" },
+      },
+    }, "teacher")).toBe(
+      "/portal/teacher/payroll-statements/statement%2Fwith%20spaces",
+    );
+  });
+
   it.each(["session_details", "session_summary"])(
     "deep-links teacher %s notifications when classroom and session IDs are available",
     (target) => {

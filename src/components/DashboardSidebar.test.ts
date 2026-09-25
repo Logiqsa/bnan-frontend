@@ -28,7 +28,17 @@ describe("Admin sidebar classroom navigation", () => {
       "/admin/notifications",
       "/admin/catalog/curriculums",
     ]));
+    expect(roleNavItems.admin).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "إدارة المحتوى الدراسي", path: "/admin/catalog/curriculums" }),
+    ]));
     expect(adminPaths()).not.toContain("/admin/assignments");
     expect(adminPaths()).not.toContain("/admin/gulf-subject-requests");
+  });
+
+  it("highlights parent links for nested Teacher and Student pages", () => {
+    expect(isItemActive("/portal/teacher/classrooms", "/portal/teacher/classrooms/room-1", "")).toBe(true);
+    expect(isItemActive("/portal/teacher/courses", "/portal/teacher/courses/course-1/groups/group-1", "")).toBe(true);
+    expect(isItemActive("/portal/student/courses", "/portal/student/courses/enrollment-1", "")).toBe(true);
+    expect(isItemActive("/portal/student/subscriptions", "/portal/student/subscriptions/subscription-1/renew", "")).toBe(true);
   });
 });

@@ -175,7 +175,7 @@ function CatalogShell({
     <DashboardLayout>
       <main className="mx-auto max-w-7xl space-y-5" dir="rtl">
         <div>
-          <h1 className="text-3xl font-bold">إدارة الكتالوج</h1>
+          <h1 className="text-3xl font-bold">إدارة المحتوى الدراسي</h1>
           <p className="mt-1 text-muted-foreground">
             إدارة المناهج والصفوف والمواد والباقات من العقود الحالية للنظام.
           </p>

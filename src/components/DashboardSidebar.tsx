@@ -612,10 +612,11 @@ const SidebarContent = ({
   const [switchingName, setSwitchingName] = useState("");
   const chooseAccount = (account: (typeof switchableAccounts)[number]) => {
     setSwitchingName(account.user.fullName);
-    window.setTimeout(() => {
-      switchAccount(account.user.id);
-      navigate(homeFor(account.user.role));
-      onNavigate?.();
+    window.setTimeout(async () => {
+      if (await switchAccount(account.user.id)) {
+        navigate(homeFor(account.user.role));
+        onNavigate?.();
+      }
       setSwitchingName("");
     }, 700);
   };

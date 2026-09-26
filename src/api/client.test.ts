@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, API_BASE_URL, apiRequest, tokenStore } from "./client";
+import { ApiError, API_BASE_URL, apiRequest, beginAuthSessionTransition, tokenStore } from "./client";
 
 describe("apiRequest error details", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -120,5 +120,44 @@ describe("binary API responses", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(3, `${API_BASE_URL}/certificates/c1/file?type=pdf`, expect.objectContaining({
       headers: expect.objectContaining({ Authorization: "Bearer new-token" }),
     }));
+  });
+});
+
+describe("account-session request isolation", () => {
+  afterEach(() => {
+    tokenStore.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects a response that completes after the active account changes", async () => {
+    tokenStore.set("account-a-token", "account-a-refresh");
+    let resolveRequest!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { resolveRequest = resolve; })));
+
+    const request = apiRequest<{ owner: string }>("/users/me");
+    beginAuthSessionTransition();
+    tokenStore.set("account-b-token", "account-b-refresh");
+    resolveRequest(new Response(JSON.stringify({ owner: "account-a" }), { status: 200 }));
+
+    await expect(request).rejects.toMatchObject({ code: "REQUEST_SUPERSEDED" });
+  });
+
+  it("does not let an old refresh request overwrite the new account tokens", async () => {
+    tokenStore.set("account-a-token", "account-a-refresh");
+    let resolveRefresh!: (response: Response) => void;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ code: "NOT_LOGGED_IN" }), { status: 401 }))
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveRefresh = resolve; }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const request = apiRequest("/users/me");
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    beginAuthSessionTransition();
+    tokenStore.set("account-b-token", "account-b-refresh");
+    resolveRefresh(new Response(JSON.stringify({ token: "stale-a-token", refreshToken: "stale-a-refresh" }), { status: 200 }));
+
+    await expect(request).rejects.toMatchObject({ code: "REQUEST_SUPERSEDED" });
+    expect(tokenStore.get()).toBe("account-b-token");
+    expect(tokenStore.getRefresh()).toBe("account-b-refresh");
   });
 });

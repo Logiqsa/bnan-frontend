@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Banknote, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowRight, Banknote, RefreshCw } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "@/api/client";
 import { teacherPayrollApi, type TeacherPayroll, type TeacherPayrollStatus } from "@/api/teacherPayrollApi";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import PayrollReceiptButton from "@/components/PayrollReceiptButton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { formatPayrollStatementMoney } from "@/lib/payrollStatementCurrency";
@@ -36,17 +37,10 @@ const TeacherPayroll = () => {
   const { pick, language } = useLanguage();
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
   const { payrollId } = useParams<{ payrollId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const statusValue = searchParams.get("status");
   const status: TeacherPayrollStatus | undefined = statusValue === "draft" || statusValue === "paid" ? statusValue : undefined;
   const backUrl = `/portal/teacher/payroll${status ? `?status=${status}` : ""}`;
-  const list = useQuery({
-    queryKey: ["teacher-payrolls", status || "all"],
-    queryFn: () => teacherPayrollApi.list(status),
-    enabled: !payrollId,
-    staleTime: 30_000,
-    retry: 1,
-  });
   const detail = useQuery({
     queryKey: ["teacher-payroll", payrollId],
     queryFn: () => teacherPayrollApi.get(payrollId!),
@@ -126,7 +120,7 @@ const TeacherPayroll = () => {
               <p>{pick("وسيلة التحويل", "Method")}: {detail.data.payment.method}</p>
               {detail.data.payment.paidAt && <p>{pick("تاريخ الدفع", "Payment date")}: {formatDate(detail.data.payment.paidAt, locale)}</p>}
               {detail.data.payment.transactionReference && <p className="break-all">{pick("رقم العملية", "Transaction reference")}: {detail.data.payment.transactionReference}</p>}
-              {receiptHref(detail.data.payment.receiptUrl) && <Button asChild variant="outline" size="sm"><a href={receiptHref(detail.data.payment.receiptUrl)!} target="_blank" rel="noreferrer"><ExternalLink className="me-2 h-4 w-4" />{pick("عرض إيصال الدفع", "View payment receipt")}</a></Button>}
+              {receiptHref(detail.data.payment.receiptUrl) && <PayrollReceiptButton receiptUrl={receiptHref(detail.data.payment.receiptUrl)!} label={pick("عرض إيصال الدفع", "View payment receipt")} />}
             </CardContent></Card>}
           </div>
         ) : (
@@ -135,29 +129,6 @@ const TeacherPayroll = () => {
               <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="teacher-statements-title" className="text-xl font-bold">{pick("كشوف المستحقات", "Payroll statements")}</h2></div>
               {statements.isLoading ? <Skeleton className="h-28 w-full" /> : statements.isError ? <Card><CardContent className="space-y-2 p-6 text-center"><p className="text-sm text-destructive">{pick("تعذر تحميل كشوف المستحقات.", "Unable to load payroll statements.")}</p><Button variant="outline" onClick={() => void statements.refetch()}><RefreshCw className="me-2 h-4 w-4" />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card> : !statements.data?.length ? <Card><CardContent className="p-7 text-center text-sm text-muted-foreground">{pick("لا توجد كشوف مستحقات مرسلة حتى الآن.", "No sent payroll statements yet.")}</CardContent></Card> : <div className="grid gap-3 md:grid-cols-2">{statements.data.map((item) => <Card key={item.id}><CardContent className="space-y-3 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold">{item.curriculum.name || "—"}</p><p className="text-xs text-muted-foreground">{formatDate(item.period.from, locale) || "—"} — {formatDate(item.period.to, locale) || "—"}</p></div><Badge variant={item.status === "paid" ? "default" : "secondary"}>{statementStatus(item.status)}</Badge></div><p className="text-lg font-bold" dir="ltr">{formatAmount(item.finalAmount, item.currency, locale)}</p><p className="text-xs text-muted-foreground">{pick("تاريخ الإرسال", "Sent")}: {formatDate(item.sentAt || undefined, locale) || "—"}{item.payment?.paidAt ? ` · ${pick("الدفع", "Paid")}: ${formatDate(item.payment.paidAt, locale) || "—"}` : ""}</p><Button asChild variant="outline" size="sm"><Link to={`/portal/teacher/payroll-statements/${encodeURIComponent(item.id)}`}>{pick("عرض الكشف", "View statement")}</Link></Button></CardContent></Card>)}</div>}
             </section>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={pick("تصفية الكشوف", "Filter payrolls")}>
-              {([undefined, "draft", "paid"] as const).map((value) => <Button key={value || "all"} size="sm" variant={status === value ? "default" : "outline"} onClick={() => setSearchParams(value ? { status: value } : {})}>
-                {value === "draft" ? pick("قيد التجهيز", "In preparation") : value === "paid" ? pick("مدفوع", "Paid") : pick("الكل", "All")}
-              </Button>)}
-            </div>
-            {list.isLoading ? <div className="space-y-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>
-            : list.isError ? <Card><CardContent className="space-y-3 p-6 text-center"><p className="text-sm text-destructive">{pick("تعذر تحميل كشوف الرواتب.", "Unable to load payroll records.")}</p><Button variant="outline" onClick={() => void list.refetch()}><RefreshCw className="me-2 h-4 w-4" />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card>
-            : <>
-              {!!list.data?.summary.length && <div className="grid gap-4 md:grid-cols-2">{list.data.summary.map((item) => <Card key={item.currency}><CardHeader><CardTitle dir="ltr" className="text-lg">{item.currency}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between gap-2"><span>{pick("عدد الكشوف", "Payroll records")}</span><span>{item.payrollsCount}</span></div>
-                {moneyRow(pick("قيد التجهيز", "In preparation"), item.draftAmount, item.currency)}
-                {moneyRow(pick("مدفوع", "Paid"), item.paidAmount, item.currency)}
-                {moneyRow(pick("الإجمالي", "Total"), item.totalAmount, item.currency, true)}
-              </CardContent></Card>)}</div>}
-              {!list.data?.payrolls.length ? <Card><CardContent className="space-y-2 p-8 text-center"><p className="font-semibold">{pick("لا توجد كشوف رواتب متاحة حاليًا.", "No payroll records are available right now.")}</p><p className="text-sm text-muted-foreground">{pick("ستظهر هنا بعد إعدادها من الإدارة.", "They will appear here after administration prepares them.")}</p></CardContent></Card>
-              : <div className="grid gap-4 md:grid-cols-2">{list.data.payrolls.map((payroll) => <Card key={payroll.id} className="min-w-0"><CardContent className="space-y-3 p-5">
-                <div className="flex flex-wrap items-start justify-between gap-2"><p className="break-words font-semibold">{periodLabel(payroll)}</p>{statusBadge(payroll.status)}</div>
-                <p className="text-lg font-bold" dir="ltr">{formatAmount(payroll.totals.total, payroll.currency, locale)}</p>
-                <p className="text-xs text-muted-foreground">{pick("تاريخ إعداد الكشف", "Created")}: {formatDate(payroll.createdAt, locale) || "—"}</p>
-                {payroll.status === "paid" && payroll.payment?.paidAt && <p className="text-xs text-muted-foreground">{pick("تاريخ الدفع", "Paid on")}: {formatDate(payroll.payment.paidAt, locale)}</p>}
-                <Button asChild variant="outline" size="sm"><Link to={`/portal/teacher/payroll/${encodeURIComponent(payroll.id)}${status ? `?status=${status}` : ""}`}>{pick("عرض التفاصيل", "View details")}</Link></Button>
-              </CardContent></Card>)}</div>}
-            </>}
           </div>
         )}
       </div>

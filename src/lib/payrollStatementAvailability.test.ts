@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TeacherPayrollStatement } from "@/api/teacherPayrollStatementsApi";
-import { findTeacherStatementForPeriod } from "./payrollStatementAvailability";
+import { findOverlappingTeacherStatement } from "./payrollStatementAvailability";
 
 const statement = (
   id: string,
@@ -19,38 +19,54 @@ const statement = (
   ...changes,
 });
 
-describe("findTeacherStatementForPeriod", () => {
+describe("findOverlappingTeacherStatement", () => {
   const from = "2026-09-01";
-  const to = "2026-09-26";
+  const to = "2026-09-15";
 
   it("keeps a teacher without a statement available", () => {
-    expect(findTeacherStatementForPeriod([], "teacher-1", from, to)).toBeUndefined();
+    expect(findOverlappingTeacherStatement([], "teacher-1", from, to)).toBeUndefined();
   });
 
   it.each(["draft", "sent", "paid"] as const)(
     "detects an existing %s statement for the same teacher and period",
     (status) => {
-      const existing = statement(`statement-${status}`, "teacher-1", status);
-      expect(findTeacherStatementForPeriod([existing], "teacher-1", from, to)).toBe(existing);
+      const existing = statement(`statement-${status}`, "teacher-1", status, {
+        period: { from: "2026-09-01T00:00:00.000Z", to: "2026-09-15T23:59:59.999Z" },
+      });
+      expect(findOverlappingTeacherStatement([existing], "teacher-1", from, to)).toBe(existing);
     },
   );
 
-  it("keeps a teacher with a statement in another period available", () => {
-    const otherPeriod = statement("statement-1", "teacher-1", "sent", {
-      period: { from: "2026-08-01T00:00:00.000Z", to: "2026-08-31T23:59:59.999Z" },
+  it.each([
+    ["same start with a later end", "2026-09-01", "2026-09-16"],
+    ["starts inside the existing period", "2026-09-10", "2026-09-20"],
+    ["starts on the existing end boundary", "2026-09-15", "2026-09-20"],
+  ])("blocks a period that %s", (_label, requestedFrom, requestedTo) => {
+    const existing = statement("statement-1", "teacher-1", "sent", {
+      period: { from: "2026-09-01T00:00:00.000Z", to: "2026-09-15T23:59:59.999Z" },
     });
-    expect(findTeacherStatementForPeriod([otherPeriod], "teacher-1", from, to)).toBeUndefined();
+    expect(findOverlappingTeacherStatement([existing], "teacher-1", requestedFrom, requestedTo)).toBe(existing);
+  });
+
+  it.each([
+    ["the following day", "2026-09-16", "2026-09-30"],
+    ["the preceding month", "2026-08-01", "2026-08-31"],
+  ])("allows a non-overlapping period beginning in %s", (_label, requestedFrom, requestedTo) => {
+    const existing = statement("statement-1", "teacher-1", "sent", {
+      period: { from: "2026-09-01T00:00:00.000Z", to: "2026-09-15T23:59:59.999Z" },
+    });
+    expect(findOverlappingTeacherStatement([existing], "teacher-1", requestedFrom, requestedTo)).toBeUndefined();
   });
 
   it("detects the duplicate even when its currency is different", () => {
     const differentCurrency = statement("statement-1", "teacher-1", "sent", { currency: "SAR" });
-    expect(findTeacherStatementForPeriod([differentCurrency], "teacher-1", from, to)).toBe(differentCurrency);
+    expect(findOverlappingTeacherStatement([differentCurrency], "teacher-1", from, to)).toBe(differentCurrency);
   });
 
   it("detects the duplicate even when its curriculum is different", () => {
     const differentCurriculum = statement("statement-1", "teacher-1", "sent", {
       curriculum: { id: "curriculum-2", name: "Other curriculum" },
     });
-    expect(findTeacherStatementForPeriod([differentCurriculum], "teacher-1", from, to)).toBe(differentCurriculum);
+    expect(findOverlappingTeacherStatement([differentCurriculum], "teacher-1", from, to)).toBe(differentCurriculum);
   });
 });

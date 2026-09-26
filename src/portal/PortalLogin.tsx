@@ -159,9 +159,9 @@ export default function PortalLogin() {
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      switchAccount(account.user.id);
-                      navigate(homeFor(account.user.role), { replace: true });
+                    onClick={async () => {
+                      if (await switchAccount(account.user.id))
+                        navigate(homeFor(account.user.role), { replace: true });
                     }}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-2.5 text-start"
                   >

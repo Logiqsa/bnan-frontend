@@ -38,6 +38,7 @@ const errors: Record<string,string> = {
   COURSE_STAFF_NOT_ACTIVE: "يجب أن يكون المعلم والمشرف نشطين.", COURSE_SCHEDULE_ACCESS_DENIED: "لا تملك صلاحية تعديل هذا الجدول.",
   COURSE_CLASSROOM_NOT_FOUND: "فصل الدورة غير متاح.", DUPLICATED_SCHEDULE_SLOT: "يوجد موعد مكرر.", END_TIME_MUST_BE_AFTER_START: "وقت النهاية يجب أن يكون بعد البداية.",
   PAYROLL_STATEMENT_EXISTS: "يوجد بالفعل كشف مستحقات لهذا المعلم خلال هذه الفترة.",
+  PAYROLL_STATEMENT_PERIOD_OVERLAP: "الفترة المحددة متداخلة مع كشف مستحقات موجود لهذا المعلم.",
   PAYROLL_STATEMENT_PAID: "لا يمكن حذف كشف تم صرفه بالفعل.",
   PAYROLL_STATEMENT_NOT_EDITABLE: "لا يمكن تعديل أو إعادة إرسال كشف تم إرساله أو صرفه بالفعل.",
 };

@@ -59,39 +59,49 @@ export const tokenStore = {
 };
 
 // يمنع إطلاق أكثر من محاولة تجديد متزامنة عندما تفشل عدة طلبات بنفس اللحظة بسبب انتهاء صلاحية التوكن.
-export type RefreshResult = "refreshed" | "rejected" | "unavailable";
-let refreshPromise: Promise<RefreshResult> | null = null;
+export type RefreshResult = "refreshed" | "rejected" | "unavailable" | "superseded";
+let authSessionVersion = 0;
+let refreshRequest: { version: number; promise: Promise<RefreshResult> } | null = null;
+
+export const beginAuthSessionTransition = () => { authSessionVersion += 1; };
 
 export async function refreshAccessToken(): Promise<RefreshResult> {
   const refreshToken = tokenStore.getRefresh();
   if (!refreshToken) return "rejected";
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", lang: apiLanguage() },
-          body: JSON.stringify({ refreshToken }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          return [400, 401, 403].includes(response.status) ? "rejected" : "unavailable";
+  const version = authSessionVersion;
+  if (!refreshRequest || refreshRequest.version !== version) {
+    const request = {
+      version,
+      promise: (async () => {
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", lang: apiLanguage() },
+            body: JSON.stringify({ refreshToken }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            return [400, 401, 403].includes(response.status) ? "rejected" : "unavailable";
+          }
+          if (!payload.token || !payload.refreshToken) return "rejected";
+          if (authSessionVersion !== version) return "superseded";
+          tokenStore.set(payload.token, payload.refreshToken || refreshToken, tokenStore.isPersistent());
+          return "refreshed";
+        } catch {
+          return "unavailable";
         }
-        if (!payload.token || !payload.refreshToken) return "rejected";
-        tokenStore.set(payload.token, payload.refreshToken || refreshToken, tokenStore.isPersistent());
-        return "refreshed";
-      } catch {
-        return "unavailable";
-      }
-    })();
-    refreshPromise.finally(() => { refreshPromise = null; });
+      })(),
+    };
+    refreshRequest = request;
+    request.promise.finally(() => { if (refreshRequest === request) refreshRequest = null; });
   }
-  return refreshPromise;
+  return refreshRequest.promise;
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}, _retried = false): Promise<T> {
   if (!API_BASE_URL) throw new ApiError(0, "API_NOT_CONFIGURED", "عنوان خدمة Bnan غير مضبوط.");
   const { responseType = "json", ...requestOptions } = options;
+  const requestSessionVersion = authSessionVersion;
   const token = tokenStore.get();
   const isForm = requestOptions.body instanceof FormData;
   let response: Response;
@@ -117,6 +127,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       { technicalReason, path },
     );
   }
+  if (requestSessionVersion !== authSessionVersion) {
+    throw new ApiError(0, "REQUEST_SUPERSEDED", "تم تجاهل استجابة تخص جلسة حساب سابقة.");
+  }
   let rawBody = "";
   let payload: Record<string, unknown> = {};
 
@@ -138,6 +151,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         if (refreshResult === "refreshed") return apiRequest<T>(path, options, true);
         if (refreshResult === "unavailable") {
           throw new ApiError(0, "REFRESH_UNAVAILABLE", "تعذر تجديد الجلسة مؤقتًا. تحقق من الإنترنت وحاول مجددًا.");
+        }
+        if (refreshResult === "superseded") {
+          throw new ApiError(0, "REQUEST_SUPERSEDED", "تم تجاهل استجابة تخص جلسة حساب سابقة.");
         }
       }
       if (token) {

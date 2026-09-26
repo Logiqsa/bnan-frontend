@@ -7,12 +7,22 @@ const dateOnly = (value: string) => {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 };
 
-export const findTeacherStatementForPeriod = (
+export const findOverlappingTeacherStatement = (
   statements: TeacherPayrollStatement[],
   teacherId: string,
   from: string,
   to: string,
-) => statements.find((statement) =>
-  statement.teacher.id === teacherId
-  && dateOnly(statement.period.from) === dateOnly(from)
-  && dateOnly(statement.period.to) === dateOnly(to));
+) => {
+  const requestedFrom = dateOnly(from);
+  const requestedTo = dateOnly(to);
+  if (!requestedFrom || !requestedTo) return undefined;
+
+  return statements.find((statement) => {
+    const existingFrom = dateOnly(statement.period.from);
+    const existingTo = dateOnly(statement.period.to);
+    return statement.teacher.id === teacherId
+      && Boolean(existingFrom && existingTo)
+      && existingFrom <= requestedTo
+      && existingTo >= requestedFrom;
+  });
+};

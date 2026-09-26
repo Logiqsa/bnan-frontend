@@ -1,15 +1,18 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Fragment, createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/api/authApi";
-import { tokenStore } from "@/api/client";
+import { beginAuthSessionTransition, tokenStore } from "@/api/client";
 import type { PortalUser } from "@/api/types";
 import { disconnectSocket } from "@/lib/socket";
+import { clearAccountScopedQueries } from "@/lib/accountQueryCache";
 import { forgetAccount, getRememberedAccounts, rememberAccount, type RememberedAccount } from "./accountSessions";
 
 const USER_KEY = "bnan_portal_user";
-interface Value { user: PortalUser | null; loading: boolean; rememberedAccounts: RememberedAccount[]; login: (email: string, password: string, remember?: boolean) => Promise<PortalUser>; switchAccount: (userId: string) => void; prepareAddAccount: () => void; forgetRememberedAccount: (userId: string) => void; updateCurrentUser: (patch: Partial<PortalUser>) => void; logout: () => void; }
+interface Value { user: PortalUser | null; loading: boolean; rememberedAccounts: RememberedAccount[]; login: (email: string, password: string, remember?: boolean) => Promise<PortalUser>; switchAccount: (userId: string) => Promise<boolean>; prepareAddAccount: () => void; forgetRememberedAccount: (userId: string) => void; updateCurrentUser: (patch: Partial<PortalUser>) => void; logout: () => void; }
 const Context = createContext<Value | null>(null);
 
 export function PortalAuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<PortalUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [rememberedAccounts, setRememberedAccounts] = useState<RememberedAccount[]>(getRememberedAccounts);
@@ -33,15 +36,24 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   useEffect(() => {
-    const onSessionExpired = () => { localStorage.removeItem(USER_KEY); sessionStorage.removeItem(USER_KEY); setUser(null); };
+    const onSessionExpired = () => {
+      beginAuthSessionTransition();
+      disconnectSocket();
+      localStorage.removeItem(USER_KEY); sessionStorage.removeItem(USER_KEY); setUser(null);
+      void clearAccountScopedQueries(queryClient);
+    };
     window.addEventListener("bnan:session-expired", onSessionExpired);
     return () => window.removeEventListener("bnan:session-expired", onSessionExpired);
-  }, []);
-  const saveAuthenticatedUser = (response: Awaited<ReturnType<typeof authApi.login>>, remember: boolean) => {
+  }, [queryClient]);
+  const saveAuthenticatedUser = async (response: Awaited<ReturnType<typeof authApi.login>>, remember: boolean) => {
     if (String(response.data.role) === "parent") throw Object.assign(new Error("حساب وليّ الأمر متاح عبر تطبيق Bnan."), { code: "PARENT_APP_ONLY" });
     if (!["teacher", "student", "supervisor", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
     const rawUser = response.data as PortalUser & { _id?: string };
     const authenticatedUser = { ...rawUser, id: rawUser.id || rawUser._id || "" };
+    setLoading(true);
+    beginAuthSessionTransition();
+    disconnectSocket();
+    await clearAccountScopedQueries(queryClient);
     tokenStore.set(response.token, response.refreshToken, remember);
     const userStorage = remember ? localStorage : sessionStorage;
     const otherStorage = remember ? sessionStorage : localStorage;
@@ -50,13 +62,14 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       rememberAccount({ user: authenticatedUser, token: response.token, refreshToken: response.refreshToken, lastUsedAt: new Date().toISOString() });
       setRememberedAccounts(getRememberedAccounts());
     }
+    setLoading(false);
     return authenticatedUser;
   };
   const login = async (email: string, password: string, remember = false) => {
     const response = await authApi.login(email, password);
     return saveAuthenticatedUser(response, remember);
   };
-  const switchAccount = (userId: string) => {
+  const switchAccount = async (userId: string) => {
     if (user) {
       const currentSaved = getRememberedAccounts().find((item) => item.user.id === user.id);
       const currentToken = tokenStore.get();
@@ -66,12 +79,16 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       }
     }
     const account = getRememberedAccounts().find((item) => item.user.id === userId);
-    if (!account) return;
+    if (!account) return false;
+    setLoading(true);
+    beginAuthSessionTransition();
     disconnectSocket();
+    await clearAccountScopedQueries(queryClient);
     tokenStore.set(account.token, account.refreshToken, true);
     localStorage.setItem(USER_KEY, JSON.stringify(account.user)); sessionStorage.removeItem(USER_KEY);
     rememberAccount({ ...account, lastUsedAt: new Date().toISOString() });
-    setRememberedAccounts(getRememberedAccounts()); setUser(account.user);
+    setRememberedAccounts(getRememberedAccounts()); setUser(account.user); setLoading(false);
+    return true;
   };
   const prepareAddAccount = () => {
     const token = tokenStore.get();
@@ -94,10 +111,14 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     setRememberedAccounts(getRememberedAccounts()); setUser(updated);
   };
   const logout = () => {
+    beginAuthSessionTransition();
     disconnectSocket();
     tokenStore.clear(); localStorage.removeItem(USER_KEY); sessionStorage.removeItem(USER_KEY);
     setRememberedAccounts(getRememberedAccounts()); setUser(null);
+    void clearAccountScopedQueries(queryClient);
   };
-  return <Context.Provider value={{ user, loading, rememberedAccounts, login, switchAccount, prepareAddAccount, forgetRememberedAccount, updateCurrentUser, logout }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ user, loading, rememberedAccounts, login, switchAccount, prepareAddAccount, forgetRememberedAccount, updateCurrentUser, logout }}><Fragment key={user?.id || "anonymous"}>{children}</Fragment></Context.Provider>;
 }
+// Context hooks intentionally live beside their provider.
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePortalAuth = () => { const value = useContext(Context); if (!value) throw new Error("PortalAuthProvider is missing"); return value; };

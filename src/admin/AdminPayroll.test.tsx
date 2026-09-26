@@ -203,10 +203,13 @@ describe("AdminPayroll", () => {
 
     expect(within(availableRow).getByText("متاح")).toBeInTheDocument();
     expect(within(availableRow).getByRole("button", { name: "عرض الكشف" })).toBeEnabled();
+    expect(within(draftRow).getByText("Period overlaps an existing statement")).toBeInTheDocument();
     expect(within(draftRow).getByText("Existing draft")).toBeInTheDocument();
     expect(within(draftRow).getByRole("link", { name: "عرض الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/draft-1");
+    expect(within(sentRow).getByText("Period overlaps an existing statement")).toBeInTheDocument();
     expect(within(sentRow).getByText("Already sent")).toBeInTheDocument();
     expect(within(sentRow).getByRole("link", { name: "عرض الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/sent-1");
+    expect(within(paidRow).getByText("Period overlaps an existing statement")).toBeInTheDocument();
     expect(within(paidRow).getByText("Paid")).toBeInTheDocument();
     expect(within(paidRow).getByRole("link", { name: "عرض الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/paid-1");
   });

@@ -74,6 +74,7 @@ import CourseClassroomScheduleAdmin from "@/admin/CourseClassroomScheduleAdmin";
 import TeacherCourses from "@/portal/TeacherCourses";
 import TeacherClassrooms from "@/portal/TeacherClassrooms";
 import TeacherClassroomSessions from "@/portal/TeacherClassroomSessions";
+import TeacherAssignmentDetails from "@/portal/TeacherAssignmentDetails";
 import TeacherSessionDetails from "@/portal/TeacherSessionDetails";
 import TeacherCourseDetail from "@/portal/TeacherCourseDetail";
 import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
@@ -242,6 +243,10 @@ export default function App() {
                     <Route
                       path="/portal/teacher/classrooms/:classroomId"
                       element={<PortalGuard role="teacher"><TeacherClassroomSessions /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/teacher/assignments/:assignmentId"
+                      element={<PortalGuard role="teacher"><TeacherAssignmentDetails /></PortalGuard>}
                     />
                     <Route
                       path="/portal/teacher/classrooms/:classroomId/sessions/:sessionId"

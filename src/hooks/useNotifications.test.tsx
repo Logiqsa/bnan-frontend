@@ -249,12 +249,16 @@ describe("useNotifications", () => {
     expect(notificationLink({ ...stored, navigation: { target } }, "student")).toBe(route);
   });
 
-  it.each(["assignment_details", "subscription", "certificates"])(
+  it.each(["subscription", "certificates"])(
     "does not navigate Student target %s before its page exists",
     (target) => {
       expect(notificationLink({ ...stored, navigation: { target } }, "student")).toBeUndefined();
     },
   );
+
+  it("routes homework notifications to the matching student assignment", () => {
+    expect(notificationLink({ ...stored, key: "HOMEWORK_CREATED", navigation: { target: "assignment_details", params: { assignmentId: "assignment-1" } } }, "student")).toBe("/portal/student/assignments?assignmentId=assignment-1");
+  });
 
   it("removes every realtime listener on unmount", async () => {
     const { unmount } = renderHook(() => useNotifications());

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   Users,
   Video,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   classroomRecordingsApi,
   type ClassroomSession,
@@ -29,6 +30,9 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
@@ -82,6 +86,9 @@ const ErrorCard = ({
 export default function TeacherClassroomSessions() {
   const { classroomId = "" } = useParams<{ classroomId: string }>();
   const { language } = useLanguage();
+  const queryClient = useQueryClient();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [assignmentForm, setAssignmentForm] = useState({ subjectId: "", title: "", description: "", dueDate: "", totalPoints: "10", attachment: null as File | null });
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
   const subjects = useQuery({
     queryKey: ["teacher-classroom-subjects", classroomId],
@@ -155,6 +162,24 @@ export default function TeacherClassroomSessions() {
   };
   const assignmentSubject = (assignment: TeacherClassroomAssignment) =>
     nameOf(assignment.subject) || nameOf(assignment.classroomSubject?.subject);
+  const createAssignment = useMutation({
+    mutationFn: () => teacherClassroomAssignmentsApi.create({
+      classroomId,
+      subjectId: assignmentForm.subjectId,
+      title: assignmentForm.title.trim(),
+      description: assignmentForm.description.trim(),
+      dueDate: assignmentForm.dueDate,
+      totalPoints: Number(assignmentForm.totalPoints),
+      attachment: assignmentForm.attachment,
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["teacher-classroom-assignments", classroomId] });
+      setCreateOpen(false);
+      setAssignmentForm({ subjectId: "", title: "", description: "", dueDate: "", totalPoints: "10", attachment: null });
+      toast.success("تم إنشاء الواجب وإرسال إشعار للطلاب");
+    },
+    onError: (error: Error) => toast.error(error.message || "تعذر إنشاء الواجب"),
+  });
 
   return (
     <DashboardLayout>
@@ -365,6 +390,12 @@ export default function TeacherClassroomSessions() {
           </TabsContent>
 
           <TabsContent value="assignments" className="mt-5">
+            <div className="mb-4 flex justify-end">
+              <Button onClick={() => setCreateOpen(true)}>
+                <FileText className="me-2 h-4 w-4" />
+                إنشاء واجب
+              </Button>
+            </div>
             {assignments.isPending ? (
               <LoadingGrid label="جاري تحميل الواجبات" />
             ) : assignments.isError ? (
@@ -381,7 +412,9 @@ export default function TeacherClassroomSessions() {
                   <Card key={assignment.id}>
                     <CardContent className="space-y-3 p-5">
                       <div className="flex items-start justify-between gap-3">
-                        <h2 className="font-bold">{assignment.title}</h2>
+                        <Link className="font-bold text-primary hover:underline" to={`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`}>
+                          {assignment.title}
+                        </Link>
                         {assignment.status && <Badge variant="secondary">{assignment.status}</Badge>}
                       </div>
                       {assignmentSubject(assignment) && <p className="text-sm text-muted-foreground">المادة: {assignmentSubject(assignment)}</p>}
@@ -403,6 +436,30 @@ export default function TeacherClassroomSessions() {
             <CourseClassroomChat classroomId={classroomId} />
           </TabsContent>
         </Tabs>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>إنشاء واجب</DialogTitle>
+              <DialogDescription>سيتم إرسال إشعار للطلاب بعد إنشاء الواجب بنجاح.</DialogDescription>
+            </DialogHeader>
+            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!assignmentForm.subjectId || !assignmentForm.title.trim() || !assignmentForm.dueDate || Number(assignmentForm.totalPoints) <= 0) return; createAssignment.mutate(); }}>
+              <label className="block space-y-2 text-sm font-medium">المادة
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2" value={assignmentForm.subjectId} onChange={(event) => setAssignmentForm((current) => ({ ...current, subjectId: event.target.value }))} required>
+                  <option value="">اختر المادة</option>
+                  {classroomSubjects.map((subject) => <option key={subject.subjectId} value={subject.subjectId}>{subject.name}</option>)}
+                </select>
+              </label>
+              <label className="block space-y-2 text-sm font-medium">اسم الواجب<Input value={assignmentForm.title} onChange={(event) => setAssignmentForm((current) => ({ ...current, title: event.target.value }))} required /></label>
+              <label className="block space-y-2 text-sm font-medium">الوصف<Textarea value={assignmentForm.description} onChange={(event) => setAssignmentForm((current) => ({ ...current, description: event.target.value }))} /></label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-2 text-sm font-medium">موعد التسليم<Input type="datetime-local" value={assignmentForm.dueDate} onChange={(event) => setAssignmentForm((current) => ({ ...current, dueDate: event.target.value }))} required /></label>
+                <label className="block space-y-2 text-sm font-medium">الدرجة الكاملة<Input type="number" min="1" value={assignmentForm.totalPoints} onChange={(event) => setAssignmentForm((current) => ({ ...current, totalPoints: event.target.value }))} required /></label>
+              </div>
+              <label className="block space-y-2 text-sm font-medium">مرفق اختياري<Input type="file" onChange={(event) => setAssignmentForm((current) => ({ ...current, attachment: event.target.files?.[0] || null }))} /></label>
+              <DialogFooter><Button type="submit" disabled={createAssignment.isPending}>{createAssignment.isPending ? "جاري الإنشاء..." : "إنشاء الواجب"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

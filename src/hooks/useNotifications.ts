@@ -74,6 +74,14 @@ const notificationParam = (
   return normalized || undefined;
 };
 
+const assignmentNotificationLink = (notification: Notification) => {
+  const assignmentId = notificationParam(notification, "assignmentId")
+    || (typeof notification.data?.assignmentId === "string" ? notification.data.assignmentId : undefined);
+  return assignmentId
+    ? `/portal/student/assignments?assignmentId=${encodeURIComponent(assignmentId)}`
+    : "/portal/student/assignments";
+};
+
 const teacherNotificationLink = (
   notification: Notification,
   target: string | undefined,
@@ -133,6 +141,9 @@ export const notificationLink = (
       typeof target === "string" ? target : undefined,
     );
   if (role === "student") {
+    if (target === "assignment_details" || notification.key === "HOMEWORK_CREATED" || notification.key === "HOMEWORK_GRADED") {
+      return assignmentNotificationLink(notification);
+    }
     if (notification.type === "chat_room" || target === "chat_room") {
       const roomId = notificationParam(notification, "roomId");
       return roomId

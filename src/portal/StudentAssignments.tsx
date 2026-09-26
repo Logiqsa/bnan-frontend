@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { CalendarDays, CheckCircle2, ClipboardList, ExternalLink, FileUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -23,7 +24,7 @@ const formatDate = (value: string | null, locale: string) => {
     : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
 };
 
-function AssignmentCard({ assignment }: { assignment: StudentAssignment }) {
+function AssignmentCard({ assignment, highlighted }: { assignment: StudentAssignment; highlighted?: boolean }) {
   const { isArabic, pick } = useLanguage();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
@@ -44,7 +45,7 @@ function AssignmentCard({ assignment }: { assignment: StudentAssignment }) {
   const reviewed = assignment.status === "reviewed";
 
   return (
-    <Card className="min-w-0 shadow-sm">
+    <Card id={`student-assignment-${assignment.id}`} className={`min-w-0 shadow-sm ${highlighted ? "ring-2 ring-primary" : ""}`}>
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -102,6 +103,8 @@ function AssignmentCard({ assignment }: { assignment: StudentAssignment }) {
 
 export default function StudentAssignments() {
   const { pick } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const requestedAssignmentId = searchParams.get("assignmentId");
   const query = useQuery({
     queryKey: studentAssignmentsQueryKey,
     queryFn: studentAssignmentsApi.list,
@@ -110,12 +113,17 @@ export default function StudentAssignments() {
     refetchOnMount: "always",
   });
 
+  useEffect(() => {
+    if (!requestedAssignmentId || !query.data) return;
+    document.getElementById(`student-assignment-${requestedAssignmentId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [query.data, requestedAssignmentId]);
+
   return <DashboardLayout><div className="mx-auto w-full max-w-6xl space-y-6">
     <header className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6"><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ClipboardList className="h-5 w-5" /></span><div className="min-w-0"><h1 className="text-2xl font-bold">{pick("الواجبات", "Assignments")}</h1><p className="mt-1 break-words text-sm text-muted-foreground">{pick("كل الواجبات المتاحة لك في مكان واحد.", "All assignments available to you in one place.")}</p></div></div></header>
 
     {query.isLoading ? <div className="grid gap-4 md:grid-cols-2" aria-label={pick("جاري تحميل الواجبات", "Loading assignments")}>{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-80 rounded-2xl" />)}</div>
       : query.isError ? <Card><CardContent className="flex flex-col items-center gap-4 p-10 text-center"><p className="text-destructive">{pick("تعذر تحميل الواجبات", "Unable to load assignments")}</p><Button variant="outline" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card>
       : !query.data?.length ? <Card><CardContent className="p-12 text-center text-muted-foreground"><ClipboardList className="mx-auto mb-3 h-9 w-9 opacity-50" /><p>{pick("لا توجد واجبات متاحة حاليًا", "No assignments are currently available")}</p></CardContent></Card>
-      : <section className="grid gap-4 md:grid-cols-2" aria-label={pick("قائمة الواجبات", "Assignment list")}>{query.data.map((assignment) => <AssignmentCard key={assignment.id} assignment={assignment} />)}</section>}
+      : <section className="grid gap-4 md:grid-cols-2" aria-label={pick("قائمة الواجبات", "Assignment list")}>{query.data.map((assignment) => <AssignmentCard key={assignment.id} assignment={assignment} highlighted={assignment.id === requestedAssignmentId} />)}</section>}
   </div></DashboardLayout>;
 }

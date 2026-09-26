@@ -187,6 +187,22 @@ describe("useNotifications", () => {
     }, "teacher")).toBe("/portal/teacher/courses");
   });
 
+  it("routes direct teacher assignment notifications to the teacher classroom", () => {
+    expect(notificationLink({
+      ...stored,
+      type: "teacher",
+      key: "TEACHER_ASSIGNMENT",
+      navigation: {
+        target: "classroom_details",
+        params: {
+          classroomId: "classroom-1",
+          classroomSubjectId: "classroom-subject-1",
+          subjectId: "subject-1",
+        },
+      },
+    }, "teacher")).toBe("/portal/teacher/classrooms/classroom-1");
+  });
+
   it("routes admin chat notifications to admin messages and preserves unsupported roles", () => {
     expect(notificationLink({
       ...stored,

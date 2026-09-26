@@ -14,9 +14,16 @@ export interface AdminUserReference {
   role?: AdminUserRole;
 }
 
+export interface AdminCurriculumReference {
+  id?: string;
+  _id?: string;
+  name?: string;
+}
+
 export interface AdminUser {
   id: string;
   teacherId?: string;
+  curriculums?: AdminCurriculumReference[];
   _id?: string;
   fullName?: string;
   email?: string;
@@ -67,6 +74,7 @@ type AdminTeacherPayload = {
   id?: string;
   _id?: string;
   status?: AdminUser["teacherStatus"];
+  curriculums?: AdminCurriculumReference[];
   user?: AdminUserPayload;
 };
 
@@ -83,6 +91,7 @@ const normalizeTeacher = (item: AdminTeacherPayload): AdminUser => {
     ...user,
     teacherId: item.id || item._id || "",
     teacherStatus: item.status,
+    curriculums: item.curriculums || [],
     role: "teacher",
   };
 };

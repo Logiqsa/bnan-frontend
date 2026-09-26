@@ -80,6 +80,7 @@ describe("adminUsersApi", () => {
       data: [{
         id: "teacher-profile-1",
         status: "approved",
+        curriculums: [{ id: "curriculum-1", name: "المنهج" }],
         user: { id: "user-1", fullName: "المعلم", email: "teacher@example.com", role: "teacher" },
       }],
       currentPage: 1,
@@ -93,6 +94,7 @@ describe("adminUsersApi", () => {
         teacherId: "teacher-profile-1",
         fullName: "المعلم",
         teacherStatus: "approved",
+        curriculums: [{ id: "curriculum-1", name: "المنهج" }],
       }),
     ]);
     expect(apiRequest).toHaveBeenCalledWith("/teachers?page=1&limit=100");

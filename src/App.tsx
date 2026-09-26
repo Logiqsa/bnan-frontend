@@ -57,6 +57,7 @@ import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
 import ZoomAccountUsageAdmin from "@/admin/zoom/ZoomAccountUsageAdmin";
 import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
 import AdminClassroomHub from "@/admin/AdminClassroomHub";
+import AdminTeacherAssignment from "@/admin/AdminTeacherAssignment";
 import AccountSettings from "@/portal/AccountSettings";
 import SupervisorSchedule from "@/portal/SupervisorSchedule";
 import GlobalNotificationAdmin from "@/admin/GlobalNotificationAdmin";
@@ -400,6 +401,10 @@ export default function App() {
                     <Route
                       path="/admin/classroom-change-requests"
                       element={<AdminGuard><ClassroomChangeRequestsAdmin /></AdminGuard>}
+                    />
+                    <Route
+                      path="/admin/teacher-assignment"
+                      element={<AdminGuard><AdminTeacherAssignment /></AdminGuard>}
                     />
                     <Route
                       path="/admin/classroom-recordings"

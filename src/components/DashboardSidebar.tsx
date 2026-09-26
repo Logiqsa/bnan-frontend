@@ -151,6 +151,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/classroom-change-requests",
     },
     {
+      label: "تعيين معلم للفصل",
+      labelEn: "Assign teacher to classroom",
+      icon: UserPlus,
+      path: "/admin/teacher-assignment",
+    },
+    {
       label: "الفصول",
       labelEn: "Classrooms",
       icon: School,
@@ -434,6 +440,7 @@ const adminNavOrder = [
   "/admin/messages",
   "/admin?tab=teacher-applications",
   "/admin/classroom-change-requests",
+  "/admin/teacher-assignment",
   "/admin/subject-requests",
   "/admin/students",
   "/admin/parents",
@@ -499,11 +506,11 @@ export const isItemActive = (itemPath: string, pathname: string, search: string)
 
 const adminNavGroup = (path: string) => {
   if (path === "/admin") return { ar: "نظرة عامة", en: "Overview" };
-  if (["/admin/messages", "/admin/classroom-change-requests", "/admin/subject-requests"].includes(path) || path.includes("teacher-applications"))
+  if (["/admin/messages", "/admin/classroom-change-requests", "/admin/teacher-assignment", "/admin/subject-requests"].includes(path) || path.includes("teacher-applications"))
     return { ar: "التشغيل والطلبات", en: "Operations & requests" };
   if (["all-users", "/admin/teachers", "/admin/students", "/admin/parents", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
     return { ar: "المستخدمون", en: "Users" };
-  if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests"].some((part) => path.startsWith(part)))
+  if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests", "/admin/teacher-assignment"].some((part) => path.startsWith(part)))
     return { ar: "التعليم", en: "Learning" };
   if (["/admin/subscriptions", "/admin/payments", "/admin/payroll", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
     return { ar: "المالية", en: "Finance" };

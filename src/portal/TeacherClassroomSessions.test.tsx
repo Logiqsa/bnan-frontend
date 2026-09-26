@@ -30,9 +30,6 @@ vi.mock("@/components/CourseClassroomChat", () => ({
 vi.mock("@/admin/zoom/ClassroomScheduleManagement", () => ({
   default: () => <div>جدول الفصل التجريبي</div>,
 }));
-vi.mock("@/admin/zoom/ClassroomZoomManagement", () => ({
-  default: () => <div>Zoom الفصل التجريبي</div>,
-}));
 vi.mock("@/layouts/DashboardLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -97,7 +94,7 @@ describe("TeacherClassroomSessions classroom details", () => {
     expect(screen.getByRole("tab", { name: /التسجيلات/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /الواجبات/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /المحادثة/ })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Zoom" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Zoom" })).not.toBeInTheDocument();
     expect(await screen.findByText("المواد والمعلمون")).toBeInTheDocument();
     expect(screen.getByText("طالب الفصل")).toBeInTheDocument();
   });

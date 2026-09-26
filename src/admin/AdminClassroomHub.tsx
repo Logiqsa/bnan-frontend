@@ -26,9 +26,9 @@ import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagemen
 import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 
 const tabs = [
-  ["overview", "نظرة عامة"], ["sessions", "الحصص"], ["recordings", "التسجيلات"],
-  ["evaluations", "التقييمات"], ["attendance", "الحضور والغياب"], ["assignments", "الواجبات"],
-  ["chat", "المحادثات"], ["schedule", "الجدول"], ["zoom", "Zoom"],
+  ["overview", "نظرة عامة"], ["schedule", "الجدول"], ["recordings", "التسجيلات"],
+  ["assignments", "الواجبات"], ["chat", "المحادثات"], ["sessions", "الحصص"],
+  ["evaluations", "التقييمات"], ["attendance", "الحضور والغياب"], ["zoom", "Zoom"],
 ] as const;
 
 const errorText = (error: unknown) => {

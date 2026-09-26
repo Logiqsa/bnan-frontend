@@ -25,7 +25,6 @@ import {
 import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
-import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -210,10 +209,6 @@ export default function TeacherClassroomSessions() {
 
         <Tabs defaultValue="overview">
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
-            <TabsTrigger value="schedule">
-              <CalendarDays className="me-1 h-4 w-4" />
-              الجدول
-            </TabsTrigger>
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />
               المحادثة
@@ -226,8 +221,11 @@ export default function TeacherClassroomSessions() {
               <Video className="me-1 h-4 w-4" />
               التسجيلات
             </TabsTrigger>
+            <TabsTrigger value="schedule">
+              <CalendarDays className="me-1 h-4 w-4" />
+              الجدول
+            </TabsTrigger>
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="zoom">Zoom</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-5">
@@ -331,10 +329,6 @@ export default function TeacherClassroomSessions() {
 
           <TabsContent value="schedule" className="mt-5">
             <ClassroomScheduleManagement classroomId={classroomId} embedded />
-          </TabsContent>
-
-          <TabsContent value="zoom" className="mt-5">
-            <ClassroomZoomManagement classroomId={classroomId} embedded />
           </TabsContent>
 
           <TabsContent value="recordings" className="mt-5">

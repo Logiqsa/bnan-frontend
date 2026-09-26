@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
@@ -86,6 +86,7 @@ const ErrorCard = ({
 
 export default function TeacherClassroomSessions() {
   const { classroomId = "" } = useParams<{ classroomId: string }>();
+  const navigate = useNavigate();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -410,12 +411,25 @@ export default function TeacherClassroomSessions() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {assignments.data.map((assignment) => (
-                  <Card key={assignment.id}>
+                  <Card
+                    key={assignment.id}
+                    role="link"
+                    tabIndex={0}
+                    className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest("button,a,input")) return;
+                      navigate(`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigate(`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`);
+                      }
+                    }}
+                  >
                     <CardContent className="space-y-3 p-5">
                       <div className="flex items-start justify-between gap-3">
-                        <Link className="font-bold text-primary hover:underline" to={`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`}>
-                          {assignment.title}
-                        </Link>
+                        <h2 className="font-bold text-primary">{assignment.title}</h2>
                         {assignment.status && <Badge variant="secondary">{assignment.status}</Badge>}
                       </div>
                       {assignmentSubject(assignment) && <p className="text-sm text-muted-foreground">المادة: {assignmentSubject(assignment)}</p>}

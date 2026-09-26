@@ -90,6 +90,18 @@ const teacherNotificationLink = (
     return "/portal/teacher/classrooms";
   }
 
+  if (target === "assignment_submissions" || notification.key === "ASSIGNMENT_SUBMITTED") {
+    const assignmentId = notificationParam(notification, "assignmentId");
+    const submissionId = notificationParam(notification, "submissionId");
+    if (assignmentId) {
+      const params = new URLSearchParams();
+      if (submissionId) params.set("submissionId", submissionId);
+      const query = params.toString();
+      return `/portal/teacher/assignments/${encodeURIComponent(assignmentId)}${query ? `?${query}` : ""}`;
+    }
+    return "/portal/teacher/assignments";
+  }
+
   if (target === "teacher_payroll_statement") {
     const statementId = notificationParam(notification, "statementId");
     return statementId ? `/portal/teacher/payroll-statements/${encodeURIComponent(statementId)}` : "/portal/teacher/payroll";

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, FileText, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -16,6 +16,8 @@ const nameOf = (value: unknown) => typeof value === "string" ? value : value && 
 
 export default function TeacherAssignmentDetails() {
   const { assignmentId = "" } = useParams<{ assignmentId: string }>();
+  const [searchParams] = useSearchParams();
+  const requestedSubmissionId = searchParams.get("submissionId");
   const queryClient = useQueryClient();
   const [scores, setScores] = useState<Record<string, string>>({});
   const assignment = useQuery({
@@ -39,6 +41,11 @@ export default function TeacherAssignmentDetails() {
     onError: (error: Error) => toast.error(error.message || "تعذر تصحيح التسليم"),
   });
 
+  useEffect(() => {
+    if (!requestedSubmissionId || !submissions.data) return;
+    document.getElementById(`teacher-submission-${requestedSubmissionId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [requestedSubmissionId, submissions.data]);
+
   if (assignment.isPending) return <DashboardLayout><div className="mx-auto max-w-5xl p-6"><Skeleton className="h-72 rounded-2xl" /></div></DashboardLayout>;
   if (assignment.isError || !assignment.data) return <DashboardLayout><div className="mx-auto max-w-5xl p-6"><Card><CardContent className="p-10 text-center text-destructive">تعذر تحميل تفاصيل الواجب.</CardContent></Card></div></DashboardLayout>;
 
@@ -53,7 +60,7 @@ export default function TeacherAssignmentDetails() {
       {submissions.isPending ? <Skeleton className="h-40 rounded-xl" /> : submissions.isError ? <div className="flex items-center justify-between"><p className="text-destructive">تعذر تحميل التسليمات.</p><Button variant="outline" onClick={() => void submissions.refetch()} disabled={submissions.isFetching}><RefreshCw className="me-2 h-4 w-4" />إعادة المحاولة</Button></div> : !submissions.data?.data.length ? <p className="text-muted-foreground">لا يوجد طلاب مرتبطون بهذا الواجب.</p> : <div className="space-y-3">{submissions.data.data.map((student) => {
         const existingScore = student.submission?.score;
         const score = scores[student.studentId] ?? (existingScore == null ? "" : String(existingScore));
-        return <div key={student.studentId} className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{student.fullName}</p><p className="text-sm text-muted-foreground">{student.hasSubmitted ? student.submissionStatus === "reviewed" ? `تمت المراجعة: ${existingScore ?? "—"}` : "تم التسليم" : "لم يتم التسليم"}</p>{student.submission?.attachment && <AssignmentAttachmentPreview url={student.submission.attachment} label="معاينة إجابة الطالب" />}</div>{student.submission?.id && <div className="flex items-center gap-2"><Input className="w-24" type="number" min="0" max={item.totalPoints} value={score} aria-label={`درجة ${student.fullName}`} onChange={(event) => setScores((current) => ({ ...current, [student.studentId]: event.target.value }))} /><Button disabled={review.isPending || score === ""} onClick={() => review.mutate({ submissionId: student.submission!.id, score: Number(score) })}>حفظ الدرجة</Button></div>}</div>;
+        return <div id={`teacher-submission-${student.submission?.id || student.studentId}`} key={student.studentId} className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${student.submission?.id === requestedSubmissionId ? "ring-2 ring-primary" : ""}`}><div><p className="font-semibold">{student.fullName}</p><p className="text-sm text-muted-foreground">{student.hasSubmitted ? student.submissionStatus === "reviewed" ? `تمت المراجعة: ${existingScore ?? "—"}` : "تم التسليم" : "لم يتم التسليم"}</p>{student.submission?.attachment && <AssignmentAttachmentPreview url={student.submission.attachment} label="معاينة إجابة الطالب" />}</div>{student.submission?.id && <div className="flex items-center gap-2"><Input className="w-24" type="number" min="0" max={item.totalPoints} value={score} aria-label={`درجة ${student.fullName}`} onChange={(event) => setScores((current) => ({ ...current, [student.studentId]: event.target.value }))} /><Button disabled={review.isPending || score === ""} onClick={() => review.mutate({ submissionId: student.submission!.id, score: Number(score) })}>حفظ الدرجة</Button></div>}</div>;
       })}</div>}
     </CardContent></Card>
   </div></DashboardLayout>;

@@ -52,7 +52,11 @@ export default function ClassroomScheduleManagement({
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const mode = classroom && typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : undefined;
-  const backPath = user?.role === "supervisor" ? "/portal/supervisor/classrooms" : "/admin/classrooms";
+  const backPath = user?.role === "teacher"
+    ? "/portal/teacher/classrooms"
+    : user?.role === "supervisor"
+      ? "/portal/supervisor/classrooms"
+      : "/admin/classrooms";
   const canEdit = isEditing;
 
   useEffect(() => {

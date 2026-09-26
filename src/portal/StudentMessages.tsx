@@ -18,6 +18,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { getSocket } from "@/lib/socket";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
+import SupportChatButton from "@/components/SupportChatButton";
 
 const studentChatRoomsQueryKey = ["student-chat-rooms"] as const;
 const studentMessagesQueryKeyPrefix = "student-chat-messages";
@@ -201,6 +202,7 @@ const StudentMessages = () => {
                 {pick("محادثات الفصول والدعم المتاحة لك.", "Your available classroom and support conversations.")}
               </p>
             </div>
+            <div className="ms-auto shrink-0"><SupportChatButton path="/portal/student/messages" /></div>
           </div>
         </header>
 

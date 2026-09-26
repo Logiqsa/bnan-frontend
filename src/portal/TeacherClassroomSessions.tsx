@@ -1,117 +1,434 @@
+import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, CalendarDays, Clock3, FileText, RefreshCw, School, Video } from "lucide-react";
-import { classroomRecordingsApi, type ClassroomSession } from "@/api/classroomRecordingsApi";
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  FileText,
+  MessageCircle,
+  RefreshCw,
+  School,
+  Users,
+  Video,
+} from "lucide-react";
+import {
+  classroomRecordingsApi,
+  type ClassroomSession,
+  type SessionRecording,
+} from "@/api/classroomRecordingsApi";
+import {
+  teacherClassroomAssignmentsApi,
+  type TeacherClassroomAssignment,
+} from "@/api/teacherClassroomAssignmentsApi";
+import { courseError } from "@/lib/courseUi";
+import CourseClassroomChat from "@/components/CourseClassroomChat";
+import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
+import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
+import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useLanguage } from "@/i18n/LanguageContext";
-import DashboardLayout from "@/layouts/DashboardLayout";
 
 const sessionsFrom = (
-  data: ClassroomSession[] | { sessions?: ClassroomSession[]; data?: ClassroomSession[] },
+  data:
+    | ClassroomSession[]
+    | { sessions?: ClassroomSession[]; data?: ClassroomSession[] },
 ) => (Array.isArray(data) ? data : data.sessions || data.data || []);
 
-const sessionIdOf = (session: ClassroomSession) => session.id || session._id || "";
+const recordingsFrom = (
+  data:
+    | SessionRecording[]
+    | { recordings?: SessionRecording[]; data?: SessionRecording[] },
+) => (Array.isArray(data) ? data : data.recordings || data.data || []);
 
-const subjectName = (session: ClassroomSession) => {
-  if (typeof session.subject === "object" && session.subject?.name) return session.subject.name;
-  if (typeof session.classroomSubject === "object") return session.classroomSubject.subject?.name;
-  return undefined;
-};
+const nameOf = (value: unknown) =>
+  typeof value === "string"
+    ? value
+    : value && typeof value === "object"
+      ? (value as { name?: string; fullName?: string }).name ||
+        (value as { fullName?: string }).fullName ||
+        ""
+      : "";
 
-const classroomName = (sessions: ClassroomSession[]) => {
-  for (const session of sessions) {
-    if (typeof session.classroomSubject === "object" && session.classroomSubject.classroom?.name) {
-      return session.classroomSubject.classroom.name;
-    }
-  }
-  return undefined;
-};
+const ErrorCard = ({
+  message,
+  retry,
+  retrying,
+}: {
+  message: string;
+  retry: () => void;
+  retrying: boolean;
+}) => (
+  <Card>
+    <CardContent className="flex min-h-40 flex-col items-center justify-center gap-3 p-6 text-center">
+      <p className="text-destructive">{message}</p>
+      <Button variant="outline" onClick={retry} disabled={retrying}>
+        <RefreshCw className={`me-2 h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
+        إعادة المحاولة
+      </Button>
+    </CardContent>
+  </Card>
+);
 
 export default function TeacherClassroomSessions() {
   const { classroomId = "" } = useParams<{ classroomId: string }>();
-  const { language, pick } = useLanguage();
+  const { language } = useLanguage();
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
+  const subjects = useQuery({
+    queryKey: ["teacher-classroom-subjects", classroomId],
+    queryFn: async () =>
+      (await classroomRecordingsApi.listSubjects(classroomId)).data,
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
   const sessions = useQuery({
     queryKey: ["teacher-classroom-sessions", classroomId],
-    queryFn: async () => sessionsFrom((await classroomRecordingsApi.listSessions(classroomId)).data),
+    queryFn: async () =>
+      sessionsFrom((await classroomRecordingsApi.listSessions(classroomId)).data),
     enabled: Boolean(classroomId),
     staleTime: 30_000,
     retry: 1,
   });
-  const items = sessions.data || [];
-  const name = classroomName(items);
+  const recordings = useQuery({
+    queryKey: ["teacher-classroom-recordings", classroomId],
+    queryFn: async () =>
+      recordingsFrom((await classroomRecordingsApi.listRecordings(classroomId)).data),
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
+  const assignments = useQuery({
+    queryKey: ["teacher-classroom-assignments", classroomId],
+    queryFn: async () =>
+      (await teacherClassroomAssignmentsApi.list(classroomId)).data,
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
+  const students = useQuery({
+    queryKey: ["teacher-classroom-students", classroomId],
+    queryFn: async () =>
+      (await classroomRecordingsApi.listStudents(classroomId)).data,
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
+
+  const classroomSubjects = useMemo(
+    () => subjects.data?.subjects || [],
+    [subjects.data?.subjects],
+  );
+  const classroomName = subjects.data?.classroom?.name || "";
+  const teachers = useMemo(
+    () => [
+      ...new Set(
+        classroomSubjects
+          .map((item) => item.teacher?.name)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    ],
+    [classroomSubjects],
+  );
+  const upcomingCount = (sessions.data || []).filter((session) => {
+    const start = session.scheduledStartAt || session.startAt;
+    return Boolean(start && new Date(start).getTime() >= Date.now());
+  }).length;
   const formatDate = (value?: string) => {
-    if (!value) return null;
+    if (!value) return "—";
     const date = new Date(value);
     return Number.isNaN(date.getTime())
-      ? null
-      : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
+      ? "—"
+      : new Intl.DateTimeFormat(locale, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(date);
   };
-  const kindLabel = (kind?: string) => {
-    if (kind === "live") return pick("حصة مباشرة", "Live session");
-    if (kind === "manual_recording") return pick("تسجيل يدوي", "Manual recording");
-    return kind;
-  };
+  const assignmentSubject = (assignment: TeacherClassroomAssignment) =>
+    nameOf(assignment.subject) || nameOf(assignment.classroomSubject?.subject);
 
   return (
     <DashboardLayout>
-      <div className="mx-auto w-full max-w-6xl space-y-6">
-        <header className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div className="flex min-w-0 items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><School className="h-6 w-6" /></span>
-            <div className="min-w-0">
-              <h1 className="break-words text-2xl font-bold tracking-tight sm:text-3xl">{name || pick("جلسات الفصل", "Classroom sessions")}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">{pick("الجلسات المسجلة لهذا الفصل", "Sessions recorded for this classroom")}</p>
+      <div className="mx-auto w-full max-w-7xl space-y-6" dir="rtl">
+        <header className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <School className="h-6 w-6" />
+              </span>
+              <div className="min-w-0">
+                <h1 className="break-words text-2xl font-bold tracking-tight sm:text-3xl">
+                  {classroomName || "تفاصيل الفصل"}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">تفاصيل الفصل</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {subjects.data?.curriculum?.name && (
+                    <Badge variant="secondary">
+                      <BookOpen className="me-1 h-3.5 w-3.5" />
+                      {subjects.data.curriculum.name}
+                    </Badge>
+                  )}
+                  {subjects.data?.grade?.name && (
+                    <Badge variant="outline">{subjects.data.grade.name}</Badge>
+                  )}
+                  {classroomSubjects.map((item) => (
+                    <Badge key={item.classroomSubjectId} variant="outline">
+                      {item.name}
+                    </Badge>
+                  ))}
+                  {teachers.length > 0 && (
+                    <Badge variant="secondary">
+                      المعلم: {teachers.join("، ")}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link to="/portal/teacher/classrooms">
+                <ArrowRight className="me-2 h-4 w-4" />
+                العودة للفصول
+              </Link>
+            </Button>
           </div>
-          <Button asChild variant="outline" className="w-full sm:w-auto"><Link to="/portal/teacher/classrooms"><ArrowRight className="me-2 h-4 w-4" />{pick("العودة للفصول", "Back to classrooms")}</Link></Button>
+          {subjects.isError && (
+            <p className="mt-4 text-sm text-destructive">
+              {courseError(subjects.error)}
+            </p>
+          )}
         </header>
 
-        {sessions.isPending ? (
-          <div className="grid gap-4 md:grid-cols-2" aria-label={pick("جاري تحميل الجلسات", "Loading sessions")}>
-            {[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-52 rounded-xl" />)}
-          </div>
-        ) : sessions.isError ? (
-          <Card><CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 p-6 text-center"><p className="text-destructive">{pick("تعذر تحميل جلسات الفصل.", "Unable to load classroom sessions.")}</p><Button variant="outline" onClick={() => void sessions.refetch()} disabled={sessions.isFetching}><RefreshCw className={`me-2 h-4 w-4 ${sessions.isFetching ? "animate-spin" : ""}`} />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card>
-        ) : items.length === 0 ? (
-          <Card><CardContent className="flex min-h-64 items-center justify-center p-6 text-center text-muted-foreground">{pick("لا توجد جلسات مسجلة لهذا الفصل.", "No sessions are recorded for this classroom.")}</CardContent></Card>
-        ) : (
-          <section className="grid gap-4 md:grid-cols-2" aria-label={pick("جلسات الفصل", "Classroom sessions")}>
-            {items.map((session, index) => {
-              const sessionId = sessionIdOf(session);
-              const date = formatDate(session.scheduledStartAt || session.startAt);
-              const content = (
-                <CardContent className="flex h-full min-w-0 flex-col gap-4 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="break-words text-lg font-bold">{session.title || session.sessionName || pick("جلسة", "Session")}</h2>
-                      {subjectName(session) && <p className="mt-1 break-words text-sm text-muted-foreground">{subjectName(session)}</p>}
-                    </div>
-                    {session.status && <Badge variant="secondary" className="shrink-0">{session.status}</Badge>}
+        <Tabs defaultValue="overview">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+            <TabsTrigger value="schedule">
+              <CalendarDays className="me-1 h-4 w-4" />
+              الجدول
+            </TabsTrigger>
+            <TabsTrigger value="chat">
+              <MessageCircle className="me-1 h-4 w-4" />
+              المحادثة
+            </TabsTrigger>
+            <TabsTrigger value="assignments">
+              <FileText className="me-1 h-4 w-4" />
+              الواجبات
+            </TabsTrigger>
+            <TabsTrigger value="recordings">
+              <Video className="me-1 h-4 w-4" />
+              التسجيلات
+            </TabsTrigger>
+            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="zoom">Zoom</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard
+                label="الجلسات القادمة"
+                value={sessions.isPending ? "…" : String(upcomingCount)}
+                icon={<CalendarDays className="h-5 w-5" />}
+              />
+              <SummaryCard
+                label="التسجيلات"
+                value={recordings.isPending ? "…" : String(recordings.data?.length || 0)}
+                icon={<Video className="h-5 w-5" />}
+              />
+              <SummaryCard
+                label="الواجبات"
+                value={assignments.isPending ? "…" : String(assignments.data?.length || 0)}
+                icon={<FileText className="h-5 w-5" />}
+              />
+              <Card>
+                <CardContent className="flex h-full items-center justify-between gap-3 p-5">
+                  <div>
+                    <p className="text-sm text-muted-foreground">محادثة الفصل</p>
+                    <p className="mt-1 font-semibold">متاحة من تبويب المحادثة</p>
                   </div>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    {session.sessionKind && <p className="flex items-center gap-2"><Video className="h-4 w-4 shrink-0" />{kindLabel(session.sessionKind)}</p>}
-                    {date && <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0" />{date}</p>}
-                    {session.endAt && formatDate(session.endAt) && <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 shrink-0" />{pick("النهاية", "End")}: {formatDate(session.endAt)}</p>}
-                  </div>
-                  <div className="mt-auto flex flex-wrap gap-2">
-                    {session.recording?.status && <Badge variant="outline"><Video className="me-1 h-3.5 w-3.5" />{pick("التسجيل", "Recording")}: {session.recording.status}</Badge>}
-                    {session.summary?.status && <Badge variant="outline"><FileText className="me-1 h-3.5 w-3.5" />{pick("الملخص", "Summary")}: {session.summary.status}</Badge>}
-                  </div>
+                  <MessageCircle className="h-5 w-5 text-primary" />
                 </CardContent>
-              );
-              return (
-                <Card key={sessionId || `session-${index}`} className="overflow-hidden transition-shadow hover:shadow-md">
-                  {sessionId ? <Link className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" to={`/portal/teacher/classrooms/${encodeURIComponent(classroomId)}/sessions/${encodeURIComponent(sessionId)}`}>{content}</Link> : content}
-                </Card>
-              );
-            })}
-          </section>
-        )}
+              </Card>
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="flex items-center gap-2 text-xl font-bold">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      المواد والمعلمون
+                    </h2>
+                    <Badge variant="outline">{classroomSubjects.length}</Badge>
+                  </div>
+                  {subjects.isPending ? (
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                  ) : !classroomSubjects.length ? (
+                    <p className="text-sm text-muted-foreground">
+                      لا توجد مواد مرتبطة بهذا الفصل.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {classroomSubjects.map((item) => (
+                        <div
+                          key={item.classroomSubjectId}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3"
+                        >
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {item.teacher?.name || "غير محدد"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="flex items-center gap-2 text-xl font-bold">
+                      <Users className="h-5 w-5 text-primary" />
+                      الطلاب
+                    </h2>
+                    <Badge variant="outline">
+                      {students.isPending ? "…" : students.data?.length || 0}
+                    </Badge>
+                  </div>
+                  {students.isPending ? (
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                  ) : students.isError ? (
+                    <p className="text-sm text-destructive">
+                      تعذر تحميل طلاب الفصل.
+                    </p>
+                  ) : !students.data?.length ? (
+                    <p className="text-sm text-muted-foreground">
+                      لا يوجد طلاب مرتبطون بهذا الفصل.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {students.data.map((student) => (
+                        <div
+                          key={student.studentId}
+                          className="rounded-xl border p-3 text-sm"
+                        >
+                          {student.fullName}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="mt-5">
+            <ClassroomScheduleManagement classroomId={classroomId} embedded />
+          </TabsContent>
+
+          <TabsContent value="zoom" className="mt-5">
+            <ClassroomZoomManagement classroomId={classroomId} embedded />
+          </TabsContent>
+
+          <TabsContent value="recordings" className="mt-5">
+            {recordings.isPending ? (
+              <LoadingGrid label="جاري تحميل التسجيلات" />
+            ) : recordings.isError ? (
+              <ErrorCard
+                message="تعذر تحميل تسجيلات الفصل."
+                retry={() => void recordings.refetch()}
+                retrying={recordings.isFetching}
+              />
+            ) : !recordings.data?.length ? (
+              <EmptyState text="لا توجد تسجيلات متاحة حاليًا." />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {recordings.data.map((recording, index) => (
+                  <Card key={recording.sessionId || `${recording.sessionName}-${index}`}>
+                    <CardContent className="space-y-3 p-5">
+                      <h2 className="font-bold">{recording.sessionName || "تسجيل جلسة"}</h2>
+                      {recording.scheduledStartAt && <p className="text-sm text-muted-foreground">{formatDate(recording.scheduledStartAt)}</p>}
+                      {recording.recordingLink && (
+                        <Button asChild variant="outline">
+                          <a href={recording.recordingLink} target="_blank" rel="noreferrer">
+                            <Video className="me-2 h-4 w-4" />
+                            فتح التسجيل
+                          </a>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="assignments" className="mt-5">
+            {assignments.isPending ? (
+              <LoadingGrid label="جاري تحميل الواجبات" />
+            ) : assignments.isError ? (
+              <ErrorCard
+                message="تعذر تحميل واجبات الفصل."
+                retry={() => void assignments.refetch()}
+                retrying={assignments.isFetching}
+              />
+            ) : !assignments.data?.length ? (
+              <EmptyState text="لا توجد واجبات لهذا الفصل حاليًا." />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {assignments.data.map((assignment) => (
+                  <Card key={assignment.id}>
+                    <CardContent className="space-y-3 p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="font-bold">{assignment.title}</h2>
+                        {assignment.status && <Badge variant="secondary">{assignment.status}</Badge>}
+                      </div>
+                      {assignmentSubject(assignment) && <p className="text-sm text-muted-foreground">المادة: {assignmentSubject(assignment)}</p>}
+                      <p className="text-sm text-muted-foreground">تاريخ التسليم: {formatDate(assignment.dueDate)}</p>
+                      {assignment.description && <p className="whitespace-pre-wrap text-sm">{assignment.description}</p>}
+                      {assignment.attachment && (
+                        <Button asChild variant="outline">
+                          <a href={assignment.attachment} target="_blank" rel="noreferrer">فتح المرفق</a>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-5">
+            <CourseClassroomChat classroomId={classroomId} />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
+}
+
+function SummaryCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between p-5">
+        <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>
+        <span className="rounded-xl bg-primary/10 p-3 text-primary">{icon}</span>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingGrid({ label }: { label: string }) {
+  return <div className="grid gap-4 md:grid-cols-2" aria-label={label}>{[1, 2].map((item) => <Skeleton key={item} className="h-40 rounded-xl" />)}</div>;
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <Card><CardContent className="flex min-h-40 items-center justify-center p-6 text-center text-muted-foreground">{text}</CardContent></Card>;
 }

@@ -44,11 +44,11 @@ describe("Student dashboard route", () => {
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/settings" && item.label === "إعدادات الحساب")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/subscriptions" && item.label === "الاشتراكات")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/subjects" && item.label === "المواد")).toBe(true);
-    expect(roleNavItems.student.some((item) => item.path === "/portal/student/subjects/add" && item.label === "إضافة مادة")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/subjects/add")).toBe(false);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/subject-requests" && item.label === "طلبات المواد")).toBe(true);
-    expect(roleNavItems.student.some((item) => item.path === "/portal/student/change-requests" && item.label === "طلبات التغيير")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/change-requests" && item.label === "طلبات تغيير المعلم")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/assignments" && item.label === "الواجبات")).toBe(true);
-    expect(roleNavItems.student.some((item) => item.path === "/portal/student/certificates" && item.label === "الشهادات")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/certificates")).toBe(false);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/evaluations" && item.label === "تقييماتي")).toBe(true);
   });
 

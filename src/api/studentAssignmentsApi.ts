@@ -18,6 +18,8 @@ export interface StudentAssignment {
   grade: number | null;
   feedback: null;
   submittedAt: string | null;
+  classroomId?: string | null;
+  classroomName?: string | null;
 }
 
 interface StudentAssignmentsResponse {

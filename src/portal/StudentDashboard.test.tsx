@@ -29,7 +29,7 @@ const renderDashboard = () => {
 describe("StudentDashboard", () => {
   beforeEach(() => { localStorage.setItem("bnan_language", "ar"); mocks.get.mockReset(); });
 
-  it("renders identity, subscription, attendance, evaluation, interaction and certificates", async () => {
+  it("renders identity, subscription, attendance, evaluation and interaction", async () => {
     mocks.get.mockResolvedValue(data);
     renderDashboard();
     expect(screen.getByLabelText("جاري تحميل لوحة الطالب")).toBeInTheDocument();
@@ -40,8 +40,7 @@ describe("StudentDashboard", () => {
     expect(screen.getByText("أداء متميز")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "عرض سجل التقييمات" })).toHaveAttribute("href", "/portal/student/evaluations");
     expect(screen.getByText("عدد التقييمات")).toBeInTheDocument();
-    expect(screen.getByText("الشهادات")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "عرض الكل" })).toHaveAttribute("href", "/portal/student/certificates");
+    expect(screen.queryByText("الشهادات")).not.toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledTimes(1);
   });
 
@@ -53,7 +52,7 @@ describe("StudentDashboard", () => {
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
     expect(screen.getByText("لا يوجد تقييم أسبوعي متاح حاليًا")).toBeInTheDocument();
     expect(screen.getByText("بيانات التفاعل غير متاحة حاليًا")).toBeInTheDocument();
-    expect(screen.getByText("بيانات الشهادات غير متاحة حاليًا")).toBeInTheDocument();
+    expect(screen.queryByText("بيانات الشهادات غير متاحة حاليًا")).not.toBeInTheDocument();
   });
 
   it("shows an error and retries the same query", async () => {

@@ -19,6 +19,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { getSocket } from "@/lib/socket";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
+import SupportChatButton from "@/components/SupportChatButton";
 
 const teacherChatRoomsQueryKey = ["teacher-chat-rooms"] as const;
 const adminChatRoomsQueryKey = ["admin-chat-rooms"] as const;
@@ -271,6 +272,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                 )}
               </p>
             </div>
+            {mode === "teacher" && <div className="ms-auto shrink-0"><SupportChatButton path="/portal/teacher/messages" /></div>}
           </div>
         </header>
 

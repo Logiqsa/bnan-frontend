@@ -187,11 +187,12 @@ describe("useNotifications", () => {
     }, "teacher")).toBe("/portal/teacher/courses");
   });
 
-  it("routes direct teacher assignment notifications to the teacher classroom", () => {
+  it.each(["assigned", "unassigned"] as const)("routes teacher assignment %s notifications to the classrooms list", (assignmentAction) => {
     expect(notificationLink({
       ...stored,
       type: "teacher",
       key: "TEACHER_ASSIGNMENT",
+      data: { assignmentAction },
       navigation: {
         target: "classroom_details",
         params: {
@@ -200,6 +201,14 @@ describe("useNotifications", () => {
           subjectId: "subject-1",
         },
       },
+    }, "teacher")).toBe("/portal/teacher/classrooms");
+  });
+
+  it("keeps non-assignment classroom notifications on their existing route", () => {
+    expect(notificationLink({
+      ...stored,
+      key: "CLASSROOM_TEACHER_CHANGED",
+      navigation: { target: "classroom_details", params: { classroomId: "classroom-1" } },
     }, "teacher")).toBe("/portal/teacher/classrooms/classroom-1");
   });
 

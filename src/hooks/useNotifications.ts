@@ -78,6 +78,10 @@ const teacherNotificationLink = (
   notification: Notification,
   target: string | undefined,
 ): string | undefined => {
+  if (notification.key === "TEACHER_ASSIGNMENT") {
+    return "/portal/teacher/classrooms";
+  }
+
   if (target === "teacher_payroll_statement") {
     const statementId = notificationParam(notification, "statementId");
     return statementId ? `/portal/teacher/payroll-statements/${encodeURIComponent(statementId)}` : "/portal/teacher/payroll";

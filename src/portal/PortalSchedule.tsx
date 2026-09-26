@@ -238,9 +238,7 @@ export default function PortalSchedule({
   const modeKey =
     role === "student"
       ? user?.registrationMode || "egyptian"
-      : user?.registrationModes?.length
-        ? user.registrationModes.join(",")
-        : "egyptian";
+      : "egyptian,gulf";
   const today = dateKey(new Date());
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),

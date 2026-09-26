@@ -30,8 +30,8 @@ import TeacherPayroll from "@/portal/TeacherPayroll";
 import TeacherPayrollStatementDetail from "@/portal/TeacherPayrollStatementDetail";
 import PortalGuard from "@/portal/PortalGuard";
 import PortalSchedule from "@/portal/PortalSchedule";
-import StudentSchedule from "@/portal/StudentSchedule";
-import StudentSessions from "@/portal/StudentSessions";
+import StudentClassrooms from "@/portal/StudentClassrooms";
+import StudentClassroomDetails from "@/portal/StudentClassroomDetails";
 import StudentAssignments from "@/portal/StudentAssignments";
 import StudentCertificates from "@/portal/StudentCertificates";
 import StudentEvaluationHistory from "@/portal/StudentEvaluationHistory";
@@ -95,6 +95,7 @@ import AdminStudentDetails from "@/admin/AdminStudentDetails";
 import AdminParents from "@/admin/AdminParents";
 import AdminParentDetails from "@/admin/AdminParentDetails";
 import AdminCatalog from "@/admin/AdminCatalog";
+import AdminGradeEdit from "@/admin/AdminGradeEdit";
 import AdminAssignments, { AdminAssignmentDetails, AdminAssignmentSubmissionDetails } from "@/admin/AdminAssignments";
 import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 
@@ -247,6 +248,10 @@ export default function App() {
                       element={<PortalGuard role="teacher"><TeacherSessionDetails /></PortalGuard>}
                     />
                     <Route
+                      path="/portal/teacher/classrooms/:classroomId/schedule"
+                      element={<PortalGuard role="teacher"><ClassroomScheduleManagement /></PortalGuard>}
+                    />
+                    <Route
                       path="/portal/teacher/courses"
                       element={<PortalGuard role="teacher"><TeacherCourses /></PortalGuard>}
                     />
@@ -322,17 +327,21 @@ export default function App() {
                       path="/portal/student/schedule"
                       element={
                         <PortalGuard role="student">
-                          <StudentSchedule />
+                          <PortalSchedule role="student" />
                         </PortalGuard>
                       }
                     />
                     <Route
-                      path="/portal/student/sessions"
+                      path="/portal/student/classrooms"
                       element={
                         <PortalGuard role="student">
-                          <StudentSessions />
+                          <StudentClassrooms />
                         </PortalGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/student/classrooms/:classroomId"
+                      element={<PortalGuard role="student"><StudentClassroomDetails /></PortalGuard>}
                     />
                     <Route
                       path="/portal/student/assignments"
@@ -484,6 +493,7 @@ export default function App() {
                     />
                     <Route path="/admin/catalog/curriculums" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
                     <Route path="/admin/catalog/grades" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
+                    <Route path="/admin/catalog/grades/:gradeId/edit" element={<AdminGuard><AdminGradeEdit /></AdminGuard>} />
                     <Route path="/admin/catalog/subjects" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
                     <Route path="/admin/catalog/packages" element={<AdminGuard><AdminCatalog /></AdminGuard>} />
                     <Route

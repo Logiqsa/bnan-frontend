@@ -91,6 +91,15 @@ export const chatApi = {
         data: Raw<Omit<ChatRoomSummary, "id">>[];
       }>("/chats/rooms")
     ).data.map(withId),
+  createSupportRoom: async () =>
+    withId(
+      (
+        await apiRequest<{ success: true; data: Raw<Omit<ChatRoomSummary, "id">> }>(
+          "/chats/support-room",
+          { method: "POST", body: JSON.stringify({}) },
+        )
+      ).data,
+    ),
   adminRooms: async (classroomId: string) => {
     const rooms: ChatRoomSummary[] = [];
     let page = 1;

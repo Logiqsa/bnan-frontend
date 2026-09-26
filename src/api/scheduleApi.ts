@@ -37,6 +37,7 @@ export interface GulfRoom {
   grade?: GulfEntity | null;
   curriculum?: GulfEntity | null;
   subject: GulfEntity | null;
+  teacher?: { id?: string; userId?: string; name?: string; fullName?: string } | null;
   classroomSubject: string | null;
   hasSubjectConflict?: boolean;
   schedule?: {
@@ -124,9 +125,9 @@ export async function getScheduleWeek(mode: RegistrationMode, weekStart: string)
   const result = await apiRequest<GulfResponse>(`/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
   const schedule = normalizeGulfSchedule(result.data);
   const lessons = schedule.classrooms.flatMap((room) => room.subject ? (room.schedule?.entries || []).map((entry, i) => ({
-    key: `gulf-${room.classroomSubject}-${entry.day}-${entry.startTime}-${i}`, registrationMode: mode,
+    key: `gulf-${room.classroomSubject}-${entry.day}-${entry.startTime}-${i}-${schedule.weekStart}`, registrationMode: mode,
     classroom: { id: room.id, name: room.name }, classroomSubjectId: room.classroomSubject || "",
-    subject: room.subject, day: entry.day, date: addDays(schedule.weekStart, DAY_INDEX[entry.day] ?? 0),
+    subject: room.subject, teacher: room.teacher, day: entry.day, date: addDays(schedule.weekStart, DAY_INDEX[entry.day] ?? 0),
     startTime: entry.startTime, endTime: entry.endTime, scheduledAt: null,
     activeSession: entry.activeSession ? {
       id: entry.activeSession.sessionId,

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   BookOpen,
   Boxes,
@@ -477,14 +477,18 @@ function CurriculumSelect({
 
 function Grades() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const curricula = useQuery({
     queryKey: ["admin-catalog", "curriculums"],
     queryFn: () => catalogApi.curriculums(),
   });
-  const [curriculum, setCurriculum] = useState("");
+  const [curriculum, setCurriculum] = useState(
+    () => searchParams.get("curriculumId") || "",
+  );
   const [studyLanguage, setStudyLanguage] = useState<
     EgyptianGradeLanguage | ""
-  >("");
+  >(() => (searchParams.get("studyLanguage") as EgyptianGradeLanguage) || "");
   const query = useQuery({
     queryKey: ["admin-catalog", "grades", curriculum],
     queryFn: () => catalogApi.grades(curriculum),
@@ -566,6 +570,12 @@ function Grades() {
     onError: (error) => toast.error(errorMessage(error)),
   });
   const begin = (item: GradeOption | "new") => {
+    if (item !== "new") {
+      navigate(
+        `/admin/catalog/grades/${encodeURIComponent(item.id)}/edit?curriculumId=${encodeURIComponent(curriculum)}${studyLanguage ? `&studyLanguage=${encodeURIComponent(studyLanguage)}` : ""}`,
+      );
+      return;
+    }
     setEditing(item);
     setName(item === "new" ? "" : item.name);
     setSubjectIds([]);

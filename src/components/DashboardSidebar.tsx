@@ -85,12 +85,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/subscriptions",
     },
     {
-      label: "الشهادات",
-      labelEn: "Certificates",
-      icon: Award,
-      path: "/admin/certificates",
-    },
-    {
       label: "المدفوعات",
       labelEn: "Payments",
       icon: Banknote,
@@ -185,18 +179,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Assign classes to Zoom",
       icon: Users,
       path: "/admin?tab=zoom-grades",
-    },
-    {
-      label: "ربط الفصول بـ Zoom",
-      labelEn: "Link classrooms to Zoom",
-      icon: Video,
-      path: "/admin/classroom-zoom",
-    },
-    {
-      label: "تسجيلات الفصل",
-      labelEn: "Class recordings",
-      icon: Calendar,
-      path: "/admin/classroom-sessions",
     },
     {
       label: "رفع تسجيل حصة",
@@ -323,10 +305,10 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/courses",
     },
     {
-      label: "تسجيلات الحصص",
-      labelEn: "Lesson recordings",
-      icon: Video,
-      path: "/portal/student/sessions",
+      label: "الفصول",
+      labelEn: "Classrooms",
+      icon: School,
+      path: "/portal/student/classrooms",
     },
     {
       label: "المواد",
@@ -353,22 +335,10 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/evaluations",
     },
     {
-      label: "الشهادات",
-      labelEn: "Certificates",
-      icon: Award,
-      path: "/portal/student/certificates",
-    },
-    {
       label: "الاشتراكات",
       labelEn: "Subscriptions",
       icon: CreditCard,
       path: "/portal/student/subscriptions",
-    },
-    {
-      label: "إضافة مادة",
-      labelEn: "Add subject",
-      icon: UserPlus,
-      path: "/portal/student/subjects/add",
     },
     {
       label: "طلبات المواد",
@@ -451,14 +421,11 @@ const adminNavOrder = [
   "/admin/classrooms",
   "/admin/courses",
   "/admin/catalog/curriculums",
-  "/admin/certificates",
   "/admin/subscriptions",
   "/admin/payments",
   "/admin/payroll",
   "/admin?tab=zoom-accounts",
   "/admin?tab=zoom-grades",
-  "/admin/classroom-zoom",
-  "/admin/classroom-sessions",
   "/admin/classroom-recordings",
   "/admin/notifications",
   "/admin/notifications/history",
@@ -507,7 +474,7 @@ export const isItemActive = (itemPath: string, pathname: string, search: string)
 const adminNavGroup = (path: string) => {
   if (path === "/admin") return { ar: "نظرة عامة", en: "Overview" };
   if (["/admin/messages", "/admin/classroom-change-requests", "/admin/teacher-assignment", "/admin/subject-requests"].includes(path) || path.includes("teacher-applications"))
-    return { ar: "التشغيل والطلبات", en: "Operations & requests" };
+    return { ar: "الرسائل والطلبات", en: "Messages & requests" };
   if (["all-users", "/admin/teachers", "/admin/students", "/admin/parents", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
     return { ar: "المستخدمون", en: "Users" };
   if (["/admin/classrooms", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests", "/admin/teacher-assignment"].some((part) => path.startsWith(part)))
@@ -539,6 +506,7 @@ const roleNavGroup = (role: string, path: string) => {
     if (path === "/portal/student") return { ar: "الرئيسية", en: "Overview" };
     if ([
       "/portal/student/courses",
+      "/portal/student/classrooms",
       "/portal/student/subjects",
       "/portal/student/schedule",
       "/portal/student/sessions",

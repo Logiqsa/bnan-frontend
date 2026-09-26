@@ -278,11 +278,11 @@ export default function CourseClassroomChat({
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <div className="flex h-[clamp(28rem,70vh,42rem)] min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="border-b bg-muted/30 p-3 font-semibold">
         {rooms.data?.displayName || "محادثة الدورة"}
       </div>
-      <div className="min-h-[55vh] flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-6">
         {messages.isLoading ? (
           <Loader2 className="mx-auto animate-spin" />
         ) : messages.data?.data.length ? (

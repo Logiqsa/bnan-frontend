@@ -22,8 +22,6 @@ describe("Admin sidebar classroom navigation", () => {
       "/admin/subscriptions",
       "/admin/subject-requests",
       "/admin/classroom-change-requests",
-      "/admin/classroom-zoom",
-      "/admin/classroom-sessions",
       "/admin/classroom-recordings",
       "/admin/notifications",
       "/admin/catalog/curriculums",
@@ -33,6 +31,9 @@ describe("Admin sidebar classroom navigation", () => {
     ]));
     expect(adminPaths()).not.toContain("/admin/assignments");
     expect(adminPaths()).not.toContain("/admin/gulf-subject-requests");
+    expect(adminPaths()).not.toContain("/admin/certificates");
+    expect(adminPaths()).not.toContain("/admin/classroom-sessions");
+    expect(adminPaths()).not.toContain("/admin/classroom-zoom");
   });
 
   it("highlights parent links for nested Teacher and Student pages", () => {
@@ -40,5 +41,8 @@ describe("Admin sidebar classroom navigation", () => {
     expect(isItemActive("/portal/teacher/courses", "/portal/teacher/courses/course-1/groups/group-1", "")).toBe(true);
     expect(isItemActive("/portal/student/courses", "/portal/student/courses/enrollment-1", "")).toBe(true);
     expect(isItemActive("/portal/student/subscriptions", "/portal/student/subscriptions/subscription-1/renew", "")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/classrooms" && item.label === "الفصول")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/sessions")).toBe(false);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/subjects/add")).toBe(false);
   });
 });

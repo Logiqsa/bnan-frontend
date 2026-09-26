@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { CalendarDays, CheckCircle2, ClipboardList, ExternalLink, FileUp, RefreshCw } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardList, FileUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import {
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 
 const formatDate = (value: string | null, locale: string) => {
   if (!value) return null;
@@ -67,7 +68,7 @@ function AssignmentCard({ assignment, highlighted }: { assignment: StudentAssign
         </dl>
 
         <div className="flex flex-wrap gap-2">
-          {assignment.attachment && <Button asChild variant="outline" size="sm"><a href={assignment.attachment} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />{pick("فتح مرفق الواجب", "Open assignment attachment")}</a></Button>}
+          {assignment.attachment && <AssignmentAttachmentPreview url={assignment.attachment} label={pick("معاينة مرفق الواجب", "Preview assignment attachment")} />}
         </div>
 
         {!assignment.submitted && (

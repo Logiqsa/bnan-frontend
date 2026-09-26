@@ -25,6 +25,7 @@ import {
 } from "@/api/teacherClassroomAssignmentsApi";
 import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
+import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -421,9 +422,7 @@ export default function TeacherClassroomSessions() {
                       <p className="text-sm text-muted-foreground">تاريخ التسليم: {formatDate(assignment.dueDate)}</p>
                       {assignment.description && <p className="whitespace-pre-wrap text-sm">{assignment.description}</p>}
                       {assignment.attachment && (
-                        <Button asChild variant="outline">
-                          <a href={assignment.attachment} target="_blank" rel="noreferrer">فتح المرفق</a>
-                        </Button>
+                        <AssignmentAttachmentPreview url={assignment.attachment} label="معاينة المرفق" />
                       )}
                     </CardContent>
                   </Card>

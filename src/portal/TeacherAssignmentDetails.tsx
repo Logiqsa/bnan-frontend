@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, ExternalLink, FileText, RefreshCw } from "lucide-react";
+import { ArrowRight, FileText, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { teacherClassroomAssignmentsApi } from "@/api/teacherClassroomAssignmentsApi";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 
 const nameOf = (value: unknown) => typeof value === "string" ? value : value && typeof value === "object" ? (value as { name?: string }).name || "" : "";
 
@@ -46,13 +47,13 @@ export default function TeacherAssignmentDetails() {
     <header className="rounded-2xl border bg-card p-5 shadow-sm">
       <Button asChild variant="outline"><Link to={item.classroomSubject?.classroom?.id || item.classroomSubject?.classroom?._id ? `/portal/teacher/classrooms/${item.classroomSubject.classroom.id || item.classroomSubject.classroom._id}` : "/portal/teacher/classrooms"}><ArrowRight className="me-2 h-4 w-4" />العودة للفصل</Link></Button>
       <div className="mt-5 flex items-start justify-between gap-4"><div><p className="text-sm text-primary">{nameOf(item.subject) || nameOf(item.classroomSubject?.subject)}</p><h1 className="mt-1 text-2xl font-bold">{item.title}</h1><p className="mt-2 whitespace-pre-wrap text-muted-foreground">{item.description || "لا يوجد وصف للواجب."}</p></div><FileText className="h-8 w-8 text-primary" /></div>
-      <div className="mt-4 flex flex-wrap gap-2"><Badge variant="outline">الدرجة الكاملة: {item.totalPoints}</Badge><Badge variant="outline">موعد التسليم: {new Date(item.dueDate).toLocaleString("ar-EG")}</Badge>{item.attachment && <Button asChild size="sm" variant="outline"><a href={item.attachment} target="_blank" rel="noreferrer"><ExternalLink className="me-2 h-4 w-4" />فتح المرفق</a></Button>}</div>
+      <div className="mt-4 flex flex-wrap gap-2"><Badge variant="outline">الدرجة الكاملة: {item.totalPoints}</Badge><Badge variant="outline">موعد التسليم: {new Date(item.dueDate).toLocaleString("ar-EG")}</Badge>{item.attachment && <AssignmentAttachmentPreview url={item.attachment} label="معاينة مرفق الواجب" />}</div>
     </header>
     <Card><CardHeader><CardTitle>تسليمات الطلاب</CardTitle></CardHeader><CardContent>
       {submissions.isPending ? <Skeleton className="h-40 rounded-xl" /> : submissions.isError ? <div className="flex items-center justify-between"><p className="text-destructive">تعذر تحميل التسليمات.</p><Button variant="outline" onClick={() => void submissions.refetch()} disabled={submissions.isFetching}><RefreshCw className="me-2 h-4 w-4" />إعادة المحاولة</Button></div> : !submissions.data?.data.length ? <p className="text-muted-foreground">لا يوجد طلاب مرتبطون بهذا الواجب.</p> : <div className="space-y-3">{submissions.data.data.map((student) => {
         const existingScore = student.submission?.score;
         const score = scores[student.studentId] ?? (existingScore == null ? "" : String(existingScore));
-        return <div key={student.studentId} className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{student.fullName}</p><p className="text-sm text-muted-foreground">{student.hasSubmitted ? student.submissionStatus === "reviewed" ? `تمت المراجعة: ${existingScore ?? "—"}` : "تم التسليم" : "لم يتم التسليم"}</p>{student.submission?.attachment && <a className="mt-1 inline-block text-sm text-primary hover:underline" href={student.submission.attachment} target="_blank" rel="noreferrer">فتح إجابة الطالب</a>}</div>{student.submission?.id && <div className="flex items-center gap-2"><Input className="w-24" type="number" min="0" max={item.totalPoints} value={score} aria-label={`درجة ${student.fullName}`} onChange={(event) => setScores((current) => ({ ...current, [student.studentId]: event.target.value }))} /><Button disabled={review.isPending || score === ""} onClick={() => review.mutate({ submissionId: student.submission!.id, score: Number(score) })}>حفظ الدرجة</Button></div>}</div>;
+        return <div key={student.studentId} className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{student.fullName}</p><p className="text-sm text-muted-foreground">{student.hasSubmitted ? student.submissionStatus === "reviewed" ? `تمت المراجعة: ${existingScore ?? "—"}` : "تم التسليم" : "لم يتم التسليم"}</p>{student.submission?.attachment && <AssignmentAttachmentPreview url={student.submission.attachment} label="معاينة إجابة الطالب" />}</div>{student.submission?.id && <div className="flex items-center gap-2"><Input className="w-24" type="number" min="0" max={item.totalPoints} value={score} aria-label={`درجة ${student.fullName}`} onChange={(event) => setScores((current) => ({ ...current, [student.studentId]: event.target.value }))} /><Button disabled={review.isPending || score === ""} onClick={() => review.mutate({ submissionId: student.submission!.id, score: Number(score) })}>حفظ الدرجة</Button></div>}</div>;
       })}</div>}
     </CardContent></Card>
   </div></DashboardLayout>;

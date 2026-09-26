@@ -73,4 +73,28 @@ describe("adminUsersApi", () => {
     expect(apiRequest).toHaveBeenNthCalledWith(1, "/users?page=1&limit=100&role=teacher&isVerified=false");
     expect(apiRequest).toHaveBeenNthCalledWith(2, "/users?page=2&limit=100&role=teacher&isVerified=false");
   });
+
+  it("keeps the User id and exposes the Teacher profile id separately", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      success: true,
+      data: [{
+        id: "teacher-profile-1",
+        status: "approved",
+        user: { id: "user-1", fullName: "المعلم", email: "teacher@example.com", role: "teacher" },
+      }],
+      currentPage: 1,
+      totalPages: 1,
+      hasNextPage: false,
+    });
+
+    await expect(adminUsersApi.listAllWithTeacherProfiles()).resolves.toEqual([
+      expect.objectContaining({
+        id: "user-1",
+        teacherId: "teacher-profile-1",
+        fullName: "المعلم",
+        teacherStatus: "approved",
+      }),
+    ]);
+    expect(apiRequest).toHaveBeenCalledWith("/teachers?page=1&limit=100");
+  });
 });

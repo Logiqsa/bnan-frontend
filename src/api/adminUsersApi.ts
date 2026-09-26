@@ -16,6 +16,7 @@ export interface AdminUserReference {
 
 export interface AdminUser {
   id: string;
+  teacherId?: string;
   _id?: string;
   fullName?: string;
   email?: string;
@@ -62,6 +63,12 @@ export interface RegenerateVerificationCodeResponse {
 type AdminUserPayload = Omit<AdminUser, "id"> & { id?: string; _id?: string };
 type AdminUserEnvelope = AdminUserPayload & { user?: AdminUserPayload };
 type AdminUsersPayload = Omit<AdminUsersResponse, "data"> & { data: AdminUserPayload[] };
+type AdminTeacherPayload = {
+  id?: string;
+  _id?: string;
+  status?: AdminUser["teacherStatus"];
+  user?: AdminUserPayload;
+};
 
 const normalizeUser = (item: AdminUserPayload): AdminUser => ({
   ...item,
@@ -69,6 +76,16 @@ const normalizeUser = (item: AdminUserPayload): AdminUser => ({
 });
 
 const normalizeUserEnvelope = (item: AdminUserEnvelope): AdminUser => normalizeUser(item.user || item);
+
+const normalizeTeacher = (item: AdminTeacherPayload): AdminUser => {
+  const user = normalizeUser(item.user || {});
+  return {
+    ...user,
+    teacherId: item.id || item._id || "",
+    teacherStatus: item.status,
+    role: "teacher",
+  };
+};
 
 const normalizeList = (result: AdminUsersPayload, requestedLimit = 20): AdminUsersResponse => ({
   ...result,
@@ -108,6 +125,22 @@ export const adminUsersApi = {
     }
 
     return [...users.values()];
+  },
+  listAllWithTeacherProfiles: async () => {
+    const teachers = new Map<string, AdminUser>();
+    let page = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+      const result = await apiRequest<AdminUsersResponse & { data: AdminTeacherPayload[] }>(
+        `/teachers?page=${page}&limit=100`,
+      );
+      result.data.map(normalizeTeacher).forEach((teacher) => teachers.set(teacher.id, teacher));
+      hasNextPage = result.data.length > 0 && Boolean(result.hasNextPage);
+      page += 1;
+    }
+
+    return [...teachers.values()];
   },
   get: async (id: string) => {
     const result = await apiRequest<{ success: true; data: AdminUserEnvelope | AdminUserEnvelope[] }>(`/users/${id}`);

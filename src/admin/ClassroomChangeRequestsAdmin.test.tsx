@@ -9,13 +9,13 @@ Element.prototype.scrollIntoView = vi.fn();
 Object.assign(globalThis, { ResizeObserver: class { observe() {} unobserve() {} disconnect() {} } });
 
 const mocks = vi.hoisted(() => ({
-  list: vi.fn(), get: vi.fn(), approve: vi.fn(), reject: vi.fn(), listAll: vi.fn(),
+  list: vi.fn(), get: vi.fn(), approve: vi.fn(), reject: vi.fn(), listAllWithTeacherProfiles: vi.fn(),
 }));
 
 vi.mock("@/api/adminClassroomChangeRequestsApi", () => ({
   adminClassroomChangeRequestsApi: { list: mocks.list, get: mocks.get, approve: mocks.approve, reject: mocks.reject },
 }));
-vi.mock("@/api/adminUsersApi", () => ({ adminUsersApi: { listAll: mocks.listAll } }));
+vi.mock("@/api/adminUsersApi", () => ({ adminUsersApi: { listAllWithTeacherProfiles: mocks.listAllWithTeacherProfiles } }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
 
 const request = (requestType: "change_teacher" | "teacher_leave" | "cancel_subject") => ({
@@ -26,7 +26,7 @@ const request = (requestType: "change_teacher" | "teacher_leave" | "cancel_subje
 const renderPage = async (item = request("change_teacher")) => {
   mocks.list.mockResolvedValue({ success: true, data: [item], total: 1 });
   mocks.get.mockResolvedValue({ success: true, data: item });
-  mocks.listAll.mockResolvedValue([{ id: "replacement-1", fullName: "المعلم البديل", teacherStatus: "approved" }]);
+  mocks.listAllWithTeacherProfiles.mockResolvedValue([{ id: "user-replacement-1", teacherId: "replacement-1", fullName: "المعلم البديل", teacherStatus: "approved" }]);
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><ClassroomChangeRequestsAdmin /></MemoryRouter></QueryClientProvider>);
   await screen.findByText("قائمة الطلبات");
   fireEvent.click(screen.getByRole("button", { name: "التفاصيل" }));

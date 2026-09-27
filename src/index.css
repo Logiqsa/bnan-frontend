@@ -325,7 +325,10 @@
   grid-column: 2;
 }
 
-@media (max-width: 639px) {
+/* The portal content can become narrow before the viewport itself is mobile
+   because the dashboard sidebar remains visible. Stack the schedule panels
+   before the calendar columns become unreadable. */
+@media (max-width: 1023px) {
   .portal-schedule-layout {
     display: block;
   }
@@ -333,5 +336,16 @@
   .portal-calendar-panel {
     border-right: 0;
     border-bottom: 1px solid hsl(var(--border));
+  }
+}
+
+@media (max-width: 639px) {
+  .portal-schedule-layout {
+    min-height: 0;
+  }
+
+  .portal-calendar-panel,
+  .portal-lessons-panel {
+    padding: 1rem;
   }
 }

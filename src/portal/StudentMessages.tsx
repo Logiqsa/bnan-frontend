@@ -191,8 +191,8 @@ const StudentMessages = () => {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto flex h-[calc(100dvh-9rem)] min-h-0 w-full max-w-7xl flex-col gap-4 md:h-[calc(100dvh-7rem)]">
-        <header className="shrink-0 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mx-auto flex h-[calc(100dvh-5rem)] min-h-0 w-full max-w-7xl flex-col gap-2 md:h-[calc(100dvh-7rem)] md:gap-4">
+        <header className="hidden shrink-0 rounded-2xl border bg-card p-5 shadow-sm md:block sm:p-6">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
               <MessagesSquare className="h-6 w-6" />

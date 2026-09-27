@@ -413,19 +413,7 @@ export default function TeacherClassroomSessions() {
                 {assignments.data.map((assignment) => (
                   <Card
                     key={assignment.id}
-                    role="link"
-                    tabIndex={0}
-                    className="cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    onClick={(event) => {
-                      if ((event.target as HTMLElement).closest("button,a,input")) return;
-                      navigate(`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        navigate(`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`);
-                      }
-                    }}
+                    className="transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <CardContent className="space-y-3 p-5">
                       <div className="flex items-start justify-between gap-3">
@@ -435,9 +423,10 @@ export default function TeacherClassroomSessions() {
                       {assignmentSubject(assignment) && <p className="text-sm text-muted-foreground">المادة: {assignmentSubject(assignment)}</p>}
                       <p className="text-sm text-muted-foreground">تاريخ التسليم: {formatDate(assignment.dueDate)}</p>
                       {assignment.description && <p className="whitespace-pre-wrap text-sm">{assignment.description}</p>}
-                      {assignment.attachment && (
-                        <AssignmentAttachmentPreview url={assignment.attachment} label="معاينة المرفق" />
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/portal/teacher/assignments/${encodeURIComponent(assignment.id)}`)}>عرض التسليمات</Button>
+                        {assignment.attachment && <AssignmentAttachmentPreview url={assignment.attachment} label="معاينة المرفق" />}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

@@ -58,6 +58,7 @@ const renderPage = () => {
         <LanguageProvider>
           <Routes>
             <Route path="/portal/teacher/classrooms/:classroomId" element={<TeacherClassroomSessions />} />
+            <Route path="/portal/teacher/assignments/:assignmentId" element={<div>تفاصيل التسليمات</div>} />
           </Routes>
         </LanguageProvider>
       </QueryClientProvider>
@@ -123,5 +124,37 @@ describe("TeacherClassroomSessions classroom details", () => {
     openTab(/الجدول/);
     expect(await screen.findByText("جدول الفصل التجريبي")).toBeInTheDocument();
     expect(mocks.assignments).toHaveBeenCalledWith("classroom-1");
+  });
+
+  it("does not navigate when clicking an assignment card", async () => {
+    mocks.assignments.mockResolvedValueOnce({ data: [{
+      id: "assignment-1",
+      title: "واجب الفصل",
+      dueDate: "2030-01-01T10:00:00.000Z",
+      totalPoints: 10,
+    }] });
+
+    renderPage();
+    openTab(/الواجبات/);
+
+    const title = await screen.findByText("واجب الفصل");
+    fireEvent.click(title);
+
+    expect(screen.getByText("واجب الفصل")).toBeInTheDocument();
+  });
+
+  it("opens assignment submissions only from the submissions button", async () => {
+    mocks.assignments.mockResolvedValueOnce({ data: [{
+      id: "assignment-1",
+      title: "واجب التسليمات",
+      dueDate: "2030-01-01T10:00:00.000Z",
+      totalPoints: 10,
+    }] });
+
+    renderPage();
+    openTab(/الواجبات/);
+    fireEvent.click(await screen.findByRole("button", { name: "عرض التسليمات" }));
+
+    expect(await screen.findByText("تفاصيل التسليمات")).toBeInTheDocument();
   });
 });

@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/api/teacherPayoutProfileApi", () => ({ teacherPayoutProfileApi: { get: mocks.payout } }));
-vi.mock("@/contexts/notifications-context", () => ({ useNotificationsContext: () => mocks.notifications() }));
 vi.mock("@/api/coursesApi", () => ({ coursesApi: { myTeachingCourses: mocks.courses } }));
 vi.mock("@/api/teacherRequestsApi", () => ({
   teacherPendingRequestsPageQueryKey: () => ["teacher-pending-requests"],
@@ -22,7 +21,14 @@ vi.mock("@/api/teacherRequestsApi", () => ({
 }));
 vi.mock("@/hooks/useTeacherUpcomingSessions", () => ({ useTeacherUpcomingSessions: () => mocks.sessions() }));
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { fullName: "معلم" } }) }));
-vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
+vi.mock("@/layouts/DashboardLayout", async () => {
+  const { NotificationsContext } = await import("@/contexts/notifications-context");
+  return {
+    default: ({ children }: { children: React.ReactNode }) => (
+      <NotificationsContext.Provider value={mocks.notifications()}><main>{children}</main></NotificationsContext.Provider>
+    ),
+  };
+});
 
 const renderPage = () => render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -30,7 +36,7 @@ const renderPage = () => render(
   </QueryClientProvider>,
 );
 
-describe("TeacherDashboard to-do card", () => {
+describe("TeacherDashboard notifications provider and to-do card", () => {
   beforeEach(() => {
     mocks.payout.mockReset();
     mocks.notifications.mockReset().mockReturnValue({ items: [] });
@@ -46,7 +52,7 @@ describe("TeacherDashboard to-do card", () => {
     expect(screen.getByRole("link", { name: "إضافة البيانات" })).toHaveAttribute("href", "/portal/teacher/settings");
   });
 
-  it("hides payout setup and shows pending grading tasks", async () => {
+  it("reads notifications from the existing layout provider and shows pending grading tasks", async () => {
     mocks.payout.mockResolvedValue({ method: "wallet", accountHolderName: "معلم" });
     mocks.notifications.mockReturnValue({ items: [{
       id: "notification-1",

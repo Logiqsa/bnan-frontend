@@ -29,7 +29,7 @@ import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
 
-const TeacherDashboard = () => {
+const TeacherDashboardContent = () => {
   const { user } = usePortalAuth();
   const { pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
@@ -116,7 +116,6 @@ const TeacherDashboard = () => {
   const dateLocale = pick("ar-EG-u-ca-gregory", "en-US-u-ca-gregory");
 
   return (
-    <DashboardLayout>
       <div className="mx-auto w-full max-w-7xl space-y-6">
         <header className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-4">
@@ -618,8 +617,11 @@ const TeacherDashboard = () => {
           </Card>
         </section>
       </div>
-    </DashboardLayout>
   );
 };
+
+const TeacherDashboard = () => (
+  <DashboardLayout><TeacherDashboardContent /></DashboardLayout>
+);
 
 export default TeacherDashboard;

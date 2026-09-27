@@ -8,7 +8,6 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 const mocks = vi.hoisted(() => ({
   getClassroom: vi.fn(), listSubjects: vi.fn(), listStudents: vi.fn(),
   listSessions: vi.fn(), listRecordings: vi.fn(), getSession: vi.fn(), getSessionReport: vi.fn(),
-  listEvaluations: vi.fn(), getEvaluation: vi.fn(),
   listAssignments: vi.fn(), getAssignment: vi.fn(), listSubmissions: vi.fn(), getSubmission: vi.fn(),
   listAttendance: vi.fn(),
 }));
@@ -19,7 +18,6 @@ vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: {
   listSessions: mocks.listSessions, listRecordings: mocks.listRecordings,
   getSession: mocks.getSession, getSessionReport: mocks.getSessionReport,
 } }));
-vi.mock("@/api/adminEvaluationsApi", () => ({ adminEvaluationsApi: { listEvaluations: mocks.listEvaluations, getEvaluation: mocks.getEvaluation } }));
 vi.mock("@/api/adminAssignmentsApi", () => ({ adminAssignmentsApi: { listAssignments: mocks.listAssignments, getAssignment: mocks.getAssignment, listSubmissions: mocks.listSubmissions, getSubmission: mocks.getSubmission } }));
 vi.mock("@/api/adminClassroomAttendanceApi", () => ({ adminClassroomAttendanceApi: { listClassroomAttendance: mocks.listAttendance } }));
 vi.mock("@/admin/AdminClassroomChat", () => ({
@@ -57,8 +55,6 @@ describe("AdminClassroomHub", () => {
     mocks.listRecordings.mockResolvedValue({ success: true, data: [] });
     mocks.getSession.mockResolvedValue({ success: true, data: { id: "s1", title: "الحصة الأولى", status: "completed", startAt: "2026-09-24T10:00:00.000Z" } });
     mocks.getSessionReport.mockResolvedValue({ success: true, pagination: { currentPage: 1, perPage: 50, total: 2, lastPage: 1 }, data: { sessionId: "s1", status: "ready", participants: [] } });
-    mocks.listEvaluations.mockResolvedValue({ success: true, results: 0, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
-    mocks.getEvaluation.mockResolvedValue({ success: true, data: { id: "e1" } });
     mocks.listAssignments.mockResolvedValue({ success: true, results: 0, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
     mocks.getAssignment.mockResolvedValue({ success: true, data: { id: "a1", title: "واجب الرياضيات", status: "active" } });
     mocks.listSubmissions.mockResolvedValue({ success: true, results: 0, assignment: { id: "a1" }, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
@@ -137,16 +133,6 @@ describe("AdminClassroomHub", () => {
     expect(screen.queryByRole("link", { name: /إدارة ورفع التسجيلات/ })).not.toBeInTheDocument();
     await act(async () => { screen.getByRole("button", { name: /تشغيل التسجيل/ }).click(); });
     expect(await screen.findByRole("dialog", { name: /تشغيل تسجيل الرياضيات/ })).toBeInTheDocument();
-  });
-
-  it("loads classroom-scoped evaluations lazily and sends filters when selected", async () => {
-    mocks.listEvaluations.mockResolvedValue({ success: true, results: 1, data: [{ id: "e1", student: { id: "st1", user: { fullName: "طالب أول" } }, subject: { id: "sub1", name: "رياضيات" }, weekStart: "2026-09-21T00:00:00.000Z", attendance: "present", participation: "good", homework: "very_good", behavior: "excellent", bonus: 2, notes: "ممتاز" }], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 1 } });
-    renderPage("/admin/classrooms/c1?tab=evaluations");
-    await waitFor(() => expect(mocks.listEvaluations).toHaveBeenCalledWith(expect.objectContaining({ classroom: "c1", page: 1, limit: 20 })));
-    expect(await screen.findByText("طالب أول")).toBeInTheDocument();
-    expect(screen.queryByText("نسبة")).not.toBeInTheDocument();
-    screen.getByRole("button", { name: /التفاصيل/ }).click();
-    expect(await screen.findByText("تفاصيل التقييم")).toBeInTheDocument();
   });
 
   it("loads classroom-scoped assignments lazily and opens read-only assignment details", async () => {

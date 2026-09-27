@@ -201,7 +201,7 @@ describe("useNotifications", () => {
           subjectId: "subject-1",
         },
       },
-    }, "teacher")).toBe("/portal/teacher/classrooms");
+    }, "teacher")).toBe("/portal/teacher/classrooms/classroom-1");
   });
 
   it("keeps non-assignment classroom notifications on their existing route", () => {
@@ -258,6 +258,20 @@ describe("useNotifications", () => {
 
   it("routes homework notifications to the matching student assignment", () => {
     expect(notificationLink({ ...stored, key: "HOMEWORK_CREATED", navigation: { target: "assignment_details", params: { assignmentId: "assignment-1" } } }, "student")).toBe("/portal/student/assignments?assignmentId=assignment-1");
+  });
+
+  it("routes classroom acceptance and recording notifications to the student classroom", () => {
+    const classroomId = "classroom-1";
+    expect(notificationLink({
+      ...stored,
+      key: "STUDENT_ACCEPTED_IN_CLASSROOM",
+      navigation: { target: "classroom_details", params: { classroomId } },
+    }, "student")).toBe(`/portal/student/classrooms/${classroomId}`);
+    expect(notificationLink({
+      ...stored,
+      key: "RECORDING_READY",
+      navigation: { target: "classroom_details", params: { classroomId } },
+    }, "student")).toBe(`/portal/student/classrooms/${classroomId}`);
   });
 
   it("removes every realtime listener on unmount", async () => {

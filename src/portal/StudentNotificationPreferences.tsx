@@ -28,7 +28,7 @@ const categories: Array<{
 }> = [
   { key: "announcements", label: "الإعلانات", labelEn: "Announcements", description: "إعلانات المنصة والأخبار العامة.", descriptionEn: "Platform announcements and general updates." },
   { key: "attendance", label: "الحضور والغياب", labelEn: "Attendance", description: "تنبيهات الغياب والتأخير المرتبطة بحصصك.", descriptionEn: "Absence and late-arrival alerts for your sessions." },
-  { key: "academic", label: "الإشعارات الأكاديمية", labelEn: "Academic notifications", description: "الحصص والجداول والواجبات والتقييمات والشهادات والأداء وتغيير المعلم.", descriptionEn: "Sessions, schedules, homework, evaluations, certificates, performance, and teacher changes." },
+  { key: "academic", label: "الإشعارات الأكاديمية", labelEn: "Academic notifications", description: "الحصص والجداول والواجبات والشهادات وتغيير المعلم.", descriptionEn: "Sessions, schedules, homework, certificates, and teacher changes." },
   { key: "finance", label: "المدفوعات والاشتراكات", labelEn: "Payments and subscriptions", description: "التنبيهات المتعلقة بالدفع وحالة الاشتراكات.", descriptionEn: "Payment and subscription status alerts." },
   { key: "admin", label: "الإشعارات الإدارية", labelEn: "Administrative notifications", description: "القرارات والتنبيهات الإدارية المرتبطة بحسابك.", descriptionEn: "Administrative decisions and account-related notices." },
   { key: "supervisor", label: "إشعارات المشرف", labelEn: "Supervisor notifications", description: "التنبيهات المتعلقة بمتابعة المشرف.", descriptionEn: "Alerts related to supervisor follow-up." },

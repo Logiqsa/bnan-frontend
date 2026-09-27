@@ -24,7 +24,6 @@ const renderStudentRoute = (path = "/portal/student") => render(
       <Route path="/portal/student/sessions" element={<PortalGuard role="student"><div>student sessions</div></PortalGuard>} />
       <Route path="/portal/student/assignments" element={<PortalGuard role="student"><div>student assignments</div></PortalGuard>} />
       <Route path="/portal/student/certificates" element={<PortalGuard role="student"><div>student certificates</div></PortalGuard>} />
-      <Route path="/portal/student/evaluations" element={<PortalGuard role="student"><div>student evaluations</div></PortalGuard>} />
       <Route path="/portal/login" element={<div>portal login</div>} />
       <Route path="/portal/teacher" element={<div>teacher dashboard</div>} />
       <Route path="/admin" element={<div>admin dashboard</div>} />
@@ -49,7 +48,7 @@ describe("Student dashboard route", () => {
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/change-requests" && item.label === "طلبات تغيير المعلم")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/assignments" && item.label === "الواجبات")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/certificates")).toBe(false);
-    expect(roleNavItems.student.some((item) => item.path === "/portal/student/evaluations" && item.label === "تقييماتي")).toBe(true);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/evaluations")).toBe(false);
   });
 
   it("redirects an unauthenticated visitor to login", () => {
@@ -140,12 +139,6 @@ describe("Student dashboard route", () => {
     vi.mocked(usePortalAuth).mockReturnValue({ user: { id: "s1", role: "student" }, loading: false } as ReturnType<typeof usePortalAuth>);
     renderStudentRoute("/portal/student/certificates");
     expect(screen.getByText("student certificates")).toBeInTheDocument();
-  });
-
-  it("protects and renders the Student evaluations route", () => {
-    vi.mocked(usePortalAuth).mockReturnValue({ user: { id: "s1", role: "student" }, loading: false } as ReturnType<typeof usePortalAuth>);
-    renderStudentRoute("/portal/student/evaluations");
-    expect(screen.getByText("student evaluations")).toBeInTheDocument();
   });
 
   it.each([

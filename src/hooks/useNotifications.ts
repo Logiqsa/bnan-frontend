@@ -87,7 +87,10 @@ const teacherNotificationLink = (
   target: string | undefined,
 ): string | undefined => {
   if (notification.key === "TEACHER_ASSIGNMENT") {
-    return "/portal/teacher/classrooms";
+    const classroomId = notificationParam(notification, "classroomId");
+    return classroomId
+      ? `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}`
+      : "/portal/teacher/classrooms";
   }
 
   if (target === "assignment_submissions" || notification.key === "ASSIGNMENT_SUBMITTED") {
@@ -153,6 +156,12 @@ export const notificationLink = (
       typeof target === "string" ? target : undefined,
     );
   if (role === "student") {
+    if (target === "classroom_details") {
+      const classroomId = notificationParam(notification, "classroomId");
+      return classroomId
+        ? `/portal/student/classrooms/${encodeURIComponent(classroomId)}`
+        : "/portal/student/classrooms";
+    }
     if (target === "assignment_details" || notification.key === "HOMEWORK_CREATED" || notification.key === "HOMEWORK_GRADED") {
       return assignmentNotificationLink(notification);
     }

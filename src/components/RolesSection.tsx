@@ -4,7 +4,7 @@ import { UserCheck, GraduationCap, Users, ShieldCheck, Calculator, Settings } fr
 const roles = [
   { icon: GraduationCap, title: "الطالب", description: "حضور الحصص، حل الواجبات، مشاهدة التسجيلات، متابعة الدرجات" },
   { icon: Users, title: "ولي الأمر", description: "متابعة مستوى الأبناء، التقارير الأسبوعية، التواصل مع المعلمين" },
-  { icon: UserCheck, title: "المعلم", description: "إدارة الحصص، تصحيح الواجبات، إعداد التقييمات والتقارير" },
+  { icon: UserCheck, title: "المعلم", description: "إدارة الحصص، تصحيح الواجبات، وإعداد التقارير" },
   { icon: ShieldCheck, title: "المشرف", description: "مراقبة الأداء العام، إدارة المعلمين، تقارير الجودة" },
   { icon: Calculator, title: "المحاسب", description: "إدارة المدفوعات، الفواتير، التقارير المالية، الخصومات" },
   { icon: Settings, title: "الأدمن", description: "إدارة كاملة للمنصة، الصلاحيات، الإعدادات العامة" },

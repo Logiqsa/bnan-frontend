@@ -67,7 +67,6 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
               {[
                 { label: pick("المناهج", "Curricula"), href: "/#curricula" },
                 { label: pick("المميزات", "Features"), href: "/#features" },
-                { label: pick("آراء العملاء", "Testimonials"), href: "/#testimonials" },
                 { label: pick("تواصل معنا", "Contact us"), href: "/#contact" },
                 { label: pick("سياسة الخصوصية", "Privacy Policy"), href: "/privacy-policy" },
                 { label: pick("الشروط والأحكام", "Terms & Conditions"), href: "/terms-and-conditions" },

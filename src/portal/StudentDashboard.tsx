@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, BookOpen, GraduationCap, RefreshCw, UserCheck } from "lucide-react";
+import { BookOpen, GraduationCap, RefreshCw, UserCheck } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { studentHomeApi, studentHomeQueryKey, type StudentHomeSubscriptionSummary } from "@/api/studentHomeApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,11 +76,9 @@ export default function StudentDashboard() {
   if (query.isLoading) return <StudentDashboardSkeleton />;
   if (query.isError || !query.data) return <DashboardLayout><div className="mx-auto grid min-h-[60vh] max-w-3xl place-items-center"><Card className="w-full"><CardContent className="flex flex-col items-center gap-4 p-8 text-center"><p className="font-semibold text-destructive">تعذر تحميل بيانات لوحة الطالب</p><Button onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />إعادة المحاولة</Button></CardContent></Card></div></DashboardLayout>;
 
-  const { student, stats, weeklyEvaluation } = query.data;
+  const { student, stats } = query.data;
   const subscriptions = query.data.subscriptions?.length ? query.data.subscriptions : query.data.subscription ? [query.data.subscription] : [];
   const attendance = stats?.attendance;
-  const interaction = stats?.interaction;
-  const hasWeeklyEvaluation = Boolean(weeklyEvaluation && (weeklyEvaluation.evaluationsCount ?? 0) > 0);
   const curriculumGrade = [student.curriculum?.name, student.grade?.name].filter(Boolean).join(" • ");
 
   return <DashboardLayout><div className="mx-auto w-full max-w-7xl space-y-3">
@@ -89,8 +87,6 @@ export default function StudentDashboard() {
       <Card className="min-w-0 shadow-sm"><CardHeader className="flex-row items-center justify-between gap-3 p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><BookOpen className="h-5 w-5 text-primary" />ملخص الاشتراك</CardTitle><Button asChild size="sm" variant="ghost"><Link to="/portal/student/subscriptions">عرض التفاصيل</Link></Button></CardHeader><CardContent className="space-y-3 px-4 pb-4">{subscriptions.length ? <>{subscriptions.length > 1 && <p className="text-sm text-muted-foreground">تظهر الاشتراكات بالترتيب الوارد من النظام، وأولها هو أحدث اشتراك.</p>}{subscriptions.map((item, index) => item.summary ? <SubscriptionCard key={item.id || index} summary={item.summary} latest={index === 0} /> : null)}</> : <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">لا يوجد اشتراك حالي</p>}</CardContent></Card>
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         <Card className="min-w-0 shadow-sm"><CardHeader className="p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><UserCheck className="h-5 w-5 text-primary" />الحضور</CardTitle></CardHeader><CardContent className="px-4 pb-4">{attendance ? <div className="space-y-3"><div className="rounded-xl bg-primary/5 p-3 text-center"><p className="text-xs text-muted-foreground">نسبة الحضور</p><p className="mt-0.5 text-2xl font-bold text-primary">{typeof attendance.percentage === "number" ? `${number(attendance.percentage)}%` : "غير متاحة حاليًا"}</p></div><div className="grid grid-cols-2 gap-2"><Metric label="الإجمالي" value={attendance.total} /><Metric label="حاضر" value={attendance.present} /><Metric label="متأخر" value={attendance.late} /><Metric label="غائب" value={attendance.absent} /></div></div> : <p className="text-sm text-muted-foreground">بيانات الحضور غير متاحة حاليًا</p>}</CardContent></Card>
-        <Card className="min-w-0 shadow-sm"><CardHeader className="flex-row items-center justify-between gap-2 p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="h-5 w-5 text-primary" />التقييم الأسبوعي</CardTitle><Button asChild size="sm" variant="ghost" className="h-auto px-2 py-1 text-xs"><Link to="/portal/student/evaluations">عرض سجل التقييمات</Link></Button></CardHeader><CardContent className="px-4 pb-4">{hasWeeklyEvaluation ? <div className="space-y-2"><div className="grid grid-cols-2 gap-2"><Metric label="الحضور" value={weeklyEvaluation?.attendancePercentage} /><Metric label="المشاركة" value={weeklyEvaluation?.participationPercentage} /><Metric label="الواجب" value={weeklyEvaluation?.homeworkPercentage} /><Metric label="السلوك" value={weeklyEvaluation?.behaviorPercentage} /></div>{typeof weeklyEvaluation?.bonusPoints === "number" && <p className="text-xs">نقاط إضافية: <strong>{number(weeklyEvaluation.bonusPoints)}</strong></p>}{weeklyEvaluation?.teacherNote && <p className="break-words rounded-xl bg-muted/50 p-2 text-xs">{weeklyEvaluation.teacherNote}</p>}</div> : <p className="text-sm text-muted-foreground">لا يوجد تقييم أسبوعي متاح حاليًا</p>}</CardContent></Card>
-        <Card className="min-w-0 shadow-sm"><CardHeader className="p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><UserCheck className="h-5 w-5 text-primary" />التفاعل</CardTitle></CardHeader><CardContent className="px-4 pb-4">{interaction && (typeof interaction.score === "number" || typeof interaction.evaluationsCount === "number") ? <div className="grid grid-cols-2 gap-2"><Metric label="التقييم" value={interaction.score} /><Metric label="الحد الأقصى" value={interaction.maxScore} /><Metric label="عدد التقييمات" value={interaction.evaluationsCount} /></div> : <p className="text-sm text-muted-foreground">بيانات التفاعل غير متاحة حاليًا</p>}</CardContent></Card>
       </div>
     </div>
   </div></DashboardLayout>;

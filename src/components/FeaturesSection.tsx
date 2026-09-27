@@ -1,13 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  Video, FileText, Award, ClipboardCheck,
+  Video, FileText, Award,
   BarChart3, CreditCard, Brain, Globe,
 } from "lucide-react";
 
 const features = [
   { icon: Video, title: "حصص مباشرة عبر Zoom", description: "حصص تفاعلية مباشرة يتم تسجيلها لإمكانية مشاهدتها لاحقًا" },
-  { icon: ClipboardCheck, title: "تقييم أسبوعي", description: "متابعة دورية لمستوى الطالب مع تقارير مفصلة للأهل" },
   { icon: Award, title: "شهادات شهرية", description: "شهادات تقدير تُمنح للطلاب المتميزين شهرياً" },
   { icon: FileText, title: "نظام واجبات متكامل", description: "رفع واستلام الواجبات إلكترونياً مع التصحيح الفوري" },
   { icon: BarChart3, title: "تقارير مالية ذكية", description: "نظام محاسبي شامل مع دعم تعدد العملات والخصومات" },

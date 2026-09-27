@@ -28,7 +28,6 @@ const Navbar = () => {
     { label: pick("من نحن", "About us"), href: "/#about" },
     { label: pick("المناهج", "Curricula"), href: "/#curricula" },
     { label: pick("الدورات", "Courses"), href: "/courses" },
-    { label: pick("آراء عملائنا", "Testimonials"), href: "/#testimonials" },
     { label: pick("انضم كمعلم", "Join as a teacher"), href: "/#join-teacher" },
     { label: pick("تواصل معنا", "Contact us"), href: "/contact" },
   ];

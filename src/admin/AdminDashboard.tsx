@@ -21,8 +21,6 @@ import { ApiError } from "@/api/client";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import TestimonialImagesAdmin from "./TestimonialImagesAdmin";
-import TestimonialRatingsAdmin from "./TestimonialRatingsAdmin";
 import SuccessStoriesAdmin from "./SuccessStoriesAdmin";
 import ZoomAccountsAdmin from "./zoom/ZoomAccountsAdmin";
 import GradeZoomAssignmentAdmin from "./zoom/GradeZoomAssignmentAdmin";
@@ -68,7 +66,8 @@ function AdminOverview() {
 
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") || DEFAULT_TAB;
+  const requestedTab = searchParams.get("tab");
+  const tab = requestedTab === "testimonials" || requestedTab === "testimonial-ratings" ? DEFAULT_TAB : requestedTab || DEFAULT_TAB;
   const { isArabic, pick } = useLanguage();
 
   const setTab = (value: string) => setSearchParams({ tab: value });
@@ -78,12 +77,6 @@ export default function AdminDashboard() {
       <Tabs value={tab} onValueChange={setTab} dir={isArabic ? "rtl" : "ltr"}>
         <TabsContent value="overview" className="mt-0">
           <AdminOverview />
-        </TabsContent>
-        <TabsContent value="testimonials" className="mt-0">
-          <TestimonialImagesAdmin />
-        </TabsContent>
-        <TabsContent value="testimonial-ratings" className="mt-0">
-          <TestimonialRatingsAdmin />
         </TabsContent>
         <TabsContent value="success-stories" className="mt-0">
           <SuccessStoriesAdmin />

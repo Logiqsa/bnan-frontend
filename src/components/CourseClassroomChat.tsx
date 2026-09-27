@@ -278,7 +278,7 @@ export default function CourseClassroomChat({
   }
 
   return (
-    <div className="flex h-[clamp(28rem,70vh,42rem)] min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+    <div className="-mx-4 flex h-[calc(100dvh-8rem)] min-h-0 w-[calc(100%+2rem)] flex-col overflow-hidden rounded-none border-x-0 bg-card shadow-sm sm:mx-0 sm:h-[clamp(28rem,70vh,42rem)] sm:w-auto sm:rounded-2xl sm:border-x">
       <div className="border-b bg-muted/30 p-3 font-semibold">
         {rooms.data?.displayName || "محادثة الدورة"}
       </div>

@@ -3,8 +3,6 @@ import HeroSection from "@/components/HeroSection";
 import VisionMissionValues from "@/components/VisionMissionValues";
 import StatsCounter from "@/components/StatsCounter";
 import CurriculaShowcase from "@/components/CurriculaShowcase";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import AudioTestimonialsSection from "@/components/AudioTestimonialsSection";
 import JoinTeacherSection from "@/components/JoinTeacherSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import CTASection from "@/components/CTASection";
@@ -17,7 +15,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <SEO
         title="BNAN Academy | منصة تعليم عن بعد"
-        description="منصة BNAN التعليمية الرائدة في التعليم عن بعد و شرح اونلاين للمناهج السعودية والمصرية والخليجية. حصص مباشرة، معلمون متخصصون، تقييمات أسبوعية وشهادات معتمدة."
+        description="منصة BNAN التعليمية الرائدة في التعليم عن بعد وشرح أونلاين للمناهج السعودية والمصرية والخليجية. حصص مباشرة، معلمون متخصصون، واجبات وتسجيلات وشهادات معتمدة."
         path="/"
         jsonLd={{
           "@context": "https://schema.org",
@@ -37,8 +35,6 @@ const Index = () => {
       <VisionMissionValues />
       <StatsCounter />
       <CurriculaShowcase />
-      <TestimonialsSection />
-      <AudioTestimonialsSection />
       <JoinTeacherSection />
       <FeaturesSection />
       <CTASection />

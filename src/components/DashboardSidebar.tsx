@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
-  BarChart3,
   Award,
   Banknote,
   Bell,
@@ -25,7 +24,6 @@ import {
   School,
   Settings,
   ShieldCheck,
-  Star,
   Trash2,
   Upload,
   UserPlus,
@@ -199,18 +197,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/notifications/history",
     },
     {
-      label: "آراء العملاء",
-      labelEn: "Testimonials",
-      icon: Star,
-      path: "/admin?tab=testimonials",
-    },
-    {
-      label: "تقييمات العملاء",
-      labelEn: "Customer ratings",
-      icon: MessageSquare,
-      path: "/admin?tab=testimonial-ratings",
-    },
-    {
       label: "قصص النجاح",
       labelEn: "Success stories",
       icon: Award,
@@ -329,12 +315,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/assignments",
     },
     {
-      label: "تقييماتي",
-      labelEn: "My evaluations",
-      icon: BarChart3,
-      path: "/portal/student/evaluations",
-    },
-    {
       label: "الاشتراكات",
       labelEn: "Subscriptions",
       icon: CreditCard,
@@ -429,8 +409,6 @@ const adminNavOrder = [
   "/admin/classroom-recordings",
   "/admin/notifications",
   "/admin/notifications/history",
-  "/admin?tab=testimonials",
-  "/admin?tab=testimonial-ratings",
   "/admin?tab=success-stories",
   "/admin?tab=legal-pages",
   "/admin/contact-settings",
@@ -483,7 +461,7 @@ const adminNavGroup = (path: string) => {
     return { ar: "المالية", en: "Finance" };
   if (["zoom", "classroom-sessions", "classroom-recordings"].some((part) => path.includes(part)))
     return { ar: "الفصول المباشرة", en: "Live classrooms" };
-  if (["notifications", "testimonials", "testimonial-ratings", "success-stories"].some((part) => path.includes(part)))
+  if (["notifications", "success-stories"].some((part) => path.includes(part)))
     return { ar: "المحتوى والتواصل", en: "Content & communication" };
   return { ar: "النظام", en: "System" };
 };
@@ -511,7 +489,6 @@ const roleNavGroup = (role: string, path: string) => {
       "/portal/student/schedule",
       "/portal/student/sessions",
       "/portal/student/assignments",
-      "/portal/student/evaluations",
       "/portal/student/certificates",
     ].includes(path)) {
       return { ar: "الدراسة", en: "Learning" };

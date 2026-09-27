@@ -184,7 +184,7 @@ const TeacherDashboardContent = () => {
         )}
 
       <section
-        className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
         aria-label={pick("ملخص لوحة المعلم", "Teacher dashboard summary")}
       >
         <Card className="min-h-44 shadow-sm md:col-span-2 xl:order-2 xl:row-start-2 xl:col-span-1">
@@ -348,7 +348,7 @@ const TeacherDashboardContent = () => {
             )}
           </CardContent>
         </Card>
-        <Card className="min-h-44 shadow-sm xl:order-3 xl:row-start-1 xl:col-span-2">
+        <Card className="min-h-44 shadow-sm xl:order-3 xl:row-span-2 xl:row-start-1 xl:col-span-2 xl:h-full">
           <CardHeader className="flex flex-col items-stretch justify-between gap-3 space-y-0 pb-3 sm:flex-row sm:items-center">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">

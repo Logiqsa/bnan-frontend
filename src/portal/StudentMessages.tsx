@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, MessageCircle, MessagesSquare, RefreshCw, Search } from "lucide-react";
+import { ArrowRight, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
 import { chatApi, type ChatMessage, type ChatRoomSummary } from "@/api/chatApi";
 import ChatRoomList from "@/components/chat/ChatRoomList";
 import TeacherChatConversation from "@/components/chat/TeacherChatConversation";
@@ -42,6 +42,7 @@ const StudentMessages = () => {
   const requestedRoomId = searchParams.get("roomId")?.trim() || null;
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomSearch, setRoomSearch] = useState("");
+  const [roomsCollapsed, setRoomsCollapsed] = useState(false);
   const selectedRoomIdRef = useRef<string | null>(null);
   const handledRequestedRoomId = useRef<string | null>(null);
   const processedMessageIds = useRef(new Set<string>());
@@ -207,16 +208,27 @@ const StudentMessages = () => {
         </header>
 
         <Card className="min-h-0 flex-1 overflow-hidden shadow-sm">
-          <div className="grid h-full min-h-0 min-w-0 md:grid-cols-[minmax(13rem,18rem)_minmax(0,1fr)]">
+          <div className={`grid h-full min-h-0 min-w-0 ${roomsCollapsed ? "md:grid-cols-[3.5rem_minmax(0,1fr)]" : "md:grid-cols-[minmax(13rem,18rem)_minmax(0,1fr)]"}`}>
             <aside className={`${selectedRoomId ? "hidden md:flex" : "flex"} min-h-0 min-w-0 flex-col overflow-hidden border-e bg-card`}>
-              <div className="border-b p-3">
-                <h2 className="font-semibold">{pick("المحادثات", "Conversations")}</h2>
-                <div className="relative mt-3">
-                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={roomSearch} onChange={(event) => setRoomSearch(event.target.value)} placeholder={pick("ابحث عن محادثة...", "Search conversations...")} className="ps-9" />
-                </div>
+              <div className="flex items-center justify-between gap-2 border-b p-3">
+                <h2 className={`min-w-0 font-semibold ${roomsCollapsed ? "md:hidden" : ""}`}>{pick("المحادثات", "Conversations")}</h2>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="hidden h-8 w-8 shrink-0 md:inline-flex"
+                  onClick={() => setRoomsCollapsed((collapsed) => !collapsed)}
+                  aria-label={roomsCollapsed ? pick("إظهار المحادثات", "Expand conversations") : pick("طي المحادثات", "Collapse conversations")}
+                  aria-expanded={!roomsCollapsed}
+                >
+                  {roomsCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                </Button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className={`relative p-3 ${roomsCollapsed ? "md:hidden" : ""}`}>
+                <Search className="pointer-events-none absolute start-6 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={roomSearch} onChange={(event) => setRoomSearch(event.target.value)} placeholder={pick("ابحث عن محادثة...", "Search conversations...")} className="ps-9" />
+              </div>
+              <div className={`min-h-0 flex-1 overflow-y-auto ${roomsCollapsed ? "md:hidden" : ""}`}>
                 {rooms.isLoading ? (
                   <div className="space-y-2 p-3" aria-label={pick("جاري تحميل المحادثات", "Loading conversations")}>
                     {[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-20 w-full rounded-xl" />)}

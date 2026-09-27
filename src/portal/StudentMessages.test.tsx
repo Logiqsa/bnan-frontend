@@ -73,6 +73,18 @@ describe("StudentMessages", () => {
     expect(await screen.findByText("لا توجد محادثات متاحة حتى الآن.")).toBeInTheDocument();
   });
 
+  it("collapses and expands the conversation sidebar on desktop", async () => {
+    mocks.rooms.mockResolvedValue(rooms);
+    renderPage();
+    await screen.findByText("فصل الرياضيات");
+    const toggle = screen.getByRole("button", { name: "طي المحادثات" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "إظهار المحادثات" })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "إظهار المحادثات" }));
+    expect(screen.getByRole("button", { name: "طي المحادثات" })).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("shows an error and retries", async () => {
     mocks.rooms
       .mockRejectedValueOnce(new Error("failed"))

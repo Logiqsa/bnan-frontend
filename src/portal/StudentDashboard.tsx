@@ -19,7 +19,7 @@ const StudentDashboardSkeleton = () => (
     <div className="mx-auto max-w-7xl space-y-3" aria-label="جاري تحميل لوحة الطالب">
       <Skeleton className="h-24 w-full rounded-2xl" />
       <div className="grid gap-3 lg:grid-cols-2">
-        <Skeleton className="h-[430px] rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
         <Skeleton className="h-52 rounded-2xl" />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
@@ -44,29 +44,31 @@ const SubscriptionCard = ({ summary, latest }: { summary: StudentHomeSubscriptio
   const typeLabels: Record<string, string> = { hours: "باقة ساعات", monthly: "اشتراك شهري" };
   const scopeLabels: Record<string, string> = { all_subjects: "كل المواد", single_subject: "مادة واحدة" };
   return (
-    <div className="rounded-xl border p-3.5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="break-words font-bold">{summary.packageName || "اشتراك"}</p>
-          {summary.subject?.name && <p className="mt-1 break-words text-sm text-muted-foreground">{summary.subject.name}</p>}
+    <div className="grid gap-3 rounded-xl border p-3.5 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="break-words font-bold">{summary.packageName || "اشتراك"}</p>
+            {summary.subject?.name && <p className="mt-1 break-words text-sm text-muted-foreground">{summary.subject.name}</p>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {latest && <Badge variant="outline">الأحدث</Badge>}
+            {summary.computedStatus && <Badge variant={summary.isActive ? "default" : "secondary"}>{statusLabels[summary.computedStatus] || summary.computedStatus}</Badge>}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {latest && <Badge variant="outline">الأحدث</Badge>}
-          {summary.computedStatus && <Badge variant={summary.isActive ? "default" : "secondary"}>{statusLabels[summary.computedStatus] || summary.computedStatus}</Badge>}
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+          {summary.packageType && <span>{typeLabels[summary.packageType] || summary.packageType}</span>}
+          {summary.accessScope && <span>• {scopeLabels[summary.accessScope] || summary.accessScope}</span>}
         </div>
+        {typeof summary.progressPercentage === "number" && <div className="mt-3"><div className="mb-1.5 flex justify-between text-xs"><span>التقدم</span><span>{number(summary.progressPercentage)}%</span></div><Progress value={summary.progressPercentage} /></div>}
+        {(summary.hasPendingRenewal || summary.canRenew) && <div className="mt-3 flex flex-wrap gap-2">{summary.hasPendingRenewal && <Badge variant="secondary">يوجد طلب تجديد معلق</Badge>}{summary.canRenew && !summary.hasPendingRenewal && <Badge variant="outline">متاح للتجديد</Badge>}</div>}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-        {summary.packageType && <span>{typeLabels[summary.packageType] || summary.packageType}</span>}
-        {summary.accessScope && <span>• {scopeLabels[summary.accessScope] || summary.accessScope}</span>}
-      </div>
-      {typeof summary.progressPercentage === "number" && <div className="mt-3"><div className="mb-1.5 flex justify-between text-xs"><span>التقدم</span><span>{number(summary.progressPercentage)}%</span></div><Progress value={summary.progressPercentage} /></div>}
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-3">
         {typeof summary.totalHours === "number" && <Metric label="إجمالي الساعات" value={summary.totalHours} />}
         {typeof summary.usedHours === "number" && <Metric label="المستخدمة" value={summary.usedHours} />}
         {typeof summary.remainingHours === "number" && <Metric label="المتبقية" value={summary.remainingHours} />}
         {typeof summary.purchasedMonths === "number" && <Metric label="الأشهر المشتراة" value={summary.purchasedMonths} />}
       </div>
-      {(summary.hasPendingRenewal || summary.canRenew) && <div className="mt-3 flex flex-wrap gap-2">{summary.hasPendingRenewal && <Badge variant="secondary">يوجد طلب تجديد معلق</Badge>}{summary.canRenew && !summary.hasPendingRenewal && <Badge variant="outline">متاح للتجديد</Badge>}</div>}
     </div>
   );
 };

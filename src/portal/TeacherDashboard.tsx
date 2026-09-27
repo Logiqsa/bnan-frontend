@@ -187,7 +187,7 @@ const TeacherDashboardContent = () => {
         className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"
         aria-label={pick("ملخص لوحة المعلم", "Teacher dashboard summary")}
       >
-        <Card className="min-h-44 shadow-sm md:col-span-2 xl:col-span-1">
+        <Card className="min-h-44 shadow-sm md:col-span-2 xl:order-2 xl:row-start-2 xl:col-span-1">
           <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
               <ClipboardList className="h-5 w-5" />
@@ -263,7 +263,7 @@ const TeacherDashboardContent = () => {
             </Button>
           </CardContent>
         </Card>
-        <Card className="min-h-44 shadow-sm">
+        <Card className="min-h-44 shadow-sm xl:order-1 xl:row-start-1 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -348,7 +348,7 @@ const TeacherDashboardContent = () => {
             )}
           </CardContent>
         </Card>
-        <Card className="min-h-44 shadow-sm">
+        <Card className="min-h-44 shadow-sm xl:order-3 xl:row-start-1 xl:col-span-2">
           <CardHeader className="flex flex-col items-stretch justify-between gap-3 space-y-0 pb-3 sm:flex-row sm:items-center">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">

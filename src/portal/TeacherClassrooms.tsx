@@ -77,7 +77,7 @@ export default function TeacherClassrooms() {
   }, [courses.data, regular.data]);
 
   const bothFailed = regular.isError && courses.isError;
-  const initialLoading = classrooms.length === 0 && (regular.isPending || courses.isPending);
+  const initialLoading = regular.isPending || courses.isPending;
   const partialFailure = !bothFailed && (regular.isError || courses.isError);
   const retry = () => void Promise.all([regular.refetch(), courses.refetch()]);
 

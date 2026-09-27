@@ -18,12 +18,7 @@ const StudentDashboardSkeleton = () => (
       <Skeleton className="h-24 w-full rounded-2xl" />
       <div className="grid gap-3 lg:grid-cols-2">
         <Skeleton className="h-[430px] rounded-2xl" />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Skeleton className="h-52 rounded-2xl" />
-          <Skeleton className="h-52 rounded-2xl" />
-          <Skeleton className="h-44 rounded-2xl" />
-          <Skeleton className="h-44 rounded-2xl" />
-        </div>
+        <Skeleton className="h-52 rounded-2xl" />
       </div>
     </div>
   </DashboardLayout>
@@ -85,7 +80,7 @@ export default function StudentDashboard() {
     <header className="rounded-2xl border bg-card p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><GraduationCap className="h-5 w-5" /></span><div className="min-w-0"><h1 className="break-words text-xl font-bold sm:text-2xl">{pick(`أهلاً${student.fullName ? `، ${student.fullName}` : ""} 👋`, `Welcome${student.fullName ? `, ${student.fullName}` : ""} 👋`)}</h1>{curriculumGrade && <p className="mt-1 break-words text-sm text-muted-foreground">{curriculumGrade}</p>}</div></div><Button asChild size="sm" variant="outline" className="w-full sm:w-auto"><Link to="/portal/student/subjects">{pick("عرض موادي", "View my subjects")}</Link></Button></div></header>
     <div className="grid items-start gap-3 lg:grid-cols-2">
       <Card className="min-w-0 shadow-sm"><CardHeader className="flex-row items-center justify-between gap-3 p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><BookOpen className="h-5 w-5 text-primary" />ملخص الاشتراك</CardTitle><Button asChild size="sm" variant="ghost"><Link to="/portal/student/subscriptions">عرض التفاصيل</Link></Button></CardHeader><CardContent className="space-y-3 px-4 pb-4">{subscriptions.length ? <>{subscriptions.length > 1 && <p className="text-sm text-muted-foreground">تظهر الاشتراكات بالترتيب الوارد من النظام، وأولها هو أحدث اشتراك.</p>}{subscriptions.map((item, index) => item.summary ? <SubscriptionCard key={item.id || index} summary={item.summary} latest={index === 0} /> : null)}</> : <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">لا يوجد اشتراك حالي</p>}</CardContent></Card>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+      <div className="min-w-0">
         <Card className="min-w-0 shadow-sm"><CardHeader className="p-4 pb-3"><CardTitle className="flex items-center gap-2 text-lg"><UserCheck className="h-5 w-5 text-primary" />الحضور</CardTitle></CardHeader><CardContent className="px-4 pb-4">{attendance ? <div className="space-y-3"><div className="rounded-xl bg-primary/5 p-3 text-center"><p className="text-xs text-muted-foreground">نسبة الحضور</p><p className="mt-0.5 text-2xl font-bold text-primary">{typeof attendance.percentage === "number" ? `${number(attendance.percentage)}%` : "غير متاحة حاليًا"}</p></div><div className="grid grid-cols-2 gap-2"><Metric label="الإجمالي" value={attendance.total} /><Metric label="حاضر" value={attendance.present} /><Metric label="متأخر" value={attendance.late} /><Metric label="غائب" value={attendance.absent} /></div></div> : <p className="text-sm text-muted-foreground">بيانات الحضور غير متاحة حاليًا</p>}</CardContent></Card>
       </div>
     </div>

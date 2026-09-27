@@ -99,6 +99,7 @@ import AdminCatalog from "@/admin/AdminCatalog";
 import AdminGradeEdit from "@/admin/AdminGradeEdit";
 import AdminAssignments, { AdminAssignmentDetails, AdminAssignmentSubmissionDetails } from "@/admin/AdminAssignments";
 import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
+import { GlobalRuntimeErrorBoundary } from "@/components/GlobalRuntimeErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ function HomeOrTamaraReturn() {
 
 export default function App() {
   return (
+    <GlobalRuntimeErrorBoundary>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
@@ -654,5 +656,6 @@ export default function App() {
         </LanguageProvider>
       </QueryClientProvider>
     </HelmetProvider>
+    </GlobalRuntimeErrorBoundary>
   );
 }

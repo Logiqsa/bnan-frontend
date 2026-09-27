@@ -265,6 +265,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/teacher/messages",
     },
     {
+      label: "الإشعارات",
+      labelEn: "Notifications",
+      icon: Bell,
+      path: "/portal/teacher/notifications",
+    },
+    {
       label: "المستحقات",
       labelEn: "Earnings",
       icon: Banknote,
@@ -475,7 +481,7 @@ const roleNavGroup = (role: string, path: string) => {
       return { ar: "التدريس", en: "Teaching" };
     }
     if (path === "/portal/teacher/requests") return { ar: "الطلبات", en: "Requests" };
-    if (path === "/portal/teacher/messages") return { ar: "التواصل", en: "Communication" };
+    if (["/portal/teacher/messages", "/portal/teacher/notifications"].includes(path)) return { ar: "التواصل", en: "Communication" };
     if (path === "/portal/teacher/payroll") return { ar: "المستحقات", en: "Earnings" };
     return { ar: "الحساب", en: "Account" };
   }

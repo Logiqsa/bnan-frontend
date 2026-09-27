@@ -36,6 +36,7 @@ import StudentAssignments from "@/portal/StudentAssignments";
 import StudentCertificates from "@/portal/StudentCertificates";
 import StudentDashboard from "@/portal/StudentDashboard";
 import StudentNotifications from "@/portal/StudentNotifications";
+import TeacherNotifications from "@/portal/TeacherNotifications";
 import StudentNotificationPreferences from "@/portal/StudentNotificationPreferences";
 import StudentMessages from "@/portal/StudentMessages";
 import StudentSubscriptions from "@/portal/StudentSubscriptions";
@@ -222,6 +223,10 @@ export default function App() {
                           <TeacherMessages />
                         </PortalGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/teacher/notifications"
+                      element={<PortalGuard role="teacher"><TeacherNotifications /></PortalGuard>}
                     />
                     <Route
                       path="/portal/teacher/payroll"

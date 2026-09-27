@@ -3,10 +3,12 @@ import {
   CalendarClock,
   CalendarDays,
   ClipboardList,
+  ClipboardCheck,
   LayoutDashboard,
   RefreshCw,
   Timer,
   Users,
+  WalletCards,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,10 +25,20 @@ import {
 } from "@/api/teacherRequestsApi";
 import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
 import { coursesApi } from "@/api/coursesApi";
+import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
+import { useNotificationsContext } from "@/contexts/notifications-context";
+import { notificationLink } from "@/hooks/useNotifications";
 
 const TeacherDashboard = () => {
   const { user } = usePortalAuth();
   const { pick } = useLanguage();
+  const { items: notifications } = useNotificationsContext();
+  const payoutProfile = useQuery({
+    queryKey: ["teacher-payout-profile"],
+    queryFn: teacherPayoutProfileApi.get,
+    staleTime: 60_000,
+    retry: 1,
+  });
   const pendingRequests = useQuery({
     queryKey: teacherPendingRequestsPageQueryKey(1, 20),
     queryFn: () => teacherRequestsApi.listPending({ page: 1, limit: 20 }),
@@ -40,6 +52,9 @@ const TeacherDashboard = () => {
     retry: 1,
   });
   const upcomingSessions = useTeacherUpcomingSessions(user?.registrationModes);
+  const pendingReviews = notifications.filter(
+    (notification) => notification.key === "ASSIGNMENT_SUBMITTED" && !notification.isRead,
+  );
 
   const courseAssignments = teachingCourses.data || [];
   const courseGroups = courseAssignments.flatMap(({ groups }) => groups);
@@ -121,6 +136,42 @@ const TeacherDashboard = () => {
             </div>
           </div>
         </header>
+
+        {(!payoutProfile.isError && (payoutProfile.isPending || !payoutProfile.data || pendingReviews.length > 0)) && (
+          <section aria-label={pick("المهام المطلوبة", "To-do") } className="grid gap-4 md:grid-cols-2">
+            {payoutProfile.isPending ? (
+              <Card className="shadow-sm"><CardContent className="p-5"><Skeleton className="h-20 w-full rounded-xl" /></CardContent></Card>
+            ) : !payoutProfile.data ? (
+              <Card className="border-primary/20 bg-primary/[0.03] shadow-sm">
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><WalletCards className="h-5 w-5" /></span>
+                  <CardTitle className="text-base">{pick("أكمل بيانات الاستلام", "Complete payout details")}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm leading-6 text-muted-foreground">{pick("أضف بيانات استلام مستحقاتك حتى نتمكن من تحويلها لك.", "Add your payout details so we can transfer your earnings to you.")}</p>
+                  <Button asChild size="sm"><Link to="/portal/teacher/settings">{pick("إضافة البيانات", "Add details")}</Link></Button>
+                </CardContent>
+              </Card>
+            ) : null}
+            {pendingReviews.length > 0 && (
+              <Card className="border-amber-200 bg-amber-50/40 shadow-sm">
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700"><ClipboardCheck className="h-5 w-5" /></span>
+                  <CardTitle className="text-base">{pick("واجبات تحتاج إلى تصحيح", "Assignments to grade")}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {pendingReviews.slice(0, 3).map((notification) => {
+                    const link = notificationLink(notification, "teacher");
+                    const studentName = typeof notification.data?.studentName === "string" && notification.data.studentName.trim() ? notification.data.studentName : pick("طالب", "A student");
+                    const assignmentTitle = typeof notification.data?.assignmentTitle === "string" && notification.data.assignmentTitle.trim() ? notification.data.assignmentTitle : pick("واجب", "an assignment");
+                    return link ? <Link key={notification.id} to={link} className="flex items-center justify-between gap-3 rounded-xl border bg-background p-3 text-sm transition hover:border-primary/40 hover:bg-muted/40"><span className="min-w-0 break-words"><strong>{studentName}</strong> — {pick("سلّم", "submitted")} {assignmentTitle}</span><span className="shrink-0 text-primary">{pick("تصحيح", "Grade")}</span></Link> : null;
+                  })}
+                  {pendingReviews.length > 3 && <Link to="/portal/teacher/notifications" className="block text-sm text-primary hover:underline">{pick(`عرض ${pendingReviews.length - 3} مهام أخرى`, `View ${pendingReviews.length - 3} more tasks`)}</Link>}
+                </CardContent>
+              </Card>
+            )}
+          </section>
+        )}
 
         <section
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"

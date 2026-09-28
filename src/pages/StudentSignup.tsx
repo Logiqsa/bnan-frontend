@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -37,6 +37,8 @@ import AccountVerification from "@/components/AccountVerification";
 import { STUDENT_SIGNUP_DRAFT_KEY } from "@/lib/studentSignupSession";
 import { cn } from "@/lib/utils";
 import { egyptianGradeLanguage } from "@/lib/egyptianGradeLanguage";
+import { courseRegistrationIntentStore } from "@/lib/courseRegistrationIntent";
+import { usePortalAuth } from "@/portal/PortalAuthContext";
 import visaImg from "@/assets/payment/visa.png";
 import mastercardImg from "@/assets/payment/mastercard.png";
 import madaImg from "@/assets/payment/mada.png";
@@ -187,6 +189,8 @@ export default function StudentSignup({
   courseOnly?: boolean;
 }) {
   const { isArabic, pick } = useLanguage();
+  const navigate = useNavigate();
+  const { login: loginToPortal } = usePortalAuth();
   const [searchParams] = useSearchParams();
   const requestedReturnTo = searchParams.get("returnTo") || "";
   const returnTo =
@@ -644,7 +648,7 @@ export default function StudentSignup({
     setError("");
     try {
       if (courseOnly) {
-        await authApi.registerCourseStudent({
+        const response = await authApi.registerCourseStudent({
           parent: parentCreds,
           student: {
             fullName: studentFullName.trim(),
@@ -654,6 +658,7 @@ export default function StudentSignup({
           },
           curriculum: curriculumId,
         });
+        courseRegistrationIntentStore.bindStudent(response.data.student.userId);
         setVerification({ email: studentEmail.trim(), kind: "student" });
         return;
       }
@@ -741,13 +746,38 @@ export default function StudentSignup({
           } else {
             const verifiedStudentEmail =
               verification.email || studentEmail.trim();
+            const intent = courseOnly
+              ? courseRegistrationIntentStore.read()
+              : null;
+            if (
+              courseOnly
+              && intent?.expectedStudentUserId
+              && studentPassword
+            ) {
+              const account = await loginToPortal(
+                verifiedStudentEmail,
+                studentPassword,
+                true,
+              );
+              if (
+                account.role !== "student"
+                || account.id !== intent.expectedStudentUserId
+              ) {
+                courseRegistrationIntentStore.clear();
+                throw new Error("تعذر استكمال التسجيل بالحساب الحالي.");
+              }
+              sessionStorage.removeItem(sessionDraftKey);
+              localStorage.removeItem(persistentDraftKey);
+              navigate(intent.returnTo, { replace: true });
+              return;
+            }
             sessionStorage.removeItem(sessionDraftKey);
             localStorage.removeItem(persistentDraftKey);
             const loginParams = new URLSearchParams({
               email: verifiedStudentEmail,
               verified: "1",
             });
-            if (courseOnly) loginParams.set("returnTo", returnTo);
+            if (courseOnly) loginParams.set("returnTo", intent?.returnTo || returnTo);
             window.location.href = `/portal/login?${loginParams.toString()}`;
           }
         }}

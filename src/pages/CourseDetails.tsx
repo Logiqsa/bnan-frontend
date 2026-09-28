@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Clock3, UserRound } from "lucide-react";
 import { coursesApi } from "@/api/coursesApi";
@@ -17,10 +17,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import cover from "@/assets/course-default-cover.jpg";
 import { useActiveCourseEnrollments } from "@/hooks/useActiveCourseEnrollments";
+import { usePortalAuth } from "@/portal/PortalAuthContext";
+import {
+  courseRegistrationIntentStore,
+  canResumeCourseRegistration,
+  type CourseRegistrationIntent,
+} from "@/lib/courseRegistrationIntent";
+import { toast } from "sonner";
 
 export default function CourseDetails() {
   const { slug = "" } = useParams();
   const [open, setOpen] = useState(false);
+  const [resumeIntent, setResumeIntent] =
+    useState<CourseRegistrationIntent | null>(null);
+  const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = usePortalAuth();
   const { byCourseId } = useActiveCourseEnrollments();
   const query = useQuery({
     queryKey: ["public-course", slug],
@@ -34,6 +45,33 @@ export default function CourseDetails() {
       course.requiredDuration ||
       (course.requiredMinutes ? course.requiredMinutes / 60 : undefined)
     : undefined;
+
+  useEffect(() => {
+    if (!course || authLoading || searchParams.get("continueRegistration") !== "1") {
+      return;
+    }
+    const intent = courseRegistrationIntentStore.read();
+    if (!intent || intent.courseId !== course.id || intent.paymentStarted) return;
+    if (!user || user.role !== "student") {
+      if (user) {
+        courseRegistrationIntentStore.clear();
+        toast.error("سجّل الدخول بحساب الطالب الذي أنشأ طلب التسجيل.");
+      }
+      return;
+    }
+    if (!canResumeCourseRegistration(intent, course.id, user.id)) {
+      courseRegistrationIntentStore.clear();
+      toast.error("انتهت محاولة التسجيل لأنها لا تخص الحساب الحالي.");
+      return;
+    }
+    if (!(course.canEnroll ?? course.enrollmentOpen)) {
+      courseRegistrationIntentStore.clear();
+      toast.error("هذه الدورة لم تعد متاحة للتسجيل.");
+      return;
+    }
+    setResumeIntent(intent);
+    setOpen(true);
+  }, [authLoading, course, searchParams, user]);
 
   return (
     <div dir="rtl" className="min-h-screen bg-muted/20">
@@ -168,7 +206,11 @@ export default function CourseDetails() {
               {open && (
                 <CourseRegistrationDialog
                   course={course}
-                  onClose={() => setOpen(false)}
+                  resumeIntent={resumeIntent}
+                  onClose={() => {
+                    setOpen(false);
+                    setResumeIntent(null);
+                  }}
                 />
               )}
             </>

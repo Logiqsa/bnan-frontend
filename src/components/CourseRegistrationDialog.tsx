@@ -1,10 +1,14 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { coursesApi, type Course, type CourseMode } from "@/api/coursesApi";
 import { courseError } from "@/lib/courseUi";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
+import {
+  courseRegistrationIntentStore,
+  type CourseRegistrationIntent,
+} from "@/lib/courseRegistrationIntent";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import {
   Dialog,
@@ -23,15 +27,23 @@ import tamaraImg from "@/assets/payment/tamara.png";
 export default function CourseRegistrationDialog({
   course,
   onClose,
+  resumeIntent,
 }: {
   course: Course;
   onClose: () => void;
+  resumeIntent?: CourseRegistrationIntent | null;
 }) {
   const modes = (Object.keys(course.enrollmentModes) as CourseMode[]).filter(
     (m) => course.enrollmentModes[m].enabled,
   );
-  const [mode, setMode] = useState<CourseMode>(modes[0]);
-  const [provider, setProvider] = useState<"paymob" | "tamara">("paymob");
+  const [mode, setMode] = useState<CourseMode>(
+    resumeIntent && modes.includes(resumeIntent.mode)
+      ? resumeIntent.mode
+      : modes[0],
+  );
+  const [provider, setProvider] = useState<"paymob" | "tamara">(
+    resumeIntent?.provider || "paymob",
+  );
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
   const [line1, setLine1] = useState("");
@@ -39,17 +51,31 @@ export default function CourseRegistrationDialog({
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const freeSubmissionLocked = useRef(false);
   const paidSubmissionLocked = useRef(false);
+  const automaticSubmissionStarted = useRef(false);
   const { user } = usePortalAuth();
   const queryClient = useQueryClient();
   const nav = useNavigate();
   const location = useLocation();
   const price = course.enrollmentModes[mode]?.price || 0;
   const startNewPaymentAttempt = () => setIdempotencyKey(crypto.randomUUID());
-  const submit = async () => {
+  const clearCurrentIntent = useCallback(() => {
+    const intent = courseRegistrationIntentStore.read();
+    if (intent?.courseId === course.id) courseRegistrationIntentStore.clear();
+  }, [course.id]);
+  const submit = useCallback(async () => {
     if (price === 0 && freeSubmissionLocked.current) return;
     if (price > 0 && paidSubmissionLocked.current) return;
     if (!user) {
-      nav("/portal/login", { state: { from: location.pathname } });
+      const returnTo = location.pathname.startsWith("/courses/")
+        ? `${location.pathname}?continueRegistration=1`
+        : `/courses/${course.id}?continueRegistration=1`;
+      courseRegistrationIntentStore.save({
+        courseId: course.id,
+        mode,
+        provider,
+        returnTo,
+      });
+      nav(`/register/course-student?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
     if (user.role !== "student") {
@@ -71,6 +97,7 @@ export default function CourseRegistrationDialog({
       if (price === 0) {
         await coursesApi.enrollFree(course.id, mode);
         await queryClient.invalidateQueries({ queryKey: ["my-course-enrollments"] });
+        clearCurrentIntent();
         toast.success("تم تفعيل تسجيلك في الدورة");
         nav("/portal/student/courses");
       } else {
@@ -103,6 +130,8 @@ export default function CourseRegistrationDialog({
           mode,
           createdAt: Date.now(),
         });
+        const intent = courseRegistrationIntentStore.read();
+        if (intent?.courseId === course.id) courseRegistrationIntentStore.markPaymentStarted();
         window.location.assign(r.data.checkoutUrl);
       }
     } catch (e) {
@@ -111,7 +140,14 @@ export default function CourseRegistrationDialog({
       toast.error(courseError(e));
       setBusy(false);
     }
-  };
+  }, [city, clearCurrentIntent, course.id, idempotencyKey, line1, location.pathname, mode, nav, price, provider, queryClient, region, user]);
+
+  useEffect(() => {
+    if (!resumeIntent || resumeIntent.paymentStarted || automaticSubmissionStarted.current) return;
+    if (price > 0 && provider === "tamara" && (!city.trim() || !region.trim() || !line1.trim())) return;
+    automaticSubmissionStarted.current = true;
+    void submit();
+  }, [city, line1, price, provider, region, resumeIntent, submit]);
   return (
     <Dialog open onOpenChange={(x) => !x && onClose()}>
       <DialogContent dir="rtl">
@@ -174,6 +210,11 @@ export default function CourseRegistrationDialog({
             )}
             {price > 0 && provider === "tamara" && (
               <div className="grid gap-3">
+                {resumeIntent && (
+                  <p className="text-sm text-muted-foreground">
+                    أكمل عنوان الدفع للمتابعة تلقائيًا إلى بوابة الدفع.
+                  </p>
+                )}
                 <Input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
@@ -193,7 +234,9 @@ export default function CourseRegistrationDialog({
             )}
             <Button className="w-full" disabled={busy} onClick={submit}>
               {busy
-                ? "جاري المتابعة..."
+                ? resumeIntent
+                  ? "جاري تسجيلك في الدورة..."
+                  : "جاري المتابعة..."
                 : price
                   ? "الانتقال للدفع"
                   : "تفعيل التسجيل"}

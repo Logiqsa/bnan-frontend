@@ -70,7 +70,7 @@ export default function PortalLogin() {
           ? "/portal/student"
           : `/portal/${role}/schedule`;
   if (user && !addingAccount)
-    return <Navigate to={homeFor(user.role)} replace />;
+    return <Navigate to={returnTo || homeFor(user.role)} replace />;
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -98,9 +98,10 @@ export default function PortalLogin() {
     return (
       <AccountVerification
         email={verificationEmail}
-        onVerified={() => {
+        onVerified={async () => {
           setVerificationEmail("");
-          setNotice("تم تفعيل الحساب بنجاح. يمكنك تسجيل الدخول الآن.");
+          const account = await login(email.trim(), password, remember);
+          navigate(returnTo || homeFor(account.role), { replace: true });
         }}
       />
     );

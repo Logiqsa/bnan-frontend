@@ -7,6 +7,7 @@ import logo from "@/assets/logo-bnan.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
+import { courseRegistrationIntentStore } from "@/lib/courseRegistrationIntent";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 
 const enrollmentQueryKey = ["my-course-enrollments"] as const;
@@ -36,14 +37,17 @@ export default function StudentCourseEnrollmentReturn() {
     : undefined;
   const successful = enrollment?.status === "active";
   const terminal = Boolean(enrollment && terminalStatuses.has(enrollment.status));
+  const draftCourseId = draft?.courseId;
 
   useEffect(() => {
     if (!successful && !terminal) return;
+    const intent = courseRegistrationIntentStore.read();
+    if (intent?.courseId === draftCourseId) courseRegistrationIntentStore.clear();
     gulfPaymentDraftStore.clear();
     if (successful) {
       void queryClient.invalidateQueries({ queryKey: enrollmentQueryKey });
     }
-  }, [queryClient, successful, terminal]);
+  }, [draftCourseId, queryClient, successful, terminal]);
 
   return (
     <main className="grid min-h-screen place-items-center bg-hero-gradient p-4" dir="rtl">

@@ -11,13 +11,14 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   saveCourseEnrollment: vi.fn(),
+  portalUser: { id: "student-1", role: "student" } as { id: string; role: string } | null,
 }));
 
 vi.mock("@/api/coursesApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/coursesApi")>()),
   coursesApi: { enrollFree: mocks.enrollFree, checkout: mocks.checkout },
 }));
-vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { id: "student-1", role: "student" } }) }));
+vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: mocks.portalUser }) }));
 vi.mock("react-router-dom", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router-dom")>()),
   useNavigate: () => mocks.navigate,
@@ -57,6 +58,8 @@ describe("CourseRegistrationDialog free re-enrollment", () => {
     mocks.success.mockReset();
     mocks.error.mockReset();
     mocks.saveCourseEnrollment.mockReset();
+    mocks.portalUser = { id: "student-1", role: "student" };
+    localStorage.clear();
   });
 
   it("creates a paid checkout with the selected mode and saves its draft", async () => {
@@ -157,5 +160,77 @@ describe("CourseRegistrationDialog free re-enrollment", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(mocks.enrollFree).toHaveBeenCalledTimes(1));
     expect(submit).toBeDisabled();
+  });
+
+  it("saves the same course intent and opens course-only signup for a logged-out visitor", async () => {
+    mocks.portalUser = null;
+    const client = new QueryClient();
+    render(<QueryClientProvider client={client}><MemoryRouter initialEntries={["/courses"]}><CourseRegistrationDialog course={course} onClose={vi.fn()} /></MemoryRouter></QueryClientProvider>);
+
+    fireEvent.click(screen.getByRole("button", { name: "تفعيل التسجيل" }));
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(
+      "/register/course-student?returnTo=%2Fcourses%2Fcourse-1%3FcontinueRegistration%3D1",
+    ));
+    expect(JSON.parse(localStorage.getItem("bnan_course_registration_intent") || "{}")).toMatchObject({
+      courseId: "course-1",
+      mode: "group",
+      provider: "paymob",
+      returnTo: "/courses/course-1?continueRegistration=1",
+    });
+  });
+
+  it("automatically completes a free registration after a resumed signup", async () => {
+    const client = new QueryClient();
+    render(<QueryClientProvider client={client}><MemoryRouter><CourseRegistrationDialog
+      course={course}
+      onClose={vi.fn()}
+      resumeIntent={{
+        courseId: "course-1",
+        mode: "individual",
+        provider: "paymob",
+        returnTo: "/courses/course-1?continueRegistration=1",
+        createdAt: Date.now(),
+        expectedStudentUserId: "student-1",
+      }}
+    /></MemoryRouter></QueryClientProvider>);
+
+    await waitFor(() => expect(mocks.enrollFree).toHaveBeenCalledWith("course-1", "individual"));
+    expect(mocks.enrollFree).toHaveBeenCalledTimes(1);
+  });
+
+  it("automatically starts the existing paid checkout after a resumed signup", async () => {
+    const paidCourse = {
+      ...course,
+      enrollmentModes: {
+        group: { enabled: true, price: 500 },
+        individual: { enabled: false, price: 0 },
+      },
+    };
+    mocks.checkout.mockResolvedValue({
+      data: {
+        paymentId: "payment-resume-1",
+        checkoutUrl: "https://pay.test/course",
+        status: "pending",
+      },
+    });
+    const client = new QueryClient();
+    render(<QueryClientProvider client={client}><MemoryRouter><CourseRegistrationDialog
+      course={paidCourse}
+      onClose={vi.fn()}
+      resumeIntent={{
+        courseId: "course-1",
+        mode: "group",
+        provider: "paymob",
+        returnTo: "/courses/course-1?continueRegistration=1",
+        createdAt: Date.now(),
+        expectedStudentUserId: "student-1",
+      }}
+    /></MemoryRouter></QueryClientProvider>);
+
+    await waitFor(() => expect(mocks.checkout).toHaveBeenCalledWith(
+      expect.objectContaining({ courseId: "course-1", mode: "group", provider: "paymob" }),
+      expect.any(String),
+    ));
   });
 });

@@ -21,15 +21,13 @@ export default function MyCourses() {
       const group = typeof enrollment.group === "object" ? enrollment.group : null;
       const classroom = typeof enrollment.classroom === "object" ? enrollment.classroom : typeof group?.classroom === "object" ? group.classroom : null;
       const publicCourse = publicCoursesQuery.data?.find((item) => item.id === course?.id);
-      const teacherName = course && (typeof course.teacher === "string" && /^[a-f\d]{24}$/i.test(course.teacher)
-        ? refName(publicCourse?.teacher)
-        : refName(course.teacher));
+      const teacherName = course ? refName(course.teacher) : null;
       return <Card key={enrollment.id}><CardContent className="flex gap-4 p-5">
         <img src={courseImageUrl(course?.image) || cover} className="h-24 w-24 rounded-lg object-cover" alt="" />
         <div className="min-w-0 flex-1 space-y-2">
           <h2 className="font-bold">{course?.name || refName(typeof enrollment.course === "object" ? enrollment.course : null)}</h2>
           <div className="flex gap-2"><Badge>{enrollment.mode === "group" ? "جماعي" : "فردي"}</Badge><Badge variant={enrollment.status === "active" ? "default" : "secondary"}>{enrollment.status}</Badge></div>
-          {course && <p className="text-sm text-muted-foreground">المعلم: {teacherName}</p>}
+          {teacherName && teacherName !== "—" && <p className="text-sm text-muted-foreground">المعلم: {teacherName}</p>}
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" asChild><Link to={`/portal/student/courses/${enrollment.id}`}>عرض التفاصيل</Link></Button>
             {enrollment.status === "active" && classroom && <Button size="sm" asChild><Link to={`/portal/student/courses/${enrollment.id}#course-schedule`}>جدول {classroom.name}</Link></Button>}

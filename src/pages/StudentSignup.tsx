@@ -1007,6 +1007,42 @@ export default function StudentSignup({
                                       const selectedInGroup = group.grades.some(
                                         (grade) => grade.id === gradeId,
                                       );
+                                      if (group.key === "other") {
+                                        return (
+                                          <div
+                                            key={groupId}
+                                            className="grid grid-cols-2 gap-2 rounded-lg border bg-card p-3 sm:grid-cols-3"
+                                          >
+                                            {group.grades.map((grade) => {
+                                              const selected =
+                                                grade.id === gradeId;
+                                              return (
+                                                <button
+                                                  key={grade.id}
+                                                  type="button"
+                                                  aria-pressed={selected}
+                                                  onClick={() =>
+                                                    setGradeId(grade.id)
+                                                  }
+                                                  className={cn(
+                                                    "relative flex min-h-20 items-center justify-center rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition-colors",
+                                                    selected
+                                                      ? "border-secondary bg-secondary/10 text-secondary-foreground"
+                                                      : "border-border bg-card hover:border-secondary/40 hover:bg-muted/40",
+                                                  )}
+                                                >
+                                                  {selected && (
+                                                    <span className="absolute left-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-secondary text-secondary-foreground">
+                                                      <Check className="h-3.5 w-3.5" />
+                                                    </span>
+                                                  )}
+                                                  {grade.name}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        );
+                                      }
                                       return (
                                         <Collapsible
                                           key={groupId}

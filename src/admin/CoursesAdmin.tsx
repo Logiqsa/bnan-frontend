@@ -105,15 +105,15 @@ export default function CoursesAdmin() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {courses.data.map((course) => (
-              <Card key={course.id} className="overflow-hidden">
+              <Card key={course.id} className="flex h-full min-w-0 flex-col overflow-hidden">
                 <img
                   src={courseImageUrl(course.image) || cover}
                   alt={course.name}
-                  className="h-32 w-full object-cover"
+                  className="h-32 w-full shrink-0 object-cover"
                 />
-                <CardHeader className="space-y-2 p-4">
+                <CardHeader className="min-h-[11.25rem] space-y-2 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <CardTitle className="flex flex-wrap items-center gap-2">
                       <span className="line-clamp-2">{course.name}</span>
@@ -149,7 +149,7 @@ export default function CoursesAdmin() {
                     />
                   </label>
                 </CardHeader>
-                <CardContent className="space-y-3 px-4 pb-4 text-sm">
+                <CardContent className="flex min-h-[8.5rem] flex-1 flex-col space-y-3 px-4 pb-4 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">المعلم</p>
                     <p className="font-medium">
@@ -163,7 +163,7 @@ export default function CoursesAdmin() {
                       </p>
                     )}
                   </div>
-                  {!isFreeCourse(course) && <div className="grid grid-cols-2 gap-2">
+                  {!isFreeCourse(course) && <div className="mt-auto grid grid-cols-2 gap-2">
                     <div className="rounded-lg bg-muted/40 p-3">
                       <p className="text-xs text-muted-foreground">جماعي</p>
                       <b>

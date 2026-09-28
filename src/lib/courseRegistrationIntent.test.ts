@@ -66,6 +66,18 @@ describe("course registration intent", () => {
     expect(canResumeCourseRegistration(intent, "course-1", "student-user-2")).toBe(false);
   });
 
+  it("allows an existing student to resume an unbound intent", () => {
+    const intent = {
+      courseId: "course-1",
+      mode: "individual" as const,
+      provider: "paymob" as const,
+      returnTo: "/courses/course-1?continueRegistration=1",
+      createdAt: Date.now(),
+    };
+
+    expect(canResumeCourseRegistration(intent, "course-1", "existing-student-user")).toBe(true);
+  });
+
   it("rejects and clears expired, malformed, or untrusted intents", () => {
     localStorage.setItem(storageKey, JSON.stringify({
       courseId: "course-1",

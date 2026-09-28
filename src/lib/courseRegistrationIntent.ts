@@ -58,8 +58,8 @@ export const canResumeCourseRegistration = (
   studentUserId: string,
 ) => !intent.paymentStarted
   && intent.courseId === courseId
-  && Boolean(intent.expectedStudentUserId)
-  && intent.expectedStudentUserId === studentUserId;
+  && (!intent.expectedStudentUserId
+    || intent.expectedStudentUserId === studentUserId);
 
 const persist = (intent: CourseRegistrationIntent) => {
   try {

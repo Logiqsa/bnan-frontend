@@ -198,6 +198,7 @@ export default function StudentSignup({
       ? requestedReturnTo
       : "/courses";
   const courseOnlyPath = `/register/course-student${requestedReturnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
+  const courseLoginPath = `/portal/login${courseOnly && requestedReturnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   const steps = courseOnly ? courseOnlySteps : academicSteps;
   const sessionDraftKey = courseOnly
     ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
@@ -845,6 +846,17 @@ export default function StudentSignup({
               ? "لن تختار باقة ولن تدفع أثناء إنشاء الحساب."
               : "هذا المسار مخصص للاشتراك في النظام الأكاديمي والباقات."}
           </p>
+          {courseOnly && requestedReturnTo && (
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              لديك حساب بالفعل؟{" "}
+              <Link
+                to={courseLoginPath}
+                className="font-semibold text-secondary hover:underline"
+              >
+                سجّل الدخول وأكمل التسجيل
+              </Link>
+            </p>
+          )}
           <div
             className={cn(
               "grid gap-2 pt-4",

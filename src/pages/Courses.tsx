@@ -88,27 +88,29 @@ export default function Courses() {
             )}
           </p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {rows.map((c) => {
               const available = c.canEnroll ?? c.enrollmentOpen;
               const free = isFreeCourse(c);
               const activeEnrollment = byCourseId.get(c.id);
               return (
-                <Card key={c.id} className="overflow-hidden">
+                <Card key={c.id} className="flex h-full flex-col overflow-hidden">
                   <img
                     src={courseImageUrl(c.image) || cover}
                     alt={c.name}
-                    className="h-44 w-full object-cover"
+                    className="aspect-[16/7] w-full shrink-0 object-cover"
                   />
-                  <CardHeader>
-                    <CardTitle className="flex flex-wrap items-center gap-2">
-                      <span>{c.name}</span>
-                      {free && (
-                        <Badge className="bg-emerald-600 hover:bg-emerald-600">
-                          {pick("مجانية", "Free")}
-                        </Badge>
-                      )}
-                      {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
+                  <CardHeader className="space-y-2 px-5 pb-3 pt-4">
+                    <CardTitle className="flex min-h-[3.5rem] items-start justify-between gap-3 text-lg leading-7">
+                      <span className="line-clamp-2">{c.name}</span>
+                      <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                        {free && (
+                          <Badge className="bg-emerald-600 hover:bg-emerald-600">
+                            {pick("مجانية", "Free")}
+                          </Badge>
+                        )}
+                        {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
+                      </span>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {pick("المعلم:", "Teacher:")} {refName(c.teacher)}
@@ -117,11 +119,11 @@ export default function Courses() {
                       {pick("المادة:", "Subject:")} {refName(c.subject)}
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="line-clamp-3 min-h-16 text-sm text-muted-foreground">
+                  <CardContent className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-1">
+                    <p className="line-clamp-3 h-[4.5rem] text-sm leading-6 text-muted-foreground">
                       {c.description}
                     </p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex min-h-6 flex-wrap gap-1">
                       {(c.durationHours ||
                         c.requiredDuration ||
                         c.requiredMinutes) && (
@@ -134,7 +136,7 @@ export default function Courses() {
                       )}
                     </div>
                     {!free && (
-                      <div className="space-y-1 text-sm">
+                      <div className="min-h-[3.25rem] space-y-1 text-sm">
                         {c.enrollmentModes.group.enabled && (
                           <p>
                             {pick("جماعي", "Group")}:{" "}
@@ -153,7 +155,7 @@ export default function Courses() {
                         )}
                       </div>
                     )}
-                    <div className="flex gap-2">
+                    <div className="mt-auto flex gap-2 pt-1">
                       <Button variant="outline" className="flex-1" asChild>
                         <Link to={`/courses/${c.id}`}>
                           {pick("التفاصيل", "Details")}

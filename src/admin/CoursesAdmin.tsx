@@ -113,15 +113,15 @@ export default function CoursesAdmin() {
                   alt={course.name}
                   className="h-32 w-full shrink-0 object-cover"
                 />
-                <CardHeader className="min-h-[11.25rem] space-y-2 p-4">
+                <CardHeader className="grid min-h-[11.25rem] grid-rows-[3.5rem_1.75rem_2.75rem] gap-2 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="min-w-0 flex-1 leading-6">
                       <span className="line-clamp-2">{course.name}</span>
-                      {isFreeCourse(course) && <Badge className="bg-emerald-600 hover:bg-emerald-600">مجانية</Badge>}
                     </CardTitle>
                     <Badge variant="outline">{course.status}</Badge>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-start gap-2">
+                    {isFreeCourse(course) && <Badge className="bg-emerald-600 hover:bg-emerald-600">مجانية</Badge>}
                     {flag(!!course.isPublished, "منشورة", "مسودة")}
                     {flag(
                       course.enrollmentOpen,

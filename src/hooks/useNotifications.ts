@@ -33,6 +33,7 @@ const adminNotificationRoutes: Record<string, string> = {
   parents: "/admin/parents",
   users: "/admin?tab=all-users",
   classroom_change_requests: "/admin/classrooms",
+  course_enrollment_requests: "/admin/courses",
   classroom_details: "/admin/classrooms",
   global_notification_details: "/admin/notifications",
   admin_payments: "/admin",
@@ -156,6 +157,15 @@ export const notificationLink = (
       return requestId
         ? `/admin/classroom-change-requests?requestId=${encodeURIComponent(requestId)}`
         : "/admin/classroom-change-requests";
+    }
+    if (target === "course_enrollment_requests") {
+      const courseId = notificationParam(notification, "courseId")
+        || (typeof notification.data?.courseId === "string"
+          ? notification.data.courseId
+          : undefined);
+      return courseId
+        ? `/admin/courses/${encodeURIComponent(courseId)}`
+        : adminNotificationRoutes.course_enrollment_requests;
     }
     return typeof target === "string" ? adminNotificationRoutes[target] : undefined;
   }

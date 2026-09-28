@@ -101,6 +101,17 @@ describe("useNotifications", () => {
     })).toBe("/admin/classroom-change-requests?requestId=request%2F1");
   });
 
+  it("opens the existing admin course registration page for course requests", () => {
+    expect(adminNotificationLink({
+      ...stored,
+      key: "COURSE_REGISTRATION_REQUESTED",
+      navigation: {
+        target: "course_enrollment_requests",
+        params: { courseId: "course/1", enrollmentId: "enrollment-1" },
+      },
+    })).toBe("/admin/courses/course%2F1");
+  });
+
   it.each([
     ["teacher_requests", "/portal/teacher/requests"],
     ["schedule", "/portal/teacher/schedule"],

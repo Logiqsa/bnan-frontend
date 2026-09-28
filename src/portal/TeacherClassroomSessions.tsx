@@ -508,8 +508,11 @@ export default function TeacherClassroomSessions() {
             }
           }}
         >
-          <DialogContent dir="rtl">
-            <DialogHeader>
+          <DialogContent
+            dir="rtl"
+            className="w-[calc(100%-1.5rem)] max-w-xl max-h-[calc(100dvh-1.5rem)] p-4 sm:p-6"
+          >
+            <DialogHeader className="space-y-1 pe-8 text-start">
               <DialogTitle>طلب عدم الاستمرار في الفصل</DialogTitle>
               <DialogDescription>
                 {leaveTarget
@@ -518,7 +521,7 @@ export default function TeacherClassroomSessions() {
               </DialogDescription>
             </DialogHeader>
             <form
-              className="space-y-4"
+              className="space-y-5"
               onSubmit={(event) => {
                 event.preventDefault();
                 if (leaveNotes.trim().length < 5) return;
@@ -535,15 +538,17 @@ export default function TeacherClassroomSessions() {
                   maxLength={2000}
                   required
                   placeholder="اكتب سبب الطلب"
+                  className="min-h-28 resize-y"
                 />
               </label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs leading-6 text-muted-foreground">
                 لن يتغير تعيينك قبل مراجعة الإدارة واختيار معلم بديل.
               </p>
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:justify-end sm:space-x-0">
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full sm:w-auto"
                   onClick={() => setLeaveTarget(null)}
                   disabled={createLeaveRequest.isPending}
                 >
@@ -551,6 +556,7 @@ export default function TeacherClassroomSessions() {
                 </Button>
                 <Button
                   type="submit"
+                  className="w-full sm:w-auto"
                   disabled={createLeaveRequest.isPending || leaveNotes.trim().length < 5}
                 >
                   {createLeaveRequest.isPending ? "جارٍ الإرسال..." : "إرسال الطلب"}

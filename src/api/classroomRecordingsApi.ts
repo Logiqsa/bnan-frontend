@@ -61,6 +61,7 @@ export interface ClassroomSubjectOption {
   name: string;
   subject?: { id: string; name: string };
   teacher?: { id: string; name: string };
+  canRequestLeave?: boolean;
   isActive: boolean;
 }
 

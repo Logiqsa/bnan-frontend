@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   sessions: vi.fn(),
   recordings: vi.fn(),
   assignments: vi.fn(),
+  leaveRequest: vi.fn(),
 }));
 
 vi.mock("@/api/classroomRecordingsApi", () => ({
@@ -23,6 +24,9 @@ vi.mock("@/api/classroomRecordingsApi", () => ({
 }));
 vi.mock("@/api/teacherClassroomAssignmentsApi", () => ({
   teacherClassroomAssignmentsApi: { list: mocks.assignments },
+}));
+vi.mock("@/api/teacherClassroomChangeRequestsApi", () => ({
+  teacherClassroomChangeRequestsApi: { createLeaveRequest: mocks.leaveRequest },
 }));
 vi.mock("@/components/CourseClassroomChat", () => ({
   default: () => <div>محادثة الفصل التجريبية</div>,
@@ -44,6 +48,7 @@ const baseSubjects = {
     subjectId: "subject-1",
     name: "الرياضيات",
     teacher: { id: "teacher-1", name: "المعلم" },
+    canRequestLeave: true,
     isActive: true,
   }],
 };
@@ -80,11 +85,13 @@ describe("TeacherClassroomSessions classroom details", () => {
     mocks.sessions.mockReset();
     mocks.recordings.mockReset();
     mocks.assignments.mockReset();
+    mocks.leaveRequest.mockReset();
     mocks.subjects.mockResolvedValue({ data: baseSubjects });
     mocks.students.mockResolvedValue({ data: [{ studentId: "student-1", fullName: "طالب الفصل" }] });
     mocks.sessions.mockResolvedValue({ data: [] });
     mocks.recordings.mockResolvedValue({ data: [] });
     mocks.assignments.mockResolvedValue({ data: [] });
+    mocks.leaveRequest.mockResolvedValue({ id: "leave-request-1", status: "pending" });
   });
 
   it("loads classroom header and exposes all detail tabs", async () => {
@@ -104,6 +111,24 @@ describe("TeacherClassroomSessions classroom details", () => {
     mocks.students.mockResolvedValueOnce({ data: [] });
     renderPage();
     expect(await screen.findByText("لا يوجد طلاب مرتبطون بهذا الفصل.")).toBeInTheDocument();
+  });
+
+  it("lets the assigned teacher request a replacement for their subject", async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "طلب عدم الاستمرار" }));
+    fireEvent.change(screen.getByLabelText("سبب طلب عدم الاستمرار"), {
+      target: { value: "لن أتمكن من الاستمرار لظرف طارئ" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "إرسال الطلب" }));
+
+    await waitFor(() =>
+      expect(mocks.leaveRequest).toHaveBeenCalledWith({
+        classroomId: "classroom-1",
+        classroomSubjectId: "classroom-subject-1",
+        notes: "لن أتمكن من الاستمرار لظرف طارئ",
+      }),
+    );
   });
 
   it("keeps each empty state independent", async () => {

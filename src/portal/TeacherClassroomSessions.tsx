@@ -7,6 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   FileText,
+  LogOut,
   MessageCircle,
   RefreshCw,
   School,
@@ -23,6 +24,7 @@ import {
   teacherClassroomAssignmentsApi,
   type TeacherClassroomAssignment,
 } from "@/api/teacherClassroomAssignmentsApi";
+import { teacherClassroomChangeRequestsApi } from "@/api/teacherClassroomChangeRequestsApi";
 import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
@@ -90,6 +92,8 @@ export default function TeacherClassroomSessions() {
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [leaveTarget, setLeaveTarget] = useState<{ classroomSubjectId: string; subjectName: string } | null>(null);
+  const [leaveNotes, setLeaveNotes] = useState("");
   const [assignmentForm, setAssignmentForm] = useState({ subjectId: "", title: "", description: "", dueDate: "", totalPoints: "10", attachment: null as File | null });
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
   const subjects = useQuery({
@@ -181,6 +185,22 @@ export default function TeacherClassroomSessions() {
       toast.success("تم إنشاء الواجب وإرسال إشعار للطلاب");
     },
     onError: (error: Error) => toast.error(error.message || "تعذر إنشاء الواجب"),
+  });
+  const createLeaveRequest = useMutation({
+    mutationFn: () => {
+      if (!leaveTarget) throw new Error("اختر المادة أولًا.");
+      return teacherClassroomChangeRequestsApi.createLeaveRequest({
+        classroomId,
+        classroomSubjectId: leaveTarget.classroomSubjectId,
+        notes: leaveNotes.trim(),
+      });
+    },
+    onSuccess: () => {
+      setLeaveTarget(null);
+      setLeaveNotes("");
+      toast.success("تم إرسال طلب عدم الاستمرار إلى الإدارة.");
+    },
+    onError: (error: Error) => toast.error(error.message || "تعذر إرسال الطلب."),
   });
 
   return (
@@ -309,6 +329,23 @@ export default function TeacherClassroomSessions() {
                           <span className="text-sm text-muted-foreground">
                             {item.teacher?.name || "غير محدد"}
                           </span>
+                          {item.canRequestLeave && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setLeaveNotes("");
+                                setLeaveTarget({
+                                  classroomSubjectId: item.classroomSubjectId,
+                                  subjectName: item.name,
+                                });
+                              }}
+                            >
+                              <LogOut className="me-1 h-4 w-4" />
+                              طلب عدم الاستمرار
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -459,6 +496,66 @@ export default function TeacherClassroomSessions() {
               </div>
               <label className="block space-y-2 text-sm font-medium">مرفق اختياري<Input type="file" onChange={(event) => setAssignmentForm((current) => ({ ...current, attachment: event.target.files?.[0] || null }))} /></label>
               <DialogFooter><Button type="submit" disabled={createAssignment.isPending}>{createAssignment.isPending ? "جاري الإنشاء..." : "إنشاء الواجب"}</Button></DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        <Dialog
+          open={Boolean(leaveTarget)}
+          onOpenChange={(open) => {
+            if (!open && !createLeaveRequest.isPending) {
+              setLeaveTarget(null);
+              setLeaveNotes("");
+            }
+          }}
+        >
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>طلب عدم الاستمرار في الفصل</DialogTitle>
+              <DialogDescription>
+                {leaveTarget
+                  ? `سيُرسل طلب استبدال لك في مادة ${leaveTarget.subjectName} إلى الإدارة.`
+                  : "سيتم إرسال الطلب إلى الإدارة."}
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (leaveNotes.trim().length < 5) return;
+                createLeaveRequest.mutate();
+              }}
+            >
+              <label className="block space-y-2 text-sm font-medium" htmlFor="teacher-leave-notes">
+                سبب طلب عدم الاستمرار
+                <Textarea
+                  id="teacher-leave-notes"
+                  value={leaveNotes}
+                  onChange={(event) => setLeaveNotes(event.target.value)}
+                  minLength={5}
+                  maxLength={2000}
+                  required
+                  placeholder="اكتب سبب الطلب"
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                لن يتغير تعيينك قبل مراجعة الإدارة واختيار معلم بديل.
+              </p>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLeaveTarget(null)}
+                  disabled={createLeaveRequest.isPending}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createLeaveRequest.isPending || leaveNotes.trim().length < 5}
+                >
+                  {createLeaveRequest.isPending ? "جارٍ الإرسال..." : "إرسال الطلب"}
+                </Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

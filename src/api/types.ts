@@ -121,6 +121,7 @@ export interface ActiveSession {
 export interface PortalLesson {
   key: string;
   lessonId?: string;
+  scheduleEntryId?: string;
   registrationMode: RegistrationMode;
   classroom: { id: string; name: string };
   classroomSubjectId: string;

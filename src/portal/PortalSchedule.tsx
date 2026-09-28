@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Video,
 } from "lucide-react";
-import { endSession, getActiveClassroomSession, getSchedule, joinLesson, startLesson } from "@/api/scheduleApi";
+import { deleteUnifiedScheduleEntry, endSession, getActiveClassroomSession, getSchedule, getUnifiedScheduleWeek, joinLesson, startLesson, upsertUnifiedScheduleEntry } from "@/api/scheduleApi";
 import { coursesApi, type Course } from "@/api/coursesApi";
 import {
   classroomRecordingsApi,
@@ -21,6 +21,7 @@ import { ApiError } from "@/api/client";
 import type { PortalLesson, RegistrationMode } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,15 @@ const days: Record<string, string> = {
   thursday: "الخميس",
   friday: "الجمعة",
 };
+const scheduleDayKeys = [
+  "saturday",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+] as const;
 const dateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const parseDate = (value: string) => new Date(`${value}T12:00:00`);
@@ -264,6 +274,12 @@ export default function PortalSchedule({
   const [awaitingEnd, setAwaitingEnd] = useState<{ sessionId: string; classroomId: string; until: number } | null>(null);
   const endStateRefreshRef = useRef<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [scheduleStartTime, setScheduleStartTime] = useState("");
+  const [scheduleEndTime, setScheduleEndTime] = useState("");
+  const [addingGulfEntry, setAddingGulfEntry] = useState(false);
+  const [newGulfDay, setNewGulfDay] = useState<(typeof scheduleDayKeys)[number]>("saturday");
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [deletingSchedule, setDeletingSchedule] = useState(false);
   const selectedRegularActive = role === "teacher" && selected?.scheduleKind !== "course" &&
     (selected?.activeSession?.status === "starting" || selected?.activeSession?.status === "live" || selected?.activeSession?.status === "awaiting_zoom_end");
   const activeSessionQuery = useQuery({
@@ -300,6 +316,21 @@ export default function PortalSchedule({
   const load = useCallback(async () => {
     setError("");
     try {
+      const unifiedWeeks = await Promise.all(
+        weekKey.split(",").map((week) =>
+          getUnifiedScheduleWeek(
+            week,
+            role === "teacher" && filter !== "all" ? filter : undefined,
+          ),
+        ),
+      );
+      const unified = new Map<string, PortalLesson>();
+      unifiedWeeks.flatMap((week) => week.lessons).forEach((lesson) => {
+        unified.set(lesson.key, lesson);
+      });
+      setLessons([...unified.values()]);
+      return;
+
       const modes = modeKey.split(",") as RegistrationMode[];
       const weeks = weekKey.split(",");
       const groups = await Promise.all(
@@ -506,6 +537,7 @@ export default function PortalSchedule({
   }, [
     modeKey,
     weekKey,
+    filter,
     pick,
     role,
     grid,
@@ -531,6 +563,12 @@ export default function PortalSchedule({
         : null,
     );
   }, [lessons]);
+  useEffect(() => {
+    setScheduleStartTime(selected?.startTime || "");
+    setScheduleEndTime(selected?.endTime || "");
+    setNewGulfDay((selected?.day as (typeof scheduleDayKeys)[number]) || "saturday");
+    setAddingGulfEntry(false);
+  }, [selected]);
   useEffect(() => {
     if (!awaitingEnd || !selected || selected.classroom.id !== awaitingEnd.classroomId) return;
     if (selected.activeSession?.status === "ended") {
@@ -702,6 +740,36 @@ export default function PortalSchedule({
     if (!value) return;
     if (isWebUrl(value)) window.open(value, "_blank", "noopener,noreferrer");
     else setSummaryText(value);
+  };
+  const canManageGulfEntry = role === "teacher" && selected?.scheduleKind === "classroom" && selected.registrationMode === "gulf" && Boolean(selected.classroomSubjectId);
+  const saveGulfEntry = async ({ create = false } = {}) => {
+    if (!selected || !canManageGulfEntry) return;
+    setSavingSchedule(true);
+    setStartError("");
+    try {
+      await upsertUnifiedScheduleEntry(selected.classroom.id, {
+        day: create ? newGulfDay : selected.day,
+        classroomSubjectId: selected.classroomSubjectId,
+        startTime: scheduleStartTime || selected.startTime,
+        endTime: scheduleEndTime || selected.endTime || "",
+      });
+      await load();
+    } catch (value) {
+      setStartError((value as ApiError).message || pick("تعذر حفظ موعد الحصة.", "Unable to save the lesson time."));
+    } finally { setSavingSchedule(false); }
+  };
+  const deleteGulfEntry = async () => {
+    if (!selected?.scheduleEntryId || !canManageGulfEntry) return;
+    if (!window.confirm(pick("هل تريد حذف هذا الموعد فقط؟", "Delete only this schedule entry?"))) return;
+    setDeletingSchedule(true);
+    setStartError("");
+    try {
+      await deleteUnifiedScheduleEntry(selected.classroom.id, selected.scheduleEntryId);
+      setSelected(null);
+      await load();
+    } catch (value) {
+      setStartError((value as ApiError).message || pick("تعذر حذف موعد الحصة.", "Unable to delete the lesson time."));
+    } finally { setDeletingSchedule(false); }
   };
 
   return (
@@ -961,6 +1029,23 @@ export default function PortalSchedule({
               <span dir="ltr">{selected?.startTime}</span>
             </DialogDescription>
           </DialogHeader>
+          {canManageGulfEntry && (
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <p className="mb-3 text-sm font-semibold">{pick("إدارة موعد المادة", "Manage subject time")}</p>
+              {addingGulfEntry && (
+                <label className="mb-3 grid gap-1 text-sm"><span>{pick("اليوم", "Day")}</span><select className="h-10 rounded-md border bg-background px-3" value={newGulfDay} onChange={(event) => setNewGulfDay(event.target.value as (typeof scheduleDayKeys)[number])}>{scheduleDayKeys.map((day) => <option key={day} value={day}>{localizedDays[day]}</option>)}</select></label>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm"><span>{pick("وقت البداية", "Start time")}</span><Input type="time" value={scheduleStartTime} onChange={(event) => setScheduleStartTime(event.target.value)} /></label>
+                <label className="grid gap-1 text-sm"><span>{pick("وقت النهاية", "End time")}</span><Input type="time" value={scheduleEndTime} onChange={(event) => setScheduleEndTime(event.target.value)} /></label>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => void saveGulfEntry({ create: addingGulfEntry })} disabled={savingSchedule || deletingSchedule}>{savingSchedule ? pick("جارٍ الحفظ...", "Saving...") : addingGulfEntry ? pick("إضافة الموعد", "Add time") : pick("حفظ الموعد", "Save time")}</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setAddingGulfEntry((current) => !current)} disabled={savingSchedule || deletingSchedule}>{addingGulfEntry ? pick("إلغاء الإضافة", "Cancel add") : pick("إضافة موعد آخر", "Add another time")}</Button>
+                <Button type="button" size="sm" variant="destructive" onClick={() => void deleteGulfEntry()} disabled={savingSchedule || deletingSchedule || !selected?.scheduleEntryId}>{deletingSchedule ? pick("جارٍ الحذف...", "Deleting...") : pick("حذف الموعد", "Delete time")}</Button>
+              </div>
+            </div>
+          )}
           {selected && isLessonEnded(selected) ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <Button

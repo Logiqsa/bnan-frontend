@@ -12,7 +12,7 @@ vi.mock("@/api/studentHomeApi", async (importOriginal) => {
 });
 vi.mock("@/api/scheduleApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/scheduleApi")>();
-  return { ...actual, getScheduleWeek: mocks.schedule, joinLesson: mocks.join };
+  return { ...actual, getUnifiedScheduleWeek: mocks.schedule, joinLesson: mocks.join };
 });
 vi.mock("@/api/studentSessionReportApi", () => ({
   studentSessionReportApi: { getReport: mocks.report },
@@ -44,10 +44,10 @@ describe("StudentSchedule", () => {
     vi.spyOn(window, "open").mockImplementation(() => null);
   });
 
-  it.each(["egyptian", "gulf"] as const)("uses the backend registrationMode %s", async (mode) => {
+  it.each(["egyptian", "gulf"] as const)("uses one unified backend schedule request for %s students", async (mode) => {
     mocks.home.mockResolvedValue(home(mode)); mocks.schedule.mockResolvedValue(week([]));
     renderPage();
-    await waitFor(() => expect(mocks.schedule).toHaveBeenCalledWith(mode, "2026-09-19"));
+    await waitFor(() => expect(mocks.schedule).toHaveBeenCalledWith("2026-09-19"));
     expect((await screen.findAllByText("لا توجد حصص"))).toHaveLength(7);
   });
 
@@ -58,7 +58,7 @@ describe("StudentSchedule", () => {
     expect(screen.getByText(/١٩ سبتمبر ٢٠٢٦/)).toBeInTheDocument();
     expect(screen.getByText(/٢٥ سبتمبر ٢٠٢٦/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /الأسبوع التالي/ }));
-    await waitFor(() => expect(mocks.schedule).toHaveBeenLastCalledWith("gulf", "2026-09-26"));
+    await waitFor(() => expect(mocks.schedule).toHaveBeenLastCalledWith("2026-09-26"));
   });
 
   it("shows join only when the backend marks the session joinable and uses its meetingLink", async () => {

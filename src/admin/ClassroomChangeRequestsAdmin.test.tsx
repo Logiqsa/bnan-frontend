@@ -23,11 +23,11 @@ const request = (requestType: "change_teacher" | "teacher_leave" | "cancel_subje
   subject: { name: "رياضيات" }, classroom: { name: "فصل 1", curriculum: { id: "curriculum-1", name: "المنهج" } }, currentTeacher: { user: { fullName: "المعلم الحالي" } },
 });
 
-const renderPage = async (item = request("change_teacher"), teacherOptions = [{ id: "user-replacement-1", teacherId: "replacement-1", fullName: "المعلم البديل", teacherStatus: "approved" as const, curriculums: [{ id: "curriculum-1" }] }], openDetail = true) => {
+const renderPage = async (item = request("change_teacher"), teacherOptions = [{ id: "user-replacement-1", teacherId: "replacement-1", fullName: "المعلم البديل", teacherStatus: "approved" as const, curriculums: [{ id: "curriculum-1" }] }], openDetail = true, initialEntry = "/admin/classroom-change-requests") => {
   mocks.list.mockResolvedValue({ success: true, data: [item], total: 1 });
   mocks.get.mockResolvedValue({ success: true, data: item });
   mocks.listAllWithTeacherProfiles.mockResolvedValue(teacherOptions);
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><ClassroomChangeRequestsAdmin /></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[initialEntry]}><ClassroomChangeRequestsAdmin /></MemoryRouter></QueryClientProvider>);
   await screen.findByText("قائمة الطلبات");
   if (openDetail) {
     fireEvent.click(screen.getByRole("button", { name: "التفاصيل" }));
@@ -42,6 +42,12 @@ describe("ClassroomChangeRequestsAdmin", () => {
     await renderPage();
     expect(screen.getAllByText("المعلم البديل").length).toBeGreaterThan(0);
     expect(screen.getByText("اختر المعلم البديل")).toBeInTheDocument();
+  });
+
+  it("opens the requested item directly from an admin notification link", async () => {
+    await renderPage(request("teacher_leave"), undefined, false, "/admin/classroom-change-requests?requestId=teacher_leave-1");
+    expect(await screen.findByText("تفاصيل الطلب")).toBeInTheDocument();
+    expect(mocks.get).toHaveBeenCalledWith("teacher_leave-1");
   });
 
   it("requires a replacement teacher before approving", async () => {

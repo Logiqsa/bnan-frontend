@@ -30,4 +30,17 @@ describe("teacherClassroomChangeRequestsApi", () => {
       },
     );
   });
+
+  it("loads the teacher's existing classroom change requests", async () => {
+    const requests = [{ id: "request-1", classroomSubject: "subject-1", status: "pending" as const }];
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: requests });
+
+    await expect(
+      teacherClassroomChangeRequestsApi.listLeaveRequests("class/1"),
+    ).resolves.toBe(requests);
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/classrooms/class%2F1/change-requests",
+    );
+  });
 });

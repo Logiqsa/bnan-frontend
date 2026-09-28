@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   recordings: vi.fn(),
   assignments: vi.fn(),
   leaveRequest: vi.fn(),
+  leaveRequests: vi.fn(),
 }));
 
 vi.mock("@/api/classroomRecordingsApi", () => ({
@@ -26,7 +27,10 @@ vi.mock("@/api/teacherClassroomAssignmentsApi", () => ({
   teacherClassroomAssignmentsApi: { list: mocks.assignments },
 }));
 vi.mock("@/api/teacherClassroomChangeRequestsApi", () => ({
-  teacherClassroomChangeRequestsApi: { createLeaveRequest: mocks.leaveRequest },
+  teacherClassroomChangeRequestsApi: {
+    createLeaveRequest: mocks.leaveRequest,
+    listLeaveRequests: mocks.leaveRequests,
+  },
 }));
 vi.mock("@/components/CourseClassroomChat", () => ({
   default: () => <div>محادثة الفصل التجريبية</div>,
@@ -86,12 +90,14 @@ describe("TeacherClassroomSessions classroom details", () => {
     mocks.recordings.mockReset();
     mocks.assignments.mockReset();
     mocks.leaveRequest.mockReset();
+    mocks.leaveRequests.mockReset();
     mocks.subjects.mockResolvedValue({ data: baseSubjects });
     mocks.students.mockResolvedValue({ data: [{ studentId: "student-1", fullName: "طالب الفصل" }] });
     mocks.sessions.mockResolvedValue({ data: [] });
     mocks.recordings.mockResolvedValue({ data: [] });
     mocks.assignments.mockResolvedValue({ data: [] });
     mocks.leaveRequest.mockResolvedValue({ id: "leave-request-1", status: "pending" });
+    mocks.leaveRequests.mockResolvedValue([]);
   });
 
   it("loads classroom header and exposes all detail tabs", async () => {
@@ -129,6 +135,22 @@ describe("TeacherClassroomSessions classroom details", () => {
         notes: "لن أتمكن من الاستمرار لظرف طارئ",
       }),
     );
+    expect(await screen.findByText("الطلب قيد المراجعة")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "طلب عدم الاستمرار" })).not.toBeInTheDocument();
+  });
+
+  it("shows the existing leave request status instead of another request action", async () => {
+    mocks.leaveRequests.mockResolvedValueOnce([{
+      id: "leave-request-1",
+      classroomSubject: "classroom-subject-1",
+      requestType: "teacher_leave",
+      status: "pending",
+    }]);
+
+    renderPage();
+
+    expect(await screen.findByText("الطلب قيد المراجعة")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "طلب عدم الاستمرار" })).not.toBeInTheDocument();
   });
 
   it("keeps each empty state independent", async () => {

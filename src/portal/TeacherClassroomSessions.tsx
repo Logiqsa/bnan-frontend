@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  Clock3,
   FileText,
   LogOut,
   MessageCircle,
@@ -24,7 +25,10 @@ import {
   teacherClassroomAssignmentsApi,
   type TeacherClassroomAssignment,
 } from "@/api/teacherClassroomAssignmentsApi";
-import { teacherClassroomChangeRequestsApi } from "@/api/teacherClassroomChangeRequestsApi";
+import {
+  teacherClassroomChangeRequestsApi,
+  type TeacherClassroomLeaveRequest,
+} from "@/api/teacherClassroomChangeRequestsApi";
 import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
@@ -66,6 +70,22 @@ const nameOf = (value: unknown) =>
         ""
       : "";
 
+const leaveRequestStatus = {
+  pending: "الطلب قيد المراجعة",
+  approved: "تمت الموافقة على الطلب",
+  rejected: "تم رفض الطلب",
+  cancelled: "تم إلغاء الطلب",
+} as const;
+
+const requestClassroomSubjectId = (value: unknown) =>
+  typeof value === "string"
+    ? value
+    : value && typeof value === "object"
+      ? (value as { id?: string; _id?: string }).id ||
+        (value as { _id?: string })._id ||
+        ""
+      : "";
+
 const ErrorCard = ({
   message,
   retry,
@@ -94,6 +114,9 @@ export default function TeacherClassroomSessions() {
   const [createOpen, setCreateOpen] = useState(false);
   const [leaveTarget, setLeaveTarget] = useState<{ classroomSubjectId: string; subjectName: string } | null>(null);
   const [leaveNotes, setLeaveNotes] = useState("");
+  const [submittedLeaveRequests, setSubmittedLeaveRequests] = useState<
+    Record<string, TeacherClassroomLeaveRequest>
+  >({});
   const [assignmentForm, setAssignmentForm] = useState({ subjectId: "", title: "", description: "", dueDate: "", totalPoints: "10", attachment: null as File | null });
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
   const subjects = useQuery({
@@ -132,12 +155,27 @@ export default function TeacherClassroomSessions() {
     enabled: Boolean(classroomId),
     retry: 1,
   });
+  const leaveRequests = useQuery({
+    queryKey: ["teacher-classroom-leave-requests", classroomId],
+    queryFn: () => teacherClassroomChangeRequestsApi.listLeaveRequests(classroomId),
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
 
   const classroomSubjects = useMemo(
     () => subjects.data?.subjects || [],
     [subjects.data?.subjects],
   );
   const classroomName = subjects.data?.classroom?.name || "";
+  const leaveRequestsBySubject = useMemo(
+    () =>
+      new Map(
+        (leaveRequests.data || [])
+          .filter((request) => request.requestType === "teacher_leave")
+          .map((request) => [requestClassroomSubjectId(request.classroomSubject), request]),
+      ),
+    [leaveRequests.data],
+  );
   const teachers = useMemo(
     () => [
       ...new Set(
@@ -195,7 +233,17 @@ export default function TeacherClassroomSessions() {
         notes: leaveNotes.trim(),
       });
     },
-    onSuccess: () => {
+    onSuccess: (request) => {
+      if (leaveTarget) {
+        setSubmittedLeaveRequests((current) => ({
+          ...current,
+          [leaveTarget.classroomSubjectId]: request,
+        }));
+      }
+      queryClient.setQueryData(
+        ["teacher-classroom-leave-requests", classroomId],
+        (current: typeof leaveRequests.data) => [request, ...(current || [])],
+      );
       setLeaveTarget(null);
       setLeaveNotes("");
       toast.success("تم إرسال طلب عدم الاستمرار إلى الإدارة.");
@@ -329,7 +377,28 @@ export default function TeacherClassroomSessions() {
                           <span className="text-sm text-muted-foreground">
                             {item.teacher?.name || "غير محدد"}
                           </span>
-                          {item.canRequestLeave && (
+                          {leaveRequests.isPending ? (
+                            <Badge variant="outline">جاري تحميل حالة الطلب...</Badge>
+                          ) : submittedLeaveRequests[item.classroomSubjectId] ||
+                            leaveRequestsBySubject.get(item.classroomSubjectId) ? (
+                            <Badge
+                              variant={
+                                (submittedLeaveRequests[item.classroomSubjectId] ||
+                                  leaveRequestsBySubject.get(item.classroomSubjectId))
+                                  ?.status === "pending"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                              className="gap-1"
+                            >
+                              <Clock3 className="h-3.5 w-3.5" />
+                              {leaveRequestStatus[
+                                (submittedLeaveRequests[item.classroomSubjectId] ||
+                                  leaveRequestsBySubject.get(item.classroomSubjectId))
+                                  ?.status || "pending"
+                              ]}
+                            </Badge>
+                          ) : item.canRequestLeave && (
                             <Button
                               type="button"
                               size="sm"

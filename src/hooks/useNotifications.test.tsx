@@ -80,7 +80,7 @@ describe("useNotifications", () => {
     ["students", "/admin/students"],
     ["parents", "/admin/parents"],
     ["users", "/admin?tab=all-users"],
-    ["classroom_change_requests", "/admin/classrooms"],
+    ["classroom_change_requests", "/admin/classroom-change-requests"],
     ["global_notification_details", "/admin/notifications"],
     ["admin_payments", "/admin"],
   ])("maps backend target %s to an existing admin route", (target, route) => {
@@ -88,6 +88,17 @@ describe("useNotifications", () => {
       ...stored,
       navigation: { target },
     })).toBe(route);
+  });
+
+  it("deep-links admin classroom-change notifications to the requested item", () => {
+    expect(adminNotificationLink({
+      ...stored,
+      key: "CLASSROOM_CHANGE_REQUESTED",
+      navigation: {
+        target: "classroom_change_requests",
+        params: { requestId: "request/1" },
+      },
+    })).toBe("/admin/classroom-change-requests?requestId=request%2F1");
   });
 
   it.each([

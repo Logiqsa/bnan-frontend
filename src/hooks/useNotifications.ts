@@ -148,6 +148,15 @@ export const notificationLink = (
         ? `/admin/messages?${new URLSearchParams({ roomId }).toString()}`
         : adminNotificationRoutes.chat_room;
     }
+    if (target === "classroom_change_requests") {
+      const requestId = notificationParam(notification, "requestId")
+        || (typeof notification.data?.requestId === "string"
+          ? notification.data.requestId
+          : undefined);
+      return requestId
+        ? `/admin/classroom-change-requests?requestId=${encodeURIComponent(requestId)}`
+        : "/admin/classroom-change-requests";
+    }
     return typeof target === "string" ? adminNotificationRoutes[target] : undefined;
   }
   if (role === "teacher")

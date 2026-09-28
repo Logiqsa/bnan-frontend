@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Check, Eye, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { adminClassroomChangeRequestsApi, type AdminClassroomChangeRequest, type AdminClassroomChangeRequestType } from "@/api/adminClassroomChangeRequestsApi";
@@ -44,6 +45,7 @@ const errorMessage = (error: unknown, fallback: string) => error instanceof ApiE
 
 export default function ClassroomChangeRequestsAdmin() {
   const client = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [type, setType] = useState<AdminClassroomChangeRequestType | "all">("all");
   const [status, setStatus] = useState<"all" | "pending" | "approved" | "rejected" | "cancelled">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -52,6 +54,11 @@ export default function ClassroomChangeRequestsAdmin() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [confirming, setConfirming] = useState<"approve" | "reject" | null>(null);
+  const notificationRequestId = searchParams.get("requestId");
+
+  useEffect(() => {
+    setSelectedId(notificationRequestId || null);
+  }, [notificationRequestId]);
 
   const list = useQuery({
     queryKey: ["admin-classroom-change-requests", type, status],
@@ -101,10 +108,20 @@ export default function ClassroomChangeRequestsAdmin() {
   });
 
   const open = (item: AdminClassroomChangeRequest) => {
-    setSelectedId(item.id || null);
+    if (!item.id) return;
+    setSelectedId(item.id);
+    const next = new URLSearchParams(searchParams);
+    next.set("requestId", item.id);
+    setSearchParams(next);
     setReplacementTeacherId(""); setAdminNotes(""); setRejectionReason(""); setRejecting(false); setConfirming(null);
   };
-  const close = () => { if (!approve.isPending && !reject.isPending) setSelectedId(null); };
+  const close = () => {
+    if (approve.isPending || reject.isPending) return;
+    setSelectedId(null);
+    const next = new URLSearchParams(searchParams);
+    next.delete("requestId");
+    setSearchParams(next, { replace: true });
+  };
   const canApprove = Boolean(request && !terminal && (!needsReplacement || replacementTeacherId) && !approve.isPending && !reject.isPending);
 
   return <DashboardLayout>

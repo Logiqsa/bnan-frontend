@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  ClipboardCheck,
   Clock3,
   FileText,
   LogOut,

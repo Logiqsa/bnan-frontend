@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Mic, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,10 @@ export default function VoiceMessageRecorder({
   const [processing, setProcessing] = useState(false);
   const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 30 }, () => 0));
   const [voicePeak, setVoicePeak] = useState(0);
+  const waveformBars = useMemo(
+    () => Array.from({ length: 30 }, (_, index) => 7 + ((index * 13 + 5) % 13)),
+    [],
+  );
 
   const stopVisualization = () => {
     if (animationFrameRef.current !== null) {
@@ -199,10 +203,10 @@ export default function VoiceMessageRecorder({
           {voiceLevels.map((level, index) => (
             <span
               key={index}
-              className="min-w-[2px] flex-1 rounded-full bg-sky-300 transition-[height,opacity] duration-75"
+              className={`min-w-[3px] flex-1 rounded-full transition-[height,opacity,background-color] duration-75 ${level ? "bg-sky-300" : "bg-slate-600"}`}
               style={{
-                height: `${level ? Math.max(4, Math.round(level * 22)) : 2}px`,
-                opacity: level ? 0.35 + level * 0.65 : 0.2,
+                height: `${level ? Math.max(5, Math.round(waveformBars[index] * (0.45 + level * 0.75))) : waveformBars[index]}px`,
+                opacity: level ? 0.45 + level * 0.55 : 0.75,
               }}
             />
           ))}

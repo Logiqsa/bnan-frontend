@@ -94,11 +94,15 @@ export default function VoiceMessageRecorder({
       recorder.onstop = async () => {
         const type = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type });
+        const recordedForMs = Date.now() - startedAtRef.current;
         chunksRef.current = [];
         setRecording(false);
         onRecordingChange?.(false);
         releaseStream();
-        if (!blob.size) return;
+        if (!blob.size || recordedForMs < 300) {
+          toast.error(pick("التسجيل قصير جدًا ولم يتم إرساله.", "The recording was too short and was not sent."));
+          return;
+        }
         setProcessing(true);
         try {
           await onRecorded(new File([blob], `voice-message.${extensionFor(type.split(";")[0])}`, { type: type.split(";")[0] }));

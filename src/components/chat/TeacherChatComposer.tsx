@@ -178,11 +178,6 @@ const TeacherChatComposer = ({ onSend }: TeacherChatComposerProps) => {
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <VoiceMessageRecorder
-            disabled={sending}
-            onRecordingChange={setVoiceRecording}
-            onRecorded={sendVoice}
-          />
           <Textarea
             value={text}
             onChange={(event) => setText(event.target.value)}

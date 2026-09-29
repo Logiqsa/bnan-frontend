@@ -10,6 +10,7 @@ interface RawTeacherClassroomAssignment {
     id?: string;
     name?: string;
     registrationMode?: ClassroomRegistrationMode;
+    curriculum?: { id?: string; _id?: string; name?: string } | null;
   } | null;
 }
 
@@ -18,6 +19,7 @@ export interface TeacherRegularClassroom {
   classroomId: string;
   classroomName: string;
   registrationMode?: ClassroomRegistrationMode;
+  curriculum?: { id: string; name: string } | null;
 }
 
 export const teacherClassroomsApi = {
@@ -36,6 +38,9 @@ export const teacherClassroomsApi = {
           classroomId,
           classroomName: assignment.classroom.name,
           registrationMode: assignment.classroom.registrationMode,
+          curriculum: assignment.classroom.curriculum?.id || assignment.classroom.curriculum?._id
+            ? { id: assignment.classroom.curriculum.id || assignment.classroom.curriculum._id || "", name: assignment.classroom.curriculum.name || "" }
+            : null,
         };
       })
       .filter((item): item is TeacherRegularClassroom => Boolean(item));

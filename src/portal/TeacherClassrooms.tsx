@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { BookOpen, GraduationCap, RefreshCw, School, Users } from "lucide-react";
@@ -21,6 +21,7 @@ export interface TeacherClassroomItem {
   groupId?: string;
   groupName?: string;
   studentsCount?: number;
+  curriculum?: { id: string; name: string } | null;
 }
 
 const classroomReference = (value: unknown) => {
@@ -30,8 +31,17 @@ const classroomReference = (value: unknown) => {
   return { id: classroom.id || classroom._id || "", name: classroom.name };
 };
 
+const curriculumReference = (value: unknown) => {
+  if (typeof value === "string") return { id: value, name: "" };
+  if (!value || typeof value !== "object") return null;
+  const curriculum = value as { id?: string; _id?: string; name?: string };
+  const id = curriculum.id || curriculum._id || "";
+  return id ? { id, name: curriculum.name || "" } : null;
+};
+
 export default function TeacherClassrooms() {
   const { pick } = useLanguage();
+  const [selectedCurriculum, setSelectedCurriculum] = useState("all");
   const regular = useQuery({
     queryKey: ["teacher-classrooms"],
     queryFn: teacherClassroomsApi.listMine,
@@ -53,6 +63,7 @@ export default function TeacherClassrooms() {
         classroomName: classroom.classroomName,
         source: "regular",
         registrationMode: classroom.registrationMode,
+        curriculum: classroom.curriculum,
       });
     });
     (courses.data || []).forEach(({ course, groups }) => {
@@ -70,11 +81,27 @@ export default function TeacherClassrooms() {
           groupId: group.id,
           groupName: group.name,
           studentsCount: typeof group.studentsCount === "number" ? group.studentsCount : existing?.studentsCount,
+          curriculum: curriculumReference(course.curriculum) || existing?.curriculum || null,
         });
       });
     });
     return [...items.values()].sort((a, b) => a.classroomName.localeCompare(b.classroomName, "ar"));
   }, [courses.data, regular.data]);
+
+  const curriculumOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    classrooms.forEach((classroom) => {
+      if (classroom.curriculum?.id) options.set(classroom.curriculum.id, classroom.curriculum.name || classroom.curriculum.id);
+    });
+    return [...options.entries()].sort((a, b) => a[1].localeCompare(b[1], "ar"));
+  }, [classrooms]);
+
+  const filteredClassrooms = useMemo(
+    () => selectedCurriculum === "all"
+      ? classrooms
+      : classrooms.filter((classroom) => classroom.curriculum?.id === selectedCurriculum),
+    [classrooms, selectedCurriculum],
+  );
 
   const bothFailed = regular.isError && courses.isError;
   const initialLoading = regular.isPending || courses.isPending;
@@ -103,6 +130,23 @@ export default function TeacherClassrooms() {
           </div>
         )}
 
+        {!initialLoading && !bothFailed && classrooms.length > 0 && curriculumOptions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
+            <label htmlFor="teacher-classroom-curriculum" className="text-sm font-medium">
+              {pick("فلترة حسب المنهج", "Filter by curriculum")}
+            </label>
+            <select
+              id="teacher-classroom-curriculum"
+              value={selectedCurriculum}
+              onChange={(event) => setSelectedCurriculum(event.target.value)}
+              className="h-10 min-w-56 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">{pick("كل المناهج", "All curricula")}</option>
+              {curriculumOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </div>
+        )}
+
         {initialLoading ? (
           <div className="space-y-4" aria-label={pick("جاري تحميل الفصول...", "Loading classrooms...")}>
             <p className="text-sm text-muted-foreground">{pick("جاري تحميل الفصول...", "Loading classrooms...")}</p>
@@ -112,9 +156,11 @@ export default function TeacherClassrooms() {
           <Card><CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 p-6 text-center"><p className="text-destructive">{pick("تعذر تحميل الفصول.", "Unable to load classrooms.")}</p><Button variant="outline" onClick={retry} disabled={regular.isFetching || courses.isFetching}><RefreshCw className="me-2 h-4 w-4" />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card>
         ) : classrooms.length === 0 ? (
           <Card><CardContent className="flex min-h-64 items-center justify-center p-6 text-center text-muted-foreground">{pick("لا توجد فصول مسندة إليك.", "No classrooms are assigned to you.")}</CardContent></Card>
+        ) : filteredClassrooms.length === 0 ? (
+          <Card><CardContent className="flex min-h-64 items-center justify-center p-6 text-center text-muted-foreground">{pick("لا توجد فصول لهذا المنهج.", "No classrooms found for this curriculum.")}</CardContent></Card>
         ) : (
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={pick("الفصول المسندة", "Assigned classrooms")}>
-            {classrooms.map((classroom) => (
+            {filteredClassrooms.map((classroom) => (
               <Card key={classroom.classroomId} className="group overflow-hidden transition-shadow hover:shadow-md">
                 <Link to={`/portal/teacher/classrooms/${encodeURIComponent(classroom.classroomId)}`} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                   <CardContent className="flex h-full min-w-0 flex-col gap-4 p-5">

@@ -46,10 +46,10 @@ export default function VoiceMessageRecorder({
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 30 }, () => 0));
+  const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 42 }, () => 0));
   const [voicePeak, setVoicePeak] = useState(0);
   const waveformBars = useMemo(
-    () => Array.from({ length: 30 }, (_, index) => 7 + ((index * 13 + 5) % 13)),
+    () => Array.from({ length: 42 }, (_, index) => 7 + ((index * 17 + 11) % 19)),
     [],
   );
 
@@ -109,7 +109,7 @@ export default function VoiceMessageRecorder({
       chunksRef.current = [];
       streamRef.current = stream;
       recorderRef.current = recorder;
-      voiceLevelsRef.current = Array.from({ length: 30 }, () => 0);
+      voiceLevelsRef.current = Array.from({ length: 42 }, () => 0);
       setVoiceLevels(voiceLevelsRef.current);
       setVoicePeak(0);
       try {
@@ -201,14 +201,19 @@ export default function VoiceMessageRecorder({
         </Button>
         <div dir="ltr" className="flex min-w-0 flex-1 items-center gap-[2px]" aria-label={pick("مستوى الصوت", "Voice level")}>
           {voiceLevels.map((level, index) => (
+            (() => {
+              const reached = index / voiceLevels.length <= Math.min(1, elapsed / WAVEFORM_SECONDS);
+              return (
             <span
               key={index}
-              className={`min-w-[3px] flex-1 rounded-full transition-[height,opacity,background-color] duration-75 ${level ? "bg-sky-300" : "bg-slate-600"}`}
+              className={`min-w-[2px] flex-1 rounded-full transition-[height,opacity,background-color] duration-75 ${level ? "bg-sky-300" : "bg-slate-600"}`}
               style={{
-                height: `${level ? Math.max(5, Math.round(waveformBars[index] * (0.45 + level * 0.75))) : waveformBars[index]}px`,
-                opacity: level ? 0.45 + level * 0.55 : 0.75,
+                height: `${reached ? Math.max(4, Math.round(waveformBars[index] * 0.68 * (level ? 0.65 + level * 0.55 : 0.7))) : 0}px`,
+                opacity: reached ? (level ? 0.45 + level * 0.55 : 0.75) : 0,
               }}
             />
+              );
+            })()
           ))}
         </div>
         <span className="min-w-12 text-center text-xs font-medium text-slate-300" aria-live="polite">{formatDuration(elapsed)}</span>

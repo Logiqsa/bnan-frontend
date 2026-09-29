@@ -43,6 +43,7 @@ export default function ClassroomSessionActions({
   className?: string;
 }) {
   const { user } = usePortalAuth();
+  const navigate = useNavigate();
   const cache = useQueryClient();
   const [startingSession, setStartingSession] = useState(false);
   const [joiningSession, setJoiningSession] = useState(false);
@@ -96,6 +97,8 @@ export default function ClassroomSessionActions({
       const result = await startClassroomSession(classroomId, activeSession);
       const meetingUrl = result.data.teacherStartUrl || result.data.meetingLink;
       if (meetingUrl) window.open(meetingUrl, "_blank", "noopener,noreferrer");
+      const sessionId = result.data.session?.id || result.data.session?._id || activeSession.sessionId;
+      if (sessionId) navigate(`/portal/teacher/classrooms/${encodeURIComponent(classroomId)}/sessions/${encodeURIComponent(sessionId)}`);
       await refreshClassroomSession();
     } catch (error) {
       const apiError = error as ApiError;

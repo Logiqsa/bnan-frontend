@@ -385,6 +385,8 @@ export default function PortalSchedule({
         return;
       }
       window.open(url, "_blank", "noopener,noreferrer");
+      const sessionId = courseSession?.sessionId || regularSession?.data.session?.id || regularSession?.data.session?._id;
+      if (sessionId) navigate(`/portal/teacher/classrooms/${encodeURIComponent(selected.classroom.id)}/sessions/${encodeURIComponent(sessionId)}`);
       if (
         !(
           courseSession?.teacherStartUrl || regularSession?.data.teacherStartUrl

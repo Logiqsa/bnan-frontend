@@ -8,7 +8,7 @@ interface ScheduleWeekMetadata {
   weekEnd?: string;
   timezone?: string;
 }
-interface StartResponse { success:true; data:{session:unknown;meetingLink:string;teacherStartUrl?:string} }
+interface StartResponse { success:true; data:{session:{id?:string;_id?:string}|null;meetingLink:string;teacherStartUrl?:string} }
 interface JoinResponse { success:true; data:{meetingLink?:string;status?:string} }
 
 export interface PortalScheduleWeek extends ScheduleWeekMetadata {

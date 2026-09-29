@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { LogIn, Loader2, Square, Timer, Video } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";

@@ -17,6 +17,7 @@ const MIME_CANDIDATES = [
   "audio/mp4",
   "audio/ogg;codecs=opus",
 ];
+const WAVEFORM_SECONDS = 60;
 
 const extensionFor = (mimeType: string) => {
   if (mimeType === "audio/mp4") return "m4a";
@@ -40,12 +41,13 @@ export default function VoiceMessageRecorder({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const voiceLevelsRef = useRef<number[]>([]);
   const startedAtRef = useRef(0);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 30 }, () => 0.12));
-  const [voicePeak, setVoicePeak] = useState(0.12);
+  const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 30 }, () => 0));
+  const [voicePeak, setVoicePeak] = useState(0);
 
   const stopVisualization = () => {
     if (animationFrameRef.current !== null) {
@@ -103,8 +105,9 @@ export default function VoiceMessageRecorder({
       chunksRef.current = [];
       streamRef.current = stream;
       recorderRef.current = recorder;
-      setVoiceLevels(Array.from({ length: 30 }, () => 0.12));
-      setVoicePeak(0.12);
+      voiceLevelsRef.current = Array.from({ length: 30 }, () => 0);
+      setVoiceLevels(voiceLevelsRef.current);
+      setVoicePeak(0);
       try {
         const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (AudioContextConstructor) {
@@ -126,8 +129,17 @@ export default function VoiceMessageRecorder({
               sum += normalized * normalized;
             });
             const level = Math.min(1, Math.max(0.08, Math.sqrt(sum / samples.length) * 3.2));
+            const elapsedSeconds = (Date.now() - startedAtRef.current) / 1000;
+            const currentIndex = Math.min(
+              voiceLevelsRef.current.length - 1,
+              Math.floor((elapsedSeconds / WAVEFORM_SECONDS) * voiceLevelsRef.current.length),
+            );
+            voiceLevelsRef.current[currentIndex] = Math.max(
+              voiceLevelsRef.current[currentIndex] || 0,
+              level,
+            );
             setVoicePeak(level);
-            setVoiceLevels((current) => [...current.slice(1), level]);
+            setVoiceLevels([...voiceLevelsRef.current]);
             animationFrameRef.current = window.requestAnimationFrame(animate);
           };
           animationFrameRef.current = window.requestAnimationFrame(animate);
@@ -189,7 +201,10 @@ export default function VoiceMessageRecorder({
             <span
               key={index}
               className="min-w-[2px] flex-1 rounded-full bg-sky-500 transition-[height,opacity] duration-75"
-              style={{ height: `${Math.max(4, Math.round(level * 22))}px`, opacity: 0.35 + level * 0.65 }}
+              style={{
+                height: `${level ? Math.max(4, Math.round(level * 22)) : 2}px`,
+                opacity: level ? 0.35 + level * 0.65 : 0.2,
+              }}
             />
           ))}
         </div>

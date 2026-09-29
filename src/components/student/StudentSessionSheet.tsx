@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 
 interface StudentSessionSheetProps {
   lesson: PortalLesson | null;
@@ -32,6 +33,7 @@ export default function StudentSessionSheet({
 }: StudentSessionSheetProps) {
   const { isArabic, pick } = useLanguage();
   const [reportRequested, setReportRequested] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const sessionId = sessionIdOf(lesson);
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
   const reportQuery = useQuery({
@@ -91,8 +93,16 @@ export default function StudentSessionSheet({
           {lesson.activeSession?.recordingUrl && (
             <section className="rounded-xl border p-4">
               <h3 className="flex items-center gap-2 font-semibold"><Video className="h-4 w-4 text-primary" />{pick("تسجيل الحصة", "Session recording")}</h3>
-              <Button asChild variant="outline" className="mt-3 w-full">
-                <a href={lesson.activeSession.recordingUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="me-2 h-4 w-4" />{pick("فتح التسجيل", "Open recording")}</a>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 w-full"
+                onClick={() => setSelectedRecording({
+                  sessionName: lesson.subject.name,
+                  recordingLink: lesson.activeSession!.recordingUrl!,
+                })}
+              >
+                <Video className="me-2 h-4 w-4" />{pick("مشاهدة التسجيل", "Watch recording")}
               </Button>
             </section>
           )}
@@ -131,6 +141,10 @@ export default function StudentSessionSheet({
           )}
         </div>
       </SheetContent>
+      <RecordingPlayerModal
+        recording={selectedRecording}
+        onClose={() => setSelectedRecording(null)}
+      />
     </Sheet>
   );
 }

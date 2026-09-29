@@ -194,6 +194,13 @@ export default function TeacherClassroomSessions() {
     const start = session.scheduledStartAt || session.startAt;
     return Boolean(start && new Date(start).getTime() >= Date.now());
   }).length;
+  const completedSessions = (sessions.data || [])
+    .filter((session) => {
+      const status = String(session.status || "").toLowerCase();
+      return ["ended", "completed", "awaiting_zoom_end"].includes(status)
+        || Boolean(session.actualEndedAt || session.endAt);
+    })
+    .sort((a, b) => new Date(b.actualEndedAt || b.endAt || b.scheduledStartAt || b.startAt || 0).getTime() - new Date(a.actualEndedAt || a.endAt || a.scheduledStartAt || a.startAt || 0).getTime());
   const formatDate = (value?: string) => {
     if (!value) return "—";
     const date = new Date(value);
@@ -310,7 +317,7 @@ export default function TeacherClassroomSessions() {
         </header>
 
         <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : "overview"}>
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-6">
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />
               المحادثة
@@ -322,6 +329,10 @@ export default function TeacherClassroomSessions() {
             <TabsTrigger value="recordings">
               <Video className="me-1 h-4 w-4" />
               التسجيلات
+            </TabsTrigger>
+            <TabsTrigger value="completed-sessions">
+              <Clock3 className="me-1 h-4 w-4" />
+              الحصص المنتهية
             </TabsTrigger>
             <TabsTrigger value="schedule">
               <CalendarDays className="me-1 h-4 w-4" />
@@ -505,6 +516,39 @@ export default function TeacherClassroomSessions() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="completed-sessions" className="mt-5">
+            {sessions.isPending ? (
+              <LoadingGrid label="جاري تحميل الحصص المنتهية" />
+            ) : sessions.isError ? (
+              <ErrorCard message="تعذر تحميل حصص الفصل." retry={() => void sessions.refetch()} retrying={sessions.isFetching} />
+            ) : !completedSessions.length ? (
+              <EmptyState text="لا توجد حصص منتهية لهذا الفصل حاليًا." />
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {completedSessions.map((session, index) => {
+                  const sessionId = session.id || session._id;
+                  const endedAt = session.actualEndedAt || session.endAt || session.scheduledStartAt || session.startAt;
+                  return sessionId ? (
+                    <Card key={sessionId} className="transition hover:-translate-y-0.5 hover:shadow-md">
+                      <CardContent className="space-y-3 p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <h2 className="font-bold">{session.title || session.sessionName || `حصة ${completedSessions.length - index}`}</h2>
+                          <Badge variant="secondary">منتهية</Badge>
+                        </div>
+                        {endedAt && <p className="text-sm text-muted-foreground">{formatDate(endedAt)}</p>}
+                        <Button asChild size="sm">
+                          <Link to={`/portal/teacher/classrooms/${encodeURIComponent(classroomId)}/sessions/${encodeURIComponent(sessionId)}`}>
+                            عرض الحضور والتفاصيل
+                          </Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : null;
+                })}
               </div>
             )}
           </TabsContent>

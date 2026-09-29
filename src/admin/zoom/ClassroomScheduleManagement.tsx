@@ -27,6 +27,9 @@ const errorMessage = (error: unknown) => {
   const apiError = error as ApiError;
   if (apiError.status === 403) return "ليس لديك صلاحية لتعديل جدول هذا الفصل.";
   if (apiError.status === 404) return "الفصل أو الجدول غير موجود.";
+  if (apiError.code === "STUDENT_SCHEDULE_CONFLICT") {
+    return "لدى الطالب حصة أخرى في هذه الفترة. اختر موعدًا مختلفًا.";
+  }
   if (apiError.status === 409) return "الموعد يتعارض مع حجز آخر. راجع الأوقات وحاول مجددًا.";
   return apiError.message || "تعذر إكمال الطلب. حاول مرة أخرى.";
 };

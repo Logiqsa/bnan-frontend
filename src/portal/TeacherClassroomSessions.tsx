@@ -33,6 +33,7 @@ import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,7 @@ export default function TeacherClassroomSessions() {
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<{ classroomSubjectId: string; subjectName: string } | null>(null);
   const [leaveNotes, setLeaveNotes] = useState("");
   const [submittedLeaveRequests, setSubmittedLeaveRequests] = useState<
@@ -487,11 +489,16 @@ export default function TeacherClassroomSessions() {
                       <h2 className="font-bold">{recording.sessionName || "تسجيل جلسة"}</h2>
                       {recording.scheduledStartAt && <p className="text-sm text-muted-foreground">{formatDate(recording.scheduledStartAt)}</p>}
                       {recording.recordingLink && (
-                        <Button asChild variant="outline">
-                          <a href={recording.recordingLink} target="_blank" rel="noreferrer">
-                            <Video className="me-2 h-4 w-4" />
-                            فتح التسجيل
-                          </a>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setSelectedRecording({
+                            sessionName: recording.sessionName || "تسجيل جلسة",
+                            recordingLink: recording.recordingLink,
+                          })}
+                        >
+                          <Video className="me-2 h-4 w-4" />
+                          مشاهدة التسجيل
                         </Button>
                       )}
                     </CardContent>
@@ -638,6 +645,10 @@ export default function TeacherClassroomSessions() {
             </form>
           </DialogContent>
         </Dialog>
+        <RecordingPlayerModal
+          recording={selectedRecording}
+          onClose={() => setSelectedRecording(null)}
+        />
       </div>
     </DashboardLayout>
   );

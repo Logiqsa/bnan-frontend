@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
-  ExternalLink,
   Loader2,
   MessageCircle,
   Pencil,
@@ -17,6 +17,7 @@ import {
 import { courseError } from "@/lib/courseUi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,6 +58,7 @@ const recordingsFrom = (
 
 export default function TeacherCourseGroupDetail() {
   const { courseId = "", groupId = "" } = useParams();
+  const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const courses = useQuery({
     queryKey: ["teacher-courses"],
     queryFn: coursesApi.myTeachingCourses,
@@ -231,12 +233,14 @@ export default function TeacherCourseGroupDetail() {
                           className="h-auto justify-between p-4"
                           disabled={!url}
                           onClick={() =>
-                            url &&
-                            window.open(url, "_blank", "noopener,noreferrer")
+                            url && setSelectedRecording({
+                              sessionName: recording.sessionName || "تسجيل حصة",
+                              recordingLink: url,
+                            })
                           }
                         >
                           <span>{recording.sessionName || "تسجيل حصة"}</span>
-                          <ExternalLink className="h-4 w-4" />
+                          <Video className="h-4 w-4" />
                         </Button>
                       );
                     })}
@@ -246,6 +250,10 @@ export default function TeacherCourseGroupDetail() {
             </Tabs>
           </>
         )}
+        <RecordingPlayerModal
+          recording={selectedRecording}
+          onClose={() => setSelectedRecording(null)}
+        />
       </div>
     </DashboardLayout>
   );

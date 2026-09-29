@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, ExternalLink, Loader2, Video } from "lucide-react";
+import { ArrowRight, Loader2, Video } from "lucide-react";
 import {
   classroomRecordingsApi,
   type SessionRecording,
 } from "@/api/classroomRecordingsApi";
 import { courseError } from "@/lib/courseUi";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,6 +28,7 @@ const recordingsFrom = (
 
 export default function TeacherCourseRecordings() {
   const { classroomId = "" } = useParams();
+  const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const query = useQuery({
     queryKey: ["teacher-course-recordings", classroomId],
     queryFn: async () =>
@@ -98,17 +101,22 @@ export default function TeacherCourseRecordings() {
                   variant="outline"
                   className="h-auto justify-between p-4"
                   disabled={!url}
-                  onClick={() =>
-                    url && window.open(url, "_blank", "noopener,noreferrer")
-                  }
+                  onClick={() => url && setSelectedRecording({
+                    sessionName: recording.sessionName || "تسجيل حصة",
+                    recordingLink: url,
+                  })}
                 >
                   <span>{recording.sessionName || "تسجيل حصة"}</span>
-                  <ExternalLink className="h-4 w-4" />
+                  <Video className="h-4 w-4" />
                 </Button>
               );
             })}
           </div>
         )}
+        <RecordingPlayerModal
+          recording={selectedRecording}
+          onClose={() => setSelectedRecording(null)}
+        />
       </div>
     </DashboardLayout>
   );

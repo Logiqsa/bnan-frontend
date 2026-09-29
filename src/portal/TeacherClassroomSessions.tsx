@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
@@ -110,6 +110,7 @@ const ErrorCard = ({
 
 export default function TeacherClassroomSessions() {
   const { classroomId = "" } = useParams<{ classroomId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
@@ -308,7 +309,7 @@ export default function TeacherClassroomSessions() {
           )}
         </header>
 
-        <Tabs defaultValue="overview">
+        <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : "overview"}>
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />

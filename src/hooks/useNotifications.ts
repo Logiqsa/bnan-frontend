@@ -118,6 +118,13 @@ const teacherNotificationLink = (
       : teacherNotificationRoutes.chat_room;
   }
 
+  if (notification.key === "RECORDING_READY") {
+    const classroomId = notificationParam(notification, "classroomId");
+    return classroomId
+      ? `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}?tab=recordings`
+      : teacherNotificationRoutes.classroom_details;
+  }
+
   if (target === "session_details" || target === "session_summary") {
     const classroomId = notificationParam(notification, "classroomId");
     const sessionId = notificationParam(notification, "sessionId");
@@ -175,6 +182,12 @@ export const notificationLink = (
       typeof target === "string" ? target : undefined,
     );
   if (role === "student") {
+    if (notification.key === "RECORDING_READY") {
+      const classroomId = notificationParam(notification, "classroomId");
+      return classroomId
+        ? `/portal/student/classrooms/${encodeURIComponent(classroomId)}?tab=recordings`
+        : studentNotificationRoutes.student_home;
+    }
     if (target === "classroom_details") {
       const classroomId = notificationParam(notification, "classroomId");
       return classroomId

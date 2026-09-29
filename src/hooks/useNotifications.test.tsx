@@ -282,7 +282,7 @@ describe("useNotifications", () => {
     expect(notificationLink({ ...stored, key: "HOMEWORK_CREATED", navigation: { target: "assignment_details", params: { assignmentId: "assignment-1" } } }, "student")).toBe("/portal/student/assignments?assignmentId=assignment-1");
   });
 
-  it("routes classroom acceptance and recording notifications to the student classroom", () => {
+  it("routes classroom acceptance and recording notifications to the right classroom destination", () => {
     const classroomId = "classroom-1";
     expect(notificationLink({
       ...stored,
@@ -293,7 +293,12 @@ describe("useNotifications", () => {
       ...stored,
       key: "RECORDING_READY",
       navigation: { target: "classroom_details", params: { classroomId } },
-    }, "student")).toBe(`/portal/student/classrooms/${classroomId}`);
+    }, "student")).toBe(`/portal/student/classrooms/${classroomId}?tab=recordings`);
+    expect(notificationLink({
+      ...stored,
+      key: "RECORDING_READY",
+      navigation: { target: "classroom_details", params: { classroomId } },
+    }, "teacher")).toBe(`/portal/teacher/classrooms/${classroomId}?tab=recordings`);
   });
 
   it("removes every realtime listener on unmount", async () => {

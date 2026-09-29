@@ -5,7 +5,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import { MemoryRouter } from "react-router-dom";
 import StudentDashboard from "./StudentDashboard";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), assignments: vi.fn(), notifications: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), assignments: vi.fn(), courses: vi.fn() }));
 vi.mock("@/api/studentHomeApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/studentHomeApi")>();
   return { ...actual, studentHomeApi: { get: mocks.get } };
@@ -14,9 +14,9 @@ vi.mock("@/api/studentAssignmentsApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/studentAssignmentsApi")>();
   return { ...actual, studentAssignmentsApi: { list: mocks.assignments } };
 });
-vi.mock("@/api/notificationsApi", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/api/notificationsApi")>();
-  return { ...actual, notificationsApi: { ...actual.notificationsApi, list: mocks.notifications } };
+vi.mock("@/api/coursesApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/coursesApi")>();
+  return { ...actual, coursesApi: { ...actual.coursesApi, myEnrollments: mocks.courses } };
 });
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 
@@ -39,7 +39,7 @@ describe("StudentDashboard", () => {
     localStorage.setItem("bnan_language", "ar");
     mocks.get.mockReset();
     mocks.assignments.mockReset().mockResolvedValue([]);
-    mocks.notifications.mockReset().mockResolvedValue({ success: true, results: 0, unreadCount: 0, data: [], pagination: { page: 1, limit: 5, totalResults: 0, totalPages: 1 } });
+    mocks.courses.mockReset().mockResolvedValue([]);
   });
 
   it("renders identity, subscription, and attendance without evaluation UI", async () => {
@@ -54,21 +54,21 @@ describe("StudentDashboard", () => {
     expect(screen.queryByText("عدد التقييمات")).not.toBeInTheDocument();
     expect(screen.queryByText("الشهادات")).not.toBeInTheDocument();
     expect(await screen.findByText("لا توجد واجبات بانتظار التسليم حاليًا")).toBeInTheDocument();
-    expect(await screen.findByText("لا توجد إشعارات حتى الآن")).toBeInTheDocument();
+    expect(await screen.findByText("لا توجد دورات مفعلة حاليًا")).toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledTimes(1);
   });
 
-  it("shows pending assignments and recent notifications with their existing destinations", async () => {
+  it("shows pending assignments and active courses with their existing destinations", async () => {
     mocks.get.mockResolvedValue(data);
     mocks.assignments.mockResolvedValue([{ id: "assignment-1", title: "واجب الرياضيات", subject: { id: "subject-1", name: "الرياضيات" }, submitted: false }]);
-    mocks.notifications.mockResolvedValue({ success: true, results: 1, unreadCount: 1, data: [{ id: "notification-1", title: "تمت إضافة واجب", body: "يرجى التسليم قبل الموعد", isRead: false }], pagination: { page: 1, limit: 5, totalResults: 1, totalPages: 1 } });
+    mocks.courses.mockResolvedValue([{ id: "enrollment-1", status: "active", course: { id: "course-1", name: "دورة الرياضيات", status: "active", description: "دورة مفعلة" } }]);
 
     renderDashboard();
 
     expect(await screen.findByText("واجب الرياضيات")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /واجب الرياضيات/ })).toHaveAttribute("href", "/portal/student/assignments?assignmentId=assignment-1");
-    expect(screen.getByText("تمت إضافة واجب")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /تمت إضافة واجب/ })).toHaveAttribute("href", "/portal/student/notifications");
+    expect(await screen.findByText("دورة الرياضيات")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /دورة الرياضيات/ })).toHaveAttribute("href", "/portal/student/courses/enrollment-1");
   });
 
   it("shows distinct empty states and never turns a null attendance percentage into zero", async () => {

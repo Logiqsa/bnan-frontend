@@ -4,6 +4,7 @@ import {
   deleteUnifiedScheduleEntry,
   endSession,
   getActiveClassroomSession,
+  getAdminScheduleWeek,
   getUnifiedClassroomSchedule,
   getUnifiedScheduleWeek,
   reconcileUnifiedClassroomSchedule,
@@ -72,6 +73,20 @@ describe("regular session lifecycle API", () => {
 
     expect(apiRequest).toHaveBeenCalledWith(
       "/schedules/mySchedule?weekStart=2026-09-19&registrationMode=gulf",
+    );
+  });
+
+  it("reads the administration-wide unified schedule through its dedicated route", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ data: {
+      weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo", days: [],
+    } });
+
+    await expect(getAdminScheduleWeek("2026-09-19", "egyptian")).resolves.toMatchObject({
+      weekStart: "2026-09-19",
+      lessons: [],
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/adminSchedule?weekStart=2026-09-19&registrationMode=egyptian",
     );
   });
 

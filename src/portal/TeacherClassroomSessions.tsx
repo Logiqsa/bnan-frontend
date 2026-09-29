@@ -31,6 +31,7 @@ import {
 } from "@/api/teacherClassroomChangeRequestsApi";
 import { courseError } from "@/lib/courseUi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
+import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -288,12 +289,15 @@ export default function TeacherClassroomSessions() {
                 </div>
               </div>
             </div>
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link to="/portal/teacher/classrooms">
-                <ArrowRight className="me-2 h-4 w-4" />
-                العودة للفصول
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ClassroomSessionActions classroomId={classroomId} />
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Link to="/portal/teacher/classrooms">
+                  <ArrowRight className="me-2 h-4 w-4" />
+                  العودة للفصول
+                </Link>
+              </Button>
+            </div>
           </div>
           {subjects.isError && (
             <p className="mt-4 text-sm text-destructive">

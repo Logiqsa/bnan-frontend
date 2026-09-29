@@ -7,6 +7,7 @@ describe("Admin sidebar classroom navigation", () => {
   it("keeps the classroom entry and highlights it for Hub routes", () => {
     expect(roleNavItems.admin).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "الفصول", path: "/admin/classrooms" }),
+      expect.objectContaining({ label: "جدول الحصص", path: "/admin/schedule" }),
     ]));
     expect(isItemActive("/admin/classrooms", "/admin/classrooms", "")).toBe(true);
     expect(isItemActive("/admin/classrooms", "/admin/classrooms/classroom-1", "?tab=assignments")).toBe(true);

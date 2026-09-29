@@ -35,6 +35,11 @@ vi.mock("@/api/teacherClassroomChangeRequestsApi", () => ({
 vi.mock("@/components/CourseClassroomChat", () => ({
   default: () => <div>محادثة الفصل التجريبية</div>,
 }));
+vi.mock("@/components/ClassroomSessionActions", () => ({
+  default: ({ classroomId }: { classroomId: string }) => (
+    <div>تحكم الحصة للفصل {classroomId}</div>
+  ),
+}));
 vi.mock("@/admin/zoom/ClassroomScheduleManagement", () => ({
   default: () => <div>جدول الفصل التجريبي</div>,
 }));
@@ -103,6 +108,7 @@ describe("TeacherClassroomSessions classroom details", () => {
   it("loads classroom header and exposes all detail tabs", async () => {
     renderPage();
     expect(await screen.findByText("فصل ألف")).toBeInTheDocument();
+    expect(screen.getByText("تحكم الحصة للفصل classroom-1")).toBeInTheDocument();
     expect(screen.getByText("المنهج المصري")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "نظرة عامة" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /التسجيلات/ })).toBeInTheDocument();

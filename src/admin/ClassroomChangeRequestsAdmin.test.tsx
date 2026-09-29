@@ -38,10 +38,10 @@ const renderPage = async (item = request("change_teacher"), teacherOptions = [{ 
 describe("ClassroomChangeRequestsAdmin", () => {
   const requestTableRow = () => within(screen.getAllByRole("row")[1]);
 
-  it("renders the request list and replacement selector for change_teacher", async () => {
+  it("renders the request list without exposing replacement selection early", async () => {
     await renderPage();
     expect(screen.getAllByText("المعلم البديل").length).toBeGreaterThan(0);
-    expect(screen.getByText("اختر المعلم البديل")).toBeInTheDocument();
+    expect(screen.queryByText("اختر المعلم البديل")).not.toBeInTheDocument();
   });
 
   it("opens the requested item directly from an admin notification link", async () => {
@@ -50,9 +50,12 @@ describe("ClassroomChangeRequestsAdmin", () => {
     expect(mocks.get).toHaveBeenCalledWith("teacher_leave-1");
   });
 
-  it("requires a replacement teacher before approving", async () => {
+  it("asks for the replacement teacher only in the approval confirmation", async () => {
     await renderPage();
-    expect(screen.getByRole("button", { name: /موافقة/ })).toBeDisabled();
+    expect(screen.queryByRole("combobox", { name: "المعلم البديل" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "موافقة" }));
+    expect(await screen.findByRole("combobox", { name: "المعلم البديل" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "تأكيد الموافقة" })).toBeDisabled();
   });
 
   it("does not show replacement selection for cancel_subject", async () => {
@@ -64,9 +67,9 @@ describe("ClassroomChangeRequestsAdmin", () => {
   it("sends the selected replacement teacher and prevents duplicate approval", async () => {
     mocks.approve.mockResolvedValue({ success: true, data: { ...request("change_teacher"), status: "approved" } });
     await renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "موافقة" }));
     fireEvent.click(screen.getAllByRole("combobox").at(-1)!);
     fireEvent.click(screen.getAllByText("المعلم البديل").at(-1)!);
-    fireEvent.click(screen.getByRole("button", { name: /موافقة/ }));
     fireEvent.click(await screen.findByRole("button", { name: "تأكيد الموافقة" }));
     await waitFor(() => expect(mocks.approve).toHaveBeenCalledTimes(1));
     expect(mocks.approve).toHaveBeenCalledWith("change_teacher-1", { replacementTeacherId: "replacement-1" });
@@ -79,6 +82,7 @@ describe("ClassroomChangeRequestsAdmin", () => {
       { id: "user-pending", teacherId: "teacher-pending", fullName: "معلم غير معتمد", teacherStatus: "pending", curriculums: [{ id: "curriculum-1" }] },
     ]);
 
+    fireEvent.click(screen.getByRole("button", { name: "موافقة" }));
     fireEvent.click(screen.getByRole("combobox", { name: "المعلم البديل" }));
     expect(await screen.findByText("معلم مرتبط")).toBeInTheDocument();
     expect(screen.queryByText("معلم منهج آخر")).not.toBeInTheDocument();
@@ -88,6 +92,7 @@ describe("ClassroomChangeRequestsAdmin", () => {
   it("does not show all teachers when the request curriculum is missing", async () => {
     await renderPage({ ...request("change_teacher"), classroom: { name: "فصل 1" } });
 
+    fireEvent.click(screen.getByRole("button", { name: "موافقة" }));
     fireEvent.click(screen.getByRole("combobox", { name: "المعلم البديل" }));
     expect(await screen.findByText("لا تتوفر بيانات المنهج لفلترة المعلمين.")).toBeInTheDocument();
   });
@@ -114,8 +119,10 @@ describe("ClassroomChangeRequestsAdmin", () => {
     await renderPage(request("teacher_leave"));
     fireEvent.click(screen.getByRole("button", { name: "رفض" }));
     fireEvent.click(screen.getByRole("button", { name: "تأكيد الرفض" }));
+    await screen.findByText("هل تريد رفض هذا الطلب؟");
     fireEvent.click(screen.getByRole("button", { name: "تأكيد الرفض" }));
     await waitFor(() => expect(mocks.reject).toHaveBeenCalled());
     expect(mocks.reject).toHaveBeenCalledWith("teacher_leave-1", {});
+    await waitFor(() => expect(screen.queryByText("تفاصيل الطلب")).not.toBeInTheDocument());
   });
 });

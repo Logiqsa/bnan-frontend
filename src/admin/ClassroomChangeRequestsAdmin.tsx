@@ -89,21 +89,33 @@ export default function ClassroomChangeRequestsAdmin() {
   const terminal = request && request.status !== "pending";
   const needsReplacement = request?.requestType === "change_teacher" || request?.requestType === "teacher_leave";
 
-  const refresh = async () => {
-    await client.invalidateQueries({ queryKey: ["admin-classroom-change-requests"] });
-    if (selectedId) await client.invalidateQueries({ queryKey: ["admin-classroom-change-request", selectedId] });
+  const dismissRequestDialog = () => {
+    setSelectedId(null);
+    setConfirming(null);
+    setRejecting(false);
+    const next = new URLSearchParams(searchParams);
+    next.delete("requestId");
+    setSearchParams(next, { replace: true });
   };
   const approve = useMutation({
     mutationFn: () => adminClassroomChangeRequestsApi.approve(request!.id!, {
       ...(needsReplacement ? { replacementTeacherId } : {}),
       ...(adminNotes.trim() ? { adminNotes: adminNotes.trim() } : {}),
     }),
-    onSuccess: async () => { setConfirming(null); await refresh(); toast.success("تمت الموافقة على الطلب."); },
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["admin-classroom-change-requests"] });
+      dismissRequestDialog();
+      toast.success("تمت الموافقة على الطلب.");
+    },
     onError: (error) => toast.error(errorMessage(error, "تعذر اعتماد الطلب.")),
   });
   const reject = useMutation({
     mutationFn: () => adminClassroomChangeRequestsApi.reject(request!.id!, rejectionReason.trim() ? { rejectionReason: rejectionReason.trim() } : {}),
-    onSuccess: async () => { setConfirming(null); setRejecting(false); await refresh(); toast.success("تم رفض الطلب."); },
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["admin-classroom-change-requests"] });
+      dismissRequestDialog();
+      toast.success("تم رفض الطلب.");
+    },
     onError: (error) => toast.error(errorMessage(error, "تعذر رفض الطلب.")),
   });
 
@@ -117,12 +129,10 @@ export default function ClassroomChangeRequestsAdmin() {
   };
   const close = () => {
     if (approve.isPending || reject.isPending) return;
-    setSelectedId(null);
-    const next = new URLSearchParams(searchParams);
-    next.delete("requestId");
-    setSearchParams(next, { replace: true });
+    dismissRequestDialog();
   };
-  const canApprove = Boolean(request && !terminal && (!needsReplacement || replacementTeacherId) && !approve.isPending && !reject.isPending);
+  const canApprove = Boolean(request && !terminal && !approve.isPending && !reject.isPending);
+  const canConfirmApproval = canApprove && (!needsReplacement || Boolean(replacementTeacherId));
 
   return <DashboardLayout>
     <div className="mx-auto max-w-7xl space-y-5" dir="rtl">
@@ -130,7 +140,22 @@ export default function ClassroomChangeRequestsAdmin() {
       <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2"><div className="space-y-1"><Label>نوع الطلب</Label><Select value={type} onValueChange={(value) => setType(value as typeof type)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الطلبات</SelectItem>{Object.entries(typeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label>الحالة</Label><Select value={status} onValueChange={(value) => setStatus(value as typeof status)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem>{Object.entries(statusLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div></CardContent></Card>
       <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>قائمة الطلبات</CardTitle><Button variant="outline" size="sm" onClick={() => void list.refetch()} disabled={list.isFetching}><RefreshCw className={list.isFetching ? "animate-spin" : ""} /></Button></CardHeader><CardContent className="p-0">{list.isLoading ? <div className="space-y-3 p-5">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-12" />)}</div> : list.isError ? <div role="alert" className="grid gap-3 p-10 text-center"><p>تعذر تحميل الطلبات.</p><Button variant="outline" onClick={() => void list.refetch()}>إعادة المحاولة</Button></div> : !list.data?.data.length ? <p className="p-10 text-center text-muted-foreground">لا توجد طلبات.</p> : <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>النوع</TableHead><TableHead>الطالب</TableHead><TableHead>المادة</TableHead><TableHead>الفصل</TableHead><TableHead>المعلم الحالي</TableHead><TableHead>الحالة</TableHead><TableHead>تاريخ الطلب</TableHead><TableHead /></TableRow></TableHeader><TableBody>{list.data.data.map((item) => { const displayedTeacher = item.status === "approved" && item.replacementTeacher ? item.replacementTeacher : item.currentTeacher; return <TableRow key={item.id}><TableCell>{typeLabels[item.requestType]}</TableCell><TableCell>{nameOf(item.student)}</TableCell><TableCell>{nameOf(item.subject)}</TableCell><TableCell>{nameOf(item.classroom)}</TableCell><TableCell>{nameOf(displayedTeacher)}</TableCell><TableCell><Badge variant={item.status === "approved" ? "default" : item.status === "pending" ? "secondary" : "outline"}>{statusLabels[item.status]}</Badge></TableCell><TableCell className="whitespace-nowrap text-xs">{dateOf(item.createdAt)}</TableCell><TableCell><Button size="sm" variant="outline" onClick={() => open(item)}><Eye className="ml-1 h-4 w-4" />التفاصيل</Button></TableCell></TableRow>; })}</TableBody></Table></div>}</CardContent></Card>
     </div>
-    <Dialog open={Boolean(selectedId)} onOpenChange={(openState) => !openState && close()}><DialogContent className="max-h-[90vh] overflow-y-auto" dir="rtl"><DialogHeader><DialogTitle>تفاصيل الطلب</DialogTitle><DialogDescription>{detail.isLoading ? "جاري تحميل التفاصيل..." : request ? typeLabels[request.requestType] : ""}</DialogDescription></DialogHeader>{detail.isLoading ? <Loader2 className="mx-auto my-10 animate-spin" /> : detail.isError ? <div role="alert" className="grid gap-3 py-8 text-center"><p>تعذر تحميل تفاصيل الطلب.</p><Button variant="outline" onClick={() => void detail.refetch()}>إعادة المحاولة</Button></div> : request ? <div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">{[["الطالب", nameOf(request.student)], ["المادة", nameOf(request.subject)], ["الفصل", nameOf(request.classroom)], ["المعلم الحالي", nameOf(request.currentTeacher)], ["مقدم الطلب", nameOf(request.requester)], ["دور مقدم الطلب", request.requesterRole || "—"], ["الحالة", statusLabels[request.status]], ["تاريخ الطلب", dateOf(request.createdAt)], ["تاريخ المراجعة", dateOf(request.reviewedAt)], ["راجع الطلب", nameOf(request.reviewedBy)], ["المعلم البديل", nameOf(request.replacementTeacher)]].map(([label, value]) => <div key={label} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-medium">{value}</p></div>)}</div><div className="space-y-2"><Label>ملاحظات مقدم الطلب</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.notes || "—"}</div></div>{request.adminNotes && <div className="space-y-2"><Label>ملاحظات الإدارة</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.adminNotes}</div></div>}{request.rejectionReason && <div className="space-y-2"><Label>سبب الرفض</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.rejectionReason}</div></div>}{!terminal && <div className="space-y-4 border-t pt-4">{needsReplacement && <AdminSearchableSelect label="المعلم البديل" value={replacementTeacherId} placeholder="اختر المعلم البديل" options={approvedTeachers.filter((teacher) => teacher.teacherId !== idOf(request.currentTeacher)).map((teacher: AdminUser) => ({ value: teacher.teacherId!, label: teacher.fullName || teacher.email || teacher.id, searchText: teacher.email }))} onChange={(value) => setReplacementTeacherId(value || "")} loading={teachers.isLoading} noOptionsLabel={requestCurriculumId ? "لا يوجد معلمون مرتبطون بهذا المنهج." : "لا تتوفر بيانات المنهج لفلترة المعلمين."} />}<div className="space-y-2"><Label>ملاحظات الإدارة (اختياري)</Label><Textarea value={adminNotes} onChange={(event) => setAdminNotes(event.target.value)} maxLength={2000} /></div>{rejecting && <div className="space-y-2"><Label>سبب الرفض (اختياري)</Label><Textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={2000} /></div>}<div className="flex flex-wrap gap-2"><Button disabled={!canApprove} onClick={() => setConfirming("approve")}><Check className="ml-1 h-4 w-4" />موافقة</Button>{!rejecting ? <Button variant="outline" disabled={approve.isPending || reject.isPending} onClick={() => setRejecting(true)}><X className="ml-1 h-4 w-4" />رفض</Button> : <Button variant="outline" disabled={approve.isPending || reject.isPending} onClick={() => setConfirming("reject")}><X className="ml-1 h-4 w-4" />تأكيد الرفض</Button>}</div></div>}</div> : null}<DialogFooter><Button variant="outline" onClick={close}>إغلاق</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={Boolean(confirming)} onOpenChange={(openState) => !openState && setConfirming(null)}><DialogContent dir="rtl"><DialogHeader><DialogTitle>{confirming === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}</DialogTitle><DialogDescription>{confirming === "approve" ? (request?.requestType === "cancel_subject" ? "سيتم إلغاء المادة حسب سلوك النظام الحالي." : "سيتم تعيين المعلم البديل واعتماد الطلب.") : "هل تريد رفض هذا الطلب؟"}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirming(null)} disabled={approve.isPending || reject.isPending}>إلغاء</Button><Button onClick={() => confirming === "approve" ? approve.mutate() : reject.mutate()} disabled={approve.isPending || reject.isPending}>{(approve.isPending || reject.isPending) && <Loader2 className="ml-1 h-4 w-4 animate-spin" />}{confirming === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={Boolean(selectedId)} onOpenChange={(openState) => !openState && close()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>تفاصيل الطلب</DialogTitle>
+          <DialogDescription>{detail.isLoading ? "جاري تحميل التفاصيل..." : request ? typeLabels[request.requestType] : ""}</DialogDescription>
+        </DialogHeader>
+        {detail.isLoading ? <Loader2 className="mx-auto my-10 animate-spin" /> : detail.isError ? <div role="alert" className="grid gap-3 py-8 text-center"><p>تعذر تحميل تفاصيل الطلب.</p><Button variant="outline" onClick={() => void detail.refetch()}>إعادة المحاولة</Button></div> : request ? <div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">{[["الطالب", nameOf(request.student)], ["المادة", nameOf(request.subject)], ["الفصل", nameOf(request.classroom)], ["المعلم الحالي", nameOf(request.currentTeacher)], ["مقدم الطلب", nameOf(request.requester)], ["دور مقدم الطلب", request.requesterRole || "—"], ["الحالة", statusLabels[request.status]], ["تاريخ الطلب", dateOf(request.createdAt)], ["تاريخ المراجعة", dateOf(request.reviewedAt)], ["راجع الطلب", nameOf(request.reviewedBy)], ["المعلم البديل", nameOf(request.replacementTeacher)]].map(([label, value]) => <div key={label} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm font-medium">{value}</p></div>)}</div><div className="space-y-2"><Label>ملاحظات مقدم الطلب</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.notes || "—"}</div></div>{request.adminNotes && <div className="space-y-2"><Label>ملاحظات الإدارة</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.adminNotes}</div></div>}{request.rejectionReason && <div className="space-y-2"><Label>سبب الرفض</Label><div className="whitespace-pre-wrap rounded-lg border p-3 text-sm">{request.rejectionReason}</div></div>}{!terminal && <div className="space-y-4 border-t pt-4"><div className="space-y-2"><Label>ملاحظات الإدارة (اختياري)</Label><Textarea value={adminNotes} onChange={(event) => setAdminNotes(event.target.value)} maxLength={2000} /></div>{rejecting && <div className="space-y-2"><Label>سبب الرفض (اختياري)</Label><Textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} maxLength={2000} /></div>}<div className="flex flex-wrap gap-2"><Button disabled={!canApprove} onClick={() => setConfirming("approve")}><Check className="ml-1 h-4 w-4" />موافقة</Button>{!rejecting ? <Button variant="destructive" disabled={approve.isPending || reject.isPending} onClick={() => setRejecting(true)}><X className="ml-1 h-4 w-4" />رفض</Button> : <Button variant="destructive" disabled={approve.isPending || reject.isPending} onClick={() => setConfirming("reject")}><X className="ml-1 h-4 w-4" />تأكيد الرفض</Button>}</div></div>}</div> : null}
+        <DialogFooter><Button variant="outline" onClick={close}>إغلاق</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(confirming)} onOpenChange={(openState) => !openState && setConfirming(null)}>
+      <DialogContent dir="rtl">
+        <DialogHeader><DialogTitle>{confirming === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}</DialogTitle><DialogDescription>{confirming === "approve" ? (request?.requestType === "cancel_subject" ? "سيتم إلغاء المادة حسب سلوك النظام الحالي." : "اختر المعلم البديل ثم أكد الموافقة.") : "هل تريد رفض هذا الطلب؟"}</DialogDescription></DialogHeader>
+        {confirming === "approve" && needsReplacement && <AdminSearchableSelect label="المعلم البديل" value={replacementTeacherId} placeholder="اختر المعلم البديل" options={approvedTeachers.filter((teacher) => teacher.teacherId !== idOf(request?.currentTeacher)).map((teacher: AdminUser) => ({ value: teacher.teacherId!, label: teacher.fullName || teacher.email || teacher.id, searchText: teacher.email }))} onChange={(value) => setReplacementTeacherId(value || "")} loading={teachers.isLoading} noOptionsLabel={requestCurriculumId ? "لا يوجد معلمون مرتبطون بهذا المنهج." : "لا تتوفر بيانات المنهج لفلترة المعلمين."} />}
+        <DialogFooter><Button variant="outline" onClick={() => setConfirming(null)} disabled={approve.isPending || reject.isPending}>إلغاء</Button><Button variant={confirming === "reject" ? "destructive" : "default"} onClick={() => confirming === "approve" ? approve.mutate() : reject.mutate()} disabled={approve.isPending || reject.isPending || (confirming === "approve" && !canConfirmApproval)}>{(approve.isPending || reject.isPending) && <Loader2 className="ml-1 h-4 w-4 animate-spin" />}{reject.isPending ? "جاري رفض الطلب..." : approve.isPending ? "جاري اعتماد الطلب..." : confirming === "approve" ? "تأكيد الموافقة" : "تأكيد الرفض"}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </DashboardLayout>;
 }

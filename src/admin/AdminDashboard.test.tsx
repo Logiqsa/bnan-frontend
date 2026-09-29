@@ -40,13 +40,18 @@ describe("Admin dashboard overview", () => {
     expect(screen.getByText("طلبات المواد المصرية")).toBeInTheDocument();
     expect(screen.getByText("٧")).toBeInTheDocument();
     expect(screen.queryByText("أولياء الأمور")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /حصص اليوم/ })).toHaveAttribute(
+      "href",
+      "/admin/schedule",
+    );
+    expect(screen.queryByRole("link", { name: "عرض الحصص" })).not.toBeInTheDocument();
   });
 
   it("keeps the overview usable when one independent action widget fails", async () => {
     configure();
     mocks.gulfRequests.mockRejectedValue(new Error("network"));
     render(<QueryClientProvider client={client()}><MemoryRouter><AdminDashboard /></MemoryRouter></QueryClientProvider>);
-    expect(await screen.findByText("الوضع المالي ")).toBeInTheDocument();
+    expect(await screen.findByText("الوضع المالي")).toBeInTheDocument();
     expect(await screen.findByText("تعذر تحميل هذه البيانات.")).toBeInTheDocument();
     expect(screen.getAllByText("طلبات المعلمين").length).toBeGreaterThan(0);
   });

@@ -90,6 +90,16 @@ describe("CourseClassroomChat session controls", () => {
     expect(screen.queryByRole("button", { name: "ابدأ الحصة" })).not.toBeInTheDocument();
   });
 
+  it("starts checking the session window while the chat room is still loading", async () => {
+    mocks.rooms.mockReturnValue(new Promise(() => undefined));
+    mocks.activeSession.mockResolvedValue(scheduled);
+
+    renderChat();
+
+    expect(await screen.findByRole("button", { name: "ابدأ الحصة" })).toBeInTheDocument();
+    expect(mocks.activeSession).toHaveBeenCalledWith("classroom-1");
+  });
+
   it("starts once and replaces the start action with the backend-timestamp live counter", async () => {
     let current: typeof scheduled | typeof live = scheduled;
     mocks.activeSession.mockImplementation(() => Promise.resolve(current));

@@ -439,6 +439,10 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/admin/schedule"
+                      element={<AdminGuard><PortalSchedule role="admin" /></AdminGuard>}
+                    />
+                    <Route
                       path="/admin/classroom-zoom"
                       element={
                         <ManualZoomGuard role="admin">

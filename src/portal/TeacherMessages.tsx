@@ -8,6 +8,8 @@ import {
 } from "@/api/chatApi";
 import ChatRoomList from "@/components/chat/ChatRoomList";
 import TeacherChatConversation from "@/components/chat/TeacherChatConversation";
+import ClassroomSessionActions from "@/components/ClassroomSessionActions";
+import { getActiveClassroomSession } from "@/api/scheduleApi";
 import { removeTeacherChatMessage, type TeacherMessagesData } from "@/components/chat/removeTeacherChatMessage";
 import { updateTeacherChatMessage } from "@/components/chat/updateTeacherChatMessage";
 import type { ChatRoomSummary } from "@/api/chatApi";
@@ -119,6 +121,25 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
   }, [curriculumId, gradeId, metadataByClassroom, mode, roomItems, roomSearch, roomType]);
   const roomIdsKey = roomItems.map((room) => room.id).join("|");
   const selectedRoom = roomItems.find((room) => room.id === selectedRoomId);
+  const selectRoom = useCallback(
+    (roomId: string) => {
+      const room = roomItems.find((item) => item.id === roomId);
+      if (
+        mode === "teacher" &&
+        room?.type === "classroom" &&
+        room.classroomId
+      ) {
+        void queryClient.prefetchQuery({
+          queryKey: ["classroom-session-actions", room.classroomId, user?.role],
+          queryFn: () => getActiveClassroomSession(room.classroomId!),
+          staleTime: 10_000,
+          retry: 1,
+        });
+      }
+      setSelectedRoomId(roomId);
+    },
+    [mode, queryClient, roomItems, user?.role],
+  );
   const markRoomRead = useCallback(
     (roomId: string) => {
       queryClient.setQueryData<ChatRoomSummary[]>(
@@ -141,9 +162,9 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
     if (handledRequestedRoomId.current === requestedRoomId) return;
     handledRequestedRoomId.current = requestedRoomId;
     if (roomItems.some((room) => room.id === requestedRoomId)) {
-      setSelectedRoomId(requestedRoomId);
+      selectRoom(requestedRoomId);
     }
-  }, [requestedRoomId, roomIdsKey, roomItems, rooms.isSuccess]);
+  }, [requestedRoomId, roomIdsKey, roomItems, rooms.isSuccess, selectRoom]);
 
   useEffect(() => {
     const roomIds = roomIdsKey.split("|").filter(Boolean);
@@ -431,7 +452,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                   <ChatRoomList
                     rooms={filteredRooms}
                     selectedRoomId={selectedRoomId}
-                    onSelect={setSelectedRoomId}
+                    onSelect={selectRoom}
                   />
                 )}
               </div>
@@ -442,7 +463,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
               aria-label={pick("المحادثة المحددة", "Selected conversation")}
             >
               {selectedRoomId && (
-                <div className="flex min-w-0 items-center gap-3 border-b bg-card p-3 md:p-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-3 border-b bg-card p-3 md:p-4">
                   <Button
                     type="button"
                     size="icon"
@@ -463,6 +484,12 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                       </p>
                     )}
                   </div>
+                  {mode === "teacher" && selectedRoom?.type === "classroom" && selectedRoom.classroomId && (
+                    <ClassroomSessionActions
+                      classroomId={selectedRoom.classroomId}
+                      className="ms-auto"
+                    />
+                  )}
                 </div>
               )}
               {selectedRoom ? (

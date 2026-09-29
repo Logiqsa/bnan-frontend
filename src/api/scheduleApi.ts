@@ -104,6 +104,28 @@ export async function getUnifiedScheduleWeek(
   };
 }
 
+export async function getAdminScheduleWeek(
+  weekStart: string,
+  registrationMode?: RegistrationMode,
+): Promise<PortalScheduleWeek> {
+  const query = new URLSearchParams({ weekStart });
+  if (registrationMode) query.set("registrationMode", registrationMode);
+  const result = await apiRequest<UnifiedScheduleResponse>(
+    `/schedules/adminSchedule?${query.toString()}`,
+  );
+  const lessons = (result.data.days || []).flatMap((day) =>
+    (day.lessons || []).map((lesson) => toPortalLesson(lesson, day)),
+  );
+  return {
+    currentWeek: result.data.currentWeek,
+    currentWeekStart: result.data.currentWeekStart,
+    weekStart: result.data.weekStart || weekStart,
+    weekEnd: result.data.weekEnd,
+    timezone: result.data.timezone,
+    lessons,
+  };
+}
+
 export async function getUnifiedClassroomSchedule(
   classroomId: string,
   weekStart?: string,

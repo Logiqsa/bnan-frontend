@@ -36,13 +36,30 @@ export default function VoiceMessageRecorder({
   const { pick } = useLanguage();
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 30 }, () => 0.12));
+  const [voicePeak, setVoicePeak] = useState(0.12);
+
+  const stopVisualization = () => {
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    analyserRef.current = null;
+    const context = audioContextRef.current;
+    audioContextRef.current = null;
+    if (context && context.state !== "closed") void context.close();
+  };
 
   const releaseStream = () => {
+    stopVisualization();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     recorderRef.current = null;
@@ -86,6 +103,38 @@ export default function VoiceMessageRecorder({
       chunksRef.current = [];
       streamRef.current = stream;
       recorderRef.current = recorder;
+      setVoiceLevels(Array.from({ length: 30 }, () => 0.12));
+      setVoicePeak(0.12);
+      try {
+        const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextConstructor) {
+          const context = new AudioContextConstructor();
+          const analyser = context.createAnalyser();
+          analyser.fftSize = 64;
+          analyser.smoothingTimeConstant = 0.72;
+          context.createMediaStreamSource(stream).connect(analyser);
+          audioContextRef.current = context;
+          analyserRef.current = analyser;
+          const samples = new Uint8Array(analyser.fftSize);
+          const animate = () => {
+            const activeAnalyser = analyserRef.current;
+            if (!activeAnalyser) return;
+            activeAnalyser.getByteTimeDomainData(samples);
+            let sum = 0;
+            samples.forEach((sample) => {
+              const normalized = (sample - 128) / 128;
+              sum += normalized * normalized;
+            });
+            const level = Math.min(1, Math.max(0.08, Math.sqrt(sum / samples.length) * 3.2));
+            setVoicePeak(level);
+            setVoiceLevels((current) => [...current.slice(1), level]);
+            animationFrameRef.current = window.requestAnimationFrame(animate);
+          };
+          animationFrameRef.current = window.requestAnimationFrame(animate);
+        }
+      } catch {
+        // Recording still works when the browser does not expose Web Audio.
+      }
       startedAtRef.current = Date.now();
       setElapsed(0);
       recorder.ondataavailable = (event) => {
@@ -125,11 +174,26 @@ export default function VoiceMessageRecorder({
 
   if (recording) {
     return (
-      <div className={`flex h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2 ${className}`}>
+      <div
+        className={`flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border bg-sky-50 px-2 transition-shadow ${className}`}
+        style={{
+          borderColor: `rgba(14, 165, 233, ${0.3 + voicePeak * 0.65})`,
+          boxShadow: `0 0 ${Math.round(3 + voicePeak * 10)}px rgba(14, 165, 233, ${0.12 + voicePeak * 0.25})`,
+        }}
+      >
         <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
           <X className="h-4 w-4" />
         </Button>
-        <span className="min-w-12 text-center text-xs font-medium text-destructive" aria-live="polite">{formatDuration(elapsed)}</span>
+        <div className="flex min-w-0 flex-1 items-center gap-[2px]" aria-label={pick("مستوى الصوت", "Voice level")}>
+          {voiceLevels.map((level, index) => (
+            <span
+              key={index}
+              className="min-w-[2px] flex-1 rounded-full bg-sky-500 transition-[height,opacity] duration-75"
+              style={{ height: `${Math.max(4, Math.round(level * 22))}px`, opacity: 0.35 + level * 0.65 }}
+            />
+          ))}
+        </div>
+        <span className="min-w-12 text-center text-xs font-medium text-sky-700" aria-live="polite">{formatDuration(elapsed)}</span>
         <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => stopRecording()} aria-label={pick("إيقاف وإرسال التسجيل", "Stop and send recording")}>
           <Square className="h-4 w-4 fill-current" />
         </Button>

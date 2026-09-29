@@ -308,17 +308,10 @@ export default function CourseEnrollmentDetail() {
                           className="h-auto justify-start p-4"
                           disabled={!url}
                           onClick={() =>
-                            url &&
-                            (recording.shareUrl && !recording.localUrl
-                              ? window.open(
-                                  recording.shareUrl,
-                                  "_blank",
-                                  "noopener,noreferrer",
-                                )
-                              : setSelectedRecording({
-                                  sessionName: recording.sessionName,
-                                  recordingLink: url,
-                                }))
+                            url && setSelectedRecording({
+                              sessionName: recording.sessionName,
+                              recordingLink: url,
+                            })
                           }
                         >
                           <Play className="me-2 h-4 w-4" />

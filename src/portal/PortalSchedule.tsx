@@ -34,6 +34,7 @@ import { usePortalAuth } from "./PortalAuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 
 const dayNames = [
   "السبت",
@@ -159,6 +160,7 @@ export default function PortalSchedule({
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | RegistrationMode>("all");
   const [selected, setSelected] = useState<PortalLesson | null>(null);
+  const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [attendanceContext, setAttendanceContext] = useState<{
     sessionId: string;
     classroomId: string;
@@ -431,7 +433,10 @@ export default function PortalSchedule({
   const openRecording = () => {
     if (!selected) return;
     const value = sessionRecording(selected);
-    if (value) window.open(value, "_blank", "noopener,noreferrer");
+    if (value) setSelectedRecording({
+      sessionName: selected.subject.name,
+      recordingLink: value,
+    });
   };
   const openSummary = () => {
     if (!selected) return;
@@ -947,6 +952,10 @@ export default function PortalSchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <RecordingPlayerModal
+        recording={selectedRecording}
+        onClose={() => setSelectedRecording(null)}
+      />
     </DashboardLayout>
   );
 }

@@ -1,6 +1,7 @@
 import { ExternalLink, File } from "lucide-react";
 import type { ChatMessage } from "@/api/chatApi";
 import { useLanguage } from "@/i18n/LanguageContext";
+import VoiceMessagePlayer from "@/components/chat/VoiceMessagePlayer";
 
 interface TeacherMessageAttachmentsProps {
   attachments?: ChatMessage["attachments"];
@@ -98,17 +99,7 @@ const TeacherMessageAttachments = ({
               key={key}
               className="min-w-0 rounded-xl border border-primary/15 bg-background/80 p-2 shadow-sm"
             >
-              <audio
-                src={attachment.fileUrl}
-                controls
-                preload="metadata"
-                className="h-11 w-full max-w-full"
-              >
-                {pick(
-                  "المتصفح لا يدعم تشغيل الصوت.",
-                  "Your browser does not support audio playback.",
-                )}
-              </audio>
+              <VoiceMessagePlayer src={attachment.fileUrl} label={pick("رسالة صوتية", "Voice message")} />
             </div>
           );
         }

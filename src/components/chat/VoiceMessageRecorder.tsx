@@ -199,7 +199,7 @@ export default function VoiceMessageRecorder({
         <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
           <X className="h-4 w-4" />
         </Button>
-        <div dir="ltr" className="flex min-w-0 flex-1 items-center justify-between px-1" aria-label={pick("مستوى الصوت", "Voice level")}>
+        <div dir="ltr" className="flex min-w-0 flex-1 items-center gap-[2px] px-1" aria-label={pick("مستوى الصوت", "Voice level")}>
           {voiceLevels.map((level, index) => (
             (() => {
               const reached = index / voiceLevels.length <= Math.min(1, elapsed / WAVEFORM_SECONDS);

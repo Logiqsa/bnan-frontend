@@ -167,7 +167,7 @@ export default function CourseEnrollmentDetail() {
             </div>
             <dl className="mt-5 grid gap-3 border-t pt-5 text-sm sm:grid-cols-2">
               {(classroom?.name || group?.name) && <div><dt className="text-muted-foreground">الفصل / المجموعة</dt><dd className="mt-1 break-words font-semibold">{classroom?.name || group?.name}</dd></div>}
-              {typeof enrollment.price === "number" && <div><dt className="text-muted-foreground">قيمة الاشتراك</dt><dd className="mt-1 font-semibold">{enrollment.price} {enrollment.currency}</dd></div>}
+              {typeof enrollment.price === "number" && <div><dt className="text-muted-foreground">قيمة الاشتراك</dt><dd className="mt-1 font-semibold">{enrollment.price === 0 ? "مجانية" : `${enrollment.price} ${enrollment.currency}`}</dd></div>}
             </dl>
           </CardContent>
         </Card>

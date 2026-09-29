@@ -78,6 +78,13 @@ describe("CourseEnrollmentDetail", () => {
     expect(screen.queryByText(/متبقية|جلسات مكتملة/)).not.toBeInTheDocument();
   });
 
+  it("shows free instead of a zero-priced currency amount", async () => {
+    mocks.enrollment.mockResolvedValue({ ...activeEnrollment, price: 0 });
+    renderPage();
+    expect(await screen.findByText("مجانية")).toBeInTheDocument();
+    expect(screen.queryByText("0 EGP")).not.toBeInTheDocument();
+  });
+
   it("renders recurring weekly slots without fabricating dated sessions", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "جدول الدورة الأسبوعي" })).toBeInTheDocument();

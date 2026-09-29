@@ -41,10 +41,12 @@ function EvaluationDetails({ evaluation }: { evaluation: StudentEvaluationValue 
       <Metric label={pick("الحضور", "Attendance")} value={attendanceLabels[evaluation.attendance]} />
       <Metric label={pick("المشاركة", "Participation")} value={ratingLabels[evaluation.participation]} />
       <Metric label={pick("الواجب", "Homework")} value={ratingLabels[evaluation.homework]} />
+      {evaluation.homeworkScore != null && evaluation.homeworkTotalPoints != null && <Metric label={pick("درجة الواجب", "Homework score")} value={`${evaluation.homeworkScore} / ${evaluation.homeworkTotalPoints}`} />}
       <Metric label={pick("السلوك", "Behavior")} value={ratingLabels[evaluation.behavior]} />
     </dl>
     <div className="flex flex-wrap gap-2 text-sm">
       <Badge variant="secondary">{pick("النقاط الإضافية", "Bonus")}: {bonus}</Badge>
+      {evaluation.homeworkPercentage != null && <Badge variant="outline">{pick("نسبة الواجب", "Homework percentage")}: {evaluation.homeworkPercentage}%</Badge>}
       <Badge variant="outline">{evaluation.createdByRole === "teacher" ? pick("تم بواسطة معلم", "Created by teacher") : pick("تم بواسطة مشرف", "Created by supervisor")}</Badge>
     </div>
     <div className="rounded-xl bg-muted/40 p-3">

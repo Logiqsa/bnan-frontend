@@ -9,6 +9,9 @@ export interface StudentEvaluationValue {
   attendance: StudentEvaluationAttendance;
   participation: StudentEvaluationRating;
   homework: StudentEvaluationRating;
+  homeworkScore?: number | null;
+  homeworkTotalPoints?: number | null;
+  homeworkPercentage?: number | null;
   behavior: StudentEvaluationRating;
   bonus: number;
   bouns: number;

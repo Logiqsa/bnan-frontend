@@ -64,7 +64,7 @@ function AssignmentCard({ assignment, highlighted }: { assignment: StudentAssign
           {dueDate && <div className="min-w-0"><dt className="flex items-center gap-2 text-xs text-muted-foreground"><CalendarDays className="h-4 w-4" />{pick("موعد التسليم", "Due date")}</dt><dd className="mt-1 break-words font-semibold">{dueDate}</dd></div>}
           <div><dt className="text-xs text-muted-foreground">{pick("الدرجة الكاملة", "Total points")}</dt><dd className="mt-1 font-semibold tabular-nums">{assignment.totalPoints}</dd></div>
           {submittedAt && <div><dt className="text-xs text-muted-foreground">{pick("تاريخ التسليم", "Submitted at")}</dt><dd className="mt-1 break-words font-semibold">{submittedAt}</dd></div>}
-          {reviewed && assignment.grade !== null && <div><dt className="text-xs text-muted-foreground">{pick("الدرجة", "Grade")}</dt><dd className="mt-1 font-semibold tabular-nums">{assignment.grade}</dd></div>}
+          {reviewed && assignment.grade !== null && <div><dt className="text-xs text-muted-foreground">{pick("الدرجة", "Grade")}</dt><dd className="mt-1 font-semibold tabular-nums">{assignment.grade} / {assignment.totalPoints}</dd></div>}
         </dl>
 
         <div className="flex flex-wrap gap-2">

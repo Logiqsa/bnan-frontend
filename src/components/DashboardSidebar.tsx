@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Award,
+  BarChart3,
   Banknote,
   Bell,
   BookOpen,
@@ -325,6 +326,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Assignments",
       icon: ClipboardList,
       path: "/portal/student/assignments",
+    },
+    {
+      label: "التقييمات",
+      labelEn: "Evaluations",
+      icon: BarChart3,
+      path: "/portal/student/evaluations",
     },
     {
       label: "الاشتراكات",

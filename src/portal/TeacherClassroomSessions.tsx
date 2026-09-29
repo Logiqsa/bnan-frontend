@@ -573,7 +573,7 @@ export default function TeacherClassroomSessions() {
               <label className="block space-y-2 text-sm font-medium">الوصف<Textarea value={assignmentForm.description} onChange={(event) => setAssignmentForm((current) => ({ ...current, description: event.target.value }))} /></label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2 text-sm font-medium">موعد التسليم<Input type="datetime-local" value={assignmentForm.dueDate} onChange={(event) => setAssignmentForm((current) => ({ ...current, dueDate: event.target.value }))} required /></label>
-                <label className="block space-y-2 text-sm font-medium">الدرجة الكاملة<Input type="number" min="1" value={assignmentForm.totalPoints} onChange={(event) => setAssignmentForm((current) => ({ ...current, totalPoints: event.target.value }))} required /></label>
+              <label className="block space-y-2 text-sm font-medium">الدرجة الكاملة<Input type="number" min="0.01" step="any" value={assignmentForm.totalPoints} onChange={(event) => setAssignmentForm((current) => ({ ...current, totalPoints: event.target.value }))} required /></label>
               </div>
               <label className="block space-y-2 text-sm font-medium">مرفق اختياري<Input type="file" onChange={(event) => setAssignmentForm((current) => ({ ...current, attachment: event.target.files?.[0] || null }))} /></label>
               <DialogFooter><Button type="submit" disabled={createAssignment.isPending}>{createAssignment.isPending ? "جاري الإنشاء..." : "إنشاء الواجب"}</Button></DialogFooter>

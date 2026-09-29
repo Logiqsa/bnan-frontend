@@ -33,6 +33,7 @@ import PortalSchedule from "@/portal/PortalSchedule";
 import StudentClassrooms from "@/portal/StudentClassrooms";
 import StudentClassroomDetails from "@/portal/StudentClassroomDetails";
 import StudentAssignments from "@/portal/StudentAssignments";
+import StudentEvaluationHistory from "@/portal/StudentEvaluationHistory";
 import StudentCertificates from "@/portal/StudentCertificates";
 import StudentDashboard from "@/portal/StudentDashboard";
 import StudentNotifications from "@/portal/StudentNotifications";
@@ -357,6 +358,10 @@ export default function App() {
                     <Route
                       path="/portal/student/assignments"
                       element={<PortalGuard role="student"><StudentAssignments /></PortalGuard>}
+                    />
+                    <Route
+                      path="/portal/student/evaluations"
+                      element={<PortalGuard role="student"><StudentEvaluationHistory /></PortalGuard>}
                     />
                     <Route
                       path="/portal/student/certificates"

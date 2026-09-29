@@ -48,7 +48,7 @@ describe("Student dashboard route", () => {
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/change-requests" && item.label === "طلبات تغيير المعلم")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/assignments" && item.label === "الواجبات")).toBe(true);
     expect(roleNavItems.student.some((item) => item.path === "/portal/student/certificates")).toBe(false);
-    expect(roleNavItems.student.some((item) => item.path === "/portal/student/evaluations")).toBe(false);
+    expect(roleNavItems.student.some((item) => item.path === "/portal/student/evaluations" && item.label === "التقييمات")).toBe(true);
   });
 
   it("redirects an unauthenticated visitor to login", () => {

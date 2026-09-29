@@ -195,6 +195,9 @@ export default function UsersAdmin({
   const [otpResult, setOtpResult] =
     useState<RegenerateVerificationCodeResponse | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [rateLimitUser, setRateLimitUser] = useState<AdminUser | null>(null);
+  const [rateLimitReason, setRateLimitReason] = useState("");
+  const [rateLimitLoading, setRateLimitLoading] = useState(false);
   const [verificationUser, setVerificationUser] = useState<AdminUser | null>(null);
   const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null);
   const [passwordForm, setPasswordForm] = useState({ password: "", confirmation: "" });
@@ -597,6 +600,32 @@ export default function UsersAdmin({
     }
   };
 
+  const resetVerificationRateLimit = async () => {
+    if (!rateLimitUser || rateLimitLoading) return;
+    setRateLimitLoading(true);
+    try {
+      await adminUsersApi.resetVerificationRateLimit(
+        rateLimitUser.id,
+        rateLimitReason.trim() || undefined,
+      );
+      setRateLimitUser(null);
+      setRateLimitReason("");
+      toast.success(pick(
+        "تم فتح محاولات التحقق لهذا المستخدم.",
+        "Verification attempts were unlocked for this user.",
+      ));
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast.error(
+        apiError.code === "ACCOUNT_ALREADY_VERIFIED"
+          ? pick("هذا الحساب مفعّل بالفعل.", "This account is already verified.")
+          : apiError.message || pick("تعذر فتح محاولات التحقق.", "Unable to unlock verification attempts."),
+      );
+    } finally {
+      setRateLimitLoading(false);
+    }
+  };
+
   const markUserVerified = async () => {
     if (!verificationUser || busyUserId) return;
     const target = verificationUser;
@@ -969,6 +998,16 @@ export default function UsersAdmin({
                                       "إنشاء رمز تحقق",
                                       "Generate Verification OTP",
                                     )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setRateLimitReason("");
+                                      setRateLimitUser(item);
+                                    }}
+                                    className="gap-3"
+                                  >
+                                    <ShieldAlert className="h-4 w-4" />
+                                    {pick("فتح محاولات التحقق", "Unlock verification attempts")}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
@@ -1427,6 +1466,58 @@ export default function UsersAdmin({
             >
               {busyUserId && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               {pick("تأكيد التحقق", "Confirm verification")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(rateLimitUser)}
+        onOpenChange={(open) => {
+          if (!open && !rateLimitLoading) {
+            setRateLimitUser(null);
+            setRateLimitReason("");
+          }
+        }}
+      >
+        <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pick("فتح محاولات التحقق", "Unlock verification attempts")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pick(
+                `سيتم فتح محاولات التحقق وإعادة إرسال الرمز لحساب ${rateLimitUser?.fullName || "هذا المستخدم"} فورًا. لن يتم إلغاء حظر الشبكة العام.`,
+                `Verification and resend attempts for ${rateLimitUser?.fullName || "this user"} will be unlocked immediately. Network-wide protection will remain enabled.`,
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="verification-unlock-reason">
+              {pick("سبب الفتح (اختياري)", "Reason (optional)")}
+            </Label>
+            <Input
+              id="verification-unlock-reason"
+              value={rateLimitReason}
+              maxLength={500}
+              disabled={rateLimitLoading}
+              placeholder={pick("مثال: تواصل المستخدم مع الدعم", "Example: user contacted support")}
+              onChange={(event) => setRateLimitReason(event.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={rateLimitLoading}>
+              {pick("إلغاء", "Cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={rateLimitLoading}
+              onClick={(event) => {
+                event.preventDefault();
+                void resetVerificationRateLimit();
+              }}
+            >
+              {rateLimitLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              {pick("فتح المحاولات", "Unlock attempts")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

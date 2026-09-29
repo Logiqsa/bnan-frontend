@@ -67,6 +67,12 @@ export interface RegenerateVerificationCodeResponse {
   expiresAt: string;
 }
 
+export interface ResetVerificationRateLimitResponse {
+  success: true;
+  message: string;
+  data: { id: string; resetAt: string; scopes: string[] };
+}
+
 type AdminUserPayload = Omit<AdminUser, "id"> & { id?: string; _id?: string };
 type AdminUserEnvelope = AdminUserPayload & { user?: AdminUserPayload };
 type AdminUsersPayload = Omit<AdminUsersResponse, "data"> & { data: AdminUserPayload[] };
@@ -208,6 +214,11 @@ export const adminUsersApi = {
     }),
   regenerateVerificationCode: (id: string, reason?: string) =>
     apiRequest<RegenerateVerificationCodeResponse>(`/admin/users/${id}/regenerate-verification-code`, {
+      method: "POST",
+      ...(reason ? { body: JSON.stringify({ reason }) } : {}),
+    }),
+  resetVerificationRateLimit: (id: string, reason?: string) =>
+    apiRequest<ResetVerificationRateLimitResponse>(`/admin/users/${id}/reset-verification-rate-limit`, {
       method: "POST",
       ...(reason ? { body: JSON.stringify({ reason }) } : {}),
     }),

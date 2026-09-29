@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   listAll: vi.fn(),
   get: vi.fn(),
   regenerate: vi.fn(),
+  resetVerificationRateLimit: vi.fn(),
   markVerified: vi.fn(),
   changePassword: vi.fn(),
   listApprovedApplications: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock("@/api/adminUsersApi", async (importOriginal) => ({
     listAll: mocks.listAll,
     get: mocks.get,
     regenerateVerificationCode: mocks.regenerate,
+    resetVerificationRateLimit: mocks.resetVerificationRateLimit,
     markVerified: mocks.markVerified,
     changePassword: mocks.changePassword,
   },
@@ -85,6 +87,11 @@ describe("UsersAdmin verification OTP", () => {
         code: "4821",
         expiresAt: "2026-09-05T12:10:00Z",
       });
+    mocks.resetVerificationRateLimit.mockReset().mockResolvedValue({
+      success: true,
+      message: "VERIFICATION_RATE_LIMIT_RESET",
+      data: { id: user.id, resetAt: "2026-09-29T12:00:00Z", scopes: ["verification", "verification_resend"] },
+    });
     mocks.markVerified.mockReset().mockResolvedValue({
       success: true,
       data: { ...user, isVerified: true },
@@ -156,6 +163,20 @@ describe("UsersAdmin verification OTP", () => {
 
     await waitFor(() => expect(mocks.markVerified).toHaveBeenCalledWith("user-1"));
     expect(mocks.success).toHaveBeenCalledWith("User marked as verified");
+  });
+
+  it("lets an admin unlock only an unverified user's verification attempts", async () => {
+    renderPage();
+    fireEvent.keyDown(
+      await screen.findByRole("button", { name: /Actions for Ahmed/ }),
+      { key: "Enter", code: "Enter" },
+    );
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Unlock verification attempts" }));
+    fireEvent.change(screen.getByLabelText("Reason (optional)"), { target: { value: "Support request" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock attempts" }));
+
+    await waitFor(() => expect(mocks.resetVerificationRateLimit).toHaveBeenCalledWith("user-1", "Support request"));
+    expect(mocks.success).toHaveBeenCalledWith("Verification attempts were unlocked for this user.");
   });
 
   it("lets an admin change a user's password", async () => {

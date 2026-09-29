@@ -19,6 +19,18 @@ describe("adminUsersApi", () => {
     );
   });
 
+  it("resets only the user's verification rate limits through the admin endpoint", () => {
+    adminUsersApi.resetVerificationRateLimit("user-42", "Support request");
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/admin/users/user-42/reset-verification-rate-limit",
+      {
+        method: "POST",
+        body: JSON.stringify({ reason: "Support request" }),
+      },
+    );
+  });
+
   it("passes role and verification filters when listing unverified teachers", async () => {
     vi.mocked(apiRequest).mockResolvedValueOnce({ success: true, data: [], hasNextPage: false });
     await adminUsersApi.list("teacher", 2, false);

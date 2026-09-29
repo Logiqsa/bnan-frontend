@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
+import { useNotificationsContext } from "@/contexts/notifications-context";
+import { notificationLink } from "@/hooks/useNotifications";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -561,6 +563,7 @@ const SidebarContent = ({
   const role = user?.role || "student";
   const items = roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
+  const { items: notifications } = useNotificationsContext();
   const navRef = useRef<HTMLElement>(null);
   const scrollStorageKey = `bnan_sidebar_scroll_${role}`;
 
@@ -581,6 +584,14 @@ const SidebarContent = ({
   const switchableAccounts = rememberedAccounts.filter(
     (account) => account.user.id !== user?.id,
   );
+  const hasUnreadForItem = (itemPath: string) => notifications.some((notification) => {
+    if (notification.isRead) return false;
+    const targetPath = notificationLink(notification, role);
+    if (!targetPath) return false;
+    if (itemPath.includes("?")) return targetPath === itemPath;
+    const targetBasePath = targetPath.split("?")[0];
+    return targetBasePath === itemPath || targetBasePath.startsWith(`${itemPath}/`);
+  });
   const [switchingName, setSwitchingName] = useState("");
   const chooseAccount = (account: (typeof switchableAccounts)[number]) => {
     setSwitchingName(account.user.fullName);
@@ -778,10 +789,11 @@ const SidebarContent = ({
                 title={collapsed ? pick(item.label, item.labelEn) : undefined}
                 aria-label={pick(item.label, item.labelEn)}
                 dir={isArabic ? "rtl" : "ltr"}
-                className={`w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}
+                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}>{pick(item.label, item.labelEn)}</span>}
+                {hasUnreadForItem(item.path) && <span className={`${collapsed ? "absolute end-1 top-1" : "ms-auto"} h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-2 ring-sidebar`} aria-label={pick("إشعار جديد", "New notification")} />}
               </button>
             </div>
           );

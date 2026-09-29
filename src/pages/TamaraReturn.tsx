@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { paymentApi, type GulfPaymentStatusResult } from "@/api/paymentApi";
 import { ApiError } from "@/api/client";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
+import { clearStudentSignupDrafts } from "@/lib/studentSignupSession";
 import logo from "@/assets/logo-bnan.png";
 import AccountVerification from "@/components/AccountVerification";
 
@@ -93,6 +94,12 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
     return () => { cancelled = true; };
   }, [draft]);
 
+  useEffect(() => {
+    if (result && isRegistrationCompleted(result) && !draft?.studentEmail) {
+      clearStudentSignupDrafts();
+    }
+  }, [draft?.studentEmail, result]);
+
   const manualRefresh = async () => {
     if (!draft || Date.now() < cooldownUntil) return;
     setRefreshing(true);
@@ -116,6 +123,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
 
   const retry = () => {
     gulfPaymentDraftStore.clear();
+    clearStudentSignupDrafts();
     window.location.href = "/register/student";
   };
 
@@ -151,6 +159,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           {phase === "settled" && result && isRegistrationCompleted(result) && (
             draft?.studentEmail ? <AccountVerification embedded email={draft.studentEmail} onVerified={async () => {
               gulfPaymentDraftStore.clear();
+              clearStudentSignupDrafts();
               window.location.href = `/portal/login?email=${encodeURIComponent(draft.studentEmail || "")}&verified=1`;
             }} /> : <>
               <div className="h-14 w-14 rounded-full bg-green-100 text-green-700 grid place-items-center mx-auto"><Check /></div>

@@ -34,7 +34,11 @@ import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
-import { STUDENT_SIGNUP_DRAFT_KEY } from "@/lib/studentSignupSession";
+import {
+  COURSE_STUDENT_SIGNUP_DRAFT_KEY,
+  STUDENT_SIGNUP_DRAFT_KEY,
+  clearStudentSignupDrafts,
+} from "@/lib/studentSignupSession";
 import { cn } from "@/lib/utils";
 import { egyptianGradeLanguage } from "@/lib/egyptianGradeLanguage";
 import { courseRegistrationIntentStore } from "@/lib/courseRegistrationIntent";
@@ -51,11 +55,6 @@ const academicSteps = [
   "الدفع والتأكيد",
 ];
 const courseOnlySteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف"];
-const STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY =
-  "bnan_student_signup_persistent_draft";
-const COURSE_STUDENT_SIGNUP_DRAFT_KEY = "bnan_course_student_signup_draft";
-const COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY =
-  "bnan_course_student_signup_persistent_draft";
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -162,23 +161,15 @@ const readSignupDraft = (courseOnly: boolean): Partial<SignupDraft> => {
   const sessionKey = courseOnly
     ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
     : STUDENT_SIGNUP_DRAFT_KEY;
-  const persistentKey = courseOnly
-    ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY
-    : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
-  for (const [storage, key] of [
-    [sessionStorage, sessionKey],
-    [localStorage, persistentKey],
-  ] as const) {
-    try {
-      const raw = storage.getItem(key);
-      if (raw) {
-        const safe = safeSignupDraft(JSON.parse(raw) as Partial<SignupDraft>);
-        if (JSON.stringify(safe) !== raw) storage.setItem(key, JSON.stringify(safe));
-        return safe;
-      }
-    } catch {
-      // Continue to the other storage when mobile private mode blocks one.
+  try {
+    const raw = sessionStorage.getItem(sessionKey);
+    if (raw) {
+      const safe = safeSignupDraft(JSON.parse(raw) as Partial<SignupDraft>);
+      if (JSON.stringify(safe) !== raw) sessionStorage.setItem(sessionKey, JSON.stringify(safe));
+      return safe;
     }
+  } catch {
+    // sessionStorage may be unavailable in private browsing.
   }
   return {};
 };
@@ -203,9 +194,6 @@ export default function StudentSignup({
   const sessionDraftKey = courseOnly
     ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
     : STUDENT_SIGNUP_DRAFT_KEY;
-  const persistentDraftKey = courseOnly
-    ? COURSE_STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY
-    : STUDENT_SIGNUP_PERSISTENT_DRAFT_KEY;
   const [savedDraft] = useState(() => readSignupDraft(courseOnly));
   const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
   const [error, setError] = useState("");
@@ -423,16 +411,6 @@ export default function StudentSignup({
     } catch {
       // sessionStorage may be discarded or unavailable on mobile browsers.
     }
-    try {
-      const persistentDraft: Partial<SignupDraft> = {
-        ...safeDraft,
-        step: 0,
-        verification: null,
-      };
-      localStorage.setItem(persistentDraftKey, JSON.stringify(persistentDraft));
-    } catch {
-      // Strict private browsing can disable persistent storage.
-    }
   }, [
     step,
     parentFullName,
@@ -452,7 +430,6 @@ export default function StudentSignup({
     verification,
     idempotencyKey,
     sessionDraftKey,
-    persistentDraftKey,
   ]);
 
   useEffect(() => {
@@ -683,7 +660,7 @@ export default function StudentSignup({
         });
         const pendingStudentEmail = studentEmail.trim();
         sessionStorage.removeItem(sessionDraftKey);
-        localStorage.removeItem(persistentDraftKey);
+        clearStudentSignupDrafts();
         window.location.href = `/portal/login?email=${encodeURIComponent(pendingStudentEmail)}&pending=1`;
       } else {
         const { data } = await paymentApi.checkout(
@@ -768,12 +745,12 @@ export default function StudentSignup({
                 throw new Error("تعذر استكمال التسجيل بالحساب الحالي.");
               }
               sessionStorage.removeItem(sessionDraftKey);
-              localStorage.removeItem(persistentDraftKey);
+              clearStudentSignupDrafts();
               navigate(intent.returnTo, { replace: true });
               return;
             }
             sessionStorage.removeItem(sessionDraftKey);
-            localStorage.removeItem(persistentDraftKey);
+            clearStudentSignupDrafts();
             const loginParams = new URLSearchParams({
               email: verifiedStudentEmail,
               verified: "1",

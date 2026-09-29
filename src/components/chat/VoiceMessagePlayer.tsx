@@ -20,19 +20,64 @@ export default function VoiceMessagePlayer({ src, label }: VoiceMessagePlayerPro
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const bars = useMemo(
+  const fallbackBars = useMemo(
     () => Array.from({ length: 42 }, (_, index) => 7 + ((index * 17 + 11) % 19)),
     [],
   );
+  const [bars, setBars] = useState(fallbackBars);
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
 
   useEffect(() => {
+    let cancelled = false;
+    let context: AudioContext | null = null;
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setBars(fallbackBars);
     const audio = audioRef.current;
     if (audio) audio.load();
-  }, [src]);
+
+    const loadWaveform = async () => {
+      try {
+        const response = await fetch(src);
+        if (!response.ok) throw new Error("Unable to load audio waveform");
+        const bytes = await response.arrayBuffer();
+        const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextConstructor) return;
+        context = new AudioContextConstructor();
+        const decoded = await context.decodeAudioData(bytes);
+        const nextBars = Array.from({ length: 42 }, (_, index) => {
+          const start = Math.floor((index / 42) * decoded.length);
+          const end = Math.max(start + 1, Math.floor(((index + 1) / 42) * decoded.length));
+          const step = Math.max(1, Math.floor((end - start) / 2000));
+          let sum = 0;
+          let samples = 0;
+          for (let offset = start; offset < end; offset += step) {
+            for (let channel = 0; channel < decoded.numberOfChannels; channel += 1) {
+              const sample = decoded.getChannelData(channel)[offset] || 0;
+              sum += sample * sample;
+              samples += 1;
+            }
+          }
+          return samples ? Math.sqrt(sum / samples) : 0;
+        });
+        const peak = Math.max(...nextBars, 0.001);
+        if (!cancelled) {
+          setBars(nextBars.map((value) => 5 + Math.round(Math.pow(value / peak, 0.72) * 19)));
+        }
+      } catch {
+        // Keep the fallback waveform when the audio server does not allow waveform fetching.
+      } finally {
+        if (context && context.state !== "closed") void context.close();
+      }
+    };
+    void loadWaveform();
+
+    return () => {
+      cancelled = true;
+      if (context && context.state !== "closed") void context.close();
+    };
+  }, [fallbackBars, src]);
 
   const toggle = async () => {
     const audio = audioRef.current;
@@ -100,7 +145,7 @@ export default function VoiceMessagePlayer({ src, label }: VoiceMessagePlayerPro
             <span
               key={index}
               className={`min-w-[2px] flex-1 rounded-full transition-colors ${index / bars.length <= progress ? "bg-sky-300" : "bg-slate-600"}`}
-              style={{ height: `${Math.max(4, Math.round(height * 0.68))}px` }}
+              style={{ height: `${Math.max(4, height)}px` }}
             />
           ))}
         </button>

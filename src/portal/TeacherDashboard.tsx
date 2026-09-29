@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   Bell,
   CalendarClock,
@@ -22,6 +23,7 @@ import {
   teacherRequestsApi,
 } from "@/api/teacherRequestsApi";
 import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
+import { teacherSessionStatisticsApi } from "@/api/teacherSessionStatisticsApi";
 import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
@@ -50,6 +52,21 @@ const TeacherDashboardContent = () => {
     retry: 1,
   });
   const upcomingSessions = useTeacherUpcomingSessions(user?.registrationModes);
+  const [statisticsMonthOffset, setStatisticsMonthOffset] = useState(0);
+  const statisticsPeriod = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() + statisticsMonthOffset, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + statisticsMonthOffset + 1, 1);
+    const dateKey = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    return { from: dateKey(start), to: dateKey(end), label: start.toLocaleDateString(isArabic ? "ar-EG" : "en-US", { month: "long", year: "numeric" }) };
+  }, [isArabic, statisticsMonthOffset]);
+  const sessionStatistics = useQuery({
+    queryKey: ["teacher-session-statistics", statisticsPeriod.from, statisticsPeriod.to],
+    queryFn: () => teacherSessionStatisticsApi.getMine(statisticsPeriod.from, statisticsPeriod.to),
+    staleTime: 60_000,
+    retry: 1,
+  });
   const pendingReviews = notifications.filter(
     (notification) =>
       notification.key === "ASSIGNMENT_SUBMITTED" && !notification.isRead,
@@ -88,6 +105,38 @@ const TeacherDashboardContent = () => {
           </div>
         </div>
       </header>
+
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base">{pick("ملخص التدريس", "Teaching summary")}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{statisticsPeriod.label}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant={statisticsMonthOffset === 0 ? "default" : "outline"} onClick={() => setStatisticsMonthOffset(0)}>
+              {pick("هذا الشهر", "This month")}
+            </Button>
+            <Button type="button" size="sm" variant={statisticsMonthOffset === -1 ? "default" : "outline"} onClick={() => setStatisticsMonthOffset(-1)}>
+              {pick("الشهر السابق", "Previous month")}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {sessionStatistics.isPending ? (
+            <div className="grid gap-3 sm:grid-cols-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></div>
+          ) : sessionStatistics.isError ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">
+              <span>{pick("تعذر تحميل ملخص التدريس.", "Unable to load teaching summary.")}</span>
+              <Button type="button" size="sm" variant="outline" onClick={() => void sessionStatistics.refetch()}>{pick("إعادة المحاولة", "Retry")}</Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-primary/5 p-4"><p className="text-sm text-muted-foreground">{pick("إجمالي الساعات", "Total hours")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.totalHours.toLocaleString(isArabic ? "ar-EG" : "en-US", { maximumFractionDigits: 2 })}</p></div>
+              <div className="rounded-xl bg-muted/50 p-4"><p className="text-sm text-muted-foreground">{pick("عدد الحصص", "Sessions")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.sessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {!payoutProfile.isError &&
         (payoutProfile.isPending ||

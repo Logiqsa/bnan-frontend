@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   notifications: vi.fn(),
   requests: vi.fn(),
   sessions: vi.fn(),
+  statistics: vi.fn(),
 }));
 
 vi.mock("@/api/teacherPayoutProfileApi", () => ({
@@ -21,6 +22,9 @@ vi.mock("@/api/teacherRequestsApi", () => ({
 }));
 vi.mock("@/hooks/useTeacherUpcomingSessions", () => ({
   useTeacherUpcomingSessions: () => mocks.sessions(),
+}));
+vi.mock("@/api/teacherSessionStatisticsApi", () => ({
+  teacherSessionStatisticsApi: { getMine: mocks.statistics },
 }));
 vi.mock("@/portal/PortalAuthContext", () => ({
   usePortalAuth: () => ({ user: { fullName: "معلم" } }),
@@ -74,6 +78,12 @@ describe("TeacherDashboard notifications provider and to-do card", () => {
         lessons: [],
         retry: vi.fn(),
       });
+    mocks.statistics.mockReset().mockResolvedValue({
+      teacherId: "teacher-1",
+      sessionsCount: 4,
+      totalMinutes: 150,
+      totalHours: 2.5,
+    });
   });
 
   it("asks the teacher to complete payout details when missing", async () => {
@@ -129,7 +139,7 @@ describe("TeacherDashboard notifications provider and to-do card", () => {
     expect(screen.queryByText("أكمل بيانات الاستلام")).not.toBeInTheDocument();
   });
 
-  it("shows notifications, pending requests, and upcoming sessions without course or hours summaries", async () => {
+  it("shows notifications, teaching summary, pending requests, and upcoming sessions", async () => {
     mocks.payout.mockResolvedValue({
       method: "wallet",
       accountHolderName: "معلم",
@@ -157,10 +167,12 @@ describe("TeacherDashboard notifications provider and to-do card", () => {
     renderPage();
 
     expect(await screen.findByText("الإشعارات")).toBeInTheDocument();
+    expect(screen.getByText("ملخص التدريس")).toBeInTheDocument();
+    expect(screen.getByText("٢٫٥")).toBeInTheDocument();
+    expect(screen.getByText("٤")).toBeInTheDocument();
     expect(screen.getByText("الطلبات المعلقة")).toBeInTheDocument();
     expect(screen.getByText("الحصص القادمة")).toBeInTheDocument();
     expect(screen.getByText("تم تعيينك في فصل")).toBeInTheDocument();
     expect(screen.queryByText("ملخص الدورات والفصول")).not.toBeInTheDocument();
-    expect(screen.queryByText("ملخص الساعات")).not.toBeInTheDocument();
   });
 });

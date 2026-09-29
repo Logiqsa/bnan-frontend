@@ -41,6 +41,23 @@ describe("TamaraReturn purpose isolation", () => {
     view.unmount();
   });
 
+  it("stops polling when Tamara reports a captured payment", async () => {
+    mocks.read.mockReturnValue({
+      purpose: "registration",
+      paymentId: "registration-payment",
+      provider: "tamara",
+      checkoutUrl: "https://pay.test",
+      createdAt: Date.now(),
+    });
+    mocks.reconcile.mockResolvedValue({ data: { paymentId: "registration-payment", status: "captured" } });
+
+    renderPage();
+
+    expect(await screen.findByText("تم تأكيد الدفع")).toBeInTheDocument();
+    expect(screen.getByText(/استلام المبلغ/)).toBeInTheDocument();
+    expect(mocks.status).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["subject request", { purpose: "subject_request", paymentId: "subject-payment", provider: "tamara", checkoutUrl: "", createdAt: Date.now() }],
     ["missing draft", null],

@@ -23,7 +23,7 @@ vi.mock("@/i18n/LanguageContext", () => ({ useLanguage: () => ({ isArabic: true,
 
 const client = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const configure = () => {
-  mocks.statistics.mockResolvedValue({ totalStudents: 120, totalTeachers: 18, activeSubscriptions: 76, expiredSubscriptions: 4, pendingReceipts: 3, todaySessions: 11 });
+  mocks.statistics.mockResolvedValue({ totalStudents: 120, totalTeachers: 18, activeSubscriptions: 76, expiredSubscriptions: 4, pendingReceipts: 3, totalPaidSar: 12500, totalPaidEgp: 48000, todaySessions: 11 });
   mocks.teacherApplications.mockResolvedValue(5);
   mocks.egyptianRequests.mockResolvedValue({ data: [], total: 2 });
   mocks.gulfRequests.mockResolvedValue({ data: [], pagination: { total: 7 } });
@@ -38,6 +38,8 @@ describe("Admin dashboard overview", () => {
     expect(screen.getByText("١٢٠")).toBeInTheDocument();
     expect(screen.getByText("١٨")).toBeInTheDocument();
     expect(screen.getByText("طلبات المواد المصرية")).toBeInTheDocument();
+    expect(screen.getByText(/١٢٬٥٠٠/)).toBeInTheDocument();
+    expect(screen.getByText(/٤٨٬٠٠٠/)).toBeInTheDocument();
     expect(screen.getByText("٧")).toBeInTheDocument();
     expect(screen.queryByText("أولياء الأمور")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /حصص اليوم/ })).toHaveAttribute(

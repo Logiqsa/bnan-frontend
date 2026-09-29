@@ -14,8 +14,13 @@ const MAX_AUTO_ATTEMPTS = 20; // 60 seconds of automatic polling
 const REFRESH_COOLDOWN_MS = 10000;
 
 const TERMINAL_STATUSES = new Set(["failed", "cancelled", "expired", "refunded"]);
+// Tamara returns `captured` when the provider has collected the money, while
+// the local registration may still be waiting for account provisioning.
+const PAYMENT_CAPTURED_STATUSES = new Set(["captured", "completed"]);
 const isRegistrationCompleted = (payment: GulfPaymentStatusResult) =>
-  payment.status === "completed" && Boolean(payment.studentId);
+  PAYMENT_CAPTURED_STATUSES.has(payment.status) && Boolean(payment.studentId);
+const isPaymentCaptured = (payment: GulfPaymentStatusResult) =>
+  PAYMENT_CAPTURED_STATUSES.has(payment.status);
 
 const friendlyError = (error: unknown) => {
   const apiError = error as ApiError;
@@ -51,7 +56,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
         if (cancelled) return;
         setResult(data);
         setError("");
-        if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+        if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
           localStorage.removeItem("tamaraPaymentId");
           setPhase("settled");
           return;
@@ -72,7 +77,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           if (cancelled) return;
           setResult(data);
           setError("");
-          if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+          if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
             localStorage.removeItem("tamaraPaymentId");
             setPhase("settled");
             return;
@@ -98,7 +103,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
         ? await paymentApi.reconcile(draft.paymentId)
         : await paymentApi.status(draft.provider, draft.paymentId);
       setResult(data);
-      if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
+      if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
         localStorage.removeItem("tamaraPaymentId");
         setPhase("settled");
       }
@@ -175,10 +180,12 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
 
           {phase === "settled" && (!result || (!isRegistrationCompleted(result) && !TERMINAL_STATUSES.has(result.status))) && (
             <>
-              <h1 className="text-xl font-cairo font-bold">جاري تأكيد الدفع</h1>
+              <h1 className="text-xl font-cairo font-bold">
+                {result && isPaymentCaptured(result) ? "تم تأكيد الدفع" : "جاري تأكيد الدفع"}
+              </h1>
               <p className="text-muted-foreground font-tajawal text-sm">
-                {result?.status === "completed" && !result.studentId
-                  ? "تم تأكيد الدفع، لكن إنشاء حساب الطالب لم يكتمل بعد. اضغط تحديث لإعادة المزامنة."
+                {result && isPaymentCaptured(result) && !result.studentId
+                  ? "تم استلام المبلغ، لكن تجهيز حساب الطالب لم يكتمل بعد. اضغط تحديث لإعادة المزامنة."
                   : "لم تصل نتيجة نهائية بعد. اضغط تحديث بعد قليل، أو تواصل مع الدعم إذا استمرت الحالة."}
               </p>
               <Button onClick={manualRefresh} disabled={refreshing || Date.now() < cooldownUntil} variant="outline" className="gap-2">

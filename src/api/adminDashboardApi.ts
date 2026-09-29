@@ -6,6 +6,8 @@ export interface AdminDashboardStatistics {
   activeSubscriptions?: number;
   expiredSubscriptions?: number;
   pendingReceipts?: number;
+  totalPaidSar?: number;
+  totalPaidEgp?: number;
   totalTeachers?: number;
   todaySessions?: number;
   todayTimezone?: string;

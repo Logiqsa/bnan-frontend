@@ -25,10 +25,11 @@ import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
 import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
+import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 
 const TeacherDashboardContent = () => {
   const { user } = usePortalAuth();
-  const { pick } = useLanguage();
+  const { pick, isArabic } = useLanguage();
   const {
     items: notifications,
     unreadCount,
@@ -485,8 +486,8 @@ const TeacherDashboardContent = () => {
                           dir="ltr"
                           className="mt-1 text-muted-foreground sm:text-end"
                         >
-                          {lesson.startTime}
-                          {lesson.endTime ? ` - ${lesson.endTime}` : ""}
+                          {formatScheduleTime(lesson.startTime, isArabic)}
+                          {lesson.endTime ? ` - ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}
                         </p>
                       </div>
                     </Link>

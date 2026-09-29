@@ -35,6 +35,7 @@ import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
+import ClassroomEvaluations from "@/portal/ClassroomEvaluations";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -317,7 +318,7 @@ export default function TeacherClassroomSessions() {
         </header>
 
         <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : "overview"}>
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-6">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-7">
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />
               المحادثة
@@ -333,6 +334,10 @@ export default function TeacherClassroomSessions() {
             <TabsTrigger value="completed-sessions">
               <Clock3 className="me-1 h-4 w-4" />
               الحصص المنتهية
+            </TabsTrigger>
+            <TabsTrigger value="evaluations">
+              <ClipboardCheck className="me-1 h-4 w-4" />
+              التقييمات
             </TabsTrigger>
             <TabsTrigger value="schedule">
               <CalendarDays className="me-1 h-4 w-4" />
@@ -551,6 +556,10 @@ export default function TeacherClassroomSessions() {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="evaluations" className="mt-5">
+            <ClassroomEvaluations classroomId={classroomId} embedded />
           </TabsContent>
 
           <TabsContent value="assignments" className="mt-5">

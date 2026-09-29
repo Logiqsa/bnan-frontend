@@ -77,6 +77,7 @@ import TeacherClassrooms from "@/portal/TeacherClassrooms";
 import TeacherClassroomSessions from "@/portal/TeacherClassroomSessions";
 import TeacherAssignmentDetails from "@/portal/TeacherAssignmentDetails";
 import TeacherSessionDetails from "@/portal/TeacherSessionDetails";
+import ClassroomEvaluations from "@/portal/ClassroomEvaluations";
 import TeacherCourseDetail from "@/portal/TeacherCourseDetail";
 import TeacherCourseRecordings from "@/portal/TeacherCourseRecordings";
 import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
@@ -583,6 +584,10 @@ export default function App() {
                           <ClassroomScheduleManagement />
                         </ManualZoomGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/supervisor/classrooms/:classroomId"
+                      element={<PortalGuard role="supervisor"><ClassroomEvaluations /></PortalGuard>}
                     />
                     <Route
                       path="/portal/supervisor/course-classrooms/:classroomId/schedule"

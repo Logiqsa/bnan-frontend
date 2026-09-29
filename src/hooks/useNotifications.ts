@@ -44,6 +44,7 @@ const adminNotificationRoutes: Record<string, string> = {
 };
 
 const teacherNotificationRoutes: Record<string, string> = {
+  teacher_classrooms: "/portal/teacher/classrooms",
   teacher_home: "/portal/teacher",
   teacher_requests: "/portal/teacher/requests",
   chat_room: "/portal/teacher/messages",
@@ -54,6 +55,10 @@ const teacherNotificationRoutes: Record<string, string> = {
   teacher_students: "/portal/teacher/courses",
   classroom_details: "/portal/teacher/courses",
   courses: "/portal/teacher/courses",
+};
+
+const supervisorNotificationRoutes: Record<string, string> = {
+  supervisor_classrooms: "/portal/supervisor/classrooms",
 };
 
 const studentNotificationRoutes: Record<string, string> = {
@@ -176,11 +181,23 @@ export const notificationLink = (
     }
     return typeof target === "string" ? adminNotificationRoutes[target] : undefined;
   }
-  if (role === "teacher")
+  if (role === "teacher") {
+    if (target === "teacher_classrooms") {
+      const classroomId = notificationParam(notification, "classroomId");
+      return classroomId ? `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}` : teacherNotificationRoutes.teacher_classrooms;
+    }
     return teacherNotificationLink(
       notification,
       typeof target === "string" ? target : undefined,
     );
+  }
+  if (role === "supervisor") {
+    if (target === "supervisor_classrooms") {
+      const classroomId = notificationParam(notification, "classroomId");
+      return classroomId ? `/portal/supervisor/classrooms/${encodeURIComponent(classroomId)}` : supervisorNotificationRoutes.supervisor_classrooms;
+    }
+    return typeof target === "string" ? supervisorNotificationRoutes[target] : undefined;
+  }
   if (role === "student") {
     if (notification.key === "RECORDING_READY") {
       const classroomId = notificationParam(notification, "classroomId");

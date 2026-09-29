@@ -76,6 +76,7 @@ export interface PortalUser {
   id: string;
   fullName: string;
   email: string;
+  createdAt?: string;
   parentEmail?: string | null;
   role: PortalRole;
   status: string;

@@ -52,15 +52,34 @@ const TeacherDashboardContent = () => {
     retry: 1,
   });
   const upcomingSessions = useTeacherUpcomingSessions(user?.registrationModes);
-  const [statisticsMonthOffset, setStatisticsMonthOffset] = useState(0);
-  const statisticsPeriod = useMemo(() => {
+  const [statisticsMonthKey, setStatisticsMonthKey] = useState(() => {
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() + statisticsMonthOffset, 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + statisticsMonthOffset + 1, 1);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const statisticsMonths = useMemo(() => {
+    const now = new Date();
+    const current = new Date(now.getFullYear(), now.getMonth(), 1);
+    const joinedAt = user?.createdAt ? new Date(user.createdAt) : null;
+    const joinedMonth = joinedAt && !Number.isNaN(joinedAt.getTime())
+      ? new Date(joinedAt.getFullYear(), joinedAt.getMonth(), 1)
+      : new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    const months: Array<{ key: string; label: string }> = [];
+    for (const cursor = new Date(current); cursor >= joinedMonth; cursor.setMonth(cursor.getMonth() - 1)) {
+      months.push({
+        key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+        label: cursor.toLocaleDateString(isArabic ? "ar-EG" : "en-US", { month: "long", year: "numeric" }),
+      });
+    }
+    return months;
+  }, [isArabic, user?.createdAt]);
+  const statisticsPeriod = useMemo(() => {
+    const [year, month] = statisticsMonthKey.split("-").map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 1);
     const dateKey = (date: Date) =>
       `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     return { from: dateKey(start), to: dateKey(end), label: start.toLocaleDateString(isArabic ? "ar-EG" : "en-US", { month: "long", year: "numeric" }) };
-  }, [isArabic, statisticsMonthOffset]);
+  }, [isArabic, statisticsMonthKey]);
   const sessionStatistics = useQuery({
     queryKey: ["teacher-session-statistics", statisticsPeriod.from, statisticsPeriod.to],
     queryFn: () => teacherSessionStatisticsApi.getMine(statisticsPeriod.from, statisticsPeriod.to),
@@ -112,13 +131,12 @@ const TeacherDashboardContent = () => {
             <CardTitle className="text-base">{pick("ملخص التدريس", "Teaching summary")}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{statisticsPeriod.label}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant={statisticsMonthOffset === 0 ? "default" : "outline"} onClick={() => setStatisticsMonthOffset(0)}>
-              {pick("هذا الشهر", "This month")}
-            </Button>
-            <Button type="button" size="sm" variant={statisticsMonthOffset === -1 ? "default" : "outline"} onClick={() => setStatisticsMonthOffset(-1)}>
-              {pick("الشهر السابق", "Previous month")}
-            </Button>
+          <div className="flex max-w-full flex-wrap gap-2">
+            {statisticsMonths.map((month) => (
+              <Button key={month.key} type="button" size="sm" variant={statisticsMonthKey === month.key ? "default" : "outline"} onClick={() => setStatisticsMonthKey(month.key)}>
+                {month.label}
+              </Button>
+            ))}
           </div>
         </CardHeader>
         <CardContent>

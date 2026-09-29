@@ -90,6 +90,9 @@ const TeacherDashboardContent = () => {
     (notification) =>
       notification.key === "ASSIGNMENT_SUBMITTED" && !notification.isRead,
   );
+  const pendingEvaluations = notifications.filter(
+    (notification) => notification.key === "WEEKLY_EVALUATION_TEACHER_REMINDER" && !notification.isRead,
+  );
 
   const sessionStatus = (status?: string) => {
     const labels: Record<string, string> = {
@@ -159,7 +162,8 @@ const TeacherDashboardContent = () => {
       {!payoutProfile.isError &&
         (payoutProfile.isPending ||
           !payoutProfile.data ||
-          pendingReviews.length > 0) && (
+          pendingReviews.length > 0 ||
+          pendingEvaluations.length > 0) && (
           <section
             aria-label={pick("المهام المطلوبة", "To-do")}
             className="grid gap-4 md:grid-cols-2"
@@ -245,6 +249,22 @@ const TeacherDashboardContent = () => {
                       )}
                     </Link>
                   )}
+                </CardContent>
+              </Card>
+            )}
+            {pendingEvaluations.length > 0 && (
+              <Card className="border-primary/20 bg-primary/[0.03] shadow-sm">
+                <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <ClipboardCheck className="h-5 w-5" />
+                  </span>
+                  <CardTitle className="text-base">{pick("تقييمات تحتاج إلى تسجيل", "Evaluations to complete")}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {pendingEvaluations.slice(0, 3).map((notification) => {
+                    const link = notificationLink(notification, "teacher");
+                    return link ? <Link key={notification.id} to={link} className="block rounded-xl border bg-background p-3 text-sm transition hover:border-primary/40 hover:bg-muted/40">{typeof notification.data?.classroomName === "string" ? notification.data.classroomName : pick("فصل", "Classroom")} — {pick("إضافة تقييم الأسبوع", "Add this week's evaluation")}</Link> : null;
+                  })}
                 </CardContent>
               </Card>
             )}

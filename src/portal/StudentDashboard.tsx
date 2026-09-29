@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Link } from "react-router-dom";
 
-const number = (value: number) => new Intl.NumberFormat().format(value);
+const number = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(value);
 
 const StudentDashboardSkeleton = () => (
   <DashboardLayout>

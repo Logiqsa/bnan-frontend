@@ -17,7 +17,7 @@ const statusLabels: Record<string, { ar: string; en: string }> = {
 const endedSubscriptionStatuses = new Set(["expired", "cancelled"]);
 const isPreviousSubscription = (subscription: StudentSubscription) =>
   endedSubscriptionStatuses.has(subscription.computedStatus || subscription.status || "");
-const Metric = ({ label, value }: { label: string; value: number }) => <div className="rounded-xl bg-muted/50 p-3 text-center"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-bold tabular-nums">{new Intl.NumberFormat().format(value)}</p></div>;
+const Metric = ({ label, value }: { label: string; value: number }) => <div className="rounded-xl bg-muted/50 p-3 text-center"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-bold tabular-nums">{new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(value)}</p></div>;
 const SubscriptionDetails = ({ subscription, current }: { subscription: StudentSubscription; current: boolean }) => {
   const { isArabic, pick } = useLanguage();
   const status = subscription.computedStatus || subscription.status;

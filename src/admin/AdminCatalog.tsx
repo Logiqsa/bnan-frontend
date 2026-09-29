@@ -1232,7 +1232,8 @@ function Packages() {
               <Input
                 className="mt-1"
                 type="number"
-                min="1"
+                min="0.0001"
+                step="any"
                 disabled={form.type === "monthly"}
                 value={form.hours || ""}
                 onChange={(e) => setField("hours", Number(e.target.value))}

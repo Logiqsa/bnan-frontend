@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { courseError } from "@/lib/courseUi";
+import VoiceMessageRecorder from "./VoiceMessageRecorder";
 import {
   TEACHER_CHAT_ALLOWED_MIME_TYPES,
   validateTeacherChatAttachments,
@@ -102,6 +103,19 @@ const TeacherChatComposer = ({ onSend }: TeacherChatComposerProps) => {
     }
   };
 
+  const sendVoice = async (file: File) => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
+    try {
+      await onSend("", [file]);
+      setValidationError("");
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
+  };
+
   return (
     <div className="shrink-0 border-t bg-card p-3">
       {attachments.length > 0 && (
@@ -156,6 +170,7 @@ const TeacherChatComposer = ({ onSend }: TeacherChatComposerProps) => {
         >
           <Paperclip className="h-4 w-4" />
         </Button>
+        <VoiceMessageRecorder disabled={sending} onRecorded={sendVoice} />
         <Textarea
           value={text}
           onChange={(event) => setText(event.target.value)}

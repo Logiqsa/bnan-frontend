@@ -18,6 +18,8 @@ import { courseError } from "@/lib/courseUi";
 import { getSocket } from "@/lib/socket";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import ClassroomSessionActions from "@/components/ClassroomSessionActions";
+import TeacherMessageAttachments from "@/components/chat/TeacherMessageAttachments";
+import VoiceMessageRecorder from "@/components/chat/VoiceMessageRecorder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -240,6 +242,18 @@ export default function CourseClassroomChat({
     }
   };
 
+  const sendVoice = async (file: File) => {
+    if (!roomId || sending) return;
+    setSending(true);
+    try {
+      await chatApi.send(roomId, "", [file]);
+    } catch (error) {
+      throw new Error(courseError(error));
+    } finally {
+      setSending(false);
+    }
+  };
+
   const deleteMessage = async (messageId: string) => {
     if (!roomId || deletingId || !window.confirm("حذف هذه الرسالة؟")) return;
     setDeletingId(messageId);
@@ -334,9 +348,8 @@ export default function CourseClassroomChat({
                   <p className="mb-1 text-xs opacity-70">
                     {message.sender?.fullName || "مستخدم"}
                   </p>
-                  <p className="whitespace-pre-wrap break-words">
-                    {message.text}
-                  </p>
+                  {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
+                  <TeacherMessageAttachments attachments={message.attachments} />
                   {message.createdAt && (
                     <p className="mt-1 text-[10px] opacity-60">
                       {new Date(message.createdAt).toLocaleString("ar-EG")}
@@ -354,6 +367,7 @@ export default function CourseClassroomChat({
         <div ref={end} />
       </div>
       <div className="flex items-end gap-2 border-t p-3">
+        <VoiceMessageRecorder disabled={sending} onRecorded={sendVoice} />
         <Textarea
           value={text}
           onChange={(event) => setText(event.target.value)}

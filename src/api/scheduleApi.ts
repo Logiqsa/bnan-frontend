@@ -209,16 +209,40 @@ export const startLesson = (lesson: PortalLesson) => apiRequest<StartResponse>(`
   }),
 });
 
+export const startClassroomSession = (
+  classroomId: string,
+  session: Pick<ActiveClassroomSession, "classroomSubjectId" | "subjectId">,
+) => apiRequest<StartResponse>(
+  `/classrooms/${encodeURIComponent(classroomId)}/sessions/start`,
+  {
+    method: "POST",
+    body: JSON.stringify({
+      ...(session.subjectId ? { subjectId: session.subjectId } : {}),
+      ...(session.classroomSubjectId
+        ? { classroomSubjectId: session.classroomSubjectId }
+        : {}),
+    }),
+  },
+);
+
 export const joinLesson = (classroomId: string) => apiRequest<JoinResponse>(`/classrooms/${classroomId}/sessions/active/join`);
 
 export interface ActiveClassroomSession {
-  sessionId: string;
-  status: ActiveSession["status"];
+  sessionId: string | null;
+  status: ActiveSession["status"] | "scheduled" | "completed" | "cancelled";
   teacher?: { id?: string; userId?: string; fullName?: string } | null;
   classroomId?: string;
   subjectId?: string;
   classroomSubjectId?: string;
   occurrenceKey?: string;
+  scheduledStartAt?: string | null;
+  scheduledEndAt?: string | null;
+  actualStartedAt?: string | null;
+  startAt?: string | null;
+  startWindow?: { opensAt: string; closesAt: string } | null;
+  startStatus?: "NOT_OPEN" | "AVAILABLE" | "CLOSED";
+  canStart?: boolean;
+  canJoin?: boolean;
 }
 
 export const getActiveClassroomSession = async (classroomId: string) => {

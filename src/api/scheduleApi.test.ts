@@ -7,6 +7,7 @@ import {
   getUnifiedClassroomSchedule,
   getUnifiedScheduleWeek,
   reconcileUnifiedClassroomSchedule,
+  startClassroomSession,
 } from "./scheduleApi";
 
 vi.mock("./client", () => ({ apiRequest: vi.fn() }));
@@ -24,6 +25,26 @@ describe("regular session lifecycle API", () => {
     vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { sessionId: "session-1", status: "live" } });
     await expect(getActiveClassroomSession("classroom-1")).resolves.toMatchObject({ sessionId: "session-1" });
     expect(apiRequest).toHaveBeenCalledWith("/classrooms/classroom-1/sessions/active");
+  });
+
+  it("starts the classroom occurrence using the subject assignment from the active-session contract", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      success: true,
+      data: { session: { _id: "session-1", status: "starting" }, meetingLink: "https://zoom.example/join" },
+    });
+
+    await startClassroomSession("classroom-1", {
+      classroomSubjectId: "assignment-1",
+      subjectId: "subject-1",
+    });
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/classrooms/classroom-1/sessions/start",
+      {
+        method: "POST",
+        body: JSON.stringify({ subjectId: "subject-1", classroomSubjectId: "assignment-1" }),
+      },
+    );
   });
 
   it("uses the unified schedule route and preserves merged classroom and course lessons", async () => {

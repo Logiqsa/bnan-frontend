@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate as useRouterNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
@@ -113,7 +113,7 @@ const ErrorCard = ({
 export default function TeacherClassroomSessions() {
   const { classroomId = "" } = useParams<{ classroomId: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const navigate = useRouterNavigate();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);

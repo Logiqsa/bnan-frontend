@@ -67,7 +67,7 @@ export interface RegenerateVerificationCodeResponse {
   expiresAt: string;
 }
 
-export interface ResetVerificationRateLimitResponse {
+export interface ResetAuthRateLimitsResponse {
   success: true;
   message: string;
   data: { id: string; resetAt: string; scopes: string[] };
@@ -217,8 +217,8 @@ export const adminUsersApi = {
       method: "POST",
       ...(reason ? { body: JSON.stringify({ reason }) } : {}),
     }),
-  resetVerificationRateLimit: (id: string, reason?: string) =>
-    apiRequest<ResetVerificationRateLimitResponse>(`/admin/users/${id}/reset-verification-rate-limit`, {
+  resetAuthRateLimits: (id: string, reason?: string) =>
+    apiRequest<ResetAuthRateLimitsResponse>(`/admin/users/${id}/reset-auth-rate-limits`, {
       method: "POST",
       ...(reason ? { body: JSON.stringify({ reason }) } : {}),
     }),

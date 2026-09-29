@@ -19,11 +19,11 @@ describe("adminUsersApi", () => {
     );
   });
 
-  it("resets only the user's verification rate limits through the admin endpoint", () => {
-    adminUsersApi.resetVerificationRateLimit("user-42", "Support request");
+  it("clears only the selected user's auth rate limits through the admin endpoint", () => {
+    adminUsersApi.resetAuthRateLimits("user-42", "Support request");
 
     expect(apiRequest).toHaveBeenCalledWith(
-      "/admin/users/user-42/reset-verification-rate-limit",
+      "/admin/users/user-42/reset-auth-rate-limits",
       {
         method: "POST",
         body: JSON.stringify({ reason: "Support request" }),

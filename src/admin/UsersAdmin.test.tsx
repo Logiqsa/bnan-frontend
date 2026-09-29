@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   listAll: vi.fn(),
   get: vi.fn(),
   regenerate: vi.fn(),
-  resetVerificationRateLimit: vi.fn(),
+  resetAuthRateLimits: vi.fn(),
   markVerified: vi.fn(),
   changePassword: vi.fn(),
   listApprovedApplications: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("@/api/adminUsersApi", async (importOriginal) => ({
     listAll: mocks.listAll,
     get: mocks.get,
     regenerateVerificationCode: mocks.regenerate,
-    resetVerificationRateLimit: mocks.resetVerificationRateLimit,
+    resetAuthRateLimits: mocks.resetAuthRateLimits,
     markVerified: mocks.markVerified,
     changePassword: mocks.changePassword,
   },
@@ -87,10 +87,10 @@ describe("UsersAdmin verification OTP", () => {
         code: "4821",
         expiresAt: "2026-09-05T12:10:00Z",
       });
-    mocks.resetVerificationRateLimit.mockReset().mockResolvedValue({
+    mocks.resetAuthRateLimits.mockReset().mockResolvedValue({
       success: true,
-      message: "VERIFICATION_RATE_LIMIT_RESET",
-      data: { id: user.id, resetAt: "2026-09-29T12:00:00Z", scopes: ["verification", "verification_resend"] },
+      message: "AUTH_RATE_LIMITS_RESET",
+      data: { id: user.id, resetAt: "2026-09-29T12:00:00Z", scopes: ["login", "verification", "verification_resend"] },
     });
     mocks.markVerified.mockReset().mockResolvedValue({
       success: true,
@@ -165,18 +165,23 @@ describe("UsersAdmin verification OTP", () => {
     expect(mocks.success).toHaveBeenCalledWith("User marked as verified");
   });
 
-  it("lets an admin unlock only an unverified user's verification attempts", async () => {
+  it("lets an admin clear login and verification limits for a selected verified user", async () => {
+    mocks.list.mockResolvedValue({
+      success: true,
+      data: [{ ...user, isVerified: true }],
+      hasNextPage: false,
+    });
     renderPage();
     fireEvent.keyDown(
       await screen.findByRole("button", { name: /Actions for Ahmed/ }),
       { key: "Enter", code: "Enter" },
     );
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Unlock verification attempts" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Clear attempt limits" }));
     fireEvent.change(screen.getByLabelText("Reason (optional)"), { target: { value: "Support request" } });
-    fireEvent.click(screen.getByRole("button", { name: "Unlock attempts" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear limits" }));
 
-    await waitFor(() => expect(mocks.resetVerificationRateLimit).toHaveBeenCalledWith("user-1", "Support request"));
-    expect(mocks.success).toHaveBeenCalledWith("Verification attempts were unlocked for this user.");
+    await waitFor(() => expect(mocks.resetAuthRateLimits).toHaveBeenCalledWith("user-1", "Support request"));
+    expect(mocks.success).toHaveBeenCalledWith("Attempt limits were cleared for this user.");
   });
 
   it("lets an admin change a user's password", async () => {

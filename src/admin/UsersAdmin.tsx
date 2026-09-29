@@ -600,26 +600,24 @@ export default function UsersAdmin({
     }
   };
 
-  const resetVerificationRateLimit = async () => {
+  const resetAuthRateLimits = async () => {
     if (!rateLimitUser || rateLimitLoading) return;
     setRateLimitLoading(true);
     try {
-      await adminUsersApi.resetVerificationRateLimit(
+      await adminUsersApi.resetAuthRateLimits(
         rateLimitUser.id,
         rateLimitReason.trim() || undefined,
       );
       setRateLimitUser(null);
       setRateLimitReason("");
       toast.success(pick(
-        "تم فتح محاولات التحقق لهذا المستخدم.",
-        "Verification attempts were unlocked for this user.",
+        "تمت إزالة حد المحاولات لهذا المستخدم.",
+        "Attempt limits were cleared for this user.",
       ));
     } catch (error) {
       const apiError = error as ApiError;
       toast.error(
-        apiError.code === "ACCOUNT_ALREADY_VERIFIED"
-          ? pick("هذا الحساب مفعّل بالفعل.", "This account is already verified.")
-          : apiError.message || pick("تعذر فتح محاولات التحقق.", "Unable to unlock verification attempts."),
+        apiError.message || pick("تعذرت إزالة حد المحاولات.", "Unable to clear attempt limits."),
       );
     } finally {
       setRateLimitLoading(false);
@@ -999,16 +997,6 @@ export default function UsersAdmin({
                                       "Generate Verification OTP",
                                     )}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setRateLimitReason("");
-                                      setRateLimitUser(item);
-                                    }}
-                                    className="gap-3"
-                                  >
-                                    <ShieldAlert className="h-4 w-4" />
-                                    {pick("فتح محاولات التحقق", "Unlock verification attempts")}
-                                  </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>
                               )}
@@ -1030,6 +1018,16 @@ export default function UsersAdmin({
                               >
                                 <KeyRound className="h-4 w-4" />
                                 {pick("تغيير كلمة المرور", "Change password")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setRateLimitReason("");
+                                  setRateLimitUser(item);
+                                }}
+                                className="gap-3"
+                              >
+                                <ShieldAlert className="h-4 w-4" />
+                                {pick("إزالة حد المحاولات", "Clear attempt limits")}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -1483,21 +1481,21 @@ export default function UsersAdmin({
         <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pick("فتح محاولات التحقق", "Unlock verification attempts")}
+              {pick("إزالة حد المحاولات", "Clear attempt limits")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pick(
-                `سيتم فتح محاولات التحقق وإعادة إرسال الرمز لحساب ${rateLimitUser?.fullName || "هذا المستخدم"} فورًا. لن يتم إلغاء حظر الشبكة العام.`,
-                `Verification and resend attempts for ${rateLimitUser?.fullName || "this user"} will be unlocked immediately. Network-wide protection will remain enabled.`,
+                `سيتم إزالة حد محاولات تسجيل الدخول والتحقق وإعادة إرسال الرمز لحساب ${rateLimitUser?.fullName || "هذا المستخدم"} فورًا. لن يتم إلغاء حظر الشبكة العام.`,
+                `Login, verification, and resend attempt limits for ${rateLimitUser?.fullName || "this user"} will be cleared immediately. Network-wide protection will remain enabled.`,
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="verification-unlock-reason">
-              {pick("سبب الفتح (اختياري)", "Reason (optional)")}
+            <Label htmlFor="auth-limit-reset-reason">
+              {pick("سبب الإزالة (اختياري)", "Reason (optional)")}
             </Label>
             <Input
-              id="verification-unlock-reason"
+              id="auth-limit-reset-reason"
               value={rateLimitReason}
               maxLength={500}
               disabled={rateLimitLoading}
@@ -1513,11 +1511,11 @@ export default function UsersAdmin({
               disabled={rateLimitLoading}
               onClick={(event) => {
                 event.preventDefault();
-                void resetVerificationRateLimit();
+                void resetAuthRateLimits();
               }}
             >
               {rateLimitLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-              {pick("فتح المحاولات", "Unlock attempts")}
+              {pick("إزالة الحد", "Clear limits")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

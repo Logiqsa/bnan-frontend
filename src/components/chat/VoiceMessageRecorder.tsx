@@ -6,6 +6,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 
 interface VoiceMessageRecorderProps {
   disabled?: boolean;
+  className?: string;
+  onRecordingChange?: (recording: boolean) => void;
   onRecorded: (file: File) => Promise<void>;
 }
 
@@ -27,6 +29,8 @@ const formatDuration = (seconds: number) =>
 
 export default function VoiceMessageRecorder({
   disabled = false,
+  className = "",
+  onRecordingChange,
   onRecorded,
 }: VoiceMessageRecorderProps) {
   const { pick } = useLanguage();
@@ -62,6 +66,7 @@ export default function VoiceMessageRecorder({
       recorder.stop();
       chunksRef.current = [];
       setRecording(false);
+      onRecordingChange?.(false);
       releaseStream();
       return;
     }
@@ -91,6 +96,7 @@ export default function VoiceMessageRecorder({
         const blob = new Blob(chunksRef.current, { type });
         chunksRef.current = [];
         setRecording(false);
+        onRecordingChange?.(false);
         releaseStream();
         if (!blob.size) return;
         setProcessing(true);
@@ -104,6 +110,7 @@ export default function VoiceMessageRecorder({
       };
       recorder.start();
       setRecording(true);
+      onRecordingChange?.(true);
     } catch (error) {
       releaseStream();
       toast.error(error instanceof DOMException && error.name === "NotAllowedError"
@@ -114,7 +121,7 @@ export default function VoiceMessageRecorder({
 
   if (recording) {
     return (
-      <div className="flex h-11 shrink-0 items-center gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-1">
+      <div className={`flex h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2 ${className}`}>
         <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
           <X className="h-4 w-4" />
         </Button>
@@ -127,7 +134,7 @@ export default function VoiceMessageRecorder({
   }
 
   return (
-    <Button type="button" size="icon" variant="outline" className="h-11 w-11 shrink-0" disabled={disabled || processing} onClick={() => void startRecording()} aria-label={pick("تسجيل رسالة صوتية", "Record voice message")}>
+    <Button type="button" size="icon" variant="outline" className={`h-11 w-11 shrink-0 ${className}`} disabled={disabled || processing} onClick={() => void startRecording()} aria-label={pick("تسجيل رسالة صوتية", "Record voice message")}>
       {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
     </Button>
   );

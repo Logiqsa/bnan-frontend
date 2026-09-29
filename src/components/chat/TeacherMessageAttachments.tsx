@@ -96,16 +96,13 @@ const TeacherMessageAttachments = ({
           return (
             <div
               key={key}
-              className="min-w-0 rounded-xl border bg-background/80 p-3"
+              className="min-w-0 rounded-xl border border-primary/15 bg-background/80 p-2 shadow-sm"
             >
-              <p className="mb-2 break-words text-xs font-medium text-foreground">
-                {label}
-              </p>
               <audio
                 src={attachment.fileUrl}
                 controls
                 preload="metadata"
-                className="h-10 w-full max-w-full"
+                className="h-11 w-full max-w-full"
               >
                 {pick(
                   "المتصفح لا يدعم تشغيل الصوت.",

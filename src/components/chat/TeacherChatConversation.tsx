@@ -346,6 +346,7 @@ const TeacherChatConversation = ({
               }
               const mine =
                 (message.sender?.id || message.sender?._id) === user?.id;
+              const audioOnly = message.messageType === "audio" && !message.text?.trim();
               const systemMessage = Boolean(message.systemGenerated);
               const canDelete = Boolean(message.id && user?.id && mine && !systemMessage);
               const canEdit = Boolean(
@@ -398,7 +399,7 @@ const TeacherChatConversation = ({
                     </div>
                   )}
                   <div
-                    className={`min-w-0 max-w-[80%] break-words rounded-xl px-3 py-1.5 text-xs sm:max-w-[70%] ${
+                    className={`${audioOnly ? "w-full max-w-xl" : "max-w-[80%] sm:max-w-[70%]"} min-w-0 break-words rounded-xl px-3 py-1.5 text-xs ${
                       systemMessage
                         ? "border bg-card text-foreground"
                         : mine
@@ -406,7 +407,7 @@ const TeacherChatConversation = ({
                           : "bg-muted text-foreground"
                     }`}
                   >
-                    {!systemMessage && message.sender?.fullName && (
+                    {!systemMessage && !audioOnly && message.sender?.fullName && (
                       <p className="mb-1 break-words text-xs opacity-70">
                         {message.sender.fullName}
                       </p>

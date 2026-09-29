@@ -153,6 +153,7 @@ export default function CourseClassroomChat({
   const cache = useQueryClient();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [voiceRecording, setVoiceRecording] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const rooms = useQuery({
@@ -332,6 +333,7 @@ export default function CourseClassroomChat({
             }
             const mine =
               (message.sender?.id || message.sender?._id) === user?.id;
+            const audioOnly = message.messageType === "audio" && !message.text?.trim();
             return (
               <div
                 key={message.id}
@@ -343,11 +345,9 @@ export default function CourseClassroomChat({
                   </Button>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  className={`${audioOnly ? "w-full max-w-xl" : "max-w-[80%]"} rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                 >
-                  <p className="mb-1 text-xs opacity-70">
-                    {message.sender?.fullName || "مستخدم"}
-                  </p>
+                  {!audioOnly && <p className="mb-1 text-xs opacity-70">{message.sender?.fullName || "مستخدم"}</p>}
                   {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
                   <TeacherMessageAttachments attachments={message.attachments} />
                   {message.createdAt && (
@@ -367,30 +367,37 @@ export default function CourseClassroomChat({
         <div ref={end} />
       </div>
       <div className="flex items-end gap-2 border-t p-3">
-        <VoiceMessageRecorder disabled={sending} onRecorded={sendVoice} />
-        <Textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void send();
-            }
-          }}
-          placeholder="اكتب رسالة..."
-          rows={2}
+        <VoiceMessageRecorder
+          disabled={sending}
+          className={voiceRecording ? "flex-1" : ""}
+          onRecordingChange={setVoiceRecording}
+          onRecorded={sendVoice}
         />
-        <Button
-          size="icon"
-          disabled={!text.trim() || sending}
-          onClick={() => void send()}
-        >
-          {sending ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+        {!voiceRecording && <>
+          <Textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void send();
+              }
+            }}
+            placeholder="اكتب رسالة..."
+            rows={2}
+          />
+          <Button
+            size="icon"
+            disabled={!text.trim() || sending}
+            onClick={() => void send()}
+          >
+            {sending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </>}
       </div>
     </div>
   );

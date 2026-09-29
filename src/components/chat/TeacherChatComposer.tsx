@@ -65,6 +65,7 @@ const TeacherChatComposer = ({ onSend }: TeacherChatComposerProps) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [validationError, setValidationError] = useState("");
   const [sending, setSending] = useState(false);
+  const [voiceRecording, setVoiceRecording] = useState(false);
   const sendingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const locale = language === "ar" ? "ar-EG" : "en-US";
@@ -159,43 +160,55 @@ const TeacherChatComposer = ({ onSend }: TeacherChatComposerProps) => {
             event.target.value = "";
           }}
         />
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          className="h-11 w-11 shrink-0"
+        <VoiceMessageRecorder
           disabled={sending}
-          onClick={() => fileInputRef.current?.click()}
-          aria-label={pick("إرفاق ملفات", "Attach files")}
-        >
-          <Paperclip className="h-4 w-4" />
-        </Button>
-        <VoiceMessageRecorder disabled={sending} onRecorded={sendVoice} />
-        <Textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              void send();
-            }
-          }}
-          placeholder={pick("اكتب رسالة...", "Write a message...")}
-          aria-label={pick("نص الرسالة", "Message text")}
-          rows={2}
-          disabled={sending}
-          className="min-h-11 min-w-0 resize-none"
+          className={voiceRecording ? "flex-1" : ""}
+          onRecordingChange={setVoiceRecording}
+          onRecorded={sendVoice}
         />
-        <Button
-          type="button"
-          size="icon"
-          className="h-11 w-11 shrink-0"
-          disabled={(!text.trim() && attachments.length === 0) || sending}
-          onClick={() => void send()}
-          aria-label={pick("إرسال الرسالة", "Send message")}
-        >
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
+        {!voiceRecording && <>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-11 w-11 shrink-0"
+            disabled={sending}
+            onClick={() => fileInputRef.current?.click()}
+            aria-label={pick("إرفاق ملفات", "Attach files")}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          <VoiceMessageRecorder
+            disabled={sending}
+            onRecordingChange={setVoiceRecording}
+            onRecorded={sendVoice}
+          />
+          <Textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void send();
+              }
+            }}
+            placeholder={pick("اكتب رسالة...", "Write a message...")}
+            aria-label={pick("نص الرسالة", "Message text")}
+            rows={2}
+            disabled={sending}
+            className="min-h-11 min-w-0 resize-none"
+          />
+          <Button
+            type="button"
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            disabled={(!text.trim() && attachments.length === 0) || sending}
+            onClick={() => void send()}
+            aria-label={pick("إرسال الرسالة", "Send message")}
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </>}
       </div>
     </div>
   );

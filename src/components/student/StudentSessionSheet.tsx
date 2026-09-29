@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 
 interface StudentSessionSheetProps {
   lesson: PortalLesson | null;
@@ -73,7 +74,7 @@ export default function StudentSessionSheet({
             <h3 className="font-semibold">{pick("معلومات الحصة", "Session information")}</h3>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               {dateLabel && <div><dt className="text-muted-foreground">{pick("التاريخ", "Date")}</dt><dd className="mt-1 font-medium">{dateLabel}</dd></div>}
-              <div><dt className="text-muted-foreground">{pick("الوقت", "Time")}</dt><dd className="mt-1 font-medium" dir="ltr">{lesson.startTime}{lesson.endTime ? ` – ${lesson.endTime}` : ""}</dd></div>
+              <div><dt className="text-muted-foreground">{pick("الوقت", "Time")}</dt><dd className="mt-1 font-medium" dir="ltr">{formatScheduleTime(lesson.startTime, isArabic)}{lesson.endTime ? ` – ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}</dd></div>
               {lesson.teacher && <div><dt className="text-muted-foreground">{pick("المعلم", "Teacher")}</dt><dd className="mt-1 break-words font-medium">{lesson.teacher.name || lesson.teacher.fullName}</dd></div>}
               {lesson.activeSession?.status && <div><dt className="text-muted-foreground">{pick("الحالة", "Status")}</dt><dd className="mt-1"><Badge variant={lesson.activeSession.canJoin ? "default" : "outline"}>{lesson.activeSession.status}</Badge></dd></div>}
             </dl>

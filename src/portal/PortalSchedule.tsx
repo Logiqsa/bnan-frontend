@@ -33,6 +33,7 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "./PortalAuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
+import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 
 const dayNames = [
   "السبت",
@@ -678,7 +679,7 @@ export default function PortalSchedule({
                                 dir="ltr"
                                 className="font-semibold text-primary"
                               >
-                                {lesson.startTime}
+                                {formatScheduleTime(lesson.startTime, isArabic)}
                               </span>
                             </div>
                             {role !== "teacher" &&
@@ -743,7 +744,7 @@ export default function PortalSchedule({
             <DialogDescription>
               {selected?.subject.name} — {selected?.classroom.name} —{" "}
               {selected && localizedDays[selected.day]}، {pick("الساعة", "at")}{" "}
-              <span dir="ltr">{selected?.startTime}</span>
+              <span dir="ltr">{selected && formatScheduleTime(selected.startTime, isArabic)}</span>
             </DialogDescription>
           </DialogHeader>
           {canManageGulfEntry && (

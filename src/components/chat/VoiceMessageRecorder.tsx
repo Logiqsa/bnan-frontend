@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Mic, Square, X } from "lucide-react";
+import { Loader2, Mic, Pause, Play, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -43,7 +43,10 @@ export default function VoiceMessageRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const voiceLevelsRef = useRef<number[]>([]);
   const startedAtRef = useRef(0);
+  const pausedAtRef = useRef(0);
+  const pausedDurationRef = useRef(0);
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [voiceLevels, setVoiceLevels] = useState<number[]>(() => Array.from({ length: 42 }, () => 0));
@@ -74,12 +77,12 @@ export default function VoiceMessageRecorder({
   useEffect(() => () => releaseStream(), []);
 
   useEffect(() => {
-    if (!recording) return;
+    if (!recording || paused) return;
     const timer = window.setInterval(() => {
-      setElapsed(Math.max(0, Math.floor((Date.now() - startedAtRef.current) / 1000)));
+      setElapsed(Math.max(0, Math.floor((Date.now() - startedAtRef.current - pausedDurationRef.current) / 1000)));
     }, 500);
     return () => window.clearInterval(timer);
-  }, [recording]);
+  }, [paused, recording]);
 
   const stopRecording = (discard = false) => {
     const recorder = recorderRef.current;
@@ -89,11 +92,27 @@ export default function VoiceMessageRecorder({
       recorder.stop();
       chunksRef.current = [];
       setRecording(false);
+      setPaused(false);
       onRecordingChange?.(false);
       releaseStream();
       return;
     }
     recorder.stop();
+  };
+
+  const togglePause = () => {
+    const recorder = recorderRef.current;
+    if (!recorder || (recorder.state !== "recording" && recorder.state !== "paused")) return;
+    if (recorder.state === "recording") {
+      recorder.pause();
+      pausedAtRef.current = Date.now();
+      setPaused(true);
+      return;
+    }
+    recorder.resume();
+    pausedDurationRef.current += Date.now() - pausedAtRef.current;
+    pausedAtRef.current = 0;
+    setPaused(false);
   };
 
   const startRecording = async () => {
@@ -109,6 +128,8 @@ export default function VoiceMessageRecorder({
       chunksRef.current = [];
       streamRef.current = stream;
       recorderRef.current = recorder;
+      pausedAtRef.current = 0;
+      pausedDurationRef.current = 0;
       voiceLevelsRef.current = Array.from({ length: 42 }, () => 0);
       setVoiceLevels(voiceLevelsRef.current);
       setVoicePeak(0);
@@ -133,7 +154,11 @@ export default function VoiceMessageRecorder({
               sum += normalized * normalized;
             });
             const level = Math.min(1, Math.max(0.08, Math.sqrt(sum / samples.length) * 3.2));
-            const elapsedSeconds = (Date.now() - startedAtRef.current) / 1000;
+            if (recorder.state !== "recording") {
+              animationFrameRef.current = window.requestAnimationFrame(animate);
+              return;
+            }
+            const elapsedSeconds = (Date.now() - startedAtRef.current - pausedDurationRef.current) / 1000;
             const currentIndex = Math.min(
               voiceLevelsRef.current.length - 1,
               Math.floor((elapsedSeconds / WAVEFORM_SECONDS) * voiceLevelsRef.current.length),
@@ -159,9 +184,11 @@ export default function VoiceMessageRecorder({
       recorder.onstop = async () => {
         const type = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type });
-        const recordedForMs = Date.now() - startedAtRef.current;
+        const totalPausedMs = pausedDurationRef.current + (pausedAtRef.current ? Date.now() - pausedAtRef.current : 0);
+        const recordedForMs = Date.now() - startedAtRef.current - totalPausedMs;
         chunksRef.current = [];
         setRecording(false);
+        setPaused(false);
         onRecordingChange?.(false);
         releaseStream();
         if (!blob.size || recordedForMs < 300) {
@@ -179,6 +206,7 @@ export default function VoiceMessageRecorder({
       };
       recorder.start();
       setRecording(true);
+      setPaused(false);
       onRecordingChange?.(true);
     } catch (error) {
       releaseStream();
@@ -217,6 +245,9 @@ export default function VoiceMessageRecorder({
           ))}
         </div>
         <span className="min-w-12 text-center text-xs font-medium text-slate-300" aria-live="polite">{formatDuration(elapsed)}</span>
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white" onClick={togglePause} aria-label={paused ? pick("استكمال التسجيل", "Resume recording") : pick("إيقاف التسجيل مؤقتًا", "Pause recording")}>
+          {paused ? <Play className="h-3 w-3 fill-current" /> : <Pause className="h-3 w-3 fill-current" />}
+        </Button>
         <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full bg-red-500 text-white hover:bg-red-400 hover:text-white" onClick={() => stopRecording()} aria-label={pick("إيقاف وإرسال التسجيل", "Stop and send recording")}>
           <Square className="h-3 w-3 fill-current" />
         </Button>

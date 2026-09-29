@@ -187,20 +187,19 @@ export default function VoiceMessageRecorder({
   if (recording) {
     return (
       <div
-        className={`flex h-11 min-w-0 flex-1 items-center gap-2 rounded-md border bg-sky-50 px-2 transition-shadow ${className}`}
+        className={`flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-2 text-white shadow-md transition-shadow ${className}`}
         style={{
-          borderColor: `rgba(14, 165, 233, ${0.3 + voicePeak * 0.65})`,
           boxShadow: `0 0 ${Math.round(3 + voicePeak * 10)}px rgba(14, 165, 233, ${0.12 + voicePeak * 0.25})`,
         }}
       >
-        <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
           <X className="h-4 w-4" />
         </Button>
         <div className="flex min-w-0 flex-1 items-center gap-[2px]" aria-label={pick("مستوى الصوت", "Voice level")}>
           {voiceLevels.map((level, index) => (
             <span
               key={index}
-              className="min-w-[2px] flex-1 rounded-full bg-sky-500 transition-[height,opacity] duration-75"
+              className="min-w-[2px] flex-1 rounded-full bg-sky-300 transition-[height,opacity] duration-75"
               style={{
                 height: `${level ? Math.max(4, Math.round(level * 22)) : 2}px`,
                 opacity: level ? 0.35 + level * 0.65 : 0.2,
@@ -208,9 +207,9 @@ export default function VoiceMessageRecorder({
             />
           ))}
         </div>
-        <span className="min-w-12 text-center text-xs font-medium text-sky-700" aria-live="polite">{formatDuration(elapsed)}</span>
-        <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => stopRecording()} aria-label={pick("إيقاف وإرسال التسجيل", "Stop and send recording")}>
-          <Square className="h-4 w-4 fill-current" />
+        <span className="min-w-12 text-center text-xs font-medium text-slate-300" aria-live="polite">{formatDuration(elapsed)}</span>
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 rounded-full bg-red-500 text-white hover:bg-red-400 hover:text-white" onClick={() => stopRecording()} aria-label={pick("إيقاف وإرسال التسجيل", "Stop and send recording")}>
+          <Square className="h-3 w-3 fill-current" />
         </Button>
       </div>
     );

@@ -585,7 +585,15 @@ const SidebarContent = ({
     (account) => account.user.id !== user?.id,
   );
   const hasUnreadForItem = (itemPath: string) => notifications.some((notification) => {
-    if (notification.isRead) return false;
+    if (role !== "teacher" || notification.isRead) return false;
+    const notificationSidebarPaths = new Set([
+      "/portal/teacher/notifications",
+      "/portal/teacher/payroll",
+      "/portal/teacher/requests",
+      "/portal/teacher/messages",
+    ]);
+    if (!notificationSidebarPaths.has(itemPath)) return false;
+    if (itemPath === "/portal/teacher/notifications") return true;
     const targetPath = notificationLink(notification, role);
     if (!targetPath) return false;
     if (itemPath.includes("?")) return targetPath === itemPath;

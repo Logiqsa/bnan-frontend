@@ -1,5 +1,13 @@
 import { apiRequest } from "./client";
 import type { ClassroomOption } from "./classroomRecordingsApi";
+import {
+  getUnifiedClassroomSchedule,
+  reconcileUnifiedClassroomSchedule,
+  type ClassroomScheduleEntry,
+  type UnifiedClassroomSchedule,
+} from "./scheduleApi";
+
+export type { ClassroomScheduleEntry } from "./scheduleApi";
 
 export interface ZoomBooking {
   classroomId: string;
@@ -74,14 +82,6 @@ export interface GeneratedZoomMeeting {
   provisioningStatus: string;
 }
 
-export interface ClassroomScheduleEntry {
-  day: string;
-  startTime: string;
-  endTime?: string;
-  subjectName?: string;
-  classroomSubjectId?: string;
-}
-
 export interface ClassroomZoomDetails {
   id: string;
   name: string;
@@ -98,24 +98,6 @@ export interface ClassroomZoomDetails {
   provisioningStatus?: string;
   zoomProvisioning?: { status?: "creating" | "ready" | "failed"; errorCode?: string; updatedAt?: string } | null;
   zoomAccount?: string | { id?: string; _id?: string; name?: string };
-}
-
-interface EgyptianScheduleResponse {
-  success: true;
-  data: {
-    timezone?: string;
-    days?: Array<{ dayName: string; lessons?: Array<{ startTime: string; endTime?: string; classroomSubjectId?: string; classroomSubject?: string | { id?: string; _id?: string }; subject?: { name?: string | { ar?: string; en?: string } } }> }>;
-  };
-}
-
-interface GulfScheduleResponse {
-  success: true;
-  data: {
-    timezone?: string;
-    classroomSubject?: string | { id?: string; _id?: string };
-    subject?: { name?: string | { ar?: string; en?: string } };
-    schedule?: { entries?: ClassroomScheduleEntry[] } | ClassroomScheduleEntry[];
-  };
 }
 
 interface ItemResponse<T> {
@@ -147,27 +129,14 @@ export const classroomZoomApi = {
       body: JSON.stringify({ zoomAccountId }),
     }),
 
-  getEgyptianSchedule: (classroomId: string) =>
-    apiRequest<EgyptianScheduleResponse>(`/egyptianSchedules/classroom/${classroomId}`),
+  getSchedule: async (classroomId: string, weekStart?: string): Promise<ItemResponse<UnifiedClassroomSchedule>> => ({
+    success: true,
+    data: await getUnifiedClassroomSchedule(classroomId, weekStart),
+  }),
 
-  getGulfSchedule: (classroomId: string) =>
-    apiRequest<GulfScheduleResponse>(`/gulfSchedules/classroom/${classroomId}`),
-
-  saveEgyptianDay: (classroomId: string, day: string, lessons: Array<{ classroomSubject: string; startTime: string; endTime?: string }>) =>
-    apiRequest(`/egyptianSchedules/classroom/${classroomId}/days/${day}`, {
-      method: "PUT",
-      body: JSON.stringify({ lessons }),
-    }),
-
-  deleteEgyptianDay: (classroomId: string, day: string) =>
-    apiRequest(`/egyptianSchedules/classroom/${classroomId}/days/${day}`, { method: "DELETE" }),
-
-  saveGulfSchedule: (classroomId: string, classroomSubject: string, schedule: Array<{ day: string; startTime: string; endTime?: string }>) =>
-    apiRequest(`/gulfSchedules/classroom/${classroomId}`, {
-      method: "PUT",
-      body: JSON.stringify({ classroomSubject, schedule }),
-    }),
-
-  deleteGulfSchedule: (classroomId: string) =>
-    apiRequest(`/gulfSchedules/classroom/${classroomId}`, { method: "DELETE" }),
+  saveScheduleEntries: (
+    classroomId: string,
+    originalEntries: ClassroomScheduleEntry[],
+    nextEntries: ClassroomScheduleEntry[],
+  ) => reconcileUnifiedClassroomSchedule(classroomId, originalEntries, nextEntries),
 };

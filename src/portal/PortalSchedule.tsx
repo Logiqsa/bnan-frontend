@@ -11,12 +11,8 @@ import {
   RefreshCw,
   Video,
 } from "lucide-react";
-import { deleteUnifiedScheduleEntry, endSession, getActiveClassroomSession, getSchedule, getUnifiedScheduleWeek, joinLesson, startLesson, upsertUnifiedScheduleEntry } from "@/api/scheduleApi";
-import { coursesApi, type Course } from "@/api/coursesApi";
-import {
-  classroomRecordingsApi,
-  type ClassroomSession,
-} from "@/api/classroomRecordingsApi";
+import { deleteUnifiedScheduleEntry, endSession, getActiveClassroomSession, getUnifiedScheduleWeek, joinLesson, startLesson, upsertUnifiedScheduleEntry } from "@/api/scheduleApi";
+import { coursesApi } from "@/api/coursesApi";
 import { ApiError } from "@/api/client";
 import type { PortalLesson, RegistrationMode } from "@/api/types";
 import { Button } from "@/components/ui/button";
@@ -97,96 +93,6 @@ const isWebUrl = (value: string) => /^https?:\/\//i.test(value);
 const isLiveForTeacher = (lesson: PortalLesson) => {
   const status = lesson.activeSession?.status;
   return status === "live" || status === "starting";
-};
-const courseDayNumbers: Record<string, number> = {
-  sunday: 0,
-  monday: 1,
-  tuesday: 2,
-  wednesday: 3,
-  thursday: 4,
-  friday: 5,
-  saturday: 6,
-};
-const referenceId = (value: unknown) =>
-  typeof value === "string"
-    ? value
-    : typeof value === "object" && value
-      ? String(
-          (value as { id?: string; _id?: string }).id ||
-            (value as { _id?: string })._id ||
-            "",
-        )
-      : "";
-const sessionsFrom = (
-  data:
-    | ClassroomSession[]
-    | { sessions?: ClassroomSession[]; data?: ClassroomSession[] },
-) => (Array.isArray(data) ? data : data.sessions || data.data || []);
-const endedCourseSession = (
-  sessions: ClassroomSession[],
-  date: string,
-  startTime: string,
-  courseGroupId?: string,
-) => {
-  const scheduled = new Date(`${date}T${startTime}:00`).getTime();
-  const titleDate = date.split("-").reverse().join("-");
-  const matches = sessions.filter((session) => {
-    if (!["ended", "completed"].includes(session.status || "")) return false;
-    if (
-      courseGroupId &&
-      referenceId(session.courseGroup) &&
-      referenceId(session.courseGroup) !== courseGroupId
-    )
-      return false;
-    const sessionTime = session.scheduledStartAt || session.startAt;
-    const started = sessionTime ? new Date(sessionTime) : null;
-    return (
-      Boolean(started && dateKey(started) === date) ||
-      Boolean(
-        session.occurrenceKey?.includes(`:${date}:`) &&
-        session.occurrenceKey.endsWith(`:${startTime}`),
-      ) ||
-      Boolean(
-        (session.title || session.sessionName)?.includes(titleDate) &&
-        (session.title || session.sessionName)?.includes(startTime),
-      )
-    );
-  });
-  const session = matches.sort(
-    (a, b) =>
-      Math.abs(
-        new Date(a.scheduledStartAt || a.startAt || 0).getTime() - scheduled,
-      ) -
-      Math.abs(
-        new Date(b.scheduledStartAt || b.startAt || 0).getTime() - scheduled,
-      ),
-  )[0];
-  if (
-    !session ||
-    (!session.occurrenceKey?.endsWith(`:${startTime}`) &&
-      !(
-        (session.title || session.sessionName)?.includes(titleDate) &&
-        (session.title || session.sessionName)?.includes(startTime)
-      ) &&
-      Math.abs(
-        new Date(session.scheduledStartAt || session.startAt || 0).getTime() -
-          scheduled,
-      ) >
-        2 * 60 * 60 * 1000)
-  )
-    return null;
-  return {
-    id: session.id || session._id,
-    sessionId: session.id || session._id,
-    status: "ended" as const,
-    recordingUrl:
-      session.recording?.localUrl ||
-      session.recordingUrl ||
-      session.recordingLink ||
-      null,
-    recordingStatus: session.recording?.status || null,
-    summary: session.summary?.content || session.summary?.docUrl || null,
-  };
 };
 const courseLessonPhase = (lesson: PortalLesson) => {
   if (isLessonEnded(lesson)) return "ended" as const;
@@ -329,203 +235,6 @@ export default function PortalSchedule({
         unified.set(lesson.key, lesson);
       });
       setLessons([...unified.values()]);
-      return;
-
-      const modes = modeKey.split(",") as RegistrationMode[];
-      const weeks = weekKey.split(",");
-      const groups = await Promise.all(
-        weeks.flatMap((week) => modes.map((mode) => getSchedule(mode, week))),
-      );
-      const unique = new Map<string, PortalLesson>();
-      groups.flat().forEach((lesson) => unique.set(lesson.key, lesson));
-      if (role === "student") {
-        const enrollments = await coursesApi.myEnrollments();
-        const active = enrollments.filter((item) => item.status === "active");
-        const courseSchedules = await Promise.all(
-          active.map(async (item) => {
-            const group =
-              item.group &&
-              typeof item.group === "object" &&
-              "classroom" in item.group
-                ? item.group
-                : null;
-            const classroom =
-              typeof item.classroom === "object"
-                ? item.classroom
-                : typeof group?.classroom === "object"
-                  ? group.classroom
-                  : null;
-            const classroomId =
-              referenceId(item.classroom) || referenceId(group?.classroom);
-            if (!classroomId) return null;
-            try {
-              const [schedule, activeSession, sessions, recordings] =
-                await Promise.all([
-                  coursesApi.getSchedule(classroomId),
-                  coursesApi.activeSession(classroomId),
-                  classroomRecordingsApi
-                    .listSessions(classroomId)
-                    .then((response) => sessionsFrom(response.data))
-                    .catch(() => []),
-                  classroomRecordingsApi
-                    .listRecordings(classroomId)
-                    .then((response) =>
-                      (Array.isArray(response.data)
-                        ? response.data
-                        : response.data.recordings || response.data.data || []
-                      ).map(
-                        (recording): ClassroomSession => ({
-                          id: recording.sessionId,
-                          sessionName: recording.sessionName,
-                          status: "ended",
-                          scheduledStartAt: recording.scheduledStartAt,
-                          startAt: recording.startAt,
-                          occurrenceKey: recording.occurrenceKey,
-                          courseGroup: recording.courseGroup,
-                          recording: {
-                            status: recording.localUrl ? "ready" : "processing",
-                            localUrl: recording.localUrl,
-                          },
-                          summary: recording.summary,
-                        }),
-                      ),
-                    )
-                    .catch(() => []),
-                ]);
-              return {
-                item,
-                classroomId,
-                classroom,
-                schedule,
-                activeSession,
-                sessions: [...sessions, ...recordings],
-              };
-            } catch {
-              return null;
-            }
-          }),
-        );
-        courseSchedules.forEach((result) => {
-          if (!result?.schedule?.slots?.length) return;
-          const course =
-            typeof result.item.course === "object"
-              ? (result.item.course as Course)
-              : null;
-          grid.forEach((date) => {
-            result.schedule!.slots.forEach((slot, index) => {
-              if (courseDayNumbers[slot.day] !== date.getDay()) return;
-              const day = dateKey(date);
-              const key = `course-${result.item.id}-${day}-${slot.startTime}-${index}`;
-              unique.set(key, {
-                key,
-                registrationMode: (user?.registrationMode ||
-                  "egyptian") as RegistrationMode,
-                classroom: {
-                  id: result.classroomId,
-                  name:
-                    result.classroom?.name ||
-                    pick("فصل الدورة", "Course classroom"),
-                },
-                classroomSubjectId: "",
-                subject: {
-                  id: referenceId(course?.subject),
-                  name: course?.name || pick("دورة تعليمية", "Course"),
-                },
-                day: slot.day,
-                date: day,
-                startTime: slot.startTime,
-                endTime: slot.endTime,
-                scheduledAt: null,
-                activeSession:
-                  (day === today
-                    ? (result.activeSession as PortalLesson["activeSession"])
-                    : null) ||
-                  endedCourseSession(
-                    result.sessions,
-                    day,
-                    slot.startTime,
-                    referenceId(result.item.courseGroup || result.item.group),
-                  ),
-                scheduleKind: "course",
-                courseName: course?.name,
-              });
-            });
-          });
-        });
-      } else {
-        const assignments = await coursesApi.myTeachingCourses();
-        const classroomIds = [
-          ...new Set(
-            assignments.flatMap(({ groups }) =>
-              groups
-                .map((group) => referenceId(group.classroom))
-                .filter(Boolean),
-            ),
-          ),
-        ];
-        const sessionEntries = await Promise.all(
-          classroomIds.map(async (classroomId) => {
-            try {
-              const response =
-                await classroomRecordingsApi.listSessions(classroomId);
-              return [classroomId, sessionsFrom(response.data)] as const;
-            } catch {
-              return [classroomId, []] as const;
-            }
-          }),
-        );
-        const sessionsByClassroom = new Map(sessionEntries);
-        assignments.forEach(({ course, groups }) =>
-          groups.forEach((group) => {
-            const classroomId = referenceId(group.classroom);
-            if (!classroomId || !group.schedule?.slots?.length) return;
-            const classroomName =
-              typeof group.classroom === "object" ? group.classroom.name : "";
-            grid.forEach((date) => {
-              group.schedule!.slots.forEach((slot, index) => {
-                if (courseDayNumbers[slot.day] !== date.getDay()) return;
-                const day = dateKey(date);
-                const key = `teacher-course-${course.id}-${group.id}-${day}-${slot.startTime}-${index}`;
-                unique.set(key, {
-                  key,
-                  registrationMode: (user?.registrationMode ||
-                    user?.registrationModes?.[0] ||
-                    "egyptian") as RegistrationMode,
-                  classroom: {
-                    id: classroomId,
-                    name: classroomName || group.name,
-                  },
-                  classroomSubjectId: "",
-                  subject: {
-                    id: referenceId(course.subject),
-                    name: course.name,
-                  },
-                  day: slot.day,
-                  date: day,
-                  startTime: slot.startTime,
-                  endTime: slot.endTime,
-                  scheduledAt: null,
-                  activeSession:
-                    (day === today
-                      ? (group.activeSession as PortalLesson["activeSession"])
-                      : null) ||
-                    endedCourseSession(
-                      sessionsByClassroom.get(classroomId) || [],
-                      day,
-                      slot.startTime,
-                      group.id,
-                    ),
-                  scheduleKind: "course",
-                  courseName: course.name,
-                  courseId: course.id,
-                  courseGroupId: group.id,
-                });
-              });
-            });
-          }),
-        );
-      }
-      setLessons([...unique.values()]);
     } catch (value) {
       setError(
         (value as ApiError).message ||
@@ -535,15 +244,10 @@ export default function PortalSchedule({
       setLoading(false);
     }
   }, [
-    modeKey,
     weekKey,
     filter,
     pick,
     role,
-    grid,
-    today,
-    user?.registrationMode,
-    user?.registrationModes,
   ]);
   useEffect(() => {
     setLoading(true);

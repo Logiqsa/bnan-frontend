@@ -15,7 +15,7 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import Time12Input from "@/components/Time12Input";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { referenceName } from "./classroomZoomNormalization";
-import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, normalizeEgyptianSchedule, normalizeGulfSchedule } from "./classroomManagement";
+import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 
 type Day = typeof CLASSROOM_DAYS[number];
@@ -45,7 +45,7 @@ export default function ClassroomScheduleManagement({
   const [classroom, setClassroom] = useState<ClassroomZoomDetails | null>(null);
   const [subjects, setSubjects] = useState<ClassroomSubjectOption[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
-  const [originalDays, setOriginalDays] = useState<Set<string>>(new Set());
+  const [originalEntries, setOriginalEntries] = useState<ClassroomScheduleEntry[]>([]);
   const [activeDay, setActiveDay] = useState<Day>("saturday");
   const [gulfSubjectId, setGulfSubjectId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,8 @@ export default function ClassroomScheduleManagement({
     : user?.role === "supervisor"
       ? "/portal/supervisor/classrooms"
       : "/admin/classrooms";
-  const canEdit = isEditing;
+  const canManageSchedule = user?.role !== "teacher" || mode === "gulf";
+  const canEdit = isEditing && canManageSchedule;
 
   useEffect(() => {
     let active = true;
@@ -75,8 +76,7 @@ export default function ClassroomScheduleManagement({
         if (!registrationMode) throw new Error("تعذر تحديد نوع جدول الفصل.");
         let entries: ClassroomScheduleEntry[] = [];
         try {
-          if (registrationMode === "egyptian") entries = normalizeEgyptianSchedule((await classroomZoomApi.getEgyptianSchedule(classroomId)).data);
-          else entries = normalizeGulfSchedule((await classroomZoomApi.getGulfSchedule(classroomId)).data);
+          entries = (await classroomZoomApi.getSchedule(classroomId)).data.entries;
         } catch (error) {
           if ((error as ApiError).status !== 404) throw error;
         }
@@ -90,7 +90,7 @@ export default function ClassroomScheduleManagement({
         setClassroom(details);
         setSubjects(activeSubjects);
         setRows(normalized);
-        setOriginalDays(new Set(normalized.map((entry) => entry.day)));
+        setOriginalEntries(entries);
         setGulfSubjectId(normalized[0]?.classroomSubjectId || activeSubjects[0]?.classroomSubjectId || "");
         setActiveDay((normalized[0]?.day as Day) || "saturday");
       } catch (error) {
@@ -109,7 +109,7 @@ export default function ClassroomScheduleManagement({
 
   const save = async () => {
     if (!mode || !subjects.length) return toast.error("لا توجد مواد مكلّفة داخل الفصل.");
-    if (rows.some((row) => !row.startTime || (row.endTime && row.endTime <= row.startTime))) return toast.error("وقت النهاية يجب أن يكون بعد وقت البداية.");
+    if (rows.some((row) => !row.startTime || !row.endTime || row.endTime <= row.startTime)) return toast.error("وقت النهاية يجب أن يكون بعد وقت البداية.");
     if (mode === "gulf" && (!gulfSubjectId || CLASSROOM_DAYS.some((day) => (rowsByDay.get(day)?.length || 0) > 1))) return toast.error("اختر المادة، وتأكد من وجود موعد واحد فقط لكل يوم.");
     if (mode === "egyptian") {
       if (rows.some((row) => !row.classroomSubjectId)) return toast.error("اختر مادة لكل حصة.");
@@ -120,25 +120,24 @@ export default function ClassroomScheduleManagement({
     }
     setSaving(true);
     try {
-      if (mode === "gulf") {
-        if (rows.length) await classroomZoomApi.saveGulfSchedule(
-          classroomId,
-          gulfSubjectId,
-          rows.map(({ day, startTime, endTime }) => ({ day, startTime, ...(endTime ? { endTime } : {}) })),
-        );
-        else await classroomZoomApi.deleteGulfSchedule(classroomId);
-      } else {
-        await Promise.all(CLASSROOM_DAYS.map((day) => {
-          const lessons = rowsByDay.get(day) || [];
-          if (lessons.length) return classroomZoomApi.saveEgyptianDay(
-            classroomId,
-            day,
-            lessons.map((row) => ({ classroomSubject: row.classroomSubjectId || "", startTime: row.startTime, ...(row.endTime ? { endTime: row.endTime } : {}) })),
-          );
-          return originalDays.has(day) ? classroomZoomApi.deleteEgyptianDay(classroomId, day) : Promise.resolve();
-        }));
-      }
-      setOriginalDays(new Set(rows.map((row) => row.day)));
+      const nextEntries = mode === "gulf"
+        ? rows.map((row) => ({ ...row, classroomSubjectId: gulfSubjectId }))
+        : rows;
+      await classroomZoomApi.saveScheduleEntries(
+        classroomId,
+        originalEntries,
+        nextEntries,
+      );
+      const refreshed = (await classroomZoomApi.getSchedule(classroomId)).data.entries;
+      const normalized = refreshed.map((entry, index) => ({
+        ...entry,
+        day: entry.day.toLowerCase(),
+        classroomSubjectId: entry.classroomSubjectId || subjects[0]?.classroomSubjectId || "",
+        key: `${entry.id || entry.day}-${entry.startTime}-${index}`,
+      }));
+      setRows(normalized);
+      setOriginalEntries(refreshed);
+      setGulfSubjectId(normalized[0]?.classroomSubjectId || subjects[0]?.classroomSubjectId || "");
       toast.success("تم حفظ جدول الفصل بنجاح.");
       setIsEditing(false);
     } catch (error) { toast.error(errorMessage(error)); }
@@ -148,7 +147,7 @@ export default function ClassroomScheduleManagement({
   const content = <div dir="rtl" className="mx-auto max-w-6xl space-y-5">
     {!embedded && <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><Link to={backPath} className="hover:text-primary">{user?.role === "admin" ? "إدارة الفصول" : "إدارة الفصول والمواعيد"}</Link><ChevronLeft className="h-4 w-4"/><span className="text-foreground">{classroom?.name || "تعديل الجدول"}</span></nav>}
     {loading ? <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : !classroom || !mode ? <Card><CardContent className="py-16 text-center"><p>تعذر تحميل بيانات جدول الفصل.</p><Button className="mt-4" variant="outline" onClick={() => navigate(backPath)}>العودة إلى الفصول</Button></CardContent></Card> : <>
-      <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant="outline">{mode === "egyptian" ? "منهج مصري" : "منهج سعودي"}</Badge><Badge variant="outline">{referenceName(classroom.grade)}</Badge></div><h1 className="text-2xl font-bold sm:text-3xl">{canEdit ? "تعديل " : ""}جدول {classroom.name}</h1><p className="mt-2 text-sm text-muted-foreground">{canEdit ? "اختر اليوم، ثم أضف المادة وحدد موعد كل حصة." : "راجع جدول الفصل، ثم اضغط تعديل الجدول لإجراء أي تغيير."}</p></div>{canEdit ? <Button onClick={() => void save()} disabled={saving} size="lg" className="shrink-0 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button> : <Button onClick={() => setIsEditing(true)} size="lg" className="shrink-0 gap-2"><Pencil className="h-4 w-4"/>تعديل الجدول</Button>}</div></header>
+      <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant="outline">{mode === "egyptian" ? "منهج مصري" : "منهج سعودي"}</Badge><Badge variant="outline">{referenceName(classroom.grade)}</Badge></div><h1 className="text-2xl font-bold sm:text-3xl">{canEdit ? "تعديل " : ""}جدول {classroom.name}</h1><p className="mt-2 text-sm text-muted-foreground">{canEdit ? "اختر اليوم، ثم أضف المادة وحدد موعد كل حصة." : canManageSchedule ? "راجع جدول الفصل، ثم اضغط تعديل الجدول لإجراء أي تغيير." : "يمكنك مراجعة جدول الفصل؛ تعديله متاح للإدارة فقط."}</p></div>{canManageSchedule && (canEdit ? <Button onClick={() => void save()} disabled={saving} size="lg" className="shrink-0 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button> : <Button onClick={() => setIsEditing(true)} size="lg" className="shrink-0 gap-2"><Pencil className="h-4 w-4"/>تعديل الجدول</Button>)}</div></header>
       <Tabs value={activeDay} onValueChange={(value) => setActiveDay(value as Day)} dir="rtl">
         <div className="schedule-day-tabs-scroll w-full max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch]"><TabsList className="h-auto w-max min-w-full justify-start gap-1 p-1.5 sm:justify-center">{CLASSROOM_DAYS.map((day) => <TabsTrigger key={day} value={day} className="shrink-0 snap-start gap-2 px-4 py-2.5"><span>{CLASSROOM_DAY_NAMES[day]}</span>{(rowsByDay.get(day)?.length || 0) > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{rowsByDay.get(day)?.length}</Badge>}</TabsTrigger>)}</TabsList></div>
         {CLASSROOM_DAYS.map((day) => { const dayRows = rowsByDay.get(day) || []; return <TabsContent key={day} value={day} className="mt-3"><Card><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>حصص يوم {CLASSROOM_DAY_NAMES[day]}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{dayRows.length ? `${dayRows.length} حصة` : "لا توجد حصص في هذا اليوم"}</p></div>{canEdit && <Button variant="outline" onClick={() => addLesson(day)} disabled={mode === "gulf" && dayRows.length > 0} className="gap-2"><Plus className="h-4 w-4"/>إضافة حصة</Button>}</CardHeader><CardContent className="space-y-3 p-4 sm:p-6">

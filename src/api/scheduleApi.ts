@@ -1,7 +1,6 @@
 import { apiRequest } from "./client";
 import type { ActiveSession, PortalLesson, RegistrationMode } from "./types";
 
-interface EgyptianLesson { id: string; date: string; startTime: string; scheduledAt: string; classroom: {id:string;name:string}; classroomSubjectId:string; subject:{id:string;name:string}; teacher?:{name?:string;fullName?:string}; activeSession?: PortalLesson["activeSession"] }
 interface ScheduleWeekMetadata {
   currentWeek?: number | null;
   currentWeekStart?: string | null;
@@ -9,93 +8,8 @@ interface ScheduleWeekMetadata {
   weekEnd?: string;
   timezone?: string;
 }
-interface EgyptianResponse { data: ScheduleWeekMetadata & { days?: Array<{dayName:string;lessons?:EgyptianLesson[]}> } }
-
-interface GulfEntity { id: string; name: string }
-export interface GulfScheduleActiveSession {
-  sessionId: string;
-  status: ActiveSession["status"];
-  canJoin?: boolean;
-  classroomId?: string;
-  subjectId?: string;
-  classroomSubjectId?: string;
-  occurrenceKey?: string;
-  chatRoomId?: string;
-  recordingUrl?: string | null;
-  summaryUrl?: string | null;
-}
-export interface GulfScheduleEntry {
-  _id: string;
-  day: string;
-  startTime: string;
-  endTime?: string;
-  activeSession?: GulfScheduleActiveSession | null;
-}
-export interface GulfRoom {
-  id: string;
-  name: string;
-  grade?: GulfEntity | null;
-  curriculum?: GulfEntity | null;
-  subject: GulfEntity | null;
-  teacher?: { id?: string; userId?: string; name?: string; fullName?: string } | null;
-  classroomSubject: string | null;
-  hasSubjectConflict?: boolean;
-  schedule?: {
-    id: string;
-    classroomSubject: string | null;
-    entries?: GulfScheduleEntry[];
-    isActive: boolean;
-    createdAt?: string;
-    updatedAt?: string;
-  } | null;
-}
-interface GulfStudentSchedule {
-  student: { id: string; fullName: string };
-  classrooms?: GulfRoom[];
-}
-interface GulfResponse {
-  data: {
-    currentWeek?: number | null;
-    currentWeekStart?: string | null;
-    weekStart: string;
-    weekEnd?: string;
-    timezone?: string;
-    students?: GulfStudentSchedule[];
-    classrooms?: GulfRoom[];
-  };
-}
-export interface NormalizedGulfSchedule {
-  currentWeek?: number | null;
-  currentWeekStart?: string | null;
-  weekStart: string;
-  weekEnd?: string;
-  timezone?: string;
-  classrooms: GulfRoom[];
-}
 interface StartResponse { success:true; data:{session:unknown;meetingLink:string;teacherStartUrl?:string} }
 interface JoinResponse { success:true; data:{meetingLink?:string;status?:string} }
-
-const DAY_INDEX: Record<string, number> = { saturday: 0, sunday: 1, monday: 2, tuesday: 3, wednesday: 4, thursday: 5, friday: 6 };
-const addDays = (date: string, days: number) => {
-  const value = new Date(`${date}T12:00:00Z`); value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-};
-
-export const normalizeGulfSchedule = (
-  data: GulfResponse["data"],
-): NormalizedGulfSchedule => {
-  const studentClassrooms =
-    data.students?.length === 1 ? data.students[0].classrooms || [] : null;
-
-  return {
-    currentWeek: data.currentWeek,
-    currentWeekStart: data.currentWeekStart,
-    weekStart: data.weekStart,
-    weekEnd: data.weekEnd,
-    timezone: data.timezone,
-    classrooms: studentClassrooms ?? data.classrooms ?? [],
-  };
-};
 
 export interface PortalScheduleWeek extends ScheduleWeekMetadata {
   lessons: PortalLesson[];
@@ -130,6 +44,46 @@ export interface UnifiedScheduleEntryInput {
   endTime: string;
 }
 
+export interface ClassroomScheduleEntry {
+  id?: string;
+  day: string;
+  startTime: string;
+  endTime?: string;
+  classroomSubjectId?: string;
+  subjectName?: string;
+}
+
+export interface UnifiedClassroomSchedule extends ScheduleWeekMetadata {
+  entries: ClassroomScheduleEntry[];
+}
+
+const toPortalLesson = (
+  lesson: UnifiedScheduleEntry,
+  day: { date: string; day: string },
+): PortalLesson => ({
+  key: `${lesson.type}-${lesson.id}-${lesson.date || day.date}`,
+  lessonId:
+    lesson.type === "classroom" && lesson.system === "egyptian"
+      ? lesson.id
+      : undefined,
+  scheduleEntryId: lesson.type === "classroom" ? lesson.id : undefined,
+  registrationMode: lesson.system,
+  classroom: lesson.classroom,
+  classroomSubjectId: lesson.classroomSubjectId || "",
+  subject: lesson.subject || { id: "", name: lesson.courseName || "" },
+  teacher: lesson.teacher || undefined,
+  day: lesson.day || day.day,
+  date: lesson.date || day.date,
+  startTime: lesson.startTime,
+  endTime: lesson.endTime,
+  scheduledAt: lesson.scheduledAt,
+  activeSession: lesson.activeSession || null,
+  scheduleKind: lesson.type,
+  courseName: lesson.courseName,
+  courseId: lesson.courseId,
+  courseGroupId: lesson.courseGroupId,
+});
+
 export async function getUnifiedScheduleWeek(
   weekStart: string,
   registrationMode?: RegistrationMode,
@@ -137,26 +91,9 @@ export async function getUnifiedScheduleWeek(
   const query = new URLSearchParams({ weekStart });
   if (registrationMode) query.set("registrationMode", registrationMode);
   const result = await apiRequest<UnifiedScheduleResponse>(`/schedules/mySchedule?${query.toString()}`);
-  const lessons = (result.data.days || []).flatMap((day) => (day.lessons || []).map((lesson) => ({
-    key: `${lesson.type}-${lesson.id}-${lesson.date}`,
-    lessonId: lesson.type === "classroom" && lesson.system === "egyptian" ? lesson.id : undefined,
-    scheduleEntryId: lesson.type === "classroom" ? lesson.id : undefined,
-    registrationMode: lesson.system,
-    classroom: lesson.classroom,
-    classroomSubjectId: lesson.classroomSubjectId || "",
-    subject: lesson.subject || { id: "", name: lesson.courseName || "" },
-    teacher: lesson.teacher || undefined,
-    day: lesson.day || day.day,
-    date: lesson.date || day.date,
-    startTime: lesson.startTime,
-    endTime: lesson.endTime,
-    scheduledAt: lesson.scheduledAt,
-    activeSession: lesson.activeSession || null,
-    scheduleKind: lesson.type,
-    courseName: lesson.courseName,
-    courseId: lesson.courseId,
-    courseGroupId: lesson.courseGroupId,
-  })));
+  const lessons = (result.data.days || []).flatMap((day) =>
+    (day.lessons || []).map((lesson) => toPortalLesson(lesson, day)),
+  );
   return {
     currentWeek: result.data.currentWeek,
     currentWeekStart: result.data.currentWeekStart,
@@ -164,6 +101,35 @@ export async function getUnifiedScheduleWeek(
     weekEnd: result.data.weekEnd,
     timezone: result.data.timezone,
     lessons,
+  };
+}
+
+export async function getUnifiedClassroomSchedule(
+  classroomId: string,
+  weekStart?: string,
+): Promise<UnifiedClassroomSchedule> {
+  const query = weekStart ? `?${new URLSearchParams({ weekStart })}` : "";
+  const result = await apiRequest<UnifiedScheduleResponse>(
+    `/schedules/classroom/${encodeURIComponent(classroomId)}${query}`,
+  );
+  return {
+    currentWeek: result.data.currentWeek,
+    currentWeekStart: result.data.currentWeekStart,
+    weekStart: result.data.weekStart,
+    weekEnd: result.data.weekEnd,
+    timezone: result.data.timezone,
+    entries: (result.data.days || []).flatMap((day) =>
+      (day.lessons || [])
+        .filter((lesson) => lesson.type === "classroom")
+        .map((lesson) => ({
+          id: lesson.id,
+          day: lesson.day || day.day,
+          startTime: lesson.startTime,
+          endTime: lesson.endTime,
+          classroomSubjectId: lesson.classroomSubjectId || undefined,
+          subjectName: lesson.subject?.name,
+        })),
+    ),
   };
 }
 
@@ -176,53 +142,62 @@ export const upsertUnifiedScheduleEntry = (classroomId: string, entry: UnifiedSc
 export const deleteUnifiedScheduleEntry = (classroomId: string, entryId: string) =>
   apiRequest<void>(`/schedules/classroom/${encodeURIComponent(classroomId)}/entries/${encodeURIComponent(entryId)}`, { method: "DELETE" });
 
-export async function getScheduleWeek(mode: RegistrationMode, weekStart: string): Promise<PortalScheduleWeek> {
-  const path = mode === "egyptian" ? "egyptianSchedules" : "gulfSchedules";
-  if (mode === "egyptian") {
-    const result = await apiRequest<EgyptianResponse>(`/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
-    const lessons = (result.data.days || []).flatMap((day) =>
-    (day.lessons || []).map((lesson) => ({
-      key: `egyptian-${lesson.id}-${lesson.date}`, lessonId: lesson.id, registrationMode: mode,
-      classroom: lesson.classroom, classroomSubjectId: lesson.classroomSubjectId,
-      subject: lesson.subject, teacher: lesson.teacher, day: day.dayName,
-      date: lesson.date, startTime: lesson.startTime, scheduledAt: lesson.scheduledAt,
-      activeSession: lesson.activeSession || null,
-    })),);
-    return {
-      currentWeek: result.data.currentWeek,
-      currentWeekStart: result.data.currentWeekStart,
-      weekStart: result.data.weekStart || weekStart,
-      weekEnd: result.data.weekEnd,
-      timezone: result.data.timezone,
-      lessons,
-    };
-  }
-  const result = await apiRequest<GulfResponse>(`/${path}/mySchedule?weekStart=${encodeURIComponent(weekStart)}`);
-  const schedule = normalizeGulfSchedule(result.data);
-  const lessons = schedule.classrooms.flatMap((room) => room.subject ? (room.schedule?.entries || []).map((entry, i) => ({
-    key: `gulf-${room.classroomSubject}-${entry.day}-${entry.startTime}-${i}-${schedule.weekStart}`, registrationMode: mode,
-    classroom: { id: room.id, name: room.name }, classroomSubjectId: room.classroomSubject || "",
-    subject: room.subject, teacher: room.teacher, day: entry.day, date: addDays(schedule.weekStart, DAY_INDEX[entry.day] ?? 0),
-    startTime: entry.startTime, endTime: entry.endTime, scheduledAt: null,
-    activeSession: entry.activeSession ? {
-      id: entry.activeSession.sessionId,
-      sessionId: entry.activeSession.sessionId,
-      status: entry.activeSession.status,
-      canJoin: entry.activeSession.canJoin,
-      classroomId: entry.activeSession.classroomId,
-      subjectId: entry.activeSession.subjectId,
-      classroomSubjectId: entry.activeSession.classroomSubjectId,
-      occurrenceKey: entry.activeSession.occurrenceKey,
-      chatRoomId: entry.activeSession.chatRoomId,
-      recordingUrl: entry.activeSession.recordingUrl,
-      summaryUrl: entry.activeSession.summaryUrl,
-    } : null,
-  })) : []);
-  return { ...schedule, lessons };
-}
+const sameScheduleEntry = (
+  left: ClassroomScheduleEntry,
+  right: ClassroomScheduleEntry,
+) =>
+  left.day === right.day &&
+  left.classroomSubjectId === right.classroomSubjectId &&
+  left.startTime === right.startTime &&
+  (left.endTime || "") === (right.endTime || "");
 
-export const getSchedule = async (mode: RegistrationMode, weekStart: string) =>
-  (await getScheduleWeek(mode, weekStart)).lessons;
+export async function reconcileUnifiedClassroomSchedule(
+  classroomId: string,
+  originalEntries: ClassroomScheduleEntry[],
+  nextEntries: ClassroomScheduleEntry[],
+) {
+  const originalById = new Map(
+    originalEntries.flatMap((entry) => (entry.id ? [[entry.id, entry] as const] : [])),
+  );
+  const nextIds = new Set(nextEntries.flatMap((entry) => (entry.id ? [entry.id] : [])));
+  const replacementIds = new Set(
+    nextEntries.flatMap((entry) => {
+      const original = entry.id ? originalById.get(entry.id) : undefined;
+      return original &&
+        (original.day !== entry.day ||
+          original.classroomSubjectId !== entry.classroomSubjectId)
+        ? [entry.id]
+        : [];
+    }),
+  );
+  const deleteIds = originalEntries.flatMap((entry) =>
+    entry.id && (!nextIds.has(entry.id) || replacementIds.has(entry.id))
+      ? [entry.id]
+      : [],
+  );
+
+  await Promise.all(
+    deleteIds.map((entryId) => deleteUnifiedScheduleEntry(classroomId, entryId)),
+  );
+
+  const changedEntries = nextEntries.filter((entry) => {
+    const original = entry.id ? originalById.get(entry.id) : undefined;
+    return !original || replacementIds.has(entry.id || "") || !sameScheduleEntry(original, entry);
+  });
+  await Promise.all(
+    changedEntries.map((entry) => {
+      if (!entry.classroomSubjectId || !entry.endTime) {
+        throw new Error("SCHEDULE_ENTRY_FIELDS_REQUIRED");
+      }
+      return upsertUnifiedScheduleEntry(classroomId, {
+        day: entry.day,
+        classroomSubjectId: entry.classroomSubjectId,
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+      });
+    }),
+  );
+}
 
 export const startLesson = (lesson: PortalLesson) => apiRequest<StartResponse>(`/classrooms/${lesson.classroom.id}/sessions/start`, {
   method: "POST", body: JSON.stringify({

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { normalizeZoomState, referenceId, referenceName } from "./classroomZoomNormalization";
-import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomZoomLabel, normalizeEgyptianSchedule, normalizeGulfSchedule, sortClassroomsNewestFirst } from "./classroomManagement";
+import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomZoomLabel, sortClassroomsNewestFirst } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 import GradeStageFilter from "@/admin/GradeStageFilter";
 
@@ -84,15 +84,9 @@ export default function ClassroomManagement() {
       const response = await classroomZoomApi.getClassroom(item.id);
       const merged = { ...item, ...response.data } as ClassroomOption;
       setDetails(merged);
-      const mode = merged.curriculum?.registrationMode || item.curriculum?.registrationMode;
       try {
-        if (mode === "egyptian") {
-          const scheduleResponse = await classroomZoomApi.getEgyptianSchedule(item.id);
-          setSchedule(normalizeEgyptianSchedule(scheduleResponse.data));
-        } else if (mode === "gulf") {
-          const scheduleResponse = await classroomZoomApi.getGulfSchedule(item.id);
-          setSchedule(normalizeGulfSchedule(scheduleResponse.data));
-        }
+        const scheduleResponse = await classroomZoomApi.getSchedule(item.id);
+        setSchedule(scheduleResponse.data.entries);
       } catch (caught) {
         const scheduleError = caught as ApiError;
         if (scheduleError.status !== 404) setError(safeError(scheduleError));

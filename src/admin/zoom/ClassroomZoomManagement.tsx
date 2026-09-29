@@ -170,9 +170,6 @@ type ClassroomFilter = "all" | "unlinked" | "ready";
 const valueName = (value: ClassroomOption["subject"] | ClassroomOption["teacher"] | ClassroomOption["student"]) =>
   typeof value === "string" ? value : value?.name || (value && "fullName" in value ? value.fullName : "") || "";
 
-const localizedName = (value: string | { ar?: string; en?: string } | undefined, isArabic: boolean) =>
-  typeof value === "string" ? value : (isArabic ? value?.ar : value?.en) || value?.ar || value?.en || "";
-
 const formatClassroomDate = (value: string | undefined, isArabic: boolean) => {
   if (!value) return "";
   const date = new Date(value);
@@ -310,32 +307,19 @@ export default function ClassroomZoomManagement({
 
   useEffect(() => {
     if (!classroomId || !classroom || classroom.zoomAssignmentMode !== "manual") return;
-    const curriculum = typeof classroom.curriculum === "string" ? selected?.curriculum : classroom.curriculum;
-    const mode = typeof curriculum === "string" ? undefined : curriculum?.registrationMode;
-    if (mode !== "egyptian" && mode !== "gulf") return;
     let active = true;
     setLoadingSchedule(true);
-    const request = mode === "egyptian" ? classroomZoomApi.getEgyptianSchedule(classroomId) : classroomZoomApi.getGulfSchedule(classroomId);
-    request.then((response) => {
+    classroomZoomApi.getSchedule(classroomId).then((response) => {
       if (!active) return;
-      if (mode === "egyptian") {
-        const data = response.data as { timezone?: string; days?: Array<{ dayName: string; lessons?: Array<{ startTime: string; endTime?: string; classroomSubjectId?: string; classroomSubject?: string | { id?: string; _id?: string }; subject?: { name?: string | { ar?: string; en?: string } } }> }> };
-        setScheduleTimezone(data.timezone);
-        setScheduleEntries((data.days || []).flatMap((day) => (day.lessons || []).map((lesson) => ({ day: day.dayName, startTime: lesson.startTime, ...(lesson.endTime ? { endTime: lesson.endTime } : {}), classroomSubjectId: lesson.classroomSubjectId || referenceId(lesson.classroomSubject), subjectName: localizedName(lesson.subject?.name, isArabic) }))));
-      } else {
-        const data = response.data as { timezone?: string; classroomSubject?: string | { id?: string; _id?: string }; subject?: { name?: string | { ar?: string; en?: string } }; schedule?: { entries?: ClassroomScheduleEntry[] } | ClassroomScheduleEntry[] };
-        const entries = Array.isArray(data.schedule) ? data.schedule : data.schedule?.entries || [];
-        const subjectName = localizedName(data.subject?.name, isArabic);
-        setScheduleTimezone(data.timezone);
-        setScheduleEntries(entries.map((entry) => ({ ...entry, classroomSubjectId: entry.classroomSubjectId || referenceId(data.classroomSubject), subjectName: entry.subjectName || subjectName })));
-      }
+      setScheduleTimezone(response.data.timezone);
+      setScheduleEntries(response.data.entries);
     }).catch((error: ApiError) => {
       if (!active) return;
-      if (error.status !== 404 && !["CLASSROOM_SCHEDULE_NOT_FOUND", "EGYPTIAN_SCHEDULE_NOT_FOUND"].includes(error.code)) toast.error(safeError(error, pick));
+      if (error.status !== 404) toast.error(safeError(error, pick));
       setScheduleEntries([]);
     }).finally(() => { if (active) setLoadingSchedule(false); });
     return () => { active = false; };
-  }, [classroom, classroomId, isArabic, pick, scheduleRevision, selected?.curriculum]);
+  }, [classroom, classroomId, pick, scheduleRevision]);
 
   const chooseCurriculum = (id: string) => {
     setCurriculumId(id); setGradeId(""); setFilter("all"); setClassroom(null); setParams({});

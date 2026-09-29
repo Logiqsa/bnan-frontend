@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "./client";
 import {
+  deleteUnifiedScheduleEntry,
   endSession,
   getActiveClassroomSession,
-  getSchedule,
-  getScheduleWeek,
+  getUnifiedClassroomSchedule,
   getUnifiedScheduleWeek,
-  normalizeGulfSchedule,
+  reconcileUnifiedClassroomSchedule,
 } from "./scheduleApi";
 
 vi.mock("./client", () => ({ apiRequest: vi.fn() }));
@@ -42,70 +42,66 @@ describe("regular session lifecycle API", () => {
     ]));
   });
 
-  it("keeps the Egyptian response parsing unchanged", async () => {
-    vi.mocked(apiRequest).mockResolvedValue({ data: { weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo", days: [{ dayName: "saturday", lessons: [{
-      id: "lesson-1", date: "2026-09-19", startTime: "09:00", scheduledAt: "2026-09-19T06:00:00.000Z",
-      classroom: { id: "classroom-1", name: "Egyptian class" }, classroomSubjectId: "assignment-1",
-      subject: { id: "subject-1", name: "Arabic" },
-    }] }] } });
-
-    await expect(getSchedule("egyptian", "2026-09-19")).resolves.toMatchObject([{ lessonId: "lesson-1", date: "2026-09-19" }]);
-    expect(apiRequest).toHaveBeenCalledWith("/egyptianSchedules/mySchedule?weekStart=2026-09-19");
-  });
-
-  it("exposes backend week metadata without changing lesson parsing", async () => {
-    vi.mocked(apiRequest).mockResolvedValue({ data: { currentWeek: 3, currentWeekStart: "2026-09-19", weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo", days: [] } });
-    await expect(getScheduleWeek("egyptian", "2026-09-19")).resolves.toEqual({ currentWeek: 3, currentWeekStart: "2026-09-19", weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo", lessons: [] });
-  });
-
-  it("normalizes the sole Student Gulf classroom collection and preserves session fields", async () => {
+  it("keeps teacher registration-mode filtering on the unified schedule route", async () => {
     vi.mocked(apiRequest).mockResolvedValue({ data: {
-      currentWeek: 3, currentWeekStart: "2026-09-19", weekStart: "2026-09-19",
-      weekEnd: "2026-09-25", timezone: "Africa/Cairo",
-      students: [{ student: { id: "student-1", fullName: "Student" }, classrooms: [{
-        id: "classroom-1", name: "Classroom", classroomSubject: "assignment-1",
-        grade: { id: "grade-1", name: "Grade" }, curriculum: { id: "curriculum-1", name: "Gulf" },
-        subject: { id: "subject-1", name: "Subject" }, hasSubjectConflict: false,
-        schedule: { id: "schedule-1", classroomSubject: "assignment-1", isActive: true,
-          createdAt: "2026-09-01", updatedAt: "2026-09-02", entries: [{ _id: "entry-1", day: "saturday", startTime: "10:00", endTime: "11:00", activeSession: {
-            sessionId: "session-1", status: "ended", canJoin: false, classroomId: "classroom-1",
-            subjectId: "subject-1", classroomSubjectId: "assignment-1", occurrenceKey: "gulf:key",
-            chatRoomId: "room-1", recordingUrl: "https://example.com/recording", summaryUrl: "https://example.com/summary",
-          } }] },
+      weekStart: "2026-09-19", weekEnd: "2026-09-25", days: [],
+    } });
+
+    await getUnifiedScheduleWeek("2026-09-19", "gulf");
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/mySchedule?weekStart=2026-09-19&registrationMode=gulf",
+    );
+  });
+
+  it("reads a classroom schedule from the unified route with stable entry IDs", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ data: {
+      weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo",
+      days: [{ date: "2026-09-19", day: "saturday", lessons: [{
+        id: "entry-1", type: "classroom", system: "egyptian", classroom: { id: "classroom-1", name: "Class" }, classroomSubjectId: "assignment-1", subject: { id: "subject-1", name: "Arabic" }, day: "saturday", date: "2026-09-19", startTime: "09:00", endTime: "10:00", scheduledAt: "2026-09-19T06:00:00.000Z", activeSession: null,
       }] }],
     } });
-    const lessons = await getSchedule("gulf", "2026-09-19");
-    expect(lessons).toHaveLength(1);
-    expect(lessons[0]).toMatchObject({ classroom: { id: "classroom-1" }, classroomSubjectId: "assignment-1", endTime: "11:00" });
-    expect(lessons[0].activeSession).toEqual({
-      id: "session-1", sessionId: "session-1", status: "ended", canJoin: false,
-      classroomId: "classroom-1", subjectId: "subject-1", classroomSubjectId: "assignment-1",
-      occurrenceKey: "gulf:key", chatRoomId: "room-1", recordingUrl: "https://example.com/recording",
-      summaryUrl: "https://example.com/summary",
+
+    await expect(getUnifiedClassroomSchedule("classroom-1")).resolves.toMatchObject({
+      timezone: "Africa/Cairo",
+      entries: [{ id: "entry-1", classroomSubjectId: "assignment-1", subjectName: "Arabic" }],
     });
+    expect(apiRequest).toHaveBeenCalledWith("/schedules/classroom/classroom-1");
   });
 
-  it("preserves Gulf week metadata and the complete nested classroom schedule", () => {
-    const data = { currentWeek: 3, currentWeekStart: "2026-09-19", weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo", students: [{ student: { id: "student-1", fullName: "Student" }, classrooms: [{ id: "classroom-1", name: "Classroom", classroomSubject: "assignment-1", subject: { id: "subject-1", name: "Subject" }, schedule: { id: "schedule-1", classroomSubject: "assignment-1", entries: [{ _id: "entry-1", day: "saturday", startTime: "10:00", activeSession: null }], isActive: true } }] }] };
-    const normalized = normalizeGulfSchedule(data);
-    expect(normalized).toMatchObject({ currentWeek: 3, currentWeekStart: "2026-09-19", weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo" });
-    expect(normalized.classrooms[0].schedule).toEqual(data.students[0].classrooms[0].schedule);
+  it("reconciles classroom entries through targeted unified PUT and DELETE requests", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { id: "entry-2", system: "gulf", classroomId: "classroom-1" } });
+    await reconcileUnifiedClassroomSchedule(
+      "classroom-1",
+      [
+        { id: "removed-entry", day: "saturday", startTime: "09:00", endTime: "10:00", classroomSubjectId: "subject-1" },
+        { id: "updated-entry", day: "sunday", startTime: "10:00", endTime: "11:00", classroomSubjectId: "subject-1" },
+      ],
+      [
+        { id: "updated-entry", day: "sunday", startTime: "11:00", endTime: "12:00", classroomSubjectId: "subject-1" },
+        { day: "monday", startTime: "12:00", endTime: "13:00", classroomSubjectId: "subject-1" },
+      ],
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/classroom/classroom-1/entries/removed-entry",
+      { method: "DELETE" },
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/classroom/classroom-1",
+      { method: "PUT", body: JSON.stringify({ day: "sunday", classroomSubjectId: "subject-1", startTime: "11:00", endTime: "12:00" }) },
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/classroom/classroom-1",
+      { method: "PUT", body: JSON.stringify({ day: "monday", classroomSubjectId: "subject-1", startTime: "12:00", endTime: "13:00" }) },
+    );
   });
 
-  it("does not rely on the obsolete top-level classrooms shape for a Student response", () => {
-    const normalized = normalizeGulfSchedule({
-      weekStart: "2026-09-19",
-      students: [{ student: { id: "student-1", fullName: "Student" }, classrooms: [{ id: "student-classroom", name: "Student classroom", classroomSubject: null, subject: null, schedule: null }] }],
-      classrooms: [{ id: "obsolete-classroom", name: "Obsolete", classroomSubject: null, subject: null, schedule: null }],
-    });
-    expect(normalized.classrooms.map((room) => room.id)).toEqual(["student-classroom"]);
-  });
-
-  it("does not merge or select arbitrary classrooms when multiple Student records are returned", () => {
-    const normalized = normalizeGulfSchedule({ weekStart: "2026-09-19", students: [
-      { student: { id: "student-1", fullName: "One" }, classrooms: [{ id: "classroom-1", name: "One", classroomSubject: null, subject: null, schedule: null }] },
-      { student: { id: "student-2", fullName: "Two" }, classrooms: [{ id: "classroom-2", name: "Two", classroomSubject: null, subject: null, schedule: null }] },
-    ] });
-    expect(normalized.classrooms).toEqual([]);
+  it("deletes a single schedule entry through the unified route", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: undefined });
+    await deleteUnifiedScheduleEntry("classroom-1", "entry-1");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/schedules/classroom/classroom-1/entries/entry-1",
+      { method: "DELETE" },
+    );
   });
 });

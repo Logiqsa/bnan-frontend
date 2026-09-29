@@ -5,8 +5,7 @@ import { CalendarDays, FileText, MessageCircle, Video } from "lucide-react";
 import { classroomRecordingsApi, type SessionRecording } from "@/api/classroomRecordingsApi";
 import { studentAssignmentsApi } from "@/api/studentAssignmentsApi";
 import { studentClassroomsApi } from "@/api/studentClassroomsApi";
-import { getScheduleWeek } from "@/api/scheduleApi";
-import { studentHomeApi } from "@/api/studentHomeApi";
+import { getUnifiedScheduleWeek } from "@/api/scheduleApi";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -40,8 +39,7 @@ export default function StudentClassroomDetails() {
   const classroom = (classrooms.data || []).find((item) => (typeof item.classroom === "string" ? item.classroom : item.classroom.id) === classroomId && item.status === "approved");
   const recordings = useQuery({ queryKey: ["student-classroom-recordings", classroomId], queryFn: async () => recordingsFrom((await classroomRecordingsApi.listRecordings(classroomId)).data), enabled: Boolean(classroomId && classroom), retry: 1 });
   const assignments = useQuery({ queryKey: ["student-classroom-assignments", classroomId], queryFn: studentAssignmentsApi.list, enabled: Boolean(classroomId && classroom), retry: 1 });
-  const home = useQuery({ queryKey: ["student-home"], queryFn: studentHomeApi.get, enabled: Boolean(classroom) });
-  const schedule = useQuery({ queryKey: ["student-classroom-schedule", classroomId, home.data?.student.curriculum?.registrationMode], queryFn: () => getScheduleWeek(home.data!.student.curriculum!.registrationMode!, currentWeekStart()), enabled: Boolean(home.data?.student.curriculum?.registrationMode), retry: 1 });
+  const schedule = useQuery({ queryKey: ["student-classroom-schedule", classroomId, "unified"], queryFn: () => getUnifiedScheduleWeek(currentWeekStart()), enabled: Boolean(classroom), retry: 1 });
   const classroomAssignments = useMemo(() => (assignments.data || []).filter((item) => item.classroomId === classroomId), [assignments.data, classroomId]);
   const lessons = (schedule.data?.lessons || []).filter((item) => item.classroom.id === classroomId);
 

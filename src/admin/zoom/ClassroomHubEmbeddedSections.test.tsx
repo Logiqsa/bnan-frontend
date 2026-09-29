@@ -9,8 +9,7 @@ const mocks = vi.hoisted(() => ({
   getClassroom: vi.fn(),
   listSubjects: vi.fn(),
   listClassrooms: vi.fn(),
-  getEgyptianSchedule: vi.fn(),
-  getGulfSchedule: vi.fn(),
+  getSchedule: vi.fn(),
   getAvailability: vi.fn(),
 }));
 
@@ -22,13 +21,9 @@ vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: {
 } }));
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: {
   getClassroom: mocks.getClassroom,
-  getEgyptianSchedule: mocks.getEgyptianSchedule,
-  getGulfSchedule: mocks.getGulfSchedule,
+  getSchedule: mocks.getSchedule,
   getAvailability: mocks.getAvailability,
-  saveEgyptianDay: vi.fn(),
-  deleteEgyptianDay: vi.fn(),
-  saveGulfSchedule: vi.fn(),
-  deleteGulfSchedule: vi.fn(),
+  saveScheduleEntries: vi.fn(),
   generateMeeting: vi.fn(),
 } }));
 
@@ -46,8 +41,7 @@ describe("Classroom Hub embedded Schedule and Zoom sections", () => {
     mocks.getClassroom.mockResolvedValue({ success: true, data: classroom });
     mocks.listSubjects.mockResolvedValue({ success: true, data: { subjects: [{ classroomSubjectId: "cs1", name: "رياضيات", isActive: true }] } });
     mocks.listClassrooms.mockResolvedValue({ success: true, data: [classroom] });
-    mocks.getEgyptianSchedule.mockResolvedValue({ success: true, data: { timezone: "Africa/Cairo", days: [] } });
-    mocks.getGulfSchedule.mockResolvedValue({ success: true, data: { schedule: [] } });
+    mocks.getSchedule.mockResolvedValue({ success: true, data: { timezone: "Africa/Cairo", entries: [] } });
     mocks.getAvailability.mockResolvedValue({ success: true, data: { timezone: "Africa/Cairo", accounts: [] } });
   });
 
@@ -65,7 +59,7 @@ describe("Classroom Hub embedded Schedule and Zoom sections", () => {
     expect(screen.getAllByRole("button", { name: "حفظ الجدول" })).toHaveLength(2);
   });
 
-  it("keeps the legacy Schedule route using the page layout", async () => {
+  it("keeps the Schedule route using the page layout", async () => {
     render(<LanguageProvider><MemoryRouter initialEntries={["/admin/classrooms/c1/schedule"]}><Routes><Route path="/admin/classrooms/:classroomId/schedule" element={<ClassroomScheduleManagement />} /></Routes></MemoryRouter></LanguageProvider>);
     expect(await screen.findByRole("heading", { name: "جدول فصل أول" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "تعديل الجدول" })).toBeInTheDocument();

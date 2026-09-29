@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { classroomRecordingsApi, type ClassroomSubjectOption } from "@/api/classroomRecordingsApi";
@@ -24,7 +24,6 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
   const [gulfSubjectId, setGulfSubjectId] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const originalDays = useMemo(() => new Set(entries.map((entry) => entry.day.toLowerCase())), [entries]);
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +48,7 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
   const save = async () => {
     if (!subjects.length) return toast.error(pick("لا توجد مواد مكلّفة داخل الفصل", "No assigned subjects are available"));
     if (mode === "gulf" && !gulfSubjectId) return toast.error(pick("اختر المادة", "Select a subject"));
-    if (rows.some((row) => !DAYS.includes(row.day as typeof DAYS[number]) || !row.startTime || (row.endTime && row.endTime <= row.startTime))) return toast.error(pick("راجع الأيام والأوقات؛ وقت النهاية يجب أن يكون بعد البداية", "Check days and times; end time must be after start time"));
+    if (rows.some((row) => !DAYS.includes(row.day as typeof DAYS[number]) || !row.startTime || !row.endTime || row.endTime <= row.startTime)) return toast.error(pick("راجع الأيام والأوقات؛ وقت النهاية يجب أن يكون بعد البداية", "Check days and times; end time must be after start time"));
     if (mode === "gulf" && new Set(rows.map((row) => row.day)).size !== rows.length) return toast.error(pick("الجدول السعودي يسمح بموعد واحد فقط لكل يوم", "The Gulf schedule allows only one entry per day"));
     if (mode === "egyptian") {
       const signatures = rows.map((row) => `${row.day}-${row.startTime}`);
@@ -59,18 +58,10 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
     }
     setSaving(true);
     try {
-      if (mode === "gulf") {
-        if (rows.length) await classroomZoomApi.saveGulfSchedule(classroomId, gulfSubjectId, rows.map(({ day, startTime, endTime }) => ({ day, startTime, ...(endTime ? { endTime } : {}) })));
-        else await classroomZoomApi.deleteGulfSchedule(classroomId);
-      } else {
-        const grouped = new Map<string, Row[]>();
-        rows.forEach((row) => grouped.set(row.day, [...(grouped.get(row.day) || []), row]));
-        await Promise.all(DAYS.map((day) => {
-          const lessons = grouped.get(day);
-          if (lessons?.length) return classroomZoomApi.saveEgyptianDay(classroomId, day, lessons.map((row) => ({ classroomSubject: row.classroomSubjectId || "", startTime: row.startTime, ...(row.endTime ? { endTime: row.endTime } : {}) })));
-          return originalDays.has(day) ? classroomZoomApi.deleteEgyptianDay(classroomId, day) : Promise.resolve();
-        }));
-      }
+      const nextEntries = mode === "gulf"
+        ? rows.map((row) => ({ ...row, classroomSubjectId: gulfSubjectId }))
+        : rows;
+      await classroomZoomApi.saveScheduleEntries(classroomId, entries, nextEntries);
       toast.success(pick("تم حفظ جدول الفصل", "Classroom schedule saved"));
       setOpen(false);
       onSaved();

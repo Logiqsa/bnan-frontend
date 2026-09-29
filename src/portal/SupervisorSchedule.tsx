@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, normalizeEgyptianSchedule, normalizeGulfSchedule } from "@/admin/zoom/classroomManagement";
+import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES } from "@/admin/zoom/classroomManagement";
 
 interface SupervisorLesson {
   key: string;
@@ -48,9 +48,7 @@ export default function SupervisorSchedule() {
         const mode = classroom.curriculum?.registrationMode;
         if (mode !== "egyptian" && mode !== "gulf") return [];
         try {
-          const entries = mode === "egyptian"
-            ? normalizeEgyptianSchedule((await classroomZoomApi.getEgyptianSchedule(classroom.id)).data)
-            : normalizeGulfSchedule((await classroomZoomApi.getGulfSchedule(classroom.id)).data);
+          const entries = (await classroomZoomApi.getSchedule(classroom.id)).data.entries;
           return entries.map((entry, index): SupervisorLesson => ({
             key: `${classroom.id}-${entry.day}-${entry.startTime}-${index}`,
             day: entry.day.toLowerCase(), startTime: entry.startTime, endTime: entry.endTime,

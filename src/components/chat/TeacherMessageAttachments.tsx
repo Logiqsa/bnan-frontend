@@ -97,7 +97,7 @@ const TeacherMessageAttachments = ({
           return (
             <div
               key={key}
-              className="min-w-0 rounded-xl border border-primary/15 bg-background/80 p-2 shadow-sm"
+              className="min-w-0"
             >
               <VoiceMessagePlayer src={attachment.fileUrl} label={pick("رسالة صوتية", "Voice message")} />
             </div>

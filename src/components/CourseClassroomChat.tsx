@@ -345,7 +345,7 @@ export default function CourseClassroomChat({
                   </Button>
                 )}
                 <div
-                  className={`${audioOnly ? "w-full max-w-xl" : "max-w-[80%]"} rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  className={`${audioOnly ? "w-full max-w-sm bg-transparent p-0" : `max-w-[80%] rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}`}
                 >
                   {!audioOnly && <p className="mb-1 text-xs opacity-70">{message.sender?.fullName || "مستخدم"}</p>}
                   {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}

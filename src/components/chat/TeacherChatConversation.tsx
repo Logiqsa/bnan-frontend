@@ -399,13 +399,7 @@ const TeacherChatConversation = ({
                     </div>
                   )}
                   <div
-                    className={`${audioOnly ? "w-full max-w-xl" : "max-w-[80%] sm:max-w-[70%]"} min-w-0 break-words rounded-xl px-3 py-1.5 text-xs ${
-                      systemMessage
-                        ? "border bg-card text-foreground"
-                        : mine
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
-                    }`}
+                    className={`${audioOnly ? "w-full max-w-sm bg-transparent p-0" : `max-w-[80%] rounded-xl px-3 py-1.5 sm:max-w-[70%] ${systemMessage ? "border bg-card text-foreground" : mine ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`} min-w-0 break-words text-xs`}
                   >
                     {!systemMessage && !audioOnly && message.sender?.fullName && (
                       <p className="mb-1 break-words text-xs opacity-70">

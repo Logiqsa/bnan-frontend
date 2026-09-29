@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ExternalLink,
   FileText,
+  Loader2,
   RefreshCw,
   Video,
 } from "lucide-react";
@@ -627,7 +628,18 @@ export default function PortalSchedule({
                     {selectedLessons.length} {pick("حصة", "lessons")}
                   </span>
                 </div>
-                {selectedLessons.length === 0 ? (
+                {loading ? (
+                  <div
+                    className="h-80 grid place-items-center text-center text-muted-foreground"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="inline-flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span>{pick("جارٍ تحميل الجدول...", "Loading schedule...")}</span>
+                    </div>
+                  </div>
+                ) : selectedLessons.length === 0 ? (
                   <div className="h-80 grid place-items-center text-center text-muted-foreground">
                     <div>
                       <CalendarDays className="h-9 w-9 mx-auto mb-3 opacity-40" />

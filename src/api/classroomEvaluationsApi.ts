@@ -5,8 +5,13 @@ export interface ClassroomEvaluation { id?: string; attendance: string; attendan
 export interface ClassroomEvaluationSubject { id: string; name: string; status: "evaluated" | "not_evaluated"; evaluation: ClassroomEvaluation | null; }
 export interface ClassroomEvaluationStudent { id: string; fullName: string; subjects: ClassroomEvaluationSubject[]; }
 export interface ClassroomEvaluationsResponse { data: { classroom: { id: string; name: string }; week: number; weekStart: string; students: ClassroomEvaluationStudent[] } }
+export interface ClassroomEvaluationElapsedWeeks { data: { classroom: { id: string; name: string }; startDate: string; weeksCount: number; completedWeeks: number; currentWeek: number | null } }
 
 export const classroomEvaluationsApi = {
-  getWeekly: async (classroomId: string) => (await apiRequest<ClassroomEvaluationsResponse>(`/classrooms/${encodeURIComponent(classroomId)}/evaluations/weekly`)).data,
+  getElapsedWeeks: async (classroomId: string) => (await apiRequest<ClassroomEvaluationElapsedWeeks>(`/classrooms/${encodeURIComponent(classroomId)}/evaluations/weeks/elapsed`)).data,
+  getWeekly: async (classroomId: string, week?: number) => {
+    const query = week === undefined ? "" : `?week=${encodeURIComponent(String(week))}`;
+    return (await apiRequest<ClassroomEvaluationsResponse>(`/classrooms/${encodeURIComponent(classroomId)}/evaluations/weekly${query}`)).data;
+  },
   save: async (body: { student: string; classroom: string; subject: string; week: number; attendanceAttended: number; attendanceTotal: number; participation: EvaluationRating; homework: EvaluationRating; behavior: EvaluationRating; bonus?: number; notes?: string }) => (await apiRequest<{ success: true; data: ClassroomEvaluation }>("/student-evaluations", { method: "PUT", body: JSON.stringify(body) })).data,
 };

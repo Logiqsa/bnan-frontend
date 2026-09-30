@@ -37,6 +37,7 @@ import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPrevie
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import ClassroomEvaluations from "@/portal/ClassroomEvaluations";
+import ClassroomPlansPanel from "@/components/ClassroomPlansPanel";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -318,8 +319,8 @@ export default function TeacherClassroomSessions() {
           )}
         </header>
 
-        <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : "overview"}>
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-7">
+        <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : searchParams.get("tab") === "plans" ? "plans" : "overview"}>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-8">
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />
               المحادثة
@@ -340,12 +341,20 @@ export default function TeacherClassroomSessions() {
               <ClipboardCheck className="me-1 h-4 w-4" />
               التقييمات
             </TabsTrigger>
+            <TabsTrigger value="plans">
+              <FileText className="me-1 h-4 w-4" />
+              الخطط
+            </TabsTrigger>
             <TabsTrigger value="schedule">
               <CalendarDays className="me-1 h-4 w-4" />
               الجدول
             </TabsTrigger>
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="plans" className="mt-5">
+            <ClassroomPlansPanel classroomId={classroomId} canEdit />
+          </TabsContent>
 
           <TabsContent value="overview" className="mt-5">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

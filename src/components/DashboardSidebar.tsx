@@ -620,6 +620,7 @@ const SidebarContent = ({
     }
     return notifications.some((notification) => {
       if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
+      if (itemPath === "/portal/student/subscriptions" && notification.key !== "SUBSCRIPTION_EXPIRES_SOON") return false;
       const notificationSidebarPaths = new Set(items.map((item) => item.path));
       if (!notificationSidebarPaths.has(itemPath)) return false;
       if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;

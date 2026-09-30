@@ -618,15 +618,33 @@ const SidebarContent = ({
   const switchableAccounts = rememberedAccounts.filter(
     (account) => account.user.id !== user?.id,
   );
+  const importantSidebarPaths: Record<string, Set<string>> = {
+    admin: new Set([
+      "/admin/messages", "/admin/payroll", "/admin/subscriptions", "/admin/notifications",
+      "/admin/classroom-change-requests", "/admin/subject-requests", "/admin/teacher-assignment",
+    ]),
+    teacher: new Set([
+      "/portal/teacher/requests", "/portal/teacher/payroll", "/portal/teacher/notifications",
+      "/portal/teacher/messages", "/portal/teacher/classrooms",
+    ]),
+    student: new Set([
+      "/portal/student/classrooms", "/portal/student/assignments", "/portal/student/evaluations",
+      "/portal/student/subscriptions", "/portal/student/notifications", "/portal/student/messages",
+      "/portal/student/subject-requests", "/portal/student/change-requests",
+    ]),
+    supervisor: new Set([
+      "/portal/supervisor/classrooms", "/portal/supervisor/notifications", "/portal/supervisor/messages",
+    ]),
+  };
   const hasUnreadForItem = (itemPath: string) => {
-    if (role === "teacher" || role === "student" || role === "supervisor") {
-      return itemPath === `/portal/${role}/classrooms` && hasLessonsToday;
-    }
+    const hasTodayClass = (role === "teacher" || role === "student" || role === "supervisor")
+      && itemPath === `/portal/${role}/classrooms`
+      && hasLessonsToday;
+    if (hasTodayClass) return true;
+    if (!importantSidebarPaths[role]?.has(itemPath)) return false;
     return notifications.some((notification) => {
       if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
       if (itemPath === "/portal/student/subscriptions" && notification.key !== "SUBSCRIPTION_EXPIRES_SOON") return false;
-      const notificationSidebarPaths = new Set(items.map((item) => item.path));
-      if (!notificationSidebarPaths.has(itemPath)) return false;
       if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;
       const targetPath = notificationLink(notification, role);
       if (!targetPath) return false;

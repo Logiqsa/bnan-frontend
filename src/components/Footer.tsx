@@ -29,15 +29,15 @@ const paymentMethods = [
   { src: tamaraImg, alt: "Tamara" },
 ];
 
-const socialHoverColors: Record<string, string> = {
-  instagram: "group-hover:text-[#E4405F]",
-  facebook: "group-hover:text-[#1877F2]",
-  x: "group-hover:text-white",
-  tiktok: "group-hover:text-[#25F4EE]",
-  youtube: "group-hover:text-[#FF0000]",
-  snapchat: "group-hover:text-[#FFFC00]",
-  linkedin: "group-hover:text-[#0A66C2]",
-  telegram: "group-hover:text-[#229ED9]",
+const socialHoverBackgrounds: Record<string, string> = {
+  instagram: "group-hover:bg-[#E4405F]",
+  facebook: "group-hover:bg-[#1877F2]",
+  x: "group-hover:bg-black",
+  tiktok: "group-hover:bg-[#25F4EE]",
+  youtube: "group-hover:bg-[#FF0000]",
+  snapchat: "group-hover:bg-[#FFFC00]",
+  linkedin: "group-hover:bg-[#0A66C2]",
+  telegram: "group-hover:bg-[#229ED9]",
 };
 
 const Footer = React.forwardRef<HTMLElement>((_, ref) => {
@@ -62,8 +62,8 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
             <div className="flex items-center gap-3 mt-4">
               {[...settings.socialLinks].filter((social) => social.isActive).sort((a, b) => a.order - b.order).map((social, index) => {
                 const label = socialPlatforms.find((platform) => platform.value === social.platform)?.label || social.platform;
-                return <a key={social.id || `${social.platform}-${index}`} href={social.url} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" className="group flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-foreground/15 hover:shadow-lg">
-                  <SocialPlatformIcon platform={social.platform} className={`h-4 w-4 text-primary-foreground/70 transition-colors duration-300 ${socialHoverColors[social.platform] || "group-hover:text-secondary"}`} />
+                return <a key={social.id || `${social.platform}-${index}`} href={social.url} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" className={`group flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${socialHoverBackgrounds[social.platform] || "group-hover:bg-secondary"}`}>
+                  <SocialPlatformIcon platform={social.platform} className={`h-4 w-4 text-primary-foreground/70 transition-colors duration-300 ${social.platform === "snapchat" ? "group-hover:text-slate-900" : "group-hover:text-white"}`} />
                 </a>;
               })}
             </div>

@@ -118,6 +118,12 @@ export default function TeacherClassroomSessions() {
   const navigate = useRouterNavigate();
   const { language } = useLanguage();
   const queryClient = useQueryClient();
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    initialTab && ["chat", "assignments", "recordings", "completed-sessions", "evaluations", "plans", "schedule", "zoom", "overview"].includes(initialTab)
+      ? initialTab
+      : "overview",
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<{ classroomSubjectId: string; subjectName: string } | null>(null);
@@ -321,7 +327,7 @@ export default function TeacherClassroomSessions() {
           )}
         </header>
 
-        <Tabs defaultValue={searchParams.get("tab") === "recordings" ? "recordings" : searchParams.get("tab") === "plans" ? "plans" : "overview"}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-8">
             <TabsTrigger value="chat">
               <MessageCircle className="me-1 h-4 w-4" />
@@ -370,16 +376,19 @@ export default function TeacherClassroomSessions() {
                 label="الجلسات القادمة"
                 value={sessions.isPending ? "…" : String(upcomingCount)}
                 icon={<CalendarDays className="h-5 w-5" />}
+                onClick={() => setActiveTab("schedule")}
               />
               <SummaryCard
                 label="التسجيلات"
                 value={recordings.isPending ? "…" : String(recordings.data?.length || 0)}
                 icon={<Video className="h-5 w-5" />}
+                onClick={() => setActiveTab("recordings")}
               />
               <SummaryCard
                 label="الواجبات"
                 value={assignments.isPending ? "…" : String(assignments.data?.length || 0)}
                 icon={<FileText className="h-5 w-5" />}
+                onClick={() => setActiveTab("assignments")}
               />
               <Card>
                 <CardContent className="flex h-full items-center justify-between gap-3 p-5">
@@ -732,9 +741,15 @@ export default function TeacherClassroomSessions() {
   );
 }
 
-function SummaryCard({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+function SummaryCard({ label, value, icon, onClick }: { label: string; value: string; icon: ReactNode; onClick?: () => void }) {
   return (
-    <Card>
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onClick(); } } : undefined}
+      className={onClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" : undefined}
+    >
       <CardContent className="flex items-center justify-between p-5">
         <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>
         <span className="rounded-xl bg-primary/10 p-3 text-primary">{icon}</span>

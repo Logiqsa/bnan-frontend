@@ -590,7 +590,7 @@ const SidebarContent = ({
   const items = roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
-  const scheduleRoles = role === "teacher" || role === "student";
+  const scheduleRoles = role === "teacher" || role === "student" || role === "supervisor";
   const scheduleModes = user?.registrationModes || (
     user?.registrationMode ? [user.registrationMode] : undefined
   );
@@ -619,7 +619,7 @@ const SidebarContent = ({
     (account) => account.user.id !== user?.id,
   );
   const hasUnreadForItem = (itemPath: string) => {
-    if (role === "teacher" || role === "student") {
+    if (role === "teacher" || role === "student" || role === "supervisor") {
       return itemPath === `/portal/${role}/classrooms` && hasLessonsToday;
     }
     return notifications.some((notification) => {

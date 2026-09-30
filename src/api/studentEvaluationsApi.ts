@@ -7,6 +7,8 @@ export type StudentEvaluationRole = "teacher" | "supervisor";
 export interface StudentEvaluationValue {
   id: string;
   attendance: StudentEvaluationAttendance;
+  attendanceAttended?: number | null;
+  attendanceTotal?: number | null;
   participation: StudentEvaluationRating;
   homework: StudentEvaluationRating;
   homeworkScore?: number | null;

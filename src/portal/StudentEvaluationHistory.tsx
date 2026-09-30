@@ -38,7 +38,7 @@ function EvaluationDetails({ evaluation }: { evaluation: StudentEvaluationValue 
   const updatedAt = formattedDate(evaluation.updatedAt, locale, true);
   return <div className="space-y-4">
     <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      <Metric label={pick("الحضور", "Attendance")} value={attendanceLabels[evaluation.attendance]} />
+      <Metric label={pick("الحضور", "Attendance")} value={attendanceLabels[evaluation.attendance]} subvalue={evaluation.attendanceAttended != null && evaluation.attendanceTotal != null ? `${pick("حضر", "Attended")} ${evaluation.attendanceAttended}/${evaluation.attendanceTotal}` : undefined} />
       <Metric label={pick("المشاركة", "Participation")} value={ratingLabels[evaluation.participation]} />
       <Metric label={pick("الواجب", "Homework")} value={ratingLabels[evaluation.homework]} />
       {evaluation.homeworkScore != null && evaluation.homeworkTotalPoints != null && <Metric label={pick("درجة الواجب", "Homework score")} value={`${evaluation.homeworkScore} / ${evaluation.homeworkTotalPoints}`} />}
@@ -57,7 +57,7 @@ function EvaluationDetails({ evaluation }: { evaluation: StudentEvaluationValue 
   </div>;
 }
 
-const Metric = ({ label, value }: { label: string; value: string }) => <div className="min-w-0 rounded-xl bg-muted/50 p-3 text-center"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-semibold">{value}</dd></div>;
+const Metric = ({ label, value, subvalue }: { label: string; value: string; subvalue?: string }) => <div className="min-w-0 rounded-xl bg-muted/50 p-3 text-center"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 break-words font-semibold">{value}</dd>{subvalue && <p className="mt-1 text-xs font-medium text-primary">{subvalue}</p>}</div>;
 
 function WeekSection({ response }: { response: StudentEvaluationsResponse }) {
   const { isArabic, pick } = useLanguage();

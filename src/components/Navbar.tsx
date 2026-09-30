@@ -53,14 +53,14 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 right-0 left-0 z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant">
       <div className="container mx-auto px-4">
-        <div className="flex h-18 items-center justify-between gap-4">
+        <div className="relative flex h-18 items-center justify-between gap-4">
           {/* Logo */}
           <a href="/" className="flex items-center">
             <img src={logoImg} alt="BNAN Online Academy" className="h-16 w-auto object-contain" />
           </a>
 
           {/* Desktop Links */}
-          <div className="hidden min-w-0 flex-1 items-center justify-center gap-5 lg:flex xl:gap-8">
+          <div className="absolute left-1/2 hidden -translate-x-1/2 items-center justify-center gap-5 whitespace-nowrap lg:flex xl:gap-8">
             {navLinks.map((link) => (
               <a
                 key={link.label}

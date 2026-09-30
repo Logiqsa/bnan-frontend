@@ -52,7 +52,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
               {[...settings.socialLinks].filter((social) => social.isActive).sort((a, b) => a.order - b.order).map((social, index) => {
                 const label = socialPlatforms.find((platform) => platform.value === social.platform)?.label || social.platform;
                 return <a key={social.id || `${social.platform}-${index}`} href={social.url} aria-label={label} title={label} target="_blank" rel="noopener noreferrer" data-social-platform={social.platform} className="footer-social-link group flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                  <SocialPlatformIcon platform={social.platform} className={`h-4 w-4 text-primary-foreground/70 transition-colors duration-300 ${social.platform === "snapchat" ? "group-hover:text-slate-900" : "group-hover:text-white"}`} />
+                  <SocialPlatformIcon platform={social.platform} className="h-4 w-4 text-primary-foreground/70 transition-colors duration-300 group-hover:text-white" />
                 </a>;
               })}
             </div>

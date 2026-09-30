@@ -49,6 +49,7 @@ import { notificationLink } from "@/hooks/useNotifications";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
 
 interface NavItem {
   label: string;
@@ -589,6 +590,10 @@ const SidebarContent = ({
   const items = roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
+  const { hasLessonsToday } = useTeacherUpcomingSessions(
+    role === "teacher" ? user?.registrationModes : undefined,
+    role === "teacher",
+  );
   const navRef = useRef<HTMLElement>(null);
   const scrollStorageKey = `bnan_sidebar_scroll_${role}`;
 
@@ -609,24 +614,22 @@ const SidebarContent = ({
   const switchableAccounts = rememberedAccounts.filter(
     (account) => account.user.id !== user?.id,
   );
-  const hasUnreadForItem = (itemPath: string) => notifications.some((notification) => {
-    if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
-    const notificationSidebarPaths = role === "teacher"
-      ? new Set([
-          "/portal/teacher/notifications",
-          "/portal/teacher/payroll",
-          "/portal/teacher/requests",
-          "/portal/teacher/messages",
-        ])
-      : new Set(items.map((item) => item.path));
-    if (!notificationSidebarPaths.has(itemPath)) return false;
-    if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;
-    const targetPath = notificationLink(notification, role);
-    if (!targetPath) return false;
-    if (itemPath.includes("?")) return targetPath === itemPath;
-    const targetBasePath = targetPath.split("?")[0];
-    return targetBasePath === itemPath || targetBasePath.startsWith(`${itemPath}/`);
-  });
+  const hasUnreadForItem = (itemPath: string) => {
+    if (role === "teacher") {
+      return itemPath === "/portal/teacher/classrooms" && hasLessonsToday;
+    }
+    return notifications.some((notification) => {
+      if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
+      const notificationSidebarPaths = new Set(items.map((item) => item.path));
+      if (!notificationSidebarPaths.has(itemPath)) return false;
+      if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;
+      const targetPath = notificationLink(notification, role);
+      if (!targetPath) return false;
+      if (itemPath.includes("?")) return targetPath === itemPath;
+      const targetBasePath = targetPath.split("?")[0];
+      return targetBasePath === itemPath || targetBasePath.startsWith(`${itemPath}/`);
+    });
+  };
   const [switchingName, setSwitchingName] = useState("");
   const chooseAccount = (account: (typeof switchableAccounts)[number]) => {
     setSwitchingName(account.user.fullName);

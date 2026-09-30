@@ -22,6 +22,7 @@ const lessonDateTime = (lesson: PortalLesson, time: string) => {
 
 export const useTeacherUpcomingSessions = (
   registrationModes?: RegistrationMode[],
+  enabled = true,
 ) => {
   const modes = useMemo<RegistrationMode[]>(() => {
     const supported = (registrationModes || []).filter(
@@ -37,6 +38,7 @@ export const useTeacherUpcomingSessions = (
       ...(modes.length ? modes : [undefined]).map((mode) => ({
         queryKey: ["teacher-schedule", mode || "all", weekStart] as const,
         queryFn: () => getUnifiedScheduleWeek(weekStart, mode),
+        enabled,
         staleTime: 30_000,
         retry: 1,
       })),
@@ -71,6 +73,14 @@ export const useTeacherUpcomingSessions = (
       .slice(0, 5);
   }, [queries]);
 
+  const hasLessonsToday = useMemo(() => {
+    const today = dateKey(new Date());
+    return queries.some((query) => {
+      const data = query.data as { lessons?: PortalLesson[] } | undefined;
+      return data?.lessons?.some((lesson) => lesson.date === today) ?? false;
+    });
+  }, [queries]);
+
   const failedSources = queries.filter((query) => query.isError).length;
   return {
     lessons,
@@ -78,6 +88,7 @@ export const useTeacherUpcomingSessions = (
     isFetching: queries.some((query) => query.isFetching),
     failedSources,
     allSourcesFailed: failedSources === queries.length,
+    hasLessonsToday,
     retry: () => Promise.all(queries.map((query) => query.refetch())),
   };
 };

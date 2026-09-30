@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { BarChart3, CalendarDays, RefreshCw } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import {
@@ -94,6 +95,7 @@ const errorMessage = (error: unknown) => {
 
 export default function StudentEvaluationHistory() {
   const { pick } = useLanguage();
+  const [loadingWeek, setLoadingWeek] = useState<number | null>(null);
   const query = useInfiniteQuery({
     queryKey: studentEvaluationKeys.all,
     initialPageParam: null as number | null,
@@ -106,9 +108,30 @@ export default function StudentEvaluationHistory() {
   if (!query.data) return <DashboardLayout><div className="mx-auto grid min-h-[55vh] w-full max-w-3xl place-items-center"><Card className="w-full"><CardContent className="flex flex-col items-center gap-4 p-8 text-center"><p className="font-semibold text-destructive">{errorMessage(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card></div></DashboardLayout>;
 
   const pages = Array.from(new Map(query.data.pages.map((page) => [page.data.week, page])).values());
+  const latestWeek = pages[0]?.data.week || 1;
   const reachedFirstWeek = pages.some((page) => page.data.week === 1);
+  const loadWeek = async (week: number) => {
+    if (pages.some((page) => page.data.week === week)) {
+      document.getElementById(`evaluation-week-${week}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setLoadingWeek(week);
+    try {
+      let result = query.data;
+      while (result?.pages.every((page) => page.data.week !== week) && result?.pages[0]?.data.week > week && result.pages.length > 0) {
+        const next = await query.fetchNextPage();
+        result = next.data;
+        if (!next.hasNextPage) break;
+      }
+      window.setTimeout(() => document.getElementById(`evaluation-week-${week}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    } finally {
+      setLoadingWeek(null);
+    }
+  };
+  const weekButtons = Array.from({ length: latestWeek }, (_, index) => latestWeek - index);
   return <DashboardLayout><div className="mx-auto w-full max-w-6xl space-y-6">
     <header className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6"><div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><BarChart3 className="h-5 w-5" /></span><div className="min-w-0"><h1 className="text-2xl font-bold">{pick("سجل التقييمات", "Evaluation history")}</h1><p className="mt-1 break-words text-sm text-muted-foreground">{pick("تابع تقييماتك الأسبوعية حسب البيانات المسجلة.", "Review your recorded weekly evaluations.")}</p></div></div></header>
+    <div className="flex gap-2 overflow-x-auto rounded-xl border bg-card p-2" aria-label={pick("الأسابيع المتاحة للتقييم", "Available evaluation weeks")}>{weekButtons.map((week) => <Button key={week} type="button" size="sm" variant={pages.some((page) => page.data.week === week) ? "default" : "outline"} aria-label={pick(`تحميل تقييم الأسبوع ${week}`, `Load week ${week}`)} disabled={loadingWeek !== null} onClick={() => void loadWeek(week)}>{loadingWeek === week ? "…" : week}</Button>)}</div>
     {pages.map((page) => <WeekSection key={page.data.week} response={page} />)}
     {query.isFetchNextPageError && <Card><CardContent className="flex flex-col items-center gap-3 p-6 text-center"><p className="text-sm text-destructive">{errorMessage(query.error)}</p><Button variant="outline" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}><RefreshCw className="h-4 w-4" />{pick("إعادة محاولة تحميل الأسبوع السابق", "Retry previous week")}</Button></CardContent></Card>}
     {!query.isFetchNextPageError && <div className="flex justify-center">{reachedFirstWeek || !query.hasNextPage ? <p className="rounded-xl bg-muted/50 px-5 py-3 text-sm text-muted-foreground">{pick("لا توجد أسابيع أقدم", "No older weeks")}</p> : <Button variant="outline" onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>{query.isFetchingNextPage ? pick("جاري تحميل الأسبوع السابق...", "Loading previous week...") : pick("تحميل الأسبوع السابق", "Load previous week")}</Button>}</div>}

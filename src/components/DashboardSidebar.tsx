@@ -625,10 +625,10 @@ const SidebarContent = ({
     ]),
     teacher: new Set([
       "/portal/teacher/requests", "/portal/teacher/payroll", "/portal/teacher/notifications",
-      "/portal/teacher/messages", "/portal/teacher/classrooms",
+      "/portal/teacher/messages",
     ]),
     student: new Set([
-      "/portal/student/classrooms", "/portal/student/assignments", "/portal/student/evaluations",
+      "/portal/student/assignments", "/portal/student/evaluations",
       "/portal/student/subscriptions", "/portal/student/notifications", "/portal/student/messages",
       "/portal/student/subject-requests", "/portal/student/change-requests",
     ]),
@@ -638,14 +638,21 @@ const SidebarContent = ({
   };
   const hasUnreadForItem = (itemPath: string) => {
     const hasTodayClass = (role === "teacher" || role === "student" || role === "supervisor")
-      && itemPath === `/portal/${role}/classrooms`
+      && itemPath === `/portal/${role}/schedule`
       && hasLessonsToday;
     if (hasTodayClass) return true;
     if (!importantSidebarPaths[role]?.has(itemPath)) return false;
     return notifications.some((notification) => {
-      if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
+      if (notification.isRead) return false;
+      const target = notification.navigation?.target || notification.navigation?.screen;
+      const isNotificationsPage = itemPath === "/admin/notifications" || itemPath.endsWith("/notifications");
+      if (isNotificationsPage) return true;
+      const isMessageNotification = notification.key === "NEW_MESSAGE"
+        || notification.type === "chat_room"
+        || target === "chat_room";
+      if (itemPath.endsWith("/messages")) return isMessageNotification;
+      if (!importantNotificationKeys[role]?.has(notification.key)) return false;
       if (itemPath === "/portal/student/subscriptions" && notification.key !== "SUBSCRIPTION_EXPIRES_SOON") return false;
-      if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;
       const targetPath = notificationLink(notification, role);
       if (!targetPath) return false;
       if (itemPath.includes("?")) return targetPath === itemPath;

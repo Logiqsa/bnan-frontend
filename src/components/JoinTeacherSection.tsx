@@ -42,9 +42,9 @@ const JoinTeacherSection = React.forwardRef<HTMLElement>((_, ref) => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-primary-foreground/5 border border-primary-foreground/10"
+                className="group flex flex-col items-center gap-2 rounded-xl border border-primary-foreground/10 bg-primary-foreground/5 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-secondary/50 hover:bg-secondary/15 hover:shadow-[0_10px_30px_rgba(94,199,239,0.14)]"
               >
-                <perk.icon className="w-6 h-6 text-secondary" />
+                <perk.icon className="h-6 w-6 text-secondary transition-transform duration-300 group-hover:scale-110 group-hover:text-white" />
                 <span className="text-xs font-tajawal text-primary-foreground/80 text-center">{perk.text}</span>
               </motion.div>
             ))}

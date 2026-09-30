@@ -79,7 +79,7 @@ const AllCurricula = () => {
               ) : curriculums.length === 0 ? (
                 <p className="text-center text-muted-foreground py-12">لا توجد مناهج متاحة حاليًا</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-6">
                   {curriculums.map((c, index) => (
                     <motion.div
                       key={c.id}
@@ -87,7 +87,7 @@ const AllCurricula = () => {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.1 }}
-                      className="bg-card rounded-2xl shadow-elegant border border-border/40 overflow-hidden hover:shadow-lg transition-shadow"
+                      className="w-full overflow-hidden rounded-2xl border border-border/40 bg-card shadow-elegant transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:bg-secondary/[0.03] hover:shadow-xl sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
                     >
                       <div className="flex items-center justify-center py-8 bg-muted/30">
                         {c.icon && (

@@ -449,6 +449,31 @@ const roleLabels: Record<string, string> = {
   supervisor: "مشرف",
 };
 
+const importantNotificationKeys: Record<string, Set<string>> = {
+  admin: new Set([
+    "NEW_MESSAGE", "EGYPTIAN_STUDENT_REGISTRATION_REQUEST", "GULF_NEW_CUSTOMER_REGISTERED",
+    "TEACHER_REGISTRATION_REQUEST", "CLASSROOM_CHANGE_REQUESTED", "COURSE_REGISTRATION_REQUESTED",
+    "STUDENT_SUBJECT_REQUESTED", "EGYPTIAN_PAYMENT_CONFIRMED", "PAYMENT_SUCCESS",
+    "TEACHER_ASSIGNMENT", "SUPERVISOR_CLASSROOM_ASSIGNED", "PLATFORM_IMPORTANT_ANNOUNCEMENT",
+  ]),
+  teacher: new Set([
+    "NEW_MESSAGE", "ASSIGNMENT_SUBMITTED", "WEEKLY_EVALUATION_TEACHER_REMINDER",
+    "TEACHER_ASSIGNMENT", "TEACHER_CLASSROOM_CHANGE_REQUESTED", "TEACHER_PAYROLL_READY",
+  ]),
+  student: new Set([
+    "NEW_MESSAGE", "HOMEWORK_CREATED", "HOMEWORK_GRADED", "CLASS_REMINDER", "CLASS_STARTED",
+    "CLASS_CANCELLED", "CLASS_RESCHEDULED", "RECORDING_READY", "EVALUATION_CREATED",
+    "PAYMENT_SUCCESS", "SUBSCRIPTION_STARTED", "SUBSCRIPTION_EXPIRES_SOON",
+    "SUBSCRIPTION_HOURS_LOW", "STUDENT_ABSENT", "STUDENT_LATE", "STUDENT_ATTENDANCE_UPDATED",
+    "CLASSROOM_CHANGE_REQUEST_DECIDED", "STUDENT_ACCEPTED_IN_CLASSROOM", "PLATFORM_IMPORTANT_ANNOUNCEMENT",
+  ]),
+  supervisor: new Set([
+    "NEW_MESSAGE", "WEEKLY_EVALUATION_SUPERVISOR_REMINDER", "SUPERVISOR_CLASSROOM_ASSIGNED",
+    "SUPERVISOR_CLASSROOM_UNASSIGNED", "CLASSROOM_SCHEDULE_CREATED", "CLASSROOM_SCHEDULE_CHANGED",
+    "CLASSROOM_SCHEDULE_CANCELLED", "PLATFORM_IMPORTANT_ANNOUNCEMENT",
+  ]),
+};
+
 // Exported so nested Admin route highlighting can be verified independently.
 // eslint-disable-next-line react-refresh/only-export-components
 export const isItemActive = (itemPath: string, pathname: string, search: string) => {
@@ -585,15 +610,17 @@ const SidebarContent = ({
     (account) => account.user.id !== user?.id,
   );
   const hasUnreadForItem = (itemPath: string) => notifications.some((notification) => {
-    if (role !== "teacher" || notification.isRead) return false;
-    const notificationSidebarPaths = new Set([
-      "/portal/teacher/notifications",
-      "/portal/teacher/payroll",
-      "/portal/teacher/requests",
-      "/portal/teacher/messages",
-    ]);
+    if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;
+    const notificationSidebarPaths = role === "teacher"
+      ? new Set([
+          "/portal/teacher/notifications",
+          "/portal/teacher/payroll",
+          "/portal/teacher/requests",
+          "/portal/teacher/messages",
+        ])
+      : new Set(items.map((item) => item.path));
     if (!notificationSidebarPaths.has(itemPath)) return false;
-    if (itemPath === "/portal/teacher/notifications") return true;
+    if (itemPath.endsWith("/notifications") || itemPath === "/admin/notifications") return true;
     const targetPath = notificationLink(notification, role);
     if (!targetPath) return false;
     if (itemPath.includes("?")) return targetPath === itemPath;

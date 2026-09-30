@@ -68,6 +68,8 @@ const studentNotificationRoutes: Record<string, string> = {
   session_summary: "/portal/student/schedule",
   global_notification_details: "/portal/student/notifications",
   chat_room: "/portal/student/messages",
+  student_evaluations: "/portal/student/evaluations",
+  subscription: "/portal/student/subscriptions",
 };
 
 const notificationParam = (

@@ -8,7 +8,7 @@
   .footer-social-link[data-social-platform="instagram"]:hover { background-color: #e4405f; }
   .footer-social-link[data-social-platform="facebook"]:hover { background-color: #1877f2; }
   .footer-social-link[data-social-platform="x"]:hover { background-color: #000; }
-  .footer-social-link[data-social-platform="tiktok"]:hover { background-color: #25f4ee; }
+  .footer-social-link[data-social-platform="tiktok"]:hover { background-color: #000; }
   .footer-social-link[data-social-platform="youtube"]:hover { background-color: #f00; }
   .footer-social-link[data-social-platform="snapchat"]:hover { background-color: #fffc00; }
   .footer-social-link[data-social-platform="linkedin"]:hover { background-color: #0a66c2; }

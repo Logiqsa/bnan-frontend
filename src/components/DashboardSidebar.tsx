@@ -590,9 +590,13 @@ const SidebarContent = ({
   const items = roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
+  const scheduleRoles = role === "teacher" || role === "student";
+  const scheduleModes = user?.registrationModes || (
+    user?.registrationMode ? [user.registrationMode] : undefined
+  );
   const { hasLessonsToday } = useTeacherUpcomingSessions(
-    role === "teacher" ? user?.registrationModes : undefined,
-    role === "teacher",
+    scheduleRoles ? scheduleModes : undefined,
+    scheduleRoles,
   );
   const navRef = useRef<HTMLElement>(null);
   const scrollStorageKey = `bnan_sidebar_scroll_${role}`;
@@ -615,8 +619,8 @@ const SidebarContent = ({
     (account) => account.user.id !== user?.id,
   );
   const hasUnreadForItem = (itemPath: string) => {
-    if (role === "teacher") {
-      return itemPath === "/portal/teacher/classrooms" && hasLessonsToday;
+    if (role === "teacher" || role === "student") {
+      return itemPath === `/portal/${role}/classrooms` && hasLessonsToday;
     }
     return notifications.some((notification) => {
       if (notification.isRead || !importantNotificationKeys[role]?.has(notification.key)) return false;

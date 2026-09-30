@@ -36,6 +36,7 @@ import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import AssignmentAttachmentPreview from "@/components/AssignmentAttachmentPreview";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
+import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import ClassroomEvaluations from "@/portal/ClassroomEvaluations";
 import ClassroomPlansPanel from "@/components/ClassroomPlansPanel";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -173,6 +174,7 @@ export default function TeacherClassroomSessions() {
     () => subjects.data?.subjects || [],
     [subjects.data?.subjects],
   );
+  const isPrivateClassroom = subjects.isSuccess && subjects.data?.sourceType !== "course";
   const classroomName = subjects.data?.classroom?.name || "";
   const leaveRequestsBySubject = useMemo(
     () =>
@@ -349,6 +351,12 @@ export default function TeacherClassroomSessions() {
               <CalendarDays className="me-1 h-4 w-4" />
               الجدول
             </TabsTrigger>
+            {isPrivateClassroom && (
+              <TabsTrigger value="zoom">
+                <Video className="me-1 h-4 w-4" />
+                Zoom
+              </TabsTrigger>
+            )}
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
           </TabsList>
 
@@ -496,6 +504,12 @@ export default function TeacherClassroomSessions() {
           <TabsContent value="schedule" className="mt-5">
             <ClassroomScheduleManagement classroomId={classroomId} embedded />
           </TabsContent>
+
+          {isPrivateClassroom && (
+            <TabsContent value="zoom" className="mt-5">
+              <ClassroomZoomManagement classroomId={classroomId} embedded teacherMode />
+            </TabsContent>
+          )}
 
           <TabsContent value="recordings" className="mt-5">
             {recordings.isPending ? (

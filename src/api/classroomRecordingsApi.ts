@@ -18,6 +18,7 @@ export interface ClassroomOption {
   grade?: { id: string; _id?: string; name: string };
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string } | string | null;
+  sourceType?: "legacy" | "course";
   student?: { id?: string; name?: string; fullName?: string } | string | null;
   students?: Array<{ id?: string; name?: string; fullName?: string }>;
   schedule?: {
@@ -224,7 +225,7 @@ export const classroomRecordingsApi = {
   },
 
   listSubjects: (classroomId: string) =>
-    apiRequest<{ success: true; data: { subjects: ClassroomSubjectOption[] } }>(
+    apiRequest<{ success: true; data: { subjects: ClassroomSubjectOption[]; sourceType?: "legacy" | "course" } }>(
       `/classrooms/${classroomId}/subjects`,
     ),
 

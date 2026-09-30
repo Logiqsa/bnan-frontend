@@ -46,6 +46,7 @@ const getMeeting = (classroom?: ClassroomZoomDetails | null, generated?: Generat
 const safeError = (error: unknown, pick: (ar: string, en: string) => string) => {
   const apiError = error as ApiError;
   const messages: Record<string, string> = {
+    TEACHER_PRIVATE_CLASSROOM_ZOOM_ONLY: pick("ربط Zoom متاح للمعلم داخل الفصول الخاصة المعيّن عليها فقط.", "Teachers can link Zoom only for private classrooms assigned to them."),
     ZOOM_ACCOUNT_SCHEDULE_CONFLICT: pick("حساب Zoom المحدد لم يعد متاحًا لجدول هذا الفصل.", "The selected Zoom account is no longer available for this classroom schedule."),
     ZOOM_ACCOUNT_ALREADY_CLAIMED: pick("تم حجز حساب Zoom للتو. تم تحديث قائمة التوفر.", "This Zoom account was just claimed. Availability has been refreshed."),
     ZOOM_PROVISIONING_IN_PROGRESS: pick("إنشاء اجتماع Zoom قيد التنفيذ. انتظر قليلًا ثم حدّث الصفحة.", "Zoom meeting provisioning is in progress. Please wait, then refresh."),
@@ -225,9 +226,11 @@ function ClassroomDetailHeader({ item }: { item: ClassroomOption }) {
 export default function ClassroomZoomManagement({
   classroomId: classroomIdProp,
   embedded = false,
+  teacherMode = false,
 }: {
   classroomId?: string;
   embedded?: boolean;
+  teacherMode?: boolean;
 } = {}) {
   const { isArabic, pick } = useLanguage();
   const { user } = usePortalAuth();
@@ -244,7 +247,10 @@ export default function ClassroomZoomManagement({
   const [curriculumId, setCurriculumId] = useState("");
   const [gradeId, setGradeId] = useState("");
   const [filter, setFilter] = useState<ClassroomFilter>("all");
-  const manualClassrooms = useMemo(() => classrooms.filter((item) => item.zoomAssignmentMode === "manual"), [classrooms]);
+  const manualClassrooms = useMemo(
+    () => classrooms.filter((item) => item.zoomAssignmentMode === "manual" && (!teacherMode || user?.role === "teacher")),
+    [classrooms, teacherMode, user?.role],
+  );
   const selected = useMemo(
     () => (classroomIdProp ? classrooms : manualClassrooms).find((item) => item.id === classroomId),
     [classroomId, classroomIdProp, classrooms, manualClassrooms],

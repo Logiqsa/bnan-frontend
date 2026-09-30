@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -23,16 +24,13 @@ const CTASection = React.forwardRef<HTMLElement>((_, ref) => {
             انضم إلى آلاف الطلاب الذين يثقون في BNAN Academy لتحقيق التفوق الدراسي
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/portal/teacher/signup">
+            <Link to="/register">
               <Button size="lg" className="font-cairo text-lg bg-secondary text-secondary-foreground shadow-sky hover:bg-secondary/90 px-10">
-                سجل كمعلم
+                سجل الآن
                 <ArrowLeft className="w-5 h-5 mr-2" />
               </Button>
-            </a>
+            </Link>
           </div>
-          <p className="text-sm font-tajawal mt-4 text-primary-foreground/60">
-            تسجيل الطلاب متاح عبر تطبيق أكاديمية بنان
-          </p>
         </motion.div>
       </div>
     </section>

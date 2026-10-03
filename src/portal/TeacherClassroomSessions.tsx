@@ -311,7 +311,9 @@ export default function TeacherClassroomSessions() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <ClassroomSessionActions classroomId={classroomId} />
+              {subjects.data?.sourceType !== "course" && (
+                <ClassroomSessionActions classroomId={classroomId} />
+              )}
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to="/portal/teacher/classrooms">
                   <ArrowRight className="me-2 h-4 w-4" />

@@ -277,7 +277,6 @@ export default function CourseClassroomChat({
         <div className="border-b bg-muted/30 p-3">
           <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-2">
             <span className="h-5 w-32 animate-pulse rounded bg-muted" />
-            <ClassroomSessionActions classroomId={classroomId} />
           </div>
         </div>
         <div className="grid min-h-0 flex-1 place-items-center text-muted-foreground">
@@ -308,7 +307,6 @@ export default function CourseClassroomChat({
           <span className="min-w-0 truncate font-semibold">
             {rooms.data?.displayName || "محادثة الدورة"}
           </span>
-          <ClassroomSessionActions classroomId={classroomId} />
         </div>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-6">

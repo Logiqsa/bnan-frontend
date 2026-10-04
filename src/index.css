@@ -329,6 +329,7 @@
   direction: ltr;
   width: max-content;
   min-width: max-content;
+  gap: 0;
   will-change: transform;
 }
 
@@ -336,6 +337,14 @@
   direction: rtl;
   flex: 0 0 auto;
   width: max-content;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.announcement-banner:hover .announcement-banner-marquee,
+.announcement-banner:focus-within .announcement-banner-marquee {
+  animation-play-state: paused;
 }
 
 @media (prefers-reduced-motion: reduce) {

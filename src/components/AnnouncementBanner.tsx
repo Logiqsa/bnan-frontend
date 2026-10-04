@@ -36,6 +36,6 @@ export default function AnnouncementBanner() {
 
   return <aside dir={isArabic ? "rtl" : "ltr"} className="relative z-50 flex items-center overflow-hidden border-b border-primary/30 bg-primary text-primary-foreground" aria-label={pick("إعلانات العروض", "Offer announcements")}>
     <div className="min-w-0 flex-1 overflow-hidden"><div className="announcement-banner-marquee flex w-max items-center">{renderAnnouncements()} {renderAnnouncements(true)}</div></div>
-    {announcements.some((announcement) => announcement.bannerDismissible !== false) && <Button type="button" variant="ghost" size="icon" onClick={dismiss} className="mx-2 h-7 w-7 shrink-0 hover:bg-black/10" aria-label={pick("إغلاق الإعلان", "Dismiss announcements")}><X className="h-4 w-4" /></Button>}
+    {announcements.some((announcement) => announcement.bannerDismissible !== false) && <Button type="button" variant="ghost" size="icon" onClick={dismiss} className="mx-2 h-7 w-7 shrink-0 text-red-200 hover:bg-red-500/30 hover:text-red-50" aria-label={pick("إغلاق الإعلان", "Dismiss announcements")}><X className="h-4 w-4" /></Button>}
   </aside>;
 }

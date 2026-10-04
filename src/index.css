@@ -321,7 +321,7 @@
 
 @keyframes announcement-banner-marquee {
   from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(calc(var(--announcement-cycle-width) * -1), 0, 0); }
+  to { transform: translate3d(calc(var(--announcement-sequence-width) * -1), 0, 0); }
 }
 
 .announcement-banner-marquee {
@@ -333,7 +333,11 @@
   will-change: transform;
 }
 
-.announcement-banner-track {
+.announcement-banner-viewport {
+  position: relative;
+}
+
+.announcement-banner-sequence {
   direction: ltr;
   flex: 0 0 auto;
   width: max-content;
@@ -344,12 +348,11 @@
 
 .announcement-banner-measure {
   position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: max-content;
   visibility: hidden;
   pointer-events: none;
-}
-
-.announcement-banner-cycle {
-  min-width: max-content;
 }
 
 .announcement-banner:hover .announcement-banner-marquee,

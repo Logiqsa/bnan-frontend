@@ -469,7 +469,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
               aria-label={pick("المحادثة المحددة", "Selected conversation")}
             >
               {selectedRoomId && (
-                <div className="flex min-w-0 flex-wrap items-center gap-3 border-b bg-card p-3 md:p-4">
+                <div className="flex min-w-0 items-center gap-3 border-b bg-card p-3 md:p-4">
                   <Button
                     type="button"
                     size="icon"
@@ -480,7 +480,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                   >
                     <ArrowRight className="h-5 w-5" />
                   </Button>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h2 className="break-words text-sm font-semibold sm:text-base">
                       {selectedRoom?.displayName || pick("محادثة", "Conversation")}
                     </h2>

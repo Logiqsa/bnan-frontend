@@ -251,7 +251,7 @@ const StudentMessages = () => {
                   <Button type="button" size="icon" variant="ghost" className="shrink-0 md:hidden" onClick={() => setSelectedRoomId(null)} aria-label={pick("العودة إلى المحادثات", "Back to conversations")}>
                     <ArrowRight className="h-5 w-5" />
                   </Button>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h2 className="break-words text-sm font-semibold sm:text-base">{selectedRoom.displayName || pick("محادثة", "Conversation")}</h2>
                     {selectedRoom.subtitle && <p className="mt-0.5 break-words text-xs text-muted-foreground">{selectedRoom.subtitle}</p>}
                   </div>

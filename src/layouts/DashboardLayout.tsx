@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NotificationsProvider from "@/contexts/NotificationsProvider";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const NotificationsEnabledContent = ({ children }: { children: ReactNode }) => (
   <NotificationsProvider>{children}</NotificationsProvider>
@@ -33,7 +32,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               <NotificationsBell role={user.role} />
             </div>
           )}
-          <AnnouncementBanner />
           {children}
         </div>
       </main>

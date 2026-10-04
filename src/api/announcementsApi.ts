@@ -14,6 +14,7 @@ export interface AnnouncementItem {
   bannerStartsAt?: string | null;
   bannerEndsAt?: string | null;
   bannerDismissible?: boolean;
+  bannerColor?: string;
   publishedAt?: string | null;
   createdAt?: string;
 }
@@ -28,6 +29,7 @@ export interface AnnouncementPayload {
   bannerStartsAt?: string;
   bannerEndsAt?: string;
   bannerDismissible: boolean;
+  bannerColor?: string;
 }
 
 export const announcementsApi = {

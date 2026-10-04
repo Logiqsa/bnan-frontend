@@ -958,13 +958,6 @@ export default function StudentSignup({
                           <span className="font-cairo font-semibold">
                             {c.name}
                           </span>
-                          <span className="block text-xs text-muted-foreground mt-1">
-                            {courseOnly
-                              ? "لتخصيص بيانات الطالب والدورات المناسبة"
-                              : c.registrationMode === "gulf"
-                                ? "دفع فوري عبر البطاقة أو Tamara"
-                                : "مراجعة وتفعيل يدوي"}
-                          </span>
                         </button>
                       ))}
                     </div>
@@ -1210,7 +1203,7 @@ export default function StudentSignup({
                     <h3 className="font-cairo font-bold mb-1">
                       {mode === "gulf"
                         ? isSharedSubjectPackage
-                          ? "اختر مادتين أو أكثر *"
+                          ? "اختر موادك *"
                           : "اختر مادة واحدة *"
                         : isSingleSubjectPackage
                           ? "اختر مادة واحدة *"
@@ -1219,7 +1212,7 @@ export default function StudentSignup({
                     <p className="text-sm text-muted-foreground font-tajawal mb-3">
                       {mode === "gulf"
                         ? isSharedSubjectPackage
-                          ? "حدد مادتين أو أكثر للباقة المشتركة؛ سيتم الدفع مرة واحدة للباقة."
+                          ? "يمكنك تقسيم الباقة على أكثر من مادة؛ سيتم الدفع مرة واحدة للباقة."
                           : "حدد المادة التي يرغب الطالب في دراستها."
                         : isSingleSubjectPackage
                           ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة."

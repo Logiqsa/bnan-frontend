@@ -15,6 +15,7 @@ export default function AnnouncementBanner() {
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchInterval: 30 * 1000,
+    refetchOnMount: "always",
   });
   const announcements = query.data?.data || [];
 
@@ -25,8 +26,11 @@ export default function AnnouncementBanner() {
 
   const renderAnnouncements = (hidden = false) => <div aria-hidden={hidden} className="announcement-banner-track flex min-w-max items-center">{announcements.map((announcement) => announcement.bannerLink ? <Link key={announcement.id} to={announcement.bannerLink} className="block transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{contentFor(announcement)}</Link> : <span key={announcement.id}>{contentFor(announcement)}</span>)}</div>;
 
-  return <aside dir={isArabic ? "rtl" : "ltr"} className="relative z-50 flex items-center overflow-hidden border-b border-primary/30 bg-primary text-primary-foreground" aria-label={pick("إعلانات العروض", "Offer announcements")}>
-    <div className="min-w-0 flex-1 overflow-hidden"><div className="announcement-banner-marquee flex w-max items-center">{renderAnnouncements()} {renderAnnouncements(true)}</div></div>
+  const bannerColor = announcements[0]?.bannerColor || "#0f2348";
+  const copies = Math.max(2, Math.ceil(8 / announcements.length));
+  const repeatedAnnouncements = Array.from({ length: copies }, (_, index) => <span key={index}>{renderAnnouncements()}</span>);
+  return <aside dir={isArabic ? "rtl" : "ltr"} style={{ backgroundColor: bannerColor }} className="announcement-banner relative z-50 flex w-full items-center overflow-hidden border-b border-white/20 text-white" aria-label={pick("إعلانات العروض", "Offer announcements")}>
+    <div className="min-w-0 flex-1 overflow-hidden"><div className="announcement-banner-marquee flex w-max items-center">{repeatedAnnouncements}{repeatedAnnouncements}</div></div>
     <Button type="button" variant="ghost" size="icon" onClick={dismiss} className="mx-2 h-7 w-7 shrink-0 rounded-full border border-white/20 bg-white/10 text-white/80 hover:bg-white/20 hover:text-white" aria-label={pick("إغلاق الإعلان", "Dismiss announcements")}><X className="h-4 w-4" /></Button>
   </aside>;
 }

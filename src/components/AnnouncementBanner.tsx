@@ -39,8 +39,8 @@ export default function AnnouncementBanner() {
       const measuredWidth = cycle.scrollWidth;
       const itemSequenceWidth = measuredWidth / Math.max(copies, 1);
       const nextCopies = Math.max(
-        2,
-        Math.ceil(viewport.clientWidth / Math.max(itemSequenceWidth, 1)) + 2,
+        12,
+        Math.ceil(viewport.clientWidth / Math.max(itemSequenceWidth, 1)) + 6,
       );
       if (nextCopies !== copies) setCopies(nextCopies);
       setCycleWidth(measuredWidth);

@@ -102,7 +102,6 @@ import AdminGradeEdit from "@/admin/AdminGradeEdit";
 import AdminAssignments, { AdminAssignmentDetails, AdminAssignmentSubmissionDetails } from "@/admin/AdminAssignments";
 import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 import { GlobalRuntimeErrorBoundary } from "@/components/GlobalRuntimeErrorBoundary";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 import AdminAnnouncements from "@/admin/AdminAnnouncements";
 
 const queryClient = new QueryClient();
@@ -130,7 +129,6 @@ export default function App() {
                   <ScrollToHash />
                   <FloatingWhatsApp />
                   <ScrollToTopButton />
-                  <AnnouncementBanner />
                   <Routes>
                     <Route path="/" element={<HomeOrTamaraReturn />} />
                     <Route path="/curricula" element={<AllCurricula />} />

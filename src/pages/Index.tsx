@@ -9,6 +9,7 @@ import CTASection from "@/components/CTASection";
 import AppDownloadSection from "@/components/AppDownloadSection";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const Index = () => {
   return (
@@ -31,6 +32,7 @@ const Index = () => {
         }}
       />
       <Navbar />
+      <AnnouncementBanner />
       <HeroSection />
       <VisionMissionValues />
       <StatsCounter />

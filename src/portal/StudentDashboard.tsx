@@ -42,7 +42,7 @@ const SubscriptionCard = ({ summary, latest }: { summary: StudentHomeSubscriptio
     active: "نشط", grace_period: "فترة سماح", suspended: "موقوف", expired: "منتهي", cancelled: "ملغي",
   };
   const typeLabels: Record<string, string> = { hours: "باقة ساعات", monthly: "اشتراك شهري" };
-  const scopeLabels: Record<string, string> = { all_subjects: "كل المواد", single_subject: "مادة واحدة" };
+  const scopeLabels: Record<string, string> = { all_subjects: "كل المواد", single_subject: "مادة واحدة", shared_subjects: "باقة مشتركة" };
   return (
     <div className="grid gap-3 rounded-xl border p-3.5 md:grid-cols-[minmax(0,1fr)_22rem] md:items-center">
       <div className="min-w-0">

@@ -4,6 +4,7 @@ export interface StudentSubscriptionEntity {
   id?: string; name?: string | null; type?: string | null; accessScope?: string | null;
   hours?: number | null; months?: number | null; price?: number | null; currency?: string | null;
 }
+export interface CoveredSubject { id: string; name: string; }
 export interface StudentSubscription {
   id?: string;
   student?: { id?: string; fullName?: string | null } | null;
@@ -14,6 +15,7 @@ export interface StudentSubscription {
   registrationMode?: "egyptian" | "gulf" | string | null;
   planKind?: string | null;
   subject?: StudentSubscriptionEntity | null;
+  coveredSubjects?: CoveredSubject[] | null;
   status?: string | null; computedStatus?: string | null; isActive?: boolean;
   canRenew?: boolean; hasPendingRenewal?: boolean;
   totalHours?: number | null; purchasedHours?: number | null; usedHours?: number | null;

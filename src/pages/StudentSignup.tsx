@@ -101,6 +101,7 @@ const friendlyError = (error: unknown) => {
 };
 
 const GULF_CURRENCIES = new Set(["SAR", "AED", "KWD"]);
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 
 export const normalizeRegistrationPhone = (value: string): string | null => {
   let digits = value.replace(/[^\d]/g, "");
@@ -489,14 +490,14 @@ export default function StudentSignup({
     if (step === 0)
       return (
         parentFullName.trim().length >= 3 &&
-        !!parentEmail &&
+        isValidEmail(parentEmail) &&
         !!normalizeRegistrationPhone(parentPhone) &&
         !!parentPassword
       );
     if (step === 1)
       return (
         studentFullName.trim().length >= 3 &&
-        !!studentEmail &&
+        isValidEmail(studentEmail) &&
         !!studentPassword
       );
     if (step === 2) {
@@ -599,11 +600,15 @@ export default function StudentSignup({
   const next = async () => {
     if (!validStep) {
       setError(
-        step === 0 &&
+        step === 0 && parentEmail.trim() && !isValidEmail(parentEmail)
+          ? "أدخل بريد ولي الأمر بصيغة صحيحة مثل name@example.com."
+          : step === 1 && studentEmail.trim() && !isValidEmail(studentEmail)
+            ? "أدخل بريد الطالب بصيغة صحيحة مثل name@example.com."
+            : step === 0 &&
           parentPhone.trim() &&
           !normalizeRegistrationPhone(parentPhone)
-          ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
-          : "أكمل الحقول المطلوبة قبل المتابعة.",
+              ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
+              : "أكمل الحقول المطلوبة قبل المتابعة.",
       );
       return;
     }
@@ -1421,12 +1426,14 @@ function LabeledInput({
   onChange,
   type = "text",
   dir,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   dir?: "ltr" | "rtl";
+  error?: string;
 }) {
   return (
     <label className="text-sm font-tajawal space-y-1.5 block">
@@ -1435,8 +1442,11 @@ function LabeledInput({
         type={type}
         dir={dir}
         value={value}
+        aria-invalid={Boolean(error)}
+        className={error ? "border-destructive focus-visible:ring-destructive" : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </label>
   );
 }

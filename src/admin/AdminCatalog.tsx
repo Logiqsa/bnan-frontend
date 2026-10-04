@@ -1087,6 +1087,11 @@ function Subjects() {
 }
 
 const currencies = ["EGP", "SAR", "AED", "KWD", "QAR", "BHD", "OMR"];
+const packageScopeLabels: Record<NonNullable<PackageInput["accessScope"]>, string> = {
+  single_subject: "باقة مادة واحدة",
+  shared_subjects: "باقة مشتركة",
+  all_subjects: "باقة كل المواد",
+};
 function Packages() {
   const qc = useQueryClient();
   const curricula = useQuery({
@@ -1094,9 +1099,10 @@ function Packages() {
     queryFn: () => catalogApi.curriculums(),
   });
   const [curriculum, setCurriculum] = useState("");
+  const [filters, setFilters] = useState<{ accessScope?: PackageInput["accessScope"]; type?: PackageInput["type"]; currency?: string; isActive?: boolean }>({});
   const query = useQuery({
-    queryKey: ["admin-catalog", "packages", curriculum],
-    queryFn: () => catalogApi.packages(curriculum),
+    queryKey: ["admin-catalog", "packages", curriculum, filters],
+    queryFn: () => catalogApi.packages(curriculum, filters),
     enabled: Boolean(curriculum),
   });
   const [editing, setEditing] = useState<PackageOption | "new" | null>(null);
@@ -1166,6 +1172,20 @@ function Packages() {
               setEditing(null);
             }}
           />
+          <div className="mt-3 grid gap-2 sm:grid-cols-4">
+            <select className={inputClass} aria-label="فلترة نوع الباقة" value={filters.accessScope || ""} onChange={(e) => setFilters((current) => ({ ...current, accessScope: (e.target.value || undefined) as PackageInput["accessScope"] }))}>
+              <option value="">كل أنواع الباقات</option>{Object.entries(packageScopeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            <select className={inputClass} aria-label="فلترة نوع الاشتراك" value={filters.type || ""} onChange={(e) => setFilters((current) => ({ ...current, type: (e.target.value || undefined) as PackageInput["type"] }))}>
+              <option value="">كل أنواع المدة</option><option value="hours">ساعات</option><option value="monthly">شهري</option>
+            </select>
+            <select className={inputClass} aria-label="فلترة العملة" value={filters.currency || ""} onChange={(e) => setFilters((current) => ({ ...current, currency: e.target.value || undefined }))}>
+              <option value="">كل العملات</option>{currencies.map((item) => <option key={item}>{item}</option>)}
+            </select>
+            <select className={inputClass} aria-label="فلترة حالة الباقة" value={filters.isActive === undefined ? "" : String(filters.isActive)} onChange={(e) => setFilters((current) => ({ ...current, isActive: e.target.value === "" ? undefined : e.target.value === "true" }))}>
+              <option value="">كل الحالات</option><option value="true">نشطة</option><option value="false">غير نشطة</option>
+            </select>
+          </div>
         </CardContent>
       </Card>
       {editing && (
@@ -1211,6 +1231,7 @@ function Packages() {
               >
                 <option value="all_subjects">كل المواد</option>
                 <option value="single_subject">مادة واحدة</option>
+                <option value="shared_subjects">باقة مشتركة</option>
               </select>
             </div>
             <div>

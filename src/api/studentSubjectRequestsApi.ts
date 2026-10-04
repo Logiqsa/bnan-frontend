@@ -15,7 +15,8 @@ export interface AvailableSubjectsResult {
 }
 
 export interface SubjectRequestCheckoutBody {
-  subjectId: string;
+  subjectId?: string;
+  subjectIds?: string[];
   packageId: string;
   provider: GulfPaymentProvider;
   notes?: string;
@@ -39,8 +40,9 @@ export interface SubjectRequestCheckoutResult {
 }
 
 export interface DirectSubjectRequestBody {
-  subjectIds: [string];
-  packageId: string;
+  subjectIds: string[];
+  packageId?: string;
+  addToSharedSubscription?: boolean;
   notes?: string;
 }
 

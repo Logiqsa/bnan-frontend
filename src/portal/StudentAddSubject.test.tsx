@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   checkout: vi.fn(),
   requestAdditional: vi.fn(),
   saveDraft: vi.fn(),
+  subscriptions: vi.fn(),
 }));
 
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
@@ -25,6 +26,10 @@ vi.mock("@/api/studentSubjectRequestsApi", async (importOriginal) => ({
 vi.mock("@/api/catalogApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/catalogApi")>()),
   catalogApi: { packages: mocks.packages },
+}));
+vi.mock("@/api/studentSubscriptionApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/studentSubscriptionApi")>()),
+  studentSubscriptionApi: { get: mocks.subscriptions },
 }));
 vi.mock("@/lib/tamaraDraft", () => ({ gulfPaymentDraftStore: { saveSubjectRequest: mocks.saveDraft } }));
 
@@ -61,23 +66,24 @@ describe("StudentAddSubject", () => {
     mocks.checkout.mockReset();
     mocks.requestAdditional.mockReset();
     mocks.saveDraft.mockReset();
+    mocks.subscriptions.mockReset().mockResolvedValue({ subscription: null, subscriptions: [] });
   });
 
   it("loads subjects and packages using the returned curriculum and exposes only valid choices", async () => {
     await loadPage();
     expect(mocks.packages).toHaveBeenCalledWith("curriculum-1");
-    expect(screen.getByRole("radio", { name: /الرياضيات/ })).toBeEnabled();
-    expect(screen.getByRole("radio", { name: /العلوم/ })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: /الرياضيات/ })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: /العلوم/ })).toBeDisabled();
     expect(screen.queryByText("قديمة")).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /عشر ساعات/ })).toHaveAccessibleName(/٤٥٠/);
     expect(screen.getByText("10 ساعة")).toBeInTheDocument();
   });
 
-  it("keeps subject selection single and sends the selected IDs once", async () => {
+  it("keeps single-subject package selection single and sends the selected ID once", async () => {
     mocks.checkout.mockReturnValue(new Promise(() => undefined));
     await loadPage();
-    fireEvent.click(screen.getByRole("radio", { name: /الرياضيات/ }));
-    fireEvent.click(screen.getByRole("radio", { name: /العربية/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /الرياضيات/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /العربية/ }));
     fireEvent.click(screen.getByRole("radio", { name: /عشر ساعات/ }));
     const submit = screen.getByRole("button", { name: "المتابعة إلى الدفع" });
     fireEvent.click(submit);
@@ -92,7 +98,7 @@ describe("StudentAddSubject", () => {
     expect(screen.queryByLabelText("المدينة *")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "تمارا" }));
     expect(screen.getByLabelText("المدينة *")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: /الرياضيات/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /الرياضيات/ }));
     fireEvent.click(screen.getByRole("radio", { name: /عشر ساعات/ }));
     fireEvent.change(screen.getByLabelText("المدينة *"), { target: { value: "الرياض" } });
     fireEvent.change(screen.getByLabelText("المنطقة *"), { target: { value: "الرياض" } });
@@ -115,7 +121,7 @@ describe("StudentAddSubject", () => {
     await loadPage();
     expect(screen.queryByRole("radio", { name: "تمارا" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Paymob/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: /الرياضيات/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /الرياضيات/ }));
     fireEvent.click(screen.getByRole("radio", { name: /عشر ساعات/ }));
     fireEvent.change(screen.getByLabelText("ملاحظات (اختياري)", { selector: "textarea" }), { target: { value: "طلب مصري" } });
     fireEvent.click(screen.getByRole("button", { name: "إرسال طلب المادة" }));
@@ -128,7 +134,7 @@ describe("StudentAddSubject", () => {
   it("saves a purpose-specific draft only after a valid checkout response", async () => {
     mocks.checkout.mockResolvedValue({ paymentId: "payment-1", checkoutUrl: "https://pay.test", status: "pending" });
     await loadPage();
-    fireEvent.click(screen.getByRole("radio", { name: /الرياضيات/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /الرياضيات/ }));
     fireEvent.click(screen.getByRole("radio", { name: /عشر ساعات/ }));
     fireEvent.click(screen.getByRole("button", { name: "المتابعة إلى الدفع" }));
     await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledWith(expect.objectContaining({ paymentId: "payment-1", provider: "paymob", checkoutUrl: "https://pay.test", createdAt: expect.any(Number) })));

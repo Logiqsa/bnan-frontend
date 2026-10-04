@@ -16,6 +16,7 @@ import type { GulfPaymentProvider } from "@/api/types";
 import { ApiError } from "@/api/client";
 import { gulfPaymentDraftStore } from "@/lib/tamaraDraft";
 import { studentSubjectsQueryKey } from "@/api/studentSubjectsApi";
+import { studentSubscriptionApi, studentSubscriptionsQueryKey } from "@/api/studentSubscriptionApi";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ const packageDetail = (item: PackageOption, pick: (ar: string, en: string) => st
 export default function StudentAddSubject() {
   const { language, pick } = useLanguage();
   const queryClient = useQueryClient();
-  const [subjectId, setSubjectId] = useState("");
+  const [subjectIds, setSubjectIds] = useState<string[]>([]);
   const [packageId, setPackageId] = useState("");
   const [provider, setProvider] = useState<GulfPaymentProvider>("paymob");
   const [notes, setNotes] = useState("");
@@ -73,6 +74,7 @@ export default function StudentAddSubject() {
     staleTime: 30_000,
     retry: 1,
   });
+  const subscriptionsQuery = useQuery({ queryKey: studentSubscriptionsQueryKey, queryFn: studentSubscriptionApi.get, staleTime: 30_000, retry: 1 });
   const curriculumId = subjectsQuery.data?.curriculum.id || "";
   const registrationMode = subjectsQuery.data?.curriculum.registrationMode;
   const hasSelectableSubject = Boolean(subjectsQuery.data?.subjects.some((item) => item.isSelectable === true));
@@ -85,6 +87,11 @@ export default function StudentAddSubject() {
   });
   const activePackages = useMemo(() => (packagesQuery.data || []).filter((item) => item.isActive === true), [packagesQuery.data]);
   const selectableSubjects = useMemo(() => (subjectsQuery.data?.subjects || []).filter((item) => item.isSelectable === true), [subjectsQuery.data]);
+  const selectedSubjects = useMemo(() => selectableSubjects.filter((item) => subjectIds.includes(item.id)), [selectableSubjects, subjectIds]);
+  const selectedPackage = activePackages.find((item) => item.id === packageId);
+  const sharedSubscription = (subscriptionsQuery.data?.subscriptions || (subscriptionsQuery.data?.subscription ? [subscriptionsQuery.data.subscription] : [])).find((item) => (item.accessScope || item.package?.accessScope) === "shared_subjects" && (item.computedStatus || item.status || (item.isActive ? "active" : "")) === "active");
+  const addingToSharedSubscription = Boolean(sharedSubscription);
+  const allowsMultipleSubjects = addingToSharedSubscription || selectedPackage?.accessScope === "shared_subjects";
 
   const checkout = useMutation({
     mutationFn: (body: SubjectRequestCheckoutBody) => studentSubjectRequestsApi.checkout(body, idempotencyKey),
@@ -135,10 +142,10 @@ export default function StudentAddSubject() {
   const submit = () => {
     if (checkoutLocked.current || checkout.isPending || directRequest.isPending) return;
     setFormError("");
-    const subject = selectableSubjects.find((item) => item.id === subjectId);
-    const selectedPackage = activePackages.find((item) => item.id === packageId);
-    if (!subject) { setFormError(pick("اختر مادة متاحة أولًا.", "Select an available subject first.")); return; }
-    if (!selectedPackage) { setFormError(pick("اختر باقة متاحة أولًا.", "Select an available package first.")); return; }
+    const subjects = selectableSubjects.filter((item) => subjectIds.includes(item.id));
+    if (!subjects.length) { setFormError(pick("اختر مادة واحدة على الأقل.", "Select at least one subject.")); return; }
+    if (!addingToSharedSubscription && !selectedPackage) { setFormError(pick("اختر باقة متاحة أولًا.", "Select an available package first.")); return; }
+    if (!addingToSharedSubscription && selectedPackage?.accessScope === "shared_subjects" && subjects.length < 2) { setFormError(pick("الباقة المشتركة تحتاج إلى اختيار مادتين على الأقل.", "A shared package requires at least two subjects.")); return; }
     if (notes.length > 2000) { setFormError(pick("يجب ألا تتجاوز الملاحظات 2000 حرف.", "Notes must not exceed 2000 characters.")); return; }
     if (registrationMode !== "egyptian" && registrationMode !== "gulf") {
       setFormError(pick("تعذر تحديد نظام تسجيل الطالب من بيانات المنهج.", "Unable to determine the student's registration mode from curriculum data."));
@@ -146,11 +153,12 @@ export default function StudentAddSubject() {
     }
     if (registrationMode === "egyptian") {
       checkoutLocked.current = true;
-      directRequest.mutate({
-        subjectIds: [subject.id],
-        packageId: selectedPackage.id,
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-      });
+      directRequest.mutate({ subjectIds: subjects.map((item) => item.id), ...(selectedPackage?.id ? { packageId: selectedPackage.id } : {}), ...(addingToSharedSubscription ? { addToSharedSubscription: true } : {}), ...(notes.trim() ? { notes: notes.trim() } : {}) });
+      return;
+    }
+    if (addingToSharedSubscription) {
+      checkoutLocked.current = true;
+      directRequest.mutate({ subjectIds: subjects.map((item) => item.id), addToSharedSubscription: true, ...(notes.trim() ? { notes: notes.trim() } : {}) });
       return;
     }
     if (provider === "tamara" && (!city.trim() || !region.trim() || !line1.trim())) {
@@ -158,7 +166,7 @@ export default function StudentAddSubject() {
       return;
     }
     const body: SubjectRequestCheckoutBody = {
-      subjectId: subject.id,
+      ...(selectedPackage.accessScope === "shared_subjects" ? { subjectIds: subjects.map((item) => item.id) } : { subjectId: subjects[0].id }),
       packageId: selectedPackage.id,
       provider,
       ...(notes.trim() ? { notes: notes.trim() } : {}),
@@ -180,16 +188,16 @@ export default function StudentAddSubject() {
       : createdRequest ? <Card><CardContent className="space-y-4 p-10 text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-green-600" /><h2 className="text-xl font-bold">{pick("تم إرسال طلب المادة", "Subject request submitted")}</h2><p className="text-muted-foreground">{createdRequest.status === "awaiting_admin_approval" ? pick("الطلب في انتظار مراجعة الإدارة والموافقة عليه.", "The request is awaiting admin review and approval.") : `${pick("حالة الطلب", "Request status")}: ${createdRequest.status}`}</p><Button asChild><Link to="/portal/student/subjects">{pick("العودة إلى موادي", "Back to subjects")}</Link></Button></CardContent></Card>
       : selectableSubjects.length === 0 ? <Card><CardContent className="p-12 text-center"><BookPlus className="mx-auto mb-3 h-9 w-9 text-muted-foreground" /><p className="font-semibold">{pick("لا توجد مواد متاحة للإضافة حاليًا", "No subjects are currently available to add")}</p><p className="mt-2 text-sm text-muted-foreground">{pick("يمكنك مراجعة حالة طلبات المواد الحالية من القائمة أدناه.", "You can review current subject request statuses below.")}</p>{subjectsQuery.data?.subjects.some((item) => item.requestStatus) && <div className="mt-4 flex flex-wrap justify-center gap-2">{subjectsQuery.data.subjects.filter((item) => item.requestStatus).map((item) => <Badge key={item.id} variant="secondary">{item.name}: {item.requestStatus}</Badge>)}</div>}</CardContent></Card>
       : <div className="space-y-6">
-        <Card><CardHeader><CardTitle>{pick("1. اختيار المادة", "1. Select subject")}</CardTitle></CardHeader><CardContent><RadioGroup value={subjectId} onValueChange={setSubjectId} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjectsQuery.data?.subjects.map((subject) => <Label key={subject.id} htmlFor={`subject-${subject.id}`} className={`flex min-w-0 items-center gap-3 rounded-xl border p-4 ${subject.isSelectable ? "cursor-pointer hover:border-primary/50" : "cursor-not-allowed bg-muted/50 text-muted-foreground"}`}><RadioGroupItem id={`subject-${subject.id}`} value={subject.id} disabled={!subject.isSelectable} /><span className="min-w-0 flex-1 break-words">{subject.name}</span>{subject.requestStatus && <Badge variant="secondary" className="shrink-0">{subject.requestStatus}</Badge>}</Label>)}</RadioGroup></CardContent></Card>
+        <Card><CardHeader><CardTitle>{pick("1. اختيار المواد", "1. Select subjects")}</CardTitle></CardHeader><CardContent><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjectsQuery.data?.subjects.map((subject) => <Label key={subject.id} htmlFor={`subject-${subject.id}`} className={`flex min-w-0 items-center gap-3 rounded-xl border p-4 ${subject.isSelectable ? "cursor-pointer hover:border-primary/50" : "cursor-not-allowed bg-muted/50 text-muted-foreground"}`}><input id={`subject-${subject.id}`} type="checkbox" disabled={!subject.isSelectable} checked={subjectIds.includes(subject.id)} onChange={(event) => setSubjectIds((current) => event.target.checked ? (allowsMultipleSubjects ? [...current, subject.id] : [subject.id]) : current.filter((id) => id !== subject.id))} className="h-4 w-4 accent-primary" /><span className="min-w-0 flex-1 break-words">{subject.name}</span>{subject.requestStatus && <Badge variant="secondary" className="shrink-0">{subject.requestStatus}</Badge>}</Label>)}</div><p className="mt-3 text-sm text-muted-foreground">{pick(`تم اختيار ${selectedSubjects.length} مادة`, `${selectedSubjects.length} subject(s) selected`)}{!allowsMultipleSubjects && selectedPackage && ` • ${pick("مادة واحدة لهذه الباقة", "One subject for this package")}`}</p>{addingToSharedSubscription && <p className="mt-2 rounded-lg bg-primary/10 p-3 text-sm text-primary">{pick("سيتم إرسال المواد إلى الباقة المشتركة الحالية بدون دفع.", "The selected subjects will be added to your current shared subscription without payment.")}</p>}</CardContent></Card>
 
-        <Card><CardHeader><CardTitle>{pick("2. اختيار الباقة", "2. Select package")}</CardTitle></CardHeader><CardContent>{packagesQuery.isLoading ? <div className="grid gap-3 sm:grid-cols-2"><Skeleton className="h-36 rounded-xl" /><Skeleton className="h-36 rounded-xl" /></div> : packagesQuery.isError ? <div className="flex flex-col items-center gap-3 py-6 text-center"><p className="text-destructive">{pick("تعذر تحميل الباقات", "Unable to load packages")}</p><Button variant="outline" onClick={() => void packagesQuery.refetch()} disabled={packagesQuery.isFetching}><RefreshCw className={`h-4 w-4 ${packagesQuery.isFetching ? "animate-spin" : ""}`} />{pick("إعادة المحاولة", "Retry")}</Button></div> : activePackages.length === 0 ? <p className="py-8 text-center text-muted-foreground">{pick("لا توجد باقات نشطة متاحة", "No active packages are available")}</p> : <RadioGroup value={packageId} onValueChange={setPackageId} className="grid gap-3 sm:grid-cols-2">{activePackages.map((item) => <Label key={item.id} htmlFor={`package-${item.id}`} className="flex cursor-pointer items-start gap-3 rounded-xl border p-4 hover:border-primary/50"><RadioGroupItem id={`package-${item.id}`} value={item.id} className="mt-1" /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><strong className="break-words">{item.name}</strong>{item.isPopular && <Badge><Star className="me-1 h-3 w-3" />{pick("الأكثر اختيارًا", "Popular")}</Badge>}</span>{packageDetail(item, pick) && <span className="mt-2 block text-sm text-muted-foreground">{packageDetail(item, pick)}</span>}<span className="mt-3 block text-lg font-bold">{formatPrice(item.price, item.currency, language)}</span></span></Label>)}</RadioGroup>}</CardContent></Card>
+        <Card><CardHeader><CardTitle>{addingToSharedSubscription ? pick("2. الباقة الحالية", "2. Current package") : pick("2. اختيار الباقة", "2. Select package")}</CardTitle></CardHeader><CardContent>{addingToSharedSubscription ? <p className="rounded-xl bg-primary/10 p-4 text-sm text-primary">{pick("ستستمر المواد المختارة على نفس الاشتراك ونفس الساعات المتبقية، بدون دفع.", "Selected subjects will use the same subscription and remaining hours, with no payment.")}</p> : packagesQuery.isLoading ? <div className="grid gap-3 sm:grid-cols-2"><Skeleton className="h-36 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div> : packagesQuery.isError ? <div className="flex flex-col items-center gap-3 py-6 text-center"><p className="text-destructive">{pick("تعذر تحميل الباقات", "Unable to load packages")}</p><Button variant="outline" onClick={() => void packagesQuery.refetch()} disabled={packagesQuery.isFetching}><RefreshCw className={`h-4 w-4 ${packagesQuery.isFetching ? "animate-spin" : ""}`} />{pick("إعادة المحاولة", "Retry")}</Button></div> : activePackages.length === 0 ? <p className="py-8 text-center text-muted-foreground">{pick("لا توجد باقات نشطة متاحة", "No active packages are available")}</p> : <RadioGroup value={packageId} onValueChange={(value) => { setPackageId(value); const next = activePackages.find((item) => item.id === value); if (next?.accessScope !== "shared_subjects" && subjectIds.length > 1) setSubjectIds(subjectIds.slice(0, 1)); }} className="grid gap-3 sm:grid-cols-2">{activePackages.map((item) => <Label key={item.id} htmlFor={`package-${item.id}`} className="flex cursor-pointer items-start gap-3 rounded-xl border p-4 hover:border-primary/50"><RadioGroupItem id={`package-${item.id}`} value={item.id} className="mt-1" /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><strong className="break-words">{item.name}</strong>{item.isPopular && <Badge><Star className="me-1 h-3 w-3" />{pick("الأكثر اختيارًا", "Popular")}</Badge>}{item.accessScope === "shared_subjects" && <Badge variant="secondary">{pick("عدة مواد", "Multiple subjects")}</Badge>}</span>{packageDetail(item, pick) && <span className="mt-2 block text-sm text-muted-foreground">{packageDetail(item, pick)}</span>}<span className="mt-3 block text-lg font-bold">{formatPrice(item.price, item.currency, language)}</span></span></Label>)}</RadioGroup>}</CardContent></Card>
 
         <Card><CardHeader><CardTitle>{registrationMode === "gulf" ? pick("3. طريقة الدفع والبيانات", "3. Payment method and details") : pick("3. بيانات الطلب", "3. Request details")}</CardTitle></CardHeader><CardContent className="space-y-5">{registrationMode === "gulf" && <><RadioGroup value={provider} onValueChange={(value) => setProvider(value as GulfPaymentProvider)} className="grid gap-3 sm:grid-cols-2"><Label htmlFor="provider-paymob" className="flex cursor-pointer items-center gap-3 rounded-xl border p-4"><RadioGroupItem id="provider-paymob" value="paymob" /><CreditCard className="h-5 w-5 text-primary" /><span>{pick("بطاقة بنكية (Paymob)", "Bank card (Paymob)")}</span></Label><Label htmlFor="provider-tamara" className="flex cursor-pointer items-center gap-3 rounded-xl border p-4"><RadioGroupItem id="provider-tamara" value="tamara" /><CreditCard className="h-5 w-5 text-primary" /><span>{pick("تمارا", "Tamara")}</span></Label></RadioGroup>
           {provider === "tamara" && <fieldset className="grid gap-4 rounded-xl border p-4 sm:grid-cols-2"><legend className="px-2 font-semibold">{pick("عنوان الدفع لتمارا", "Tamara payment address")}</legend><div><Label htmlFor="payment-city">{pick("المدينة *", "City *")}</Label><Input id="payment-city" value={city} onChange={(event) => setCity(event.target.value)} /></div><div><Label htmlFor="payment-region">{pick("المنطقة *", "Region *")}</Label><Input id="payment-region" value={region} onChange={(event) => setRegion(event.target.value)} /></div><div className="sm:col-span-2"><Label htmlFor="payment-line1">{pick("العنوان التفصيلي *", "Address line 1 *")}</Label><Input id="payment-line1" value={line1} onChange={(event) => setLine1(event.target.value)} /></div><div className="sm:col-span-2"><Label htmlFor="payment-line2">{pick("تفاصيل إضافية (اختياري)", "Address line 2 (optional)")}</Label><Input id="payment-line2" value={line2} onChange={(event) => setLine2(event.target.value)} /></div></fieldset>}
           <div><Label htmlFor="discount-code">{pick("كود الخصم (اختياري)", "Discount code (optional)")}</Label><Input id="discount-code" dir="ltr" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} /></div></>}
           <div><div className="mb-1 flex items-center justify-between gap-3"><Label htmlFor="subject-notes">{pick("ملاحظات (اختياري)", "Notes (optional)")}</Label><span className="text-xs text-muted-foreground">{notes.length}/2000</span></div><Textarea id="subject-notes" maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
           {formError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{formError}</p>}
-          <Button className="w-full sm:w-auto" onClick={submit} disabled={checkout.isPending || directRequest.isPending || packagesQuery.isLoading || activePackages.length === 0}>{(checkout.isPending || directRequest.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}{registrationMode === "gulf" ? (checkout.isPending ? pick("جاري بدء الدفع...", "Starting payment...") : pick("المتابعة إلى الدفع", "Continue to payment")) : (directRequest.isPending ? pick("جاري إرسال الطلب...", "Submitting request...") : pick("إرسال طلب المادة", "Submit subject request"))}</Button>
+          <Button className="w-full sm:w-auto" onClick={submit} disabled={checkout.isPending || directRequest.isPending || packagesQuery.isLoading || (!addingToSharedSubscription && activePackages.length === 0)}>{(checkout.isPending || directRequest.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}{addingToSharedSubscription ? pick("إضافة للباقة الحالية", "Add to current shared package") : registrationMode === "gulf" ? (checkout.isPending ? pick("جاري بدء الدفع...", "Starting payment...") : pick("المتابعة إلى الدفع", "Continue to payment")) : (directRequest.isPending ? pick("جاري إرسال الطلب...", "Submitting request...") : pick("إرسال طلب المادة", "Submit subject request"))}</Button>
           {registrationMode === "gulf" ? <p className="text-xs text-muted-foreground">{pick("لن يُعتبر الدفع مكتملًا إلا بعد تأكيد الحالة من النظام عند العودة.", "Payment is not considered complete until the server confirms it on return.")}</p> : <p className="text-xs text-muted-foreground">{pick("سيتم إرسال الطلب إلى الإدارة للمراجعة، ولن تصبح المادة نشطة فورًا.", "The request will be sent for admin review and will not become active immediately.")}</p>}
         </CardContent></Card>
       </div>}

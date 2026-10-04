@@ -6,13 +6,14 @@ export type { RegistrationMode } from "./types";
 export interface CurriculumOption { id:string; name:string; description?:string; registrationMode:RegistrationMode; icon?:string }
 export interface GradeOption { id:string; name:string; isActive:boolean; curriculum?:string|{id?:string;name?:string}; subjects?:SubjectOption[] }
 export interface SubjectOption { id:string; name:string; curriculum?:string|{id?:string;name?:string}; grades?:GradeOption[] }
-export interface PackageOption { id:string; name:string; curriculum:string|{id?:string;name?:string}; type?:"hours"|"monthly"; accessScope:"all_subjects"|"single_subject"; hours?:number; months?:number; oldPrice?:number; price:number; currency:string; discountTitle?:string; description?:string; isPopular?:boolean; isActive?:boolean }
+export type PackageAccessScope = "all_subjects" | "single_subject" | "shared_subjects";
+export interface PackageOption { id:string; name:string; curriculum:string|{id?:string;name?:string}; type?:"hours"|"monthly"; accessScope?:PackageAccessScope; hours?:number; months?:number; oldPrice?:number; price:number; currency:string; discountTitle?:string; description?:string; isPopular?:boolean; isActive?:boolean }
 interface ListResponse<T> { success:true; data:T[]; results?:number; hasNextPage?:boolean; currentPage?:number; totalCount?:number; totalPages?:number }
 
 export interface CurriculumInput { name:string; description:string; registrationMode:RegistrationMode; icon?:File }
 export interface GradeInput { name:string; curriculum:string }
 export interface SubjectInput { name:string; curriculum:string; grades:string[] }
-export interface PackageInput { name:string; curriculum:string; type:"hours"|"monthly"; accessScope:"all_subjects"|"single_subject"; hours?:number; months?:number; oldPrice:number; price:number; currency:string; discountTitle?:string; description?:string; isPopular?:boolean; isActive?:boolean }
+export interface PackageInput { name:string; curriculum:string; type:"hours"|"monthly"; accessScope:PackageAccessScope; hours?:number; months?:number; oldPrice:number; price:number; currency:string; discountTitle?:string; description?:string; isPopular?:boolean; isActive?:boolean }
 
 const json = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
 const patch = (body: unknown): RequestInit => ({ method: "PATCH", body: JSON.stringify(body) });
@@ -41,7 +42,11 @@ export const catalogApi = {
   updateSubject: (id:string, body:Pick<SubjectInput,"name"|"grades">) => apiRequest<{success:true;data:SubjectOption}>(`/subjects/${id}`, patch(body)),
   deleteSubject: (id:string) => apiRequest<void>(`/subjects/${id}`, { method: "DELETE" }),
   addSubjectsToGrade: (gradeId:string, subjects:string[]) => apiRequest<{success:true;data:GradeOption}>(`/grades/${gradeId}/subjects`, patch({ subjects })),
-  packages: (curriculumId:string) => apiRequest<{success:true;data:PackageOption[]}>(`/packages/curriculum/${curriculumId}`),
+  packages: (curriculumId:string, filters: { accessScope?:PackageAccessScope; type?:PackageInput["type"]; currency?:string; isActive?:boolean } = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => value !== undefined && query.set(key, String(value)));
+    return apiRequest<{success:true;data:PackageOption[]}>(`/packages/curriculum/${curriculumId}${query.toString() ? `?${query}` : ""}`);
+  },
   createPackage: (body:PackageInput) => apiRequest<{success:true;data:PackageOption}>("/packages", json(body)),
   updatePackage: (id:string, body:PackageInput) => apiRequest<{success:true;data:PackageOption}>(`/packages/${id}`, patch(body)),
   deletePackage: (id:string) => apiRequest<void>(`/packages/${id}`, { method: "DELETE" }),

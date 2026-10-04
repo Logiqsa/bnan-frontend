@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 import {
   Dialog,
   DialogContent,
@@ -429,7 +430,7 @@ export default function TeacherSignup() {
     if (step === 0)
       return !!(
         values.fullName?.trim().length >= 3 &&
-        values.email &&
+        isValidEmail(values.email || "") &&
         password &&
         values.phone &&
         values.termsAccepted === "true"
@@ -487,7 +488,9 @@ export default function TeacherSignup() {
     if (!validStep) {
       setShowValidationErrors(true);
       setError(
-        step === 2
+        step === 0 && values.email?.trim() && !isValidEmail(values.email)
+          ? "أدخل البريد الإلكتروني بصيغة صحيحة مثل name@example.com."
+          : step === 2
           ? "اختر منهجًا وصفًا واحدًا على الأقل ومادة واحدة لكل صف."
           : "أكمل الحقول المطلوبة قبل المتابعة.",
       );

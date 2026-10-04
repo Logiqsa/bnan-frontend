@@ -4,7 +4,7 @@ export interface StudentSubscriptionEntity {
   id?: string; name?: string | null; type?: string | null; accessScope?: string | null;
   hours?: number | null; months?: number | null; price?: number | null; currency?: string | null;
 }
-export interface CoveredSubject { id: string; name: string; }
+export interface CoveredSubject { id: string; name: string; usedHours?: number | null; consumedHours?: number | null; remainingHours?: number | null; }
 export interface StudentSubscription {
   id?: string;
   student?: { id?: string; fullName?: string | null } | null;

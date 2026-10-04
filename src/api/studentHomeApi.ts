@@ -19,7 +19,7 @@ export interface StudentHomeSubscriptionSummary {
   canRenew?: boolean;
   hasPendingRenewal?: boolean;
   subject?: StudentHomeEntity | null;
-  coveredSubjects?: StudentHomeEntity[] | null;
+  coveredSubjects?: Array<StudentHomeEntity & { usedHours?: number | null; consumedHours?: number | null; remainingHours?: number | null }> | null;
   totalHours?: number | null;
   usedHours?: number | null;
   remainingHours?: number | null;

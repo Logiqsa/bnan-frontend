@@ -60,6 +60,7 @@ const SubscriptionCard = ({ summary, latest }: { summary: StudentHomeSubscriptio
           {summary.packageType && <span>{typeLabels[summary.packageType] || summary.packageType}</span>}
           {summary.accessScope && <span>• {scopeLabels[summary.accessScope] || summary.accessScope}</span>}
         </div>
+        {summary.coveredSubjects?.length ? <div className="mt-3"><p className="mb-2 text-xs text-muted-foreground">مواد الباقة ({summary.coveredSubjects.length})</p><div className="flex flex-wrap gap-2">{summary.coveredSubjects.map((subject) => <Badge key={subject.id} variant="secondary">{subject.name}</Badge>)}</div></div> : null}
         {typeof summary.progressPercentage === "number" && <div className="mt-3"><div className="mb-1.5 flex justify-between text-xs"><span>التقدم</span><span>{number(summary.progressPercentage)}%</span></div><Progress value={summary.progressPercentage} /></div>}
         {(summary.hasPendingRenewal || summary.canRenew) && <div className="mt-3 flex flex-wrap gap-2">{summary.hasPendingRenewal && <Badge variant="secondary">يوجد طلب تجديد معلق</Badge>}{summary.canRenew && !summary.hasPendingRenewal && <Badge variant="outline">متاح للتجديد</Badge>}</div>}
       </div>

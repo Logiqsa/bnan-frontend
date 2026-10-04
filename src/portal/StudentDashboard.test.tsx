@@ -22,7 +22,7 @@ vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children
 
 const data = {
   student: { id: "s1", userId: "u1", fullName: "طالب بنان", curriculum: { id: "c1", name: "المنهج السعودي", registrationMode: "gulf" as const }, grade: { id: "g1", name: "الصف السادس" } },
-  subscription: { id: "sub1", summary: { packageName: "باقة التفوق", packageType: "hours", accessScope: "all_subjects", computedStatus: "active", isActive: true, totalHours: 20, usedHours: 5, remainingHours: 15, progressPercentage: 25, canRenew: true, hasPendingRenewal: false } },
+  subscription: { id: "sub1", summary: { packageName: "باقة التفوق", packageType: "hours", accessScope: "all_subjects", coveredSubjects: [{ id: "subject-1", name: "الرياضيات" }, { id: "subject-2", name: "اللغة العربية" }], computedStatus: "active", isActive: true, totalHours: 20, usedHours: 5, remainingHours: 15, progressPercentage: 25, canRenew: true, hasPendingRenewal: false } },
   subscriptions: [] as never[],
   stats: { attendance: { percentage: 80, total: 10, present: 7, late: 2, absent: 1 }, interaction: { score: 4.5, maxScore: 5, evaluationsCount: 2 }, certificates: { count: 3 } },
   weeklyEvaluation: { evaluationsCount: 1, attendancePercentage: 100, participationPercentage: 85, homeworkPercentage: 70, behaviorPercentage: 100, bonusPoints: 2, teacherNote: "أداء متميز" },
@@ -49,6 +49,8 @@ describe("StudentDashboard", () => {
     expect(await screen.findByText(/طالب بنان/)).toBeInTheDocument();
     expect(screen.getByText("المنهج السعودي • الصف السادس")).toBeInTheDocument();
     expect(screen.getByText("باقة التفوق")).toBeInTheDocument();
+    expect(screen.getByText("مواد الباقة (2)")).toBeInTheDocument();
+    expect(screen.getByText("الرياضيات")).toBeInTheDocument();
     expect(screen.getByText("80%")).toBeInTheDocument();
     expect(screen.queryByText("التقييم الأسبوعي")).not.toBeInTheDocument();
     expect(screen.queryByText("عدد التقييمات")).not.toBeInTheDocument();

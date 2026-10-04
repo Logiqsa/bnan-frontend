@@ -325,13 +325,17 @@
 }
 
 .announcement-banner-marquee {
-  animation: announcement-banner-marquee 120s linear infinite;
+  animation: announcement-banner-marquee 200s linear infinite;
   direction: ltr;
+  width: max-content;
+  min-width: max-content;
   will-change: transform;
 }
 
 .announcement-banner-track {
   direction: rtl;
+  flex: 0 0 auto;
+  width: max-content;
 }
 
 @media (prefers-reduced-motion: reduce) {

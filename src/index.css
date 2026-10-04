@@ -321,7 +321,7 @@
 
 @keyframes announcement-banner-marquee {
   from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
+  to { transform: translate3d(calc(var(--announcement-cycle-width) * -1), 0, 0); }
 }
 
 .announcement-banner-marquee {
@@ -340,6 +340,10 @@
   margin: 0;
   padding: 0;
   gap: 0;
+}
+
+.announcement-banner-cycle {
+  min-width: max-content;
 }
 
 .announcement-banner:hover .announcement-banner-marquee,

@@ -13,7 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
 const emptyForm: AnnouncementPayload = { title: "", body: "", type: "normal", targetAudience: ["students", "parents", "teachers"], displayInBanner: true, bannerDismissible: true };
-const dateInput = (value?: string | null) => value ? new Date(value).toISOString().slice(0, 16) : "";
+const pad = (value: number) => String(value).padStart(2, "0");
+const dateInput = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const normalizeDate = (value?: string) => value ? new Date(value).toISOString() : undefined;
 
 export default function AdminAnnouncements() {
   const { isArabic, pick } = useLanguage();
@@ -25,7 +32,10 @@ export default function AdminAnnouncements() {
     void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
     void queryClient.invalidateQueries({ queryKey: ["active-announcement-banner"] });
   };
-  const save = useMutation({ mutationFn: () => editingId ? announcementsApi.update(editingId, form) : announcementsApi.create(form), onSuccess: () => { toast.success(pick("تم حفظ العرض.", "Offer saved.")); reset(); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر حفظ العرض.", "Unable to save the offer.")) });
+  const save = useMutation({ mutationFn: () => {
+    const payload = { ...form, bannerStartsAt: normalizeDate(form.bannerStartsAt), bannerEndsAt: normalizeDate(form.bannerEndsAt) };
+    return editingId ? announcementsApi.update(editingId, payload) : announcementsApi.create(payload);
+  }, onSuccess: () => { toast.success(pick("تم حفظ العرض.", "Offer saved.")); reset(); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر حفظ العرض.", "Unable to save the offer.")) });
   const publish = useMutation({ mutationFn: announcementsApi.publish, onSuccess: () => { toast.success(pick("تم نشر العرض.", "Offer published.")); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر نشر العرض.", "Unable to publish the offer.")) });
   const remove = useMutation({ mutationFn: announcementsApi.remove, onSuccess: () => { toast.success(pick("تم حذف العرض.", "Offer deleted.")); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر حذف العرض.", "Unable to delete the offer.")) });
   const reset = () => { setForm(emptyForm); setEditingId(null); };

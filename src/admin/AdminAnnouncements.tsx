@@ -21,9 +21,13 @@ export default function AdminAnnouncements() {
   const [form, setForm] = useState<AnnouncementPayload>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const announcements = useQuery({ queryKey: ["admin-announcements"], queryFn: async () => (await announcementsApi.list()).data });
-  const save = useMutation({ mutationFn: () => editingId ? announcementsApi.update(editingId, form) : announcementsApi.create(form), onSuccess: () => { toast.success(pick("تم حفظ العرض.", "Offer saved.")); reset(); void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] }); }, onError: () => toast.error(pick("تعذر حفظ العرض.", "Unable to save the offer.")) });
-  const publish = useMutation({ mutationFn: announcementsApi.publish, onSuccess: () => { toast.success(pick("تم نشر العرض.", "Offer published.")); void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] }); }, onError: () => toast.error(pick("تعذر نشر العرض.", "Unable to publish the offer.")) });
-  const remove = useMutation({ mutationFn: announcementsApi.remove, onSuccess: () => { toast.success(pick("تم حذف العرض.", "Offer deleted.")); void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] }); }, onError: () => toast.error(pick("تعذر حذف العرض.", "Unable to delete the offer.")) });
+  const refreshAnnouncementQueries = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
+    void queryClient.invalidateQueries({ queryKey: ["active-announcement-banner"] });
+  };
+  const save = useMutation({ mutationFn: () => editingId ? announcementsApi.update(editingId, form) : announcementsApi.create(form), onSuccess: () => { toast.success(pick("تم حفظ العرض.", "Offer saved.")); reset(); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر حفظ العرض.", "Unable to save the offer.")) });
+  const publish = useMutation({ mutationFn: announcementsApi.publish, onSuccess: () => { toast.success(pick("تم نشر العرض.", "Offer published.")); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر نشر العرض.", "Unable to publish the offer.")) });
+  const remove = useMutation({ mutationFn: announcementsApi.remove, onSuccess: () => { toast.success(pick("تم حذف العرض.", "Offer deleted.")); refreshAnnouncementQueries(); }, onError: () => toast.error(pick("تعذر حذف العرض.", "Unable to delete the offer.")) });
   const reset = () => { setForm(emptyForm); setEditingId(null); };
   const editing = useMemo(() => announcements.data?.find((item) => item.id === editingId), [announcements.data, editingId]);
   const edit = (item: AnnouncementItem) => setForm({ title: item.title, body: item.body, type: item.type === "important" ? "important" : "normal", targetAudience: ["students", "parents", "teachers"], displayInBanner: item.displayInBanner, bannerLink: item.bannerLink || undefined, bannerStartsAt: dateInput(item.bannerStartsAt), bannerEndsAt: dateInput(item.bannerEndsAt), bannerDismissible: item.bannerDismissible !== false });

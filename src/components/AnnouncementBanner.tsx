@@ -23,8 +23,6 @@ export default function AnnouncementBanner() {
   });
   const announcements = query.data?.data || [];
 
-  if (!announcements.length || dismissed) return null;
-
   const contentFor = (announcement: (typeof announcements)[number]) => <span dir={isArabic ? "rtl" : "ltr"} className="inline-flex items-center gap-3 whitespace-nowrap border-s border-white/20 px-7 py-2.5 text-sm font-medium first:border-s-0"><Megaphone className="h-4 w-4 shrink-0 opacity-80" />{announcement.type === "important" && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">{pick("مهم", "Important")}</span>}<span className="font-semibold">{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</span>;
   const dismiss = () => setDismissed(true);
 
@@ -54,6 +52,8 @@ export default function AnnouncementBanner() {
     observer.observe(cycle);
     return () => observer.disconnect();
   }, [announcements.length, copies]);
+
+  if (!announcements.length || dismissed) return null;
 
   const renderTrack = (hidden = false, cycleRefProp?: RefObject<HTMLDivElement>) => <div ref={cycleRefProp} aria-hidden={hidden} className="announcement-banner-track announcement-banner-cycle flex min-w-max shrink-0 items-center">{tickerAnnouncements.map((announcement, index) => announcement.bannerLink ? <Link key={`${announcement.id}-${index}`} to={announcement.bannerLink} className="block shrink-0 transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{contentFor(announcement)}</Link> : <span key={`${announcement.id}-${index}`} className="block shrink-0">{contentFor(announcement)}</span>)}</div>;
   return <aside dir={isArabic ? "rtl" : "ltr"} style={{ backgroundColor: bannerColor }} className="announcement-banner relative z-40 flex w-full items-center overflow-hidden border-b border-white/20 text-white" aria-label={pick("إعلانات العروض", "Offer announcements")}>

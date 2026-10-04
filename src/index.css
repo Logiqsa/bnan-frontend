@@ -342,6 +342,12 @@
   gap: 0;
 }
 
+.announcement-banner-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .announcement-banner-cycle {
   min-width: max-content;
 }

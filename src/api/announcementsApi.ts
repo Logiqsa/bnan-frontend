@@ -29,11 +29,14 @@ export interface AnnouncementPayload {
   bannerStartsAt?: string;
   bannerEndsAt?: string;
   bannerDismissible: boolean;
-  bannerColor?: string;
 }
 
+export interface AnnouncementSettings { bannerColor: string; }
+
 export const announcementsApi = {
-  activeBanner: () => apiRequest<{ success: true; data: AnnouncementItem[] }>("/announcements/banner"),
+  activeBanner: () => apiRequest<{ success: true; data: AnnouncementItem[]; bannerColor: string }>("/announcements/banner"),
+  settings: () => apiRequest<{ success: true; data: AnnouncementSettings }>("/announcements/settings"),
+  updateSettings: (payload: AnnouncementSettings) => apiRequest<{ success: true; data: AnnouncementSettings }>("/announcements/settings", { method: "PATCH", body: JSON.stringify(payload) }),
   list: () => apiRequest<{ success: true; data: AnnouncementItem[] }>("/announcements"),
   create: (payload: AnnouncementPayload) => apiRequest<{ success: true; data: AnnouncementItem }>("/announcements", { method: "POST", body: JSON.stringify(payload) }),
   update: (id: string, payload: Partial<AnnouncementPayload>) => apiRequest<{ success: true; data: AnnouncementItem }>(`/announcements/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),

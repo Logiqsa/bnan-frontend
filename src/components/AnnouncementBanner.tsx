@@ -24,7 +24,7 @@ export default function AnnouncementBanner() {
   const contentFor = (announcement: (typeof announcements)[number]) => <span className="inline-flex items-center gap-3 whitespace-nowrap border-s border-white/20 px-7 py-2.5 text-sm font-medium first:border-s-0"><Megaphone className="h-4 w-4 shrink-0 opacity-80" />{announcement.type === "important" && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">{pick("مهم", "Important")}</span>}<span className="font-semibold">{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</span>;
   const dismiss = () => setDismissed(true);
 
-  const bannerColor = announcements[0]?.bannerColor || "#0f2348";
+  const bannerColor = query.data?.bannerColor || "#0f2348";
   // Keep every animation cycle wider than the viewport, even when the offer text is short.
   // This prevents an empty stretch before the duplicated cycle enters the screen.
   const copies = Math.max(40, Math.ceil(60 / announcements.length));

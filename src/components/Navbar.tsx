@@ -17,7 +17,7 @@ const dashboardPathFor = (role: string) =>
       : `/portal/${role}/schedule`;
 
 
-const Navbar = () => {
+const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = usePortalAuth();
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 right-0 left-0 z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant">
+    <nav className={`${inFlow ? "sticky top-0" : "fixed top-0 right-0 left-0"} z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant`}>
       <div className="container mx-auto px-4">
         <div className="relative flex h-18 items-center justify-between gap-4">
           {/* Logo */}

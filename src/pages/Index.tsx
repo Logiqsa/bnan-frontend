@@ -31,8 +31,8 @@ const Index = () => {
           },
         }}
       />
-      <Navbar />
       <AnnouncementBanner />
+      <Navbar inFlow />
       <HeroSection />
       <VisionMissionValues />
       <StatsCounter />

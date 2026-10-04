@@ -25,7 +25,9 @@ export default function AnnouncementBanner() {
   const dismiss = () => setDismissed(true);
 
   const bannerColor = announcements[0]?.bannerColor || "#0f2348";
-  const copies = Math.max(2, Math.ceil(8 / announcements.length));
+  // Keep every animation cycle wider than the viewport, even when the offer text is short.
+  // This prevents an empty stretch before the duplicated cycle enters the screen.
+  const copies = Math.max(16, Math.ceil(24 / announcements.length));
   const tickerAnnouncements = Array.from({ length: copies }, () => announcements).flat();
   const renderTrack = (hidden = false) => <div aria-hidden={hidden} className="announcement-banner-track flex min-w-max shrink-0 items-center">{tickerAnnouncements.map((announcement, index) => announcement.bannerLink ? <Link key={`${announcement.id}-${index}`} to={announcement.bannerLink} className="block shrink-0 transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{contentFor(announcement)}</Link> : <span key={`${announcement.id}-${index}`} className="block shrink-0">{contentFor(announcement)}</span>)}</div>;
   return <aside dir={isArabic ? "rtl" : "ltr"} style={{ backgroundColor: bannerColor }} className="announcement-banner relative z-40 flex w-full items-center overflow-hidden border-b border-white/20 text-white" aria-label={pick("إعلانات العروض", "Offer announcements")}>

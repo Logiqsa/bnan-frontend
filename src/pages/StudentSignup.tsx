@@ -758,6 +758,13 @@ export default function StudentSignup({
               navigate(intent.returnTo, { replace: true });
               return;
             }
+            if (!courseOnly && studentPassword) {
+              await loginToPortal(verifiedStudentEmail, studentPassword, true);
+              sessionStorage.removeItem(sessionDraftKey);
+              clearStudentSignupDrafts();
+              navigate("/portal/student", { replace: true });
+              return;
+            }
             sessionStorage.removeItem(sessionDraftKey);
             clearStudentSignupDrafts();
             const loginParams = new URLSearchParams({

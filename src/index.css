@@ -325,7 +325,7 @@
 }
 
 .announcement-banner-marquee {
-  animation: announcement-banner-marquee 300s linear infinite;
+  animation: announcement-banner-marquee 400s linear infinite;
   direction: ltr;
   width: max-content;
   min-width: max-content;
@@ -334,7 +334,7 @@
 }
 
 .announcement-banner-track {
-  direction: rtl;
+  direction: ltr;
   flex: 0 0 auto;
   width: max-content;
   margin: 0;

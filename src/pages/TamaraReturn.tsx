@@ -57,7 +57,9 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
         if (cancelled) return;
         setResult(data);
         setError("");
-        if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
+        // Provider capture is not the same as a completed registration. Keep
+        // checking until the backend returns the created student/subscription.
+        if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
           localStorage.removeItem("tamaraPaymentId");
           setPhase("settled");
           return;
@@ -78,7 +80,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           if (cancelled) return;
           setResult(data);
           setError("");
-          if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
+          if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
             localStorage.removeItem("tamaraPaymentId");
             setPhase("settled");
             return;
@@ -110,7 +112,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
         ? await paymentApi.reconcile(draft.paymentId)
         : await paymentApi.status(draft.provider, draft.paymentId);
       setResult(data);
-      if (isPaymentCaptured(data) || TERMINAL_STATUSES.has(data.status)) {
+      if (isRegistrationCompleted(data) || TERMINAL_STATUSES.has(data.status)) {
         localStorage.removeItem("tamaraPaymentId");
         setPhase("settled");
       }
@@ -190,7 +192,7 @@ export default function TamaraReturn({ kind }: { kind: "success" | "failure" | "
           {phase === "settled" && (!result || (!isRegistrationCompleted(result) && !TERMINAL_STATUSES.has(result.status))) && (
             <>
               <h1 className="text-xl font-cairo font-bold">
-                {result && isPaymentCaptured(result) ? "تم تأكيد الدفع" : "جاري تأكيد الدفع"}
+                {result && isPaymentCaptured(result) ? "تم استلام الدفع وجاري تجهيز الحساب" : "جاري تأكيد الدفع"}
               </h1>
               <p className="text-muted-foreground font-tajawal text-sm">
                 {result && isPaymentCaptured(result) && !result.studentId

@@ -321,7 +321,8 @@
 
 @keyframes announcement-banner-marquee {
   from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(calc(var(--announcement-sequence-width) * -1), 0, 0); }
+  /* The marquee contains exactly two equal groups, so 50% is exactly one group. */
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
 .announcement-banner-marquee {
@@ -335,6 +336,7 @@
 
 .announcement-banner-viewport {
   position: relative;
+  direction: ltr;
 }
 
 .announcement-banner-sequence {

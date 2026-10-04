@@ -56,7 +56,7 @@ export default function AnnouncementBanner() {
     if (!viewport || !base || !sequenceElement || !announcements.length) return;
 
     const syncMeasurements = () => {
-      const baseWidth = base.scrollWidth;
+      const baseWidth = base.getBoundingClientRect().width;
       if (!baseWidth) return;
 
       // Fill the viewport with complete base sequences. The second visible
@@ -68,7 +68,7 @@ export default function AnnouncementBanner() {
         return;
       }
 
-      const measuredSequenceWidth = sequenceElement.scrollWidth;
+      const measuredSequenceWidth = sequenceElement.getBoundingClientRect().width;
       if (measuredSequenceWidth) setSequenceWidth(measuredSequenceWidth);
     };
 
@@ -127,7 +127,6 @@ export default function AnnouncementBanner() {
           className="announcement-banner-marquee flex w-max items-center"
           style={
             {
-              "--announcement-sequence-width": `${sequenceWidth}px`,
               animationPlayState: sequenceWidth ? undefined : "paused",
             } as CSSProperties
           }

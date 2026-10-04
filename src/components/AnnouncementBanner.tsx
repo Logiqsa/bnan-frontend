@@ -12,8 +12,9 @@ export default function AnnouncementBanner() {
   const query = useQuery({
     queryKey: ["active-announcement-banner"],
     queryFn: announcementsApi.activeBanner,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30 * 1000,
   });
   const announcements = query.data?.data || [];
 

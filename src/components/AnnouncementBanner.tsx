@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export default function AnnouncementBanner() {
   const { isArabic, pick } = useLanguage();
   const [dismissed, setDismissed] = useState(false);
-  const [copies, setCopies] = useState(1);
+  const [copies, setCopies] = useState(12);
   const [cycleWidth, setCycleWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cycleRef = useRef<HTMLDivElement>(null);

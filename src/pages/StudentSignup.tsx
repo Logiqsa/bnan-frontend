@@ -1219,7 +1219,7 @@ export default function StudentSignup({
                     <p className="text-sm text-muted-foreground font-tajawal mb-3">
                       {mode === "gulf"
                         ? isSharedSubjectPackage
-                          ? "يمكنك تقسيم الباقة على أكثر من مادة؛ سيتم الدفع مرة واحدة للباقة."
+                          ? "يمكنك تقسيم الباقة على أكثر من مادة."
                           : "حدد المادة التي يرغب الطالب في دراستها."
                         : isSingleSubjectPackage
                           ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة."

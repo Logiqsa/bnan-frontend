@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
+  Megaphone,
   Award,
   BarChart3,
   Banknote,
@@ -199,6 +200,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Send notification",
       icon: Bell,
       path: "/admin/notifications",
+    },
+    {
+      label: "عروض الشريط العلوي",
+      labelEn: "Top banner offers",
+      icon: Megaphone,
+      path: "/admin/announcements",
     },
     {
       label: "سجل الإشعارات",

@@ -137,7 +137,7 @@ describe("StudentSubscriptions", () => {
     renderPage();
     expect(await screen.findByText("سجل الاشتراكات")).toBeInTheDocument();
     expect(await screen.findByText("باقة تاريخية")).toBeInTheDocument();
-    expect(screen.getByText(/الحالة المحسوبة: backend_state/)).toBeInTheDocument();
+    expect(screen.getByText(/الحالة: backend_state/)).toBeInTheDocument();
     expect(screen.queryByText("renewal-id")).not.toBeInTheDocument();
     expect(screen.queryByText("internal-id")).not.toBeInTheDocument();
     expect(screen.getByText(/صفحة 1 من 2/)).toBeInTheDocument();

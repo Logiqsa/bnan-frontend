@@ -319,6 +319,23 @@
   to { transform: translate3d(0, 0, 0); }
 }
 
+@keyframes announcement-banner-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.announcement-banner-marquee {
+  animation: announcement-banner-marquee 24s linear infinite;
+}
+
+.announcement-banner-track {
+  direction: rtl;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-banner-marquee { animation: none; }
+}
+
 /* Portal schedule: physical left/right placement is independent from RTL. */
 .portal-schedule-layout {
   display: grid;

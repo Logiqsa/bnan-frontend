@@ -438,6 +438,7 @@ const adminNavOrder = [
   "/admin?tab=zoom-grades",
   "/admin/classroom-recordings",
   "/admin/notifications",
+  "/admin/announcements",
   "/admin/notifications/history",
   "/admin?tab=success-stories",
   "/admin?tab=legal-pages",

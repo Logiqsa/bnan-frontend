@@ -21,13 +21,13 @@ export default function AnnouncementBanner() {
 
   if (!announcements.length || dismissed) return null;
 
-  const contentFor = (announcement: (typeof announcements)[number]) => <span className="inline-flex items-center gap-3 whitespace-nowrap border-s border-white/20 px-7 py-2.5 text-sm font-medium first:border-s-0"><Megaphone className="h-4 w-4 shrink-0 opacity-80" />{announcement.type === "important" && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">{pick("مهم", "Important")}</span>}<span className="font-semibold">{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</span>;
+  const contentFor = (announcement: (typeof announcements)[number]) => <span dir={isArabic ? "rtl" : "ltr"} className="inline-flex items-center gap-3 whitespace-nowrap border-s border-white/20 px-7 py-2.5 text-sm font-medium first:border-s-0"><Megaphone className="h-4 w-4 shrink-0 opacity-80" />{announcement.type === "important" && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">{pick("مهم", "Important")}</span>}<span className="font-semibold">{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</span>;
   const dismiss = () => setDismissed(true);
 
   const bannerColor = query.data?.bannerColor || "#0f2348";
   // Keep every animation cycle wider than the viewport, even when the offer text is short.
   // This prevents an empty stretch before the duplicated cycle enters the screen.
-  const copies = Math.max(40, Math.ceil(60 / announcements.length));
+  const copies = Math.max(100, Math.ceil(120 / announcements.length));
   const tickerAnnouncements = Array.from({ length: copies }, () => announcements).flat();
   const renderTrack = (hidden = false) => <div aria-hidden={hidden} className="announcement-banner-track flex min-w-max shrink-0 items-center">{tickerAnnouncements.map((announcement, index) => announcement.bannerLink ? <Link key={`${announcement.id}-${index}`} to={announcement.bannerLink} className="block shrink-0 transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{contentFor(announcement)}</Link> : <span key={`${announcement.id}-${index}`} className="block shrink-0">{contentFor(announcement)}</span>)}</div>;
   return <aside dir={isArabic ? "rtl" : "ltr"} style={{ backgroundColor: bannerColor }} className="announcement-banner relative z-40 flex w-full items-center overflow-hidden border-b border-white/20 text-white" aria-label={pick("إعلانات العروض", "Offer announcements")}>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { ArrowRight, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight, CalendarDays, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
 import { chatApi, type ChatMessage, type ChatRoomSummary } from "@/api/chatApi";
 import ChatRoomList from "@/components/chat/ChatRoomList";
 import TeacherChatConversation from "@/components/chat/TeacherChatConversation";
@@ -255,6 +255,7 @@ const StudentMessages = () => {
                     <h2 className="break-words text-sm font-semibold sm:text-base">{selectedRoom.displayName || pick("محادثة", "Conversation")}</h2>
                     {selectedRoom.subtitle && <p className="mt-0.5 break-words text-xs text-muted-foreground">{selectedRoom.subtitle}</p>}
                   </div>
+                  {selectedRoom.type === "classroom" && selectedRoom.classroomId && <Button asChild size="sm" variant="outline" className="ms-auto shrink-0 gap-1.5"><Link to={`/portal/student/classrooms/${encodeURIComponent(selectedRoom.classroomId)}?tab=schedule`}><CalendarDays className="h-4 w-4" />{pick("عرض جدول الفصل", "View classroom schedule")}</Link></Button>}
                 </div>
               )}
               {selectedRoom ? (

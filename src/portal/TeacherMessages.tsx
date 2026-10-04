@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { ArrowRight, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight, CalendarDays, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
 import {
   chatApi,
   type ChatMessage,
@@ -100,7 +100,13 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
   }, [classroomMetadata.data, curriculumId]);
   const filteredRooms = useMemo(() => {
     const search = roomSearch.trim().toLocaleLowerCase();
-    return roomItems.filter((room) => {
+    const scopedRooms = [...roomItems].sort((a, b) => {
+      if (mode !== "teacher") return 0;
+      const classroomOrder = Number(b.type === "classroom") - Number(a.type === "classroom");
+      if (classroomOrder !== 0) return classroomOrder;
+      return new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime();
+    });
+    return scopedRooms.filter((room) => {
       const metadata = room.classroomId
         ? metadataByClassroom.get(room.classroomId)
         : undefined;
@@ -478,11 +484,19 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                     <h2 className="break-words text-sm font-semibold sm:text-base">
                       {selectedRoom?.displayName || pick("محادثة", "Conversation")}
                     </h2>
-                    {selectedRoom?.subtitle && (
+                  {selectedRoom?.subtitle && (
                       <p className="mt-0.5 break-words text-xs text-muted-foreground">
                         {selectedRoom.subtitle}
                       </p>
-                    )}
+                  )}
+                  {selectedRoom?.type === "classroom" && selectedRoom.classroomId && (
+                    <Button asChild size="sm" variant="outline" className="ms-auto shrink-0 gap-1.5">
+                      <Link to={`/portal/teacher/classrooms/${encodeURIComponent(selectedRoom.classroomId)}/schedule`}>
+                        <CalendarDays className="h-4 w-4" />
+                        {pick("عرض جدول الفصل", "View classroom schedule")}
+                      </Link>
+                    </Button>
+                  )}
                   </div>
                   {mode === "teacher" && selectedRoom?.type === "classroom" && selectedRoom.classroomId && (
                     <ClassroomSessionActions

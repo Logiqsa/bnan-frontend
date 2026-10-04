@@ -278,6 +278,7 @@ export default function StudentSignup({
   const selectedPackage = packages.find((p) => p.id === packageId);
   const selectedAccessScope = selectedPackage?.accessScope;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
+  const isSharedSubjectPackage = selectedAccessScope === "shared_subjects";
   const isAllSubjectsPackage = selectedAccessScope === "all_subjects";
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
     const normalize = (value: string) =>
@@ -504,7 +505,7 @@ export default function StudentSignup({
       if (courseOnly) return !!curriculumId && !!gradeId;
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0)
         return false;
-      if (mode === "gulf") return subjectIds.length >= 1;
+      if (mode === "gulf") return isSharedSubjectPackage ? subjectIds.length >= 2 : subjectIds.length >= 1;
       if (isSingleSubjectPackage) return subjectIds.length === 1;
       if (isAllSubjectsPackage) return subjectIds.length === subjects.length;
       return false;
@@ -531,6 +532,7 @@ export default function StudentSignup({
     subjects.length,
     packageId,
     isSingleSubjectPackage,
+    isSharedSubjectPackage,
     isAllSubjectsPackage,
     mode,
     paymentProvider,
@@ -675,7 +677,9 @@ export default function StudentSignup({
             student: studentPayload,
             curriculum: curriculumId,
             packageId,
-            items: subjectIds.map((subjectId) => ({ subjectId, packageId })),
+            ...(selectedAccessScope === "single_subject"
+              ? { items: subjectIds.map((subjectId) => ({ subjectId, packageId })) }
+              : {}),
             discountCode: discountCode.trim() || undefined,
             ...(paymentProvider === "tamara"
               ? {
@@ -1205,14 +1209,18 @@ export default function StudentSignup({
                   <div>
                     <h3 className="font-cairo font-bold mb-1">
                       {mode === "gulf"
-                        ? "اختر مادة أو أكثر *"
+                        ? isSharedSubjectPackage
+                          ? "اختر مادتين أو أكثر *"
+                          : "اختر مادة واحدة *"
                         : isSingleSubjectPackage
                           ? "اختر مادة واحدة *"
                           : "المواد المشمولة في الباقة"}
                     </h3>
                     <p className="text-sm text-muted-foreground font-tajawal mb-3">
                       {mode === "gulf"
-                        ? "حدد المواد التي يرغب الطالب في دراستها."
+                        ? isSharedSubjectPackage
+                          ? "حدد مادتين أو أكثر للباقة المشتركة؛ سيتم الدفع مرة واحدة للباقة."
+                          : "حدد المادة التي يرغب الطالب في دراستها."
                         : isSingleSubjectPackage
                           ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة."
                           : isAllSubjectsPackage
@@ -1235,9 +1243,10 @@ export default function StudentSignup({
                               className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}
                             >
                               <input
-                                type="checkbox"
+                                type={isSharedSubjectPackage ? "checkbox" : "radio"}
+                                name={isSharedSubjectPackage ? undefined : "registration-subject"}
                                 checked={checked}
-                                onChange={() => toggleSubject(s.id)}
+                                onChange={() => isSharedSubjectPackage ? toggleSubject(s.id) : selectSubject(s.id)}
                               />
                               {s.name}
                             </label>

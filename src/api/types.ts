@@ -62,7 +62,7 @@ export interface GulfCheckoutBody {
   student: StudentRegistrationInput;
   curriculum: string;
   packageId: string;
-  items: Array<{
+  items?: Array<{
     subjectId: string;
     packageId: string;
   }>;

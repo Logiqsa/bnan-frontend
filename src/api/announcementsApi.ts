@@ -31,7 +31,7 @@ export interface AnnouncementPayload {
 }
 
 export const announcementsApi = {
-  activeBanner: () => apiRequest<{ success: true; data: AnnouncementItem | null }>("/announcements/banner"),
+  activeBanner: () => apiRequest<{ success: true; data: AnnouncementItem[] }>("/announcements/banner"),
   list: () => apiRequest<{ success: true; data: AnnouncementItem[] }>("/announcements"),
   create: (payload: AnnouncementPayload) => apiRequest<{ success: true; data: AnnouncementItem }>("/announcements", { method: "POST", body: JSON.stringify(payload) }),
   update: (id: string, payload: Partial<AnnouncementPayload>) => apiRequest<{ success: true; data: AnnouncementItem }>(`/announcements/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),

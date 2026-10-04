@@ -6,7 +6,7 @@ import { announcementsApi } from "@/api/announcementsApi";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 
-const dismissedKey = (id: string) => `bnan-dismissed-announcement-${id}`;
+const dismissedKey = (ids: string[]) => `bnan-dismissed-announcements-${ids.join("-")}`;
 
 export default function AnnouncementBanner() {
   const { isArabic, pick } = useLanguage();
@@ -17,23 +17,25 @@ export default function AnnouncementBanner() {
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   });
-  const announcement = query.data?.data;
+  const announcements = query.data?.data || [];
+  const announcementIds = announcements.map((announcement) => announcement.id);
 
   useEffect(() => {
-    setDismissed(Boolean(announcement?.id && sessionStorage.getItem(dismissedKey(announcement.id))));
-  }, [announcement?.id]);
+    setDismissed(Boolean(announcementIds.length && sessionStorage.getItem(dismissedKey(announcementIds))));
+  }, [announcementIds.join("-")]);
 
-  if (!announcement || dismissed) return null;
+  if (!announcements.length || dismissed) return null;
 
-  const content = <div className="announcement-banner-track flex min-w-max items-center gap-3 px-6 py-2.5 text-sm font-medium"><Megaphone className="h-4 w-4 shrink-0" /><span>{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</div>;
+  const contentFor = (announcement: (typeof announcements)[number]) => <span className="inline-flex items-center gap-3 px-6 py-2.5 text-sm font-medium"><Megaphone className="h-4 w-4 shrink-0" />{announcement.type === "important" && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">{pick("مهم", "Important")}</span>}<span>{announcement.title}</span>{announcement.body && <span className="font-normal opacity-90">— {announcement.body}</span>}</span>;
   const dismiss = () => {
-    sessionStorage.setItem(dismissedKey(announcement.id), "1");
+    sessionStorage.setItem(dismissedKey(announcementIds), "1");
     setDismissed(true);
   };
 
-  return <aside dir={isArabic ? "rtl" : "ltr"} className={`relative z-50 flex items-center overflow-hidden border-b ${announcement.type === "important" ? "border-amber-300 bg-amber-500 text-amber-950" : "border-primary/30 bg-primary text-primary-foreground"}`} aria-label={pick("إعلان العرض", "Offer announcement")}>
-    <div className="min-w-0 flex-1 overflow-hidden"><div className="announcement-banner-marquee flex w-max items-center">{announcement.bannerLink ? <Link to={announcement.bannerLink} className="block transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{content}</Link> : content}<div aria-hidden="true">{content}</div></div></div>
-    {announcement.bannerLink && <Link to={announcement.bannerLink} className="hidden shrink-0 items-center gap-1 px-3 text-xs font-semibold sm:flex">{pick("التفاصيل", "Details")}<ArrowLeft className="h-3.5 w-3.5" /></Link>}
-    {announcement.bannerDismissible !== false && <Button type="button" variant="ghost" size="icon" onClick={dismiss} className="mx-2 h-7 w-7 shrink-0 hover:bg-black/10" aria-label={pick("إغلاق الإعلان", "Dismiss announcement")}><X className="h-4 w-4" /></Button>}
+  const renderAnnouncements = (hidden = false) => <div aria-hidden={hidden} className="announcement-banner-track flex min-w-max items-center">{announcements.map((announcement) => announcement.bannerLink ? <Link key={announcement.id} to={announcement.bannerLink} className="block transition-opacity hover:opacity-80" aria-label={pick("فتح العرض", "Open offer")}>{contentFor(announcement)}</Link> : <span key={announcement.id}>{contentFor(announcement)}</span>)}</div>;
+
+  return <aside dir={isArabic ? "rtl" : "ltr"} className="relative z-50 flex items-center overflow-hidden border-b border-primary/30 bg-primary text-primary-foreground" aria-label={pick("إعلانات العروض", "Offer announcements")}>
+    <div className="min-w-0 flex-1 overflow-hidden"><div className="announcement-banner-marquee flex w-max items-center">{renderAnnouncements()} {renderAnnouncements(true)}</div></div>
+    {announcements.some((announcement) => announcement.bannerDismissible !== false) && <Button type="button" variant="ghost" size="icon" onClick={dismiss} className="mx-2 h-7 w-7 shrink-0 hover:bg-black/10" aria-label={pick("إغلاق الإعلان", "Dismiss announcements")}><X className="h-4 w-4" /></Button>}
   </aside>;
 }

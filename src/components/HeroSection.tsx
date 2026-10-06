@@ -102,8 +102,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-primary-foreground"
           >
-            كل ما تحتاجه{" "}
-            <span className="whitespace-nowrap">لرحلتك التعليمية</span>
+            <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
             <span className="text-secondary">
               في مكان واحد

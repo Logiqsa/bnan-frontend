@@ -105,7 +105,7 @@ const HeroSection = () => {
             تعليم يفهمك
             <br />
             ومنصة تجمع{" "}
-            <span className="text-secondary italic">
+            <span className="text-secondary">
               كل ما تحتاج
             </span>
           </motion.h1>
@@ -114,10 +114,10 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
+            className="text-lg md:text-xl font-tajawal font-bold mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
             مع{" "}
-            <span className="font-bold italic text-secondary">بنان</span>{" "}
+            <span className="font-bold text-secondary">بنان</span>{" "}
             تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 

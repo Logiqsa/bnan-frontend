@@ -7,8 +7,8 @@ const items = [
     title: "رؤيتنا",
     description: "أن نكون المنصة التعليمية الأولى في العالم العربي.",
     gradient: "from-primary/20 to-secondary/20",
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
+    iconBg: "bg-secondary/10",
+    iconColor: "text-secondary",
   },
   {
     icon: Target,

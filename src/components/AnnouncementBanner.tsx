@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -6,11 +6,34 @@ import { announcementsApi } from "@/api/announcementsApi";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 
+const pad = (value: number) => String(value).padStart(2, "0");
+
+const getRemainingSeconds = (endsAt?: string | null, now = Date.now()) => {
+  if (!endsAt) return null;
+
+  const end = new Date(endsAt).getTime();
+  if (!Number.isFinite(end)) return null;
+
+  return Math.max(0, Math.floor((end - now) / 1000));
+};
+
+const formatCountdown = (seconds: number, isArabic: boolean) => {
+  const days = Math.floor(seconds / (24 * 60 * 60));
+  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((seconds % (60 * 60)) / 60);
+  const remainingSeconds = seconds % 60;
+
+  return isArabic
+    ? `${days} يوم : ${pad(hours)} ساعة : ${pad(minutes)} دقيقة : ${pad(remainingSeconds)} ثانية`
+    : `${days}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(remainingSeconds)}s`;
+};
+
 export default function AnnouncementBanner() {
   const { isArabic, pick } = useLanguage();
   const [dismissed, setDismissed] = useState(false);
   const [sequenceCopies, setSequenceCopies] = useState(1);
   const [sequenceWidth, setSequenceWidth] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const viewportRef = useRef<HTMLDivElement>(null);
   const baseSequenceRef = useRef<HTMLDivElement>(null);
   const sequenceRef = useRef<HTMLDivElement>(null);
@@ -24,8 +47,20 @@ export default function AnnouncementBanner() {
   });
   const announcements = query.data?.data || [];
   const announcementsKey = announcements
-    .map(({ id, title, body, type, bannerLink }) => `${id}:${title}:${body}:${type}:${bannerLink || ""}`)
+    .map(({ id, title, body, type, bannerLink, bannerEndsAt }) => `${id}:${title}:${body}:${type}:${bannerLink || ""}:${bannerEndsAt || ""}`)
     .join("|");
+  const hasCountdown = announcements.some(({ bannerEndsAt }) => getRemainingSeconds(bannerEndsAt) !== null);
+
+  useEffect(() => {
+    if (!hasCountdown) return;
+
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasCountdown]);
+
+  const visibleAnnouncements = announcements.filter(
+    ({ bannerEndsAt }) => getRemainingSeconds(bannerEndsAt, now) !== 0,
+  );
 
   const contentFor = (announcement: (typeof announcements)[number]) => (
     <span
@@ -42,10 +77,18 @@ export default function AnnouncementBanner() {
       {announcement.body && (
         <span className="font-normal opacity-90">— {announcement.body}</span>
       )}
+      {getRemainingSeconds(announcement.bannerEndsAt, now) !== null && (
+        <span
+          className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold tabular-nums"
+          aria-label={pick("الوقت المتبقي لانتهاء العرض", "Time remaining until offer ends")}
+        >
+          {formatCountdown(getRemainingSeconds(announcement.bannerEndsAt, now) || 0, isArabic)}
+        </span>
+      )}
     </span>
   );
 
-  const baseSequence = announcements;
+  const baseSequence = visibleAnnouncements;
   const sequence = Array.from({ length: sequenceCopies }, () => baseSequence).flat();
   const bannerColor = query.data?.bannerColor || "#0f2348";
 
@@ -53,7 +96,7 @@ export default function AnnouncementBanner() {
     const viewport = viewportRef.current;
     const base = baseSequenceRef.current;
     const sequenceElement = sequenceRef.current;
-    if (!viewport || !base || !sequenceElement || !announcements.length) return;
+    if (!viewport || !base || !sequenceElement || !visibleAnnouncements.length) return;
 
     const syncMeasurements = () => {
       const baseWidth = base.getBoundingClientRect().width;
@@ -78,9 +121,9 @@ export default function AnnouncementBanner() {
     observer.observe(base);
     observer.observe(sequenceElement);
     return () => observer.disconnect();
-  }, [announcementsKey, announcements.length, sequenceCopies]);
+  }, [announcementsKey, visibleAnnouncements.length, sequenceCopies]);
 
-  if (!announcements.length || dismissed) return null;
+  if (!visibleAnnouncements.length || dismissed) return null;
 
   const renderSequence = (
     items: typeof sequence,

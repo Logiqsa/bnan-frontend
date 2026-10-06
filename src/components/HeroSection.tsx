@@ -44,7 +44,7 @@ const HeroSection = () => {
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-screen flex items-start md:items-center overflow-hidden">
       <div className="absolute inset-0 bg-hero-gradient" />
 
       {/* Decorative blobs */}
@@ -94,7 +94,7 @@ const HeroSection = () => {
         </motion.div>
       ))}
 
-      <div className="container mx-auto px-4 relative z-10 -translate-y-8 pt-2 md:-translate-y-10 md:pt-6">
+      <div className="container mx-auto px-4 relative z-10 pt-6 md:-translate-y-10 md:pt-6">
         <div className="max-w-3xl mx-auto text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}

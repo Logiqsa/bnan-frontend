@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Play, Users, BookOpen, Phone, Tag, GraduationCap } from "lucide-react";
+import { Play, Users, BookOpen, Phone, Tag, GraduationCap, Smartphone } from "lucide-react";
 import { useContactSettings, whatsappHref } from "@/contexts/ContactSettingsContext";
+import { useLanguage } from "@/i18n/LanguageContext";
+import AppStoreButtons from "@/components/AppStoreButtons";
 
 const floatingBubbles = [
   {
@@ -40,6 +42,7 @@ const floatingBubbles = [
 
 const HeroSection = () => {
   const { settings } = useContactSettings();
+  const { pick } = useLanguage();
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
@@ -138,6 +141,28 @@ const HeroSection = () => {
             </a>}
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.45 }}
+            className="mx-auto mt-8 w-full max-w-2xl rounded-[1.5rem] bg-white/10 p-4 text-start shadow-elegant backdrop-blur-md md:p-5"
+          >
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+              <div className="min-w-0 text-center sm:text-start">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-cairo text-white/80">
+                  <Smartphone className="h-3.5 w-3.5 text-secondary" />
+                  {pick("تعلّم من أي مكان", "Learn from anywhere")}
+                </span>
+                <h2 className="mt-2 text-lg font-bold font-cairo text-white md:text-xl">
+                  {pick("حمّل تطبيق أكاديمية بنان", "Download the BNAN Academy app")}
+                </h2>
+                <p className="mt-1 text-sm font-tajawal text-white/70">
+                  {pick("تابع دروسك بسهولة من أي مكان", "Follow your lessons wherever you are")}
+                </p>
+              </div>
+              <AppStoreButtons onDark compact className="max-w-[19rem] shrink-0 sm:w-[19rem]" />
+            </div>
+          </motion.div>
 
           {/* Mobile Bubbles - in-flow grid below stats */}
           <motion.div

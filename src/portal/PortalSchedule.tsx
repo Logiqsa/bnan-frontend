@@ -901,7 +901,7 @@ export default function PortalSchedule({
               setAttendanceContext({
                 sessionId: selectedSessionId,
                 classroomId: selected.classroom.id,
-                readOnly: selected.registrationMode !== "gulf",
+                readOnly: selected.scheduleKind !== "course" && selected.registrationMode !== "gulf",
               });
               setSelected(null);
             }}>

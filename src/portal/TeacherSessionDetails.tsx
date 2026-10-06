@@ -107,10 +107,11 @@ export default function TeacherSessionDetails() {
   const registrationMode = classroomsQuery.data?.find(
     (classroom) => classroom.classroomId === resolvedClassroomId,
   )?.registrationMode;
-  const attendanceReadOnly = registrationMode !== "gulf";
   const report = reportQuery.data?.data;
   const pagination = reportQuery.data?.pagination;
   const group = session ? sessionGroup(session) : null;
+  const isCourseSession = Boolean(group);
+  const attendanceReadOnly = !isCourseSession && registrationMode !== "gulf";
   const courseName = group && typeof group.course === "object" ? objectName(group.course) : undefined;
   const summaryNextSteps = Array.isArray(session?.summary?.nextSteps)
     ? session.summary.nextSteps
@@ -198,7 +199,7 @@ export default function TeacherSessionDetails() {
             <Card>
               <CardContent className="p-5 sm:p-6">
                 <TeacherSessionAttendance sessionId={sessionId} classroomId={resolvedClassroomId} readOnly={attendanceReadOnly} embedded />
-                {registrationMode !== "gulf" && !classroomsQuery.isPending && (
+                {attendanceReadOnly && !classroomsQuery.isPending && (
                   <p className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
                     {registrationMode === "egyptian"
                       ? pick("الحضور متاح للعرض فقط لهذا الفصل.", "Attendance is read-only for this classroom.")

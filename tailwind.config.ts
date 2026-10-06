@@ -18,8 +18,9 @@ export default {
         // stays intact while Thmanyah becomes the shared Arabic/UI family.
         thmanyah: ["Thmanyah Sans", "sans-serif"],
         display: ["Thmanyah Serif Display", "serif"],
+        "serif-text": ["Thmanyah Serif Text", "serif"],
         cairo: ["Thmanyah Sans", "sans-serif"],
-        tajawal: ["Thmanyah Sans", "sans-serif"],
+        tajawal: ["Thmanyah Serif Text", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",

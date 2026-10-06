@@ -114,7 +114,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg md:text-xl font-display font-normal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
+            className="text-lg md:text-xl font-serif-text font-normal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
             مع{" "}
             <span className="font-bold text-secondary">بنان</span>{" "}

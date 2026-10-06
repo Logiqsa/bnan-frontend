@@ -198,7 +198,7 @@
 }
 
 @layer utilities {
-  :is(h1, h2, h3, h4, h5, h6):not(.font-mono) {
+  :is(h1, h2, h3, h4, h5, h6):not(.font-mono):not(.font-bold) {
     font-family: "Thmanyah Serif Display", serif;
     font-weight: 400;
     line-height: 1.25;

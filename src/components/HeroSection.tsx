@@ -100,7 +100,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-display leading-tight mb-6 text-primary-foreground"
+            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-primary-foreground"
           >
             تعليم يفهمك
             <br />
@@ -117,9 +117,7 @@ const HeroSection = () => {
             className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
             مع{" "}
-            <span className="relative inline-block pb-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-secondary">
-              بنان
-            </span>{" "}
+            <span className="font-bold text-secondary">بنان</span>{" "}
             تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 

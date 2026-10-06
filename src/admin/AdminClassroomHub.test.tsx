@@ -6,7 +6,7 @@ import AdminClassroomHub from "./AdminClassroomHub";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const mocks = vi.hoisted(() => ({
-  getClassroom: vi.fn(), listSubjects: vi.fn(), listStudents: vi.fn(),
+  getClassroom: vi.fn(), listSubjects: vi.fn(), listStudents: vi.fn(), listAvailableStudents: vi.fn(), assignStudent: vi.fn(),
   listSessions: vi.fn(), listRecordings: vi.fn(), getSession: vi.fn(), getSessionReport: vi.fn(),
   listAssignments: vi.fn(), getAssignment: vi.fn(), listSubmissions: vi.fn(), getSubmission: vi.fn(),
   listAttendance: vi.fn(),
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: { getClassroom: mocks.getClassroom } }));
 vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: {
   listSubjects: mocks.listSubjects, listStudents: mocks.listStudents,
+  listAvailableStudents: mocks.listAvailableStudents, assignStudent: mocks.assignStudent,
   listSessions: mocks.listSessions, listRecordings: mocks.listRecordings,
   getSession: mocks.getSession, getSessionReport: mocks.getSessionReport,
 } }));
@@ -51,6 +52,8 @@ describe("AdminClassroomHub", () => {
     mocks.getClassroom.mockResolvedValue({ success: true, data: { id: "c1", name: "فصل أول", isActive: true, curriculum: { name: "المنهج المصري" }, grade: { name: "الصف الأول" } } });
     mocks.listSubjects.mockResolvedValue({ success: true, data: { subjects: [{ classroomSubjectId: "cs1", id: "s1", name: "رياضيات", teacher: { name: "المعلم" } }] } });
     mocks.listStudents.mockResolvedValue({ success: true, results: 1, data: [{ studentId: "st1", fullName: "طالب أول" }] });
+    mocks.listAvailableStudents.mockResolvedValue({ success: true, results: 0, data: [] });
+    mocks.assignStudent.mockResolvedValue({ success: true, data: {} });
     mocks.listSessions.mockResolvedValue({ success: true, data: [] });
     mocks.listRecordings.mockResolvedValue({ success: true, data: [] });
     mocks.getSession.mockResolvedValue({ success: true, data: { id: "s1", title: "الحصة الأولى", status: "completed", startAt: "2026-09-24T10:00:00.000Z" } });

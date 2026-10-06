@@ -84,6 +84,12 @@ export interface ClassroomStudentsResponse {
   data: ClassroomStudentOption[];
 }
 
+export interface AvailableClassroomStudent {
+  id: string;
+  fullName: string;
+  email?: string;
+}
+
 export interface ClassroomSession {
   id?: string;
   _id?: string;
@@ -233,6 +239,20 @@ export const classroomRecordingsApi = {
     apiRequest<ClassroomStudentsResponse>(
       `/classrooms/${classroomId}/students`,
     ),
+
+  listAvailableStudents: (classroomId: string, search = "") => {
+    const query = new URLSearchParams();
+    if (search.trim()) query.set("search", search.trim());
+    return apiRequest<{ success: true; results: number; data: AvailableClassroomStudent[] }>(
+      `/classrooms/${classroomId}/available-students${query.toString() ? `?${query}` : ""}`,
+    );
+  },
+
+  assignStudent: (classroomId: string, studentId: string) =>
+    apiRequest<{ success: true; data: unknown }>("/enrollments/assign", {
+      method: "POST",
+      body: JSON.stringify({ classroom: classroomId, student: studentId }),
+    }),
 
   listRecordings: (classroomId: string) =>
     apiRequest<ClassroomRecordingsResponse>(

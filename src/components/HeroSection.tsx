@@ -100,7 +100,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-cairo font-extrabold leading-tight mb-6 text-primary-foreground"
+            className="text-4xl md:text-6xl lg:text-7xl font-cairo font-extrabold leading-tight mb-6 text-primary-foreground"
           >
             تعليم احترافي
             <br />

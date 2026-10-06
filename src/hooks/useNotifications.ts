@@ -236,6 +236,7 @@ export function useNotifications(language?: "ar" | "en") {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const receivedIds = useRef(new Set<string>());
+  const initialized = useRef(false);
 
   const load = useCallback(async () => {
     // Changing language must refetch because the backend localizes title/body.
@@ -244,8 +245,21 @@ export function useNotifications(language?: "ar" | "en") {
     setError(null);
     try {
       const response = await notificationsApi.list(100);
+      const newlyLoaded = initialized.current
+        ? response.data.filter((notification) => !receivedIds.current.has(notification.id))
+        : [];
+      response.data.forEach((notification) => receivedIds.current.add(notification.id));
       setItems((current) => mergeNotifications(response.data, current));
       setUnreadCount(response.unreadCount);
+      if (newlyLoaded.length > 0) {
+        newlyLoaded
+          .slice()
+          .reverse()
+          .forEach((notification) => {
+            toast(notification.title, { description: notification.body });
+          });
+      }
+      initialized.current = true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "تعذر تحميل الإشعارات.");
     } finally {
@@ -274,9 +288,13 @@ export function useNotifications(language?: "ar" | "en") {
     const realtimeEvents = ["notification", "newNotification", "notification:new"];
     realtimeEvents.forEach((event) => socket.on(event, receive));
     socket.on("connect", load);
+    const pollingTimer = window.setInterval(() => {
+      void load();
+    }, 15_000);
     return () => {
       realtimeEvents.forEach((event) => socket.off(event, receive));
       socket.off("connect", load);
+      window.clearInterval(pollingTimer);
     };
   }, [load, language]);
 

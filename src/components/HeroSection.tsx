@@ -102,9 +102,12 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-4xl md:text-6xl lg:text-7xl font-display leading-tight mb-6 text-primary-foreground"
           >
-            تعليم احترافي
+            تعليم يفهمك
             <br />
-            <span className="text-gradient-sky">بلا حدود</span>
+            منصة تجمع{" "}
+            <span className="underline decoration-secondary decoration-4 underline-offset-8">
+              كل ما تحتاج
+            </span>
           </motion.h1>
 
           <motion.p
@@ -113,7 +116,11 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
-            BNAN Academy منصة تعليم إلكتروني متكاملة تجمع بين أفضل المعلمين والتكنولوجيا الحديثة لتقديم تجربة تعليم عن بعد فريدة لأبنائكم
+            مع{" "}
+            <span className="relative inline-block after:absolute after:-bottom-1 after:start-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-secondary">
+              بنان
+            </span>{" "}
+            تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 
           <motion.div

@@ -105,7 +105,7 @@ const HeroSection = () => {
             تعليم يفهمك
             <br />
             ومنصة تجمع{" "}
-            <span className="underline decoration-secondary decoration-4 underline-offset-8">
+            <span className="text-secondary">
               كل ما تحتاج
             </span>
           </motion.h1>

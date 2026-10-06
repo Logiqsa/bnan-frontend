@@ -14,8 +14,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        cairo: ["Cairo", "sans-serif"],
-        tajawal: ["Tajawal", "sans-serif"],
+        // Keep the existing semantic utility names so the current hierarchy
+        // stays intact while Thmanyah becomes the shared Arabic/UI family.
+        thmanyah: ["Thmanyah Sans", "sans-serif"],
+        cairo: ["Thmanyah Sans", "sans-serif"],
+        tajawal: ["Thmanyah Sans", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

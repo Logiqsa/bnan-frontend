@@ -17,6 +17,7 @@ export default {
         // Keep the existing semantic utility names so the current hierarchy
         // stays intact while Thmanyah becomes the shared Arabic/UI family.
         thmanyah: ["Thmanyah Sans", "sans-serif"],
+        display: ["Thmanyah Serif Display", "serif"],
         cairo: ["Thmanyah Sans", "sans-serif"],
         tajawal: ["Thmanyah Sans", "sans-serif"],
       },

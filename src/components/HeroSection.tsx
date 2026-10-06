@@ -105,7 +105,7 @@ const HeroSection = () => {
             تعليم يفهمك
             <br />
             ومنصة تجمع{" "}
-            <span className="text-secondary">
+            <span className="text-secondary italic">
               كل ما تحتاج
             </span>
           </motion.h1>
@@ -117,7 +117,7 @@ const HeroSection = () => {
             className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
             مع{" "}
-            <span className="font-bold text-secondary">بنان</span>{" "}
+            <span className="font-bold italic text-secondary">بنان</span>{" "}
             تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 

@@ -94,13 +94,13 @@ const HeroSection = () => {
         </motion.div>
       ))}
 
-      <div className="container mx-auto px-4 relative z-10 pt-8 md:pt-12">
+      <div className="container mx-auto px-4 relative z-10 -translate-y-8 pt-2 md:-translate-y-10 md:pt-6">
         <div className="max-w-3xl mx-auto text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-cairo font-extrabold leading-tight mb-6 text-primary-foreground"
+            className="text-6xl md:text-8xl lg:text-9xl font-cairo font-extrabold leading-tight mb-6 text-primary-foreground"
           >
             تعليم احترافي
             <br />

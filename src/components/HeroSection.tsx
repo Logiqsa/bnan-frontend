@@ -102,11 +102,10 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-primary-foreground"
           >
-            تعليم يفهمك
+            كل ما تحتاجه لرحلتك التعليمية
             <br />
-            ومنصة تجمع{" "}
             <span className="text-secondary">
-              كل ما تحتاج
+              في مكان واحد
             </span>
           </motion.h1>
 
@@ -118,7 +117,7 @@ const HeroSection = () => {
           >
             مع{" "}
             <span className="font-bold text-secondary">بنان</span>{" "}
-            تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
+            خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 
           <motion.div

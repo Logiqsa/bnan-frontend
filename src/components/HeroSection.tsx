@@ -117,7 +117,7 @@ const HeroSection = () => {
             className="text-lg md:text-xl font-tajawal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
           >
             مع{" "}
-            <span className="relative inline-block after:absolute after:-bottom-1 after:start-1/2 after:h-0.5 after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-secondary">
+            <span className="relative inline-block pb-1 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-secondary">
               بنان
             </span>{" "}
             تفوّقك أصبح بين يديك عبر بيئة تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.

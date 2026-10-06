@@ -145,7 +145,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.45 }}
             className="mx-auto mt-8 w-full max-w-md"
           >
-            <AppStoreButtons onDark className="max-w-md grid-cols-2" />
+            <AppStoreButtons onDark className="max-w-md grid-cols-1 sm:grid-cols-2" />
           </motion.div>
 
           {/* Mobile Bubbles - in-flow grid below stats */}

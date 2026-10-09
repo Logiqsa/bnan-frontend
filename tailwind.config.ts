@@ -14,12 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Keep the existing semantic utility names so the current hierarchy
-        // stays intact while Thmanyah becomes the shared Arabic/UI family.
+        // Keep the existing utility names while mapping the site's hierarchy
+        // to the Thmanyah type system.
         thmanyah: ["Thmanyah Sans", "sans-serif"],
         display: ["Thmanyah Serif Display", "serif"],
         "serif-text": ["Thmanyah Serif Text", "serif"],
-        cairo: ["Thmanyah Sans", "sans-serif"],
+        cairo: ["Thmanyah Serif Display", "serif"],
         tajawal: ["Thmanyah Serif Text", "serif"],
       },
       colors: {

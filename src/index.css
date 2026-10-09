@@ -1,7 +1,6 @@
 @import "@dawod/thmanyah-font-web/sans.css";
 @import "@dawod/thmanyah-font-web/serif-display.css";
 @import "@dawod/thmanyah-font-web/serif-text.css";
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -144,7 +143,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-cairo antialiased;
+    @apply bg-background text-foreground font-serif-text antialiased;
     min-width: 0;
     max-width: 100%;
     overflow-x: hidden;
@@ -177,6 +176,11 @@
     cursor: not-allowed;
   }
 
+  /* Thmanyah Sans is the compact, highly legible face for controls. */
+  :is(button, select, input, textarea, option, [role="button"], [role="option"], [role="tab"]) {
+    font-family: "Thmanyah Sans", sans-serif;
+  }
+
   #root {
     min-width: 0;
     max-width: 100%;
@@ -199,9 +203,8 @@
 }
 
 @layer utilities {
-  :is(h1, h2, h3, h4, h5, h6):not(.font-mono):not(.font-bold) {
+  :is(h1, h2, h3, h4, h5, h6):not(.font-mono) {
     font-family: "Thmanyah Serif Display", serif;
-    font-weight: 400;
     line-height: 1.25;
   }
 

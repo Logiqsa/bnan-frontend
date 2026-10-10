@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -63,6 +63,7 @@ export default function TeacherSessionDetails() {
     sessionId: string;
   }>();
   const { language, pick } = useLanguage();
+  const isAdmin = useLocation().pathname.startsWith("/admin/");
   const [reportPage, setReportPage] = useState(1);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
@@ -122,9 +123,11 @@ export default function TeacherSessionDetails() {
     return kind;
   };
 
-  const backPath = classroomMismatch
-    ? "/portal/teacher/classrooms"
-    : `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}`;
+  const backPath = isAdmin
+    ? `/admin/classrooms/${encodeURIComponent(classroomId)}?tab=sessions`
+    : classroomMismatch
+      ? "/portal/teacher/classrooms"
+      : `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}`;
   const notFound = sessionQuery.error instanceof ApiError && sessionQuery.error.status === 404;
 
   return (

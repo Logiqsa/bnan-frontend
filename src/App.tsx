@@ -499,6 +499,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/classrooms/:classroomId/sessions/:sessionId" element={<AdminGuard><TeacherSessionDetails /></AdminGuard>} />
                     <Route
                       path="/admin/classrooms/:classroomId/schedule"
                       element={

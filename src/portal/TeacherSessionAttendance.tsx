@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { teacherAttendanceApi, type AttendanceStatus, type TeacherAttendanceRecord, type TeacherClassroomStudent } from "@/api/teacherAttendanceApi";
+import { classroomRecordingsApi } from "@/api/classroomRecordingsApi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -15,9 +17,10 @@ interface AttendanceRow { student: TeacherClassroomStudent; attendance?: Teacher
 
 export default function TeacherSessionAttendance({ sessionId, classroomId, readOnly, onClose, embedded = false }: { sessionId: string; classroomId: string; readOnly: boolean; onClose?: () => void; embedded?: boolean }) {
   const { isArabic, pick } = useLanguage();
+  const isAdmin = useLocation().pathname.startsWith("/admin/");
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Record<string, AttendanceStatus>>({});
-  const students = useQuery({ queryKey: ["teacher-classroom-students", classroomId], queryFn: () => teacherAttendanceApi.listClassroomStudents(classroomId), staleTime: 30_000, retry: 1 });
+  const students = useQuery({ queryKey: [isAdmin ? "admin-classroom-students" : "teacher-classroom-students", classroomId], queryFn: async () => isAdmin ? (await classroomRecordingsApi.listStudents(classroomId)).data.map((student) => ({ id: student.studentId, studentId: student.studentId, fullName: student.fullName })) : teacherAttendanceApi.listClassroomStudents(classroomId), staleTime: 30_000, retry: 1 });
   const attendance = useQuery({ queryKey: ["teacher-attendance-all"], queryFn: teacherAttendanceApi.list, staleTime: 30_000, retry: 1 });
   const rows = useMemo<AttendanceRow[]>(() => {
     if (!students.data || !attendance.data) return [];

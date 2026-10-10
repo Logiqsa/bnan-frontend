@@ -36,7 +36,7 @@ const dateLabel = (value?: string) =>
   value
     ? new Intl.DateTimeFormat("ar-EG-u-ca-gregory", {
         dateStyle: "medium",
-        timeStyle: "short",
+        timeStyle: "medium",
       }).format(new Date(value))
     : "—";
 const nameOf = (

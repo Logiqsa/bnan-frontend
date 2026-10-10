@@ -62,7 +62,8 @@ export default function AdminMissingRecordings() {
         const response = await adminZoomRecordingApi.listMissing();
         const current = response.data || [];
         const item = current.find((entry) => entry.id === sessionId);
-        if (!item || item.recording.status === "ready") {
+        const hasRecordingUrl = Boolean(item?.recording.localUrl || item?.recording.shareUrl);
+        if (!item || (item.recording.status === "ready" && hasRecordingUrl)) {
           setRetryStates((states) => ({ ...states, [sessionId]: "completed" }));
           return;
         }

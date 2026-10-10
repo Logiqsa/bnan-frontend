@@ -17,7 +17,7 @@ export interface ClassroomOption {
   };
   grade?: { id: string; _id?: string; name: string };
   subject?: { id?: string; name?: string } | string | null;
-  teacher?: { id?: string; name?: string; fullName?: string } | string | null;
+  teacher?: { id?: string; name?: string; fullName?: string; user?: { fullName?: string } | string } | string | null;
   sourceType?: "legacy" | "course";
   student?: { id?: string; name?: string; fullName?: string } | string | null;
   students?: Array<{ id?: string; name?: string; fullName?: string }>;

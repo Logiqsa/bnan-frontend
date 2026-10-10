@@ -12,7 +12,15 @@ import { TabsContent } from "@/components/ui/tabs";
 
 const statusLabels: Record<string, string> = { live: "مباشرة", starting: "جاري البدء", completed: "مكتملة", ended: "منتهية", cancelled: "ملغاة", scheduled: "مجدولة", awaiting_zoom_end: "بانتظار انتهاء Zoom" };
 const dateLabel = (value?: string) => value ? new Intl.DateTimeFormat("ar-EG-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
-const nameOf = (value: ClassroomSession["subject"] | ClassroomSession["teacher"]) => typeof value === "object" ? value?.name || (value && "fullName" in value ? value.fullName : "") : value || "";
+const nameOf = (value: ClassroomSession["subject"] | ClassroomSession["teacher"]) => {
+  if (!value || typeof value !== "object") return "";
+  if (value.name) return value.name;
+  if ("fullName" in value && value.fullName) return value.fullName;
+  if ("user" in value && value.user && typeof value.user === "object" && "fullName" in value.user) {
+    return value.user.fullName || "";
+  }
+  return "";
+};
 
 export default function AdminClassroomSessionsTab({ classroomId, active = true }: { classroomId: string; active?: boolean }) {
   const { pick } = useLanguage();

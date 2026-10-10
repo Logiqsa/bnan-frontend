@@ -1,6 +1,11 @@
 import { apiRequest } from "@/api/client";
 
-export type TeacherPayrollStatementStatus = "draft" | "sent" | "payment_pending" | "paid" | "cancelled";
+export type TeacherPayrollStatementStatus =
+  | "draft"
+  | "sent"
+  | "payment_pending"
+  | "paid"
+  | "cancelled";
 export type PayoutMethod = "wallet" | "bank_account" | "instapay";
 
 export interface PayoutProfile {
@@ -19,12 +24,27 @@ export interface TeacherPayrollStatement {
   teacher: { id: string; fullName: string | null; email: string | null };
   curriculum: { id: string; name: string | null };
   period: { from: string; to: string };
-  generalSubscription: { hours: number; details: unknown[]; amount: number; gradeGroups?: AcademicGradeGroup[]; sessions?: StatementSession[] };
-  courses: Array<{ course: string; courseName: string; hours: number; hourlyRate: number; amount: number; sessions?: StatementSession[] }>;
+  generalSubscription: {
+    hours: number;
+    details: unknown[];
+    amount: number;
+    gradeGroups?: AcademicGradeGroup[];
+    sessions?: StatementSession[];
+  };
+  courses: Array<{
+    course: string;
+    courseName: string;
+    hours: number;
+    hourlyRate: number;
+    amount: number;
+    sessions?: StatementSession[];
+  }>;
   bonuses: number;
   deductions: number;
   finalAmount: number;
   currency: string;
+  academicCurrency?: string | null;
+  courseCurrency?: string | null;
   status: TeacherPayrollStatementStatus;
   sentAt: string | null;
   payment: {
@@ -66,7 +86,21 @@ export interface AcademicGradeGroup {
 }
 
 export const teacherPayrollStatementsApi = {
-  list: async () => (await apiRequest<{ success: true; data: TeacherPayrollStatement[] }>("/teachers/me/payroll-statements")).data,
-  get: async (id: string) => (await apiRequest<{ success: true; data: TeacherPayrollStatement }>(`/teachers/me/payroll-statements/${encodeURIComponent(id)}`)).data,
-  getReceipt: async (id: string) => apiRequest<Blob>(`/teachers/me/payroll-statements/${encodeURIComponent(id)}/payment/receipt`, { responseType: "blob" }),
+  list: async () =>
+    (
+      await apiRequest<{ success: true; data: TeacherPayrollStatement[] }>(
+        "/teachers/me/payroll-statements",
+      )
+    ).data,
+  get: async (id: string) =>
+    (
+      await apiRequest<{ success: true; data: TeacherPayrollStatement }>(
+        `/teachers/me/payroll-statements/${encodeURIComponent(id)}`,
+      )
+    ).data,
+  getReceipt: async (id: string) =>
+    apiRequest<Blob>(
+      `/teachers/me/payroll-statements/${encodeURIComponent(id)}/payment/receipt`,
+      { responseType: "blob" },
+    ),
 };

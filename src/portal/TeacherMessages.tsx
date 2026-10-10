@@ -25,11 +25,14 @@ import SupportChatButton from "@/components/SupportChatButton";
 
 const teacherChatRoomsQueryKey = ["teacher-chat-rooms"] as const;
 const adminChatRoomsQueryKey = ["admin-chat-rooms"] as const;
+const supervisorChatRoomsQueryKey = ["supervisor-chat-rooms"] as const;
 type MessagesResult = TeacherMessagesData;
 type RealtimeChatMessage = ChatMessage & { _id?: string };
 
 interface TeacherMessagesProps {
-  mode?: "teacher" | "admin";
+  mode?: "teacher" | "admin" | "supervisor";
+  embedded?: boolean;
+  classroomId?: string;
 }
 
 const referenceId = (value: ChatMessage["room"]) =>
@@ -37,7 +40,7 @@ const referenceId = (value: ChatMessage["room"]) =>
     ? value
     : value?.id || value?._id || "";
 
-const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
+const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: TeacherMessagesProps) => {
   const { pick } = useLanguage();
   const { user } = usePortalAuth();
   const queryClient = useQueryClient();
@@ -52,10 +55,10 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
   const selectedRoomIdRef = useRef<string | null>(null);
   const handledRequestedRoomId = useRef<string | null>(null);
   const processedMessageIds = useRef(new Set<string>());
-  const roomsQueryKey = mode === "admin" ? adminChatRoomsQueryKey : teacherChatRoomsQueryKey;
+  const roomsQueryKey = mode === "admin" ? adminChatRoomsQueryKey : mode === "supervisor" ? supervisorChatRoomsQueryKey : teacherChatRoomsQueryKey;
   const messagesQueryKeyPrefix = mode === "admin"
     ? "admin-chat-messages"
-    : "teacher-chat-messages";
+    : mode === "supervisor" ? "supervisor-chat-messages" : "teacher-chat-messages";
   const rooms = useQuery({
     queryKey: roomsQueryKey,
     queryFn: mode === "admin" ? chatApi.allAdminRooms : chatApi.rooms,
@@ -69,7 +72,10 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
     staleTime: 5 * 60_000,
     retry: 1,
   });
-  const roomItems = useMemo(() => rooms.data || [], [rooms.data]);
+  const roomItems = useMemo(
+    () => (rooms.data || []).filter((room) => !classroomId || room.classroomId === classroomId),
+    [classroomId, rooms.data],
+  );
   const metadataByClassroom = useMemo(
     () => new Map(
       (classroomMetadata.data || []).map((item) => [item.classroomId, item]),
@@ -171,6 +177,12 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
       selectRoom(requestedRoomId);
     }
   }, [requestedRoomId, roomIdsKey, roomItems, rooms.isSuccess, selectRoom]);
+
+  useEffect(() => {
+    if (!embedded || !classroomId || selectedRoomId || !rooms.isSuccess) return;
+    const classroomRoom = roomItems.find((room) => room.type === "classroom") || roomItems[0];
+    if (classroomRoom) selectRoom(classroomRoom.id);
+  }, [classroomId, embedded, roomItems, rooms.isSuccess, selectedRoomId, selectRoom]);
 
   useEffect(() => {
     const roomIds = roomIdsKey.split("|").filter(Boolean);
@@ -276,9 +288,8 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
     };
   }, [markRoomRead, messagesQueryKeyPrefix, queryClient, roomIdsKey, roomsQueryKey, user?.id]);
 
-  return (
-    <DashboardLayout>
-      <div className="mx-auto flex h-[calc(100dvh-5rem)] min-h-0 w-full max-w-7xl flex-col gap-2 md:h-[calc(100dvh-7rem)] md:gap-4">
+  const content = (
+      <div className={`mx-auto flex min-h-0 w-full max-w-7xl flex-col gap-2 md:gap-4 ${embedded ? "min-h-[32rem]" : "h-[calc(100dvh-5rem)] md:h-[calc(100dvh-7rem)]"}`}>
         <header className="hidden shrink-0 rounded-2xl border bg-card p-5 shadow-sm md:block sm:p-6">
           <div className="flex items-start gap-4">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -355,8 +366,8 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
         )}
 
         <Card className="min-h-0 flex-1 overflow-hidden shadow-sm">
-          <div className={`grid h-full min-h-0 min-w-0 ${roomsCollapsed ? "md:grid-cols-[3.5rem_minmax(0,1fr)]" : "md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"}`}>
-            <aside
+          <div className={`grid h-full min-h-0 min-w-0 ${embedded ? "grid-cols-1" : roomsCollapsed ? "md:grid-cols-[3.5rem_minmax(0,1fr)]" : "md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"}`}>
+            {!embedded && <aside
               className={`${selectedRoomId ? "hidden md:flex" : "flex"} min-h-0 min-w-0 flex-col overflow-hidden border-e bg-card`}
               aria-label={pick("المحادثات", "Conversations")}
             >
@@ -462,7 +473,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                   />
                 )}
               </div>
-            </aside>
+            </aside>}
 
             <section
               className={`${selectedRoomId ? "flex" : "hidden md:flex"} min-h-0 min-w-0 flex-col overflow-hidden bg-muted/10`}
@@ -470,7 +481,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
             >
               {selectedRoomId && (
                 <div className="flex min-w-0 items-center gap-3 border-b bg-card p-3 md:p-4">
-                  <Button
+                  {!embedded && <Button
                     type="button"
                     size="icon"
                     variant="ghost"
@@ -479,7 +490,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                     aria-label={pick("العودة إلى المحادثات", "Back to conversations")}
                   >
                     <ArrowRight className="h-5 w-5" />
-                  </Button>
+                  </Button>}
                   <div className="min-w-0 flex-1">
                     <h2 className="break-words text-sm font-semibold sm:text-base">
                       {selectedRoom?.displayName || pick("محادثة", "Conversation")}
@@ -491,7 +502,7 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
                   )}
                   {selectedRoom?.type === "classroom" && selectedRoom.classroomId && (
                     <Button asChild size="sm" variant="outline" className="ms-auto shrink-0 gap-1.5">
-                      <Link to={`/portal/teacher/classrooms/${encodeURIComponent(selectedRoom.classroomId)}/schedule`}>
+                      <Link to={`${mode === "supervisor" ? "/portal/supervisor/classrooms" : "/portal/teacher/classrooms"}/${encodeURIComponent(selectedRoom.classroomId)}`}>
                         <CalendarDays className="h-4 w-4" />
                         {pick("عرض جدول الفصل", "View classroom schedule")}
                       </Link>
@@ -530,8 +541,8 @@ const TeacherMessages = ({ mode = "teacher" }: TeacherMessagesProps) => {
           </div>
         </Card>
       </div>
-    </DashboardLayout>
   );
+  return embedded ? content : <DashboardLayout>{content}</DashboardLayout>;
 };
 
 export default TeacherMessages;

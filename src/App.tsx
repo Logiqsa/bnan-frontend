@@ -61,6 +61,7 @@ import AdminClassroomHub from "@/admin/AdminClassroomHub";
 import AdminTeacherAssignment from "@/admin/AdminTeacherAssignment";
 import AccountSettings from "@/portal/AccountSettings";
 import SupervisorSchedule from "@/portal/SupervisorSchedule";
+import SupervisorClassroomDetails from "@/portal/SupervisorClassroomDetails";
 import GlobalNotificationAdmin from "@/admin/GlobalNotificationAdmin";
 import AdminNotificationHistory from "@/admin/AdminNotificationHistory";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
@@ -103,6 +104,7 @@ import AdminAssignments, { AdminAssignmentDetails, AdminAssignmentSubmissionDeta
 import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 import { GlobalRuntimeErrorBoundary } from "@/components/GlobalRuntimeErrorBoundary";
 import AdminAnnouncements from "@/admin/AdminAnnouncements";
+import AdminMissingRecordings from "@/admin/AdminMissingRecordings";
 
 const queryClient = new QueryClient();
 
@@ -269,6 +271,8 @@ export default function App() {
                       path="/portal/teacher/courses"
                       element={<PortalGuard role="teacher"><TeacherCourses /></PortalGuard>}
                     />
+                    <Route path="/portal/teacher/enrolled-courses" element={<PortalGuard role="teacher"><MyCourses /></PortalGuard>} />
+                    <Route path="/portal/teacher/enrolled-courses/:enrollmentId" element={<PortalGuard role="teacher"><CourseEnrollmentDetail /></PortalGuard>} />
                     <Route
                       path="/portal/teacher/courses/:courseId"
                       element={<PortalGuard role="teacher"><TeacherCourseDetail /></PortalGuard>}
@@ -437,6 +441,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/missing-recordings" element={<AdminGuard><AdminMissingRecordings /></AdminGuard>} />
                     <Route
                       path="/admin/classroom-sessions"
                       element={
@@ -589,7 +594,7 @@ export default function App() {
                     />
                     <Route
                       path="/portal/supervisor/classrooms/:classroomId"
-                      element={<PortalGuard role="supervisor"><ClassroomEvaluations /></PortalGuard>}
+                      element={<PortalGuard role="supervisor"><SupervisorClassroomDetails /></PortalGuard>}
                     />
                     <Route
                       path="/portal/supervisor/course-classrooms/:classroomId/schedule"
@@ -608,6 +613,10 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/portal/supervisor/messages"
+                      element={<PortalGuard role="supervisor"><TeacherMessages mode="supervisor" /></PortalGuard>}
+                    />
+                    <Route
                       path="/portal/supervisor/settings"
                       element={
                         <ManualZoomGuard role="supervisor">
@@ -618,9 +627,7 @@ export default function App() {
                     <Route
                       path="/portal/supervisor/classrooms/zoom"
                       element={
-                        <ManualZoomGuard role="supervisor">
-                          <ClassroomZoomManagement />
-                        </ManualZoomGuard>
+                        <Navigate to="/portal/supervisor/classrooms" replace />
                       }
                     />
                     <Route

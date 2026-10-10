@@ -32,6 +32,7 @@ import {
   UserRound,
   Users,
   Video,
+  VideoOff,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/classroom-recordings",
     },
     {
+      label: "التسجيلات غير المكتملة",
+      labelEn: "Missing recordings",
+      icon: VideoOff,
+      path: "/admin/missing-recordings",
+    },
+    {
       label: "إرسال إشعار",
       labelEn: "Send notification",
       icon: Bell,
@@ -262,6 +269,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "My courses",
       icon: BookOpen,
       path: "/portal/teacher/courses",
+    },
+    {
+      label: "الدورات المسجل بها",
+      labelEn: "Enrolled courses",
+      icon: BookOpen,
+      path: "/portal/teacher/enrolled-courses",
     },
     {
       label: "جدول الحصص",
@@ -388,22 +401,22 @@ export const roleNavItems: Record<string, NavItem[]> = {
   ],
   supervisor: [
     {
-      label: "الفصول والمواعيد",
-      labelEn: "Classrooms and availability",
+      label: "الفصول",
+      labelEn: "Classrooms",
       icon: School,
       path: "/portal/supervisor/classrooms",
     },
     {
-      label: "ربط الفصول بـ Zoom",
-      labelEn: "Link classrooms to Zoom",
-      icon: Video,
-      path: "/portal/supervisor/classrooms/zoom",
-    },
-    {
-      label: "جدول الحصص",
-      labelEn: "Lesson schedule",
+      label: "الجدول",
+      labelEn: "Schedule",
       icon: Calendar,
       path: "/portal/supervisor/schedule",
+    },
+    {
+      label: "الرسائل",
+      labelEn: "Messages",
+      icon: MessageSquare,
+      path: "/portal/supervisor/messages",
     },
     {
       label: "إعدادات الحساب",
@@ -498,6 +511,7 @@ export const isItemActive = (itemPath: string, pathname: string, search: string)
     "/portal/teacher/payroll",
     "/portal/student/courses",
     "/portal/student/subscriptions",
+    "/portal/supervisor/classrooms",
   ];
   if (nestedParentPaths.includes(itemPath)) {
     return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
@@ -515,7 +529,7 @@ const adminNavGroup = (path: string) => {
     return { ar: "التعليم", en: "Learning" };
   if (["/admin/subscriptions", "/admin/payments", "/admin/payroll", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
     return { ar: "المالية", en: "Finance" };
-  if (["zoom", "classroom-sessions", "classroom-recordings"].some((part) => path.includes(part)))
+  if (["zoom", "classroom-sessions", "classroom-recordings", "missing-recordings"].some((part) => path.includes(part)))
     return { ar: "الفصول المباشرة", en: "Live classrooms" };
   if (["notifications", "success-stories"].some((part) => path.includes(part)))
     return { ar: "المحتوى والتواصل", en: "Content & communication" };
@@ -568,8 +582,10 @@ const roleNavGroup = (role: string, path: string) => {
   }
 
   if (role === "supervisor") {
+    if (path === "/portal/supervisor/schedule") return { ar: "الجدول", en: "Schedule" };
+    if (path === "/portal/supervisor/messages") return { ar: "التواصل", en: "Communication" };
     if (path === "/portal/supervisor/settings") return { ar: "الحساب", en: "Account" };
-    return { ar: "الفصول والمواعيد", en: "Classrooms & schedule" };
+    return { ar: "التعليم", en: "Learning" };
   }
 
   return { ar: "القائمة", en: "Navigation" };
@@ -620,9 +636,11 @@ const SidebarContent = ({
       ? "/admin"
       : accountRole === "teacher"
         ? "/portal/teacher"
-        : accountRole === "student"
-          ? "/portal/student"
-          : `/portal/${accountRole}/schedule`;
+      : accountRole === "student"
+        ? "/portal/student"
+        : accountRole === "supervisor"
+          ? "/portal/supervisor/classrooms"
+        : `/portal/${accountRole}/schedule`;
   const switchableAccounts = rememberedAccounts.filter(
     (account) => account.user.id !== user?.id,
   );
@@ -641,7 +659,7 @@ const SidebarContent = ({
       "/portal/student/subject-requests", "/portal/student/change-requests",
     ]),
     supervisor: new Set([
-      "/portal/supervisor/classrooms", "/portal/supervisor/notifications", "/portal/supervisor/messages",
+      "/portal/supervisor/classrooms", "/portal/supervisor/schedule", "/portal/supervisor/messages",
     ]),
   };
   const hasUnreadForItem = (itemPath: string) => {

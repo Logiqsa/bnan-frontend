@@ -302,7 +302,7 @@ export default function PortalLogin() {
                 {pick("ليس لديك حساب؟", "Don't have an account?")}{" "}
                 <Link
                   className="font-semibold text-secondary hover:underline"
-                  to="/register"
+                  to={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : "/register"}
                 >
                   {pick("سجّل الآن", "Sign up now")}
                 </Link>

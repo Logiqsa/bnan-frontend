@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { classroomRecordingsApi, type ClassroomSession } from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
-import { teacherClassroomsApi } from "@/api/teacherClassroomsApi";
 import { teacherSessionReportApi } from "@/api/teacherSessionReportApi";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { Badge } from "@/components/ui/badge";
@@ -89,13 +88,6 @@ export default function TeacherSessionDetails() {
     actualClassroomId && classroomId && actualClassroomId !== classroomId,
   );
   const resolvedClassroomId = actualClassroomId || classroomId;
-  const classroomsQuery = useQuery({
-    queryKey: ["teacher-classrooms"],
-    queryFn: teacherClassroomsApi.listMine,
-    enabled: Boolean(classroomId) && sessionQuery.isSuccess && !classroomMismatch,
-    staleTime: 30_000,
-    retry: 1,
-  });
   const reportQuery = useQuery({
     queryKey: ["teacher-session-report", sessionId, reportPage],
     queryFn: () => teacherSessionReportApi.getReport(sessionId, reportPage, 50),
@@ -104,14 +96,9 @@ export default function TeacherSessionDetails() {
     retry: 1,
   });
 
-  const registrationMode = classroomsQuery.data?.find(
-    (classroom) => classroom.classroomId === resolvedClassroomId,
-  )?.registrationMode;
   const report = reportQuery.data?.data;
   const pagination = reportQuery.data?.pagination;
   const group = session ? sessionGroup(session) : null;
-  const isCourseSession = Boolean(group);
-  const attendanceReadOnly = !isCourseSession && registrationMode !== "gulf";
   const courseName = group && typeof group.course === "object" ? objectName(group.course) : undefined;
   const summaryNextSteps = Array.isArray(session?.summary?.nextSteps)
     ? session.summary.nextSteps
@@ -198,14 +185,7 @@ export default function TeacherSessionDetails() {
 
             <Card>
               <CardContent className="p-5 sm:p-6">
-                <TeacherSessionAttendance sessionId={sessionId} classroomId={resolvedClassroomId} readOnly={attendanceReadOnly} embedded />
-                {attendanceReadOnly && !classroomsQuery.isPending && (
-                  <p className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-                    {registrationMode === "egyptian"
-                      ? pick("الحضور متاح للعرض فقط لهذا الفصل.", "Attendance is read-only for this classroom.")
-                      : pick("تعذر تأكيد نظام تسجيل الفصل؛ الحضور متاح للعرض فقط.", "The classroom registration mode could not be confirmed, so attendance is read-only.")}
-                  </p>
-                )}
+                <TeacherSessionAttendance sessionId={sessionId} classroomId={resolvedClassroomId} readOnly={false} embedded />
               </CardContent>
             </Card>
 

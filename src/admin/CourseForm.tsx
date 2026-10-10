@@ -15,7 +15,7 @@ import {
   type SubjectOption,
 } from "@/api/catalogApi";
 import { courseStaffApi, type CourseStaffOption } from "@/api/courseStaffApi";
-import type { Course, CourseInput, CourseStatus } from "@/api/coursesApi";
+import type { Course, CourseInput, CourseStatus, CourseType } from "@/api/coursesApi";
 import { courseImageUrl, refId } from "@/lib/courseUi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ export default function CourseForm({
 }) {
   const [name, setName] = useState(course?.name || "");
   const [description, setDescription] = useState(course?.description || "");
+  const [courseType, setCourseType] = useState<CourseType>(course?.courseType || "academic");
   const [requiredHours, setRequiredHours] = useState(
     course?.requiredMinutes
       ? String(course.requiredMinutes / 60)
@@ -179,7 +180,7 @@ export default function CourseForm({
   }, [curriculum]);
   useEffect(() => {
     let active = true;
-    if (!gradeIds.length) {
+    if (!curriculum || (courseType === "academic" && !gradeIds.length)) {
       setSubjects([]);
       setSubject("");
       setSubjectsLoading(false);
@@ -216,7 +217,7 @@ export default function CourseForm({
     return () => {
       active = false;
     };
-  }, [gradeIds]);
+  }, [courseType, curriculum, gradeIds]);
   const allowedTeachers = useMemo(
     () =>
       teachers.filter(
@@ -335,11 +336,12 @@ export default function CourseForm({
     onSubmit(
       {
         name: name.trim(),
+        courseType,
         description: description.trim(),
         ...(image.trim() ? { image: image.trim() } : {}),
         teacher,
         supervisor: supervisor || null,
-        grades: gradeIds,
+        grades: courseType === "academic" ? gradeIds : [],
         subject,
         requiredMinutes,
         enrollmentModes: {
@@ -377,6 +379,16 @@ export default function CourseForm({
         <CardContent className="space-y-6 pt-6 [&_.max-w-md]:max-w-none [&>div:nth-child(3)>label:first-child]:hidden">
           <div className="grid items-start gap-4 md:grid-cols-2">
             <div className="space-y-4">
+              <label className="block space-y-2">
+                <span>نوع الدورة *</span>
+                <Select value={courseType} onValueChange={(value) => { const next = value as CourseType; setCourseType(next); setGradeIds([]); setSubject(""); if (next === "general") setCurriculum(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="academic">أكاديمية — للطلبة والصفوف</SelectItem>
+                    <SelectItem value="general">عامة — متاحة للجميع</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
               <label className="block space-y-2">
                 <span>اسم الدورة *</span>
                 <Input
@@ -461,7 +473,7 @@ export default function CourseForm({
             </div>
           </div>
           <div className="space-y-4">
-            <label className="block space-y-2">
+            {courseType === "academic" && <label className="block space-y-2">
               <span>المنهج *</span>
               <Select
                 value={curriculum}
@@ -485,7 +497,7 @@ export default function CourseForm({
                   ))}
                 </SelectContent>
               </Select>
-            </label>
+            </label>}
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
                 <span>المعلم *</span>
@@ -500,7 +512,7 @@ export default function CourseForm({
                   </p>
                 )}
               </label>
-              <div>
+              {courseType === "academic" && <div>
                 <AdminSearchableSelect
                   label="المشرف (اختياري)"
                   value={supervisor}
@@ -514,9 +526,9 @@ export default function CourseForm({
                     لا يوجد مشرفون مرتبطون بهذا المنهج.
                   </p>
                 )}
-              </div>
+              </div>}
             </div>
-            {grades.length > 0 && (
+            {courseType === "academic" && grades.length > 0 && (
               <label className="flex items-center justify-between gap-4 rounded-xl border bg-muted/20 px-4 py-3">
                 <span>
                   <span className="block text-sm font-bold">
@@ -536,7 +548,7 @@ export default function CourseForm({
             )}
           </div>
           <div className="space-y-4">
-            <label className="block max-w-md space-y-2">
+            {courseType === "academic" && <label className="block max-w-md space-y-2">
               <span>المنهج *</span>
               <Select
                 value={curriculum}
@@ -559,8 +571,8 @@ export default function CourseForm({
                   ))}
                 </SelectContent>
               </Select>
-            </label>
-            <div className="space-y-3">
+            </label>}
+            {courseType === "academic" && <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span>الصفوف المؤهلة *</span>
                 {gradeIds.length > 0 && (
@@ -710,10 +722,10 @@ export default function CourseForm({
                     : "اختر المنهج أولاً لعرض الصفوف"}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
-          <label className="block space-y-2">
-            <span>Subject / المادة *</span>
+          {courseType === "academic" && <label className="block space-y-2">
+              <span>Subject / المادة *</span>
             <Popover open={subjectSearchOpen} onOpenChange={setSubjectSearchOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -765,7 +777,7 @@ export default function CourseForm({
                   لا توجد مواد متاحة للصفوف المختارة.
                 </p>
               )}
-          </label>
+          </label>}
           <div className="rounded-xl border bg-muted/20 p-4">
             <label className="flex cursor-pointer items-center justify-between gap-4">
               <span><span className="block font-semibold">دورة مجانية</span><span className="mt-1 block text-xs text-muted-foreground">عند التفعيل ستكون الدورة جماعية فقط وسعرها صفر.</span></span>
@@ -937,9 +949,9 @@ export default function CourseForm({
               !Number.isFinite(Number(requiredHours)) ||
               Number(requiredHours) <= 0 ||
               !teacher ||
-              !curriculum ||
-              !gradeIds.length ||
-              !subject ||
+              (courseType === "academic" && !curriculum) ||
+              (courseType === "academic" && !gradeIds.length) ||
+              (courseType === "academic" && !subject) ||
               (!groupEnabled && !individualEnabled)
             }
           >
@@ -989,30 +1001,32 @@ export default function CourseForm({
               <p className="line-clamp-3 min-h-16 text-sm text-muted-foreground">
                 {description.trim() || "سيظهر وصف الدورة هنا بعد كتابته."}
               </p>
-              <div>
-                {grades.length > 0 && previewGrades.length === grades.length ? (
-                  <Badge variant="outline">كل الصفوف</Badge>
-                ) : previewGrades.length ? (
-                  <div className="space-y-2">
-                    {splitGradesByStage(previewGrades).map((stage) => (
-                      <div key={stage.key} className="space-y-1">
-                        <p className="text-xs font-bold text-muted-foreground">
-                          {stage.label}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {stage.grades.map((grade) => (
-                            <Badge key={grade.id} variant="outline">
-                              {grade.name}
-                            </Badge>
-                          ))}
+              {courseType === "academic" && (
+                <div>
+                  {grades.length > 0 && previewGrades.length === grades.length ? (
+                    <Badge variant="outline">كل الصفوف</Badge>
+                  ) : previewGrades.length ? (
+                    <div className="space-y-2">
+                      {splitGradesByStage(previewGrades).map((stage) => (
+                        <div key={stage.key} className="space-y-1">
+                          <p className="text-xs font-bold text-muted-foreground">
+                            {stage.label}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {stage.grades.map((grade) => (
+                              <Badge key={grade.id} variant="outline">
+                                {grade.name}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <Badge variant="outline">الصفوف المؤهلة</Badge>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Badge variant="outline">الصفوف المؤهلة</Badge>
+                  )}
+                </div>
+              )}
               <div className="space-y-1 text-sm">
                 {(isFree || groupEnabled) && (
                   <p>

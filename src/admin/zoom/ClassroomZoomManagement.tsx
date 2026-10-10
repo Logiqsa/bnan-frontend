@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasZoomMeetingLink, normalizeZoomState, referenceId, referenceName, zoomDisplayState } from "./classroomZoomNormalization";
+import { formatScheduleTime } from "./classroomManagement";
 import ClassroomScheduleEditor from "./ClassroomScheduleEditor";
 
 const dayAr: Record<string, string> = { saturday: "السبت", sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء", wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة" };
@@ -60,7 +61,7 @@ function Booking({ booking, conflict = false }: { booking: ZoomBooking; conflict
   const day = (isArabic ? dayAr : dayEn)[booking.day?.toLowerCase()] || booking.day;
   const title = booking.classroomName || booking.studentName || (isArabic ? "فصل محجوز" : "Booked classroom");
   return <div className={cn("rounded-lg border bg-background/80 p-2.5 text-xs", conflict && "border-amber-300 bg-amber-50/70")}>
-    <div className="flex flex-wrap items-center justify-between gap-1.5 font-semibold"><span>{day}</span><span dir="ltr" className="rounded bg-muted px-1.5 py-0.5">{booking.startTime}–{booking.endTime}</span></div>
+    <div className="flex flex-wrap items-center justify-between gap-1.5 font-semibold"><span>{day}</span><span dir="ltr" className="rounded bg-muted px-1.5 py-0.5">{formatScheduleTime(booking.startTime)}–{formatScheduleTime(booking.endTime)}</span></div>
     <div className="mt-1.5 leading-5 text-muted-foreground">{[title, booking.subjectName, booking.teacherName].filter(Boolean).join(" — ")}</div>
   </div>;
 }
@@ -73,7 +74,7 @@ function Schedule({ entries, timezone, action }: { entries: ClassroomScheduleEnt
       {entries.length ? <div className="divide-y overflow-hidden rounded-xl border bg-background">{entries.map((entry, index) => <div key={`${entry.day}-${entry.startTime}-${index}`} className="grid gap-2 p-3.5 sm:grid-cols-[minmax(8rem,0.7fr)_minmax(0,1fr)_auto] sm:items-center sm:px-4">
         <div className="font-semibold">{(isArabic ? dayAr : dayEn)[entry.day?.toLowerCase()] || entry.day}</div>
         <div className="text-sm text-muted-foreground">{entry.subjectName || pick("موعد حصة", "Lesson time")}</div>
-        <div dir="ltr" className="w-fit rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary">{entry.startTime}{entry.endTime ? ` – ${entry.endTime}` : ""}</div>
+        <div dir="ltr" className="w-fit rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary">{formatScheduleTime(entry.startTime)}{entry.endTime ? ` – ${formatScheduleTime(entry.endTime)}` : ""}</div>
       </div>)}</div> : <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-5 text-center"><span className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-full bg-amber-100"><CalendarDays className="h-5 w-5 text-amber-700"/></span><h3 className="font-semibold text-amber-950">{pick("لم يتم تحديد جدول الفصل بعد", "The classroom schedule has not been set")}</h3><p className="mt-1 text-sm text-amber-800">{pick("حدد جدول الفصل أولًا قبل إنشاء رابط Zoom", "Set the classroom schedule before generating a Zoom link.")}</p></div>}
     </CardContent>
   </Card>;

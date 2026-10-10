@@ -20,7 +20,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <DashboardSidebar />
       <main data-scroll-container className="dashboard-scrollbar min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 pt-16 md:p-6 md:pt-6" dir="ltr">
         <div dir={isArabic ? "rtl" : "ltr"}>
-          {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student") && (
+          {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student" || user?.role === "supervisor") && (
             <div className="mb-3 flex justify-end gap-2">
               {user.role === "admin" && (
                 <Button asChild variant="outline" size="icon" className="bg-background shadow-sm">
@@ -37,7 +37,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       </main>
     </div>
   );
-  return user && ["admin", "teacher", "student"].includes(user.role)
+  return user && ["admin", "teacher", "student", "supervisor"].includes(user.role)
     ? <NotificationsEnabledContent>{content}</NotificationsEnabledContent>
     : content;
 };

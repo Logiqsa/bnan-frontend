@@ -8,6 +8,7 @@ import {
   type SessionRecording,
 } from "@/api/classroomRecordingsApi";
 import { courseError, refName } from "@/lib/courseUi";
+import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import RecordingPlayerModal, {
   type PlayerRecording,
@@ -265,8 +266,8 @@ export default function CourseEnrollmentDetail() {
                             {dayNames[slot.day] || slot.day}
                           </p>
                           <p className="mt-1" dir="ltr">
-                            {slot.startTime}
-                            {slot.endTime ? ` - ${slot.endTime}` : ""}
+                            {formatScheduleTime(slot.startTime)}
+                            {slot.endTime ? ` - ${formatScheduleTime(slot.endTime)}` : ""}
                           </p>
                         </div>
                       ))}

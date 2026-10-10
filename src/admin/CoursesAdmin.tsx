@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Eye, Pencil, Plus } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import cover from "@/assets/course-default-cover.jpg";
 
 const flag = (yes: boolean, active: string, inactive: string) => (
@@ -25,6 +27,7 @@ const flag = (yes: boolean, active: string, inactive: string) => (
 );
 
 export default function CoursesAdmin() {
+  const [publicationTab, setPublicationTab] = useState<"published" | "unpublished">("published");
   const queryClient = useQueryClient();
   const courses = useQuery({
     queryKey: ["admin-courses"],
@@ -89,6 +92,15 @@ export default function CoursesAdmin() {
             </Link>
           </Button>
         </div>
+        <Tabs
+          value={publicationTab}
+          onValueChange={(value) => setPublicationTab(value as "published" | "unpublished")}
+          dir="rtl"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="published">منشورة</TabsTrigger>
+            <TabsTrigger value="unpublished">غير منشورة</TabsTrigger>
+          </TabsList>
         {courses.isLoading ? (
           <p className="py-12 text-center">جاري التحميل...</p>
         ) : courses.error ? (
@@ -105,8 +117,23 @@ export default function CoursesAdmin() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {courses.data.map((course) => (
+          <>
+            {(["published", "unpublished"] as const).map((tab) => {
+              const filteredCourses = courses.data.filter((course) =>
+                tab === "published" ? course.isPublished : !course.isPublished,
+              );
+
+              return (
+                <TabsContent key={tab} value={tab} className="mt-0">
+                  {!filteredCourses.length ? (
+                    <Card>
+                      <CardContent className="p-12 text-center text-muted-foreground">
+                        لا توجد دورات {tab === "published" ? "منشورة" : "غير منشورة"}.
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                      {filteredCourses.map((course) => (
               <Card key={course.id} className="flex h-full min-w-0 flex-col overflow-hidden">
                 <img
                   src={courseImageUrl(course.image) || cover}
@@ -121,6 +148,7 @@ export default function CoursesAdmin() {
                     <Badge variant="outline">{course.status}</Badge>
                   </div>
                   <div className="flex flex-wrap items-start gap-2">
+                    <Badge variant="outline">{course.courseType === "general" ? "عامة" : "أكاديمية"}</Badge>
                     {isFreeCourse(course) && <Badge className="bg-emerald-600 hover:bg-emerald-600">مجانية</Badge>}
                     {flag(!!course.isPublished, "منشورة", "مسودة")}
                     {flag(
@@ -197,9 +225,15 @@ export default function CoursesAdmin() {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
-          </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </>
         )}
+        </Tabs>
       </div>
     </DashboardLayout>
   );

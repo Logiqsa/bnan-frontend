@@ -145,32 +145,38 @@ export default function CourseClassroomSchedule() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        type="time"
-                        value={s.startTime}
-                        disabled={!editable}
-                        onChange={(e) =>
-                          setSlots((v) =>
-                            v.map((y, n) =>
-                              n === i ? { ...y, startTime: e.target.value } : y,
-                            ),
-                          )
-                        }
-                      />
-                      <Input
-                        type="time"
-                        value={s.endTime || ""}
-                        disabled={!editable}
-                        onChange={(e) =>
-                          setSlots((v) =>
-                            v.map((y, n) =>
-                              n === i
-                                ? { ...y, endTime: e.target.value || undefined }
-                                : y,
-                            ),
-                          )
-                        }
-                      />
+                      <label className="grid gap-1.5 text-sm font-medium">
+                        <span className="text-muted-foreground">وقت البداية</span>
+                        <Input
+                          type="time"
+                          value={s.startTime}
+                          disabled={!editable}
+                          onChange={(e) =>
+                            setSlots((v) =>
+                              v.map((y, n) =>
+                                n === i ? { ...y, startTime: e.target.value } : y,
+                              ),
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="grid gap-1.5 text-sm font-medium">
+                        <span className="text-muted-foreground">وقت النهاية</span>
+                        <Input
+                          type="time"
+                          value={s.endTime || ""}
+                          disabled={!editable}
+                          onChange={(e) =>
+                            setSlots((v) =>
+                              v.map((y, n) =>
+                                n === i
+                                  ? { ...y, endTime: e.target.value || undefined }
+                                  : y,
+                              ),
+                            )
+                          }
+                        />
+                      </label>
                       {editable && (
                         <Button
                           size="icon"

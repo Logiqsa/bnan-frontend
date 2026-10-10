@@ -20,11 +20,14 @@ import { Input } from "@/components/ui/input";
 import cover from "@/assets/course-default-cover.jpg";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useActiveCourseEnrollments } from "@/hooks/useActiveCourseEnrollments";
+import { usePortalAuth } from "@/portal/PortalAuthContext";
 export default function Courses() {
   const { isArabic, pick } = useLanguage();
   const [search, setSearch] = useState("");
   const [register, setRegister] = useState<Course | null>(null);
   const { byCourseId } = useActiveCourseEnrollments();
+  const { user } = usePortalAuth();
+  const enrolledCoursePath = user?.role === "teacher" ? "/portal/teacher/enrolled-courses" : "/portal/student/courses";
   const q = useQuery({
     queryKey: ["public-courses"],
     queryFn: coursesApi.listPublic,
@@ -109,15 +112,18 @@ export default function Courses() {
                             {pick("مجانية", "Free")}
                           </Badge>
                         )}
+                        <Badge variant="outline">{c.courseType === "general" ? pick("عامة", "General") : pick("أكاديمية", "Academic")}</Badge>
                         {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
                       </span>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       {pick("المعلم:", "Teacher:")} {refName(c.teacher)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {pick("المادة:", "Subject:")} {refName(c.subject)}
-                    </p>
+                    {c.courseType !== "general" && (
+                      <p className="text-sm text-muted-foreground">
+                        {pick("المادة:", "Subject:")} {refName(c.subject)}
+                      </p>
+                    )}
                   </CardHeader>
                   <CardContent className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-1">
                     <p className="line-clamp-3 h-[4.5rem] text-sm leading-6 text-muted-foreground">
@@ -161,7 +167,7 @@ export default function Courses() {
                           {pick("التفاصيل", "Details")}
                         </Link>
                       </Button>
-                      {activeEnrollment ? <Button className="flex-1" asChild><Link to={`/portal/student/courses/${activeEnrollment.id}`}>{pick("عرض دورتي", "View my course")}</Link></Button> : <Button
+                      {activeEnrollment ? <Button className="flex-1" asChild><Link to={`${enrolledCoursePath}/${activeEnrollment.id}`}>{pick("عرض دورتي", "View my course")}</Link></Button> : <Button
                           className="flex-1"
                           disabled={!available}
                           onClick={() => setRegister(c)}

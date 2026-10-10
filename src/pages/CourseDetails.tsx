@@ -52,10 +52,17 @@ export default function CourseDetails() {
     }
     const intent = courseRegistrationIntentStore.read();
     if (!intent || intent.courseId !== course.id || intent.paymentStarted) return;
-    if (!user || user.role !== "student") {
+    const canUseCourseAccount = course.courseType === "general"
+      ? Boolean(user && ["student", "teacher", "parent"].includes(user.role))
+      : user?.role === "student";
+    if (!user || !canUseCourseAccount) {
       if (user) {
         courseRegistrationIntentStore.clear();
-        toast.error("سجّل الدخول بحساب الطالب الذي أنشأ طلب التسجيل.");
+        toast.error(
+          course.courseType === "general"
+            ? "سجّل الدخول بحساب يمكنه التسجيل في الدورات العامة."
+            : "سجّل الدخول بحساب الطالب الذي أنشأ طلب التسجيل.",
+        );
       }
       return;
     }
@@ -113,6 +120,7 @@ export default function CourseDetails() {
                           </Badge>
                         )}
                         {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">مسجل بالفعل</Badge>}
+                        <Badge variant="outline">{course.courseType === "general" ? "عامة" : "أكاديمية"}</Badge>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-xl border bg-muted/30 p-4">
@@ -124,15 +132,17 @@ export default function CourseDetails() {
                             {refName(course.teacher)}
                           </p>
                         </div>
-                        <div className="rounded-xl border bg-muted/30 p-4">
-                          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <BookOpen className="h-4 w-4" />
-                            المادة
-                          </p>
-                          <p className="mt-2 font-bold">
-                            {refName(course.subject)}
-                          </p>
-                        </div>
+                        {course.courseType !== "general" && (
+                          <div className="rounded-xl border bg-muted/30 p-4">
+                            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <BookOpen className="h-4 w-4" />
+                              المادة
+                            </p>
+                            <p className="mt-2 font-bold">
+                              {refName(course.subject)}
+                            </p>
+                          </div>
+                        )}
                         {duration && (
                           <div className="rounded-xl border bg-muted/30 p-4 sm:col-span-2">
                             <p className="flex items-center gap-2 text-xs text-muted-foreground">

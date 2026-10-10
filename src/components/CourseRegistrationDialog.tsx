@@ -75,11 +75,12 @@ export default function CourseRegistrationDialog({
         provider,
         returnTo,
       });
-      nav(`/register/course-student?returnTo=${encodeURIComponent(returnTo)}`);
+      const registrationPath = course.courseType === "general" ? "/register" : "/register/course-student";
+      nav(`${registrationPath}?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
-    if (user.role !== "student") {
-      toast.error("التسجيل متاح بحساب الطالب فقط.");
+    if (!["student", "teacher", "parent"].includes(user.role)) {
+      toast.error("هذا النوع من الحسابات لا يمكنه التسجيل في الدورة.");
       return;
     }
     if (
@@ -99,7 +100,7 @@ export default function CourseRegistrationDialog({
         await queryClient.invalidateQueries({ queryKey: ["my-course-enrollments"] });
         clearCurrentIntent();
         toast.success("تم تفعيل تسجيلك في الدورة");
-        nav("/portal/student/courses");
+        nav(user.role === "student" ? "/portal/student/courses" : "/courses");
       } else {
         const r = await coursesApi.checkout(
           {

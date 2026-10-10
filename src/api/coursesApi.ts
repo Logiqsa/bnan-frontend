@@ -2,6 +2,7 @@ import { apiRequest } from "./client";
 import type { GulfPaymentProvider, TamaraPaymentAddress } from "./types";
 
 export type CourseMode = "group" | "individual";
+export type CourseType = "academic" | "general";
 export type CourseStatus = "active" | "completed" | "cancelled";
 export type EnrollmentStatus =
   | "pending"
@@ -28,6 +29,7 @@ export interface CourseModeConfig {
 export interface Course {
   id: string;
   name: string;
+  courseType?: CourseType;
   description: string;
   image?: string;
   teacher: string | NamedRef;
@@ -56,6 +58,7 @@ export interface Course {
 }
 export interface CourseInput {
   name: string;
+  courseType?: CourseType;
   description: string;
   image?: string;
   teacher: string;
@@ -184,6 +187,7 @@ const withId = <T extends object>(item: Raw<T>): T & { id: string } => ({
 });
 const course = (item: Raw<Omit<Course, "id">>): Course => ({
   ...item,
+  courseType: item.courseType || "academic",
   id: item.id || item._id || "",
   eligibleGrades: item.grades || item.eligibleGrades || [],
   subject: item.subject || item.subjects?.[0] || null,

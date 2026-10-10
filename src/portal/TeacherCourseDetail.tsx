@@ -18,6 +18,7 @@ import {
 } from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
 import { courseError } from "@/lib/courseUi";
+import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import { Badge } from "@/components/ui/badge";
@@ -341,9 +342,9 @@ export default function TeacherCourseDetail() {
                                         dir="ltr"
                                         className="text-sm text-muted-foreground"
                                       >
-                                        {slot.startTime}
+                                        {formatScheduleTime(slot.startTime)}
                                         {slot.endTime
-                                          ? ` - ${slot.endTime}`
+                                          ? ` - ${formatScheduleTime(slot.endTime)}`
                                           : ""}
                                       </p>
                                       {phase === "upcoming" && (

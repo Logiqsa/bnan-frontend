@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { BookOpen, GraduationCap, Home, School, ArrowLeft, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import logo from "@/assets/logo-bnan.png";
@@ -6,10 +6,15 @@ import { useLanguage } from "@/i18n/LanguageContext";
 
 const AccountTypeSelect = () => {
   const { isArabic, toggleLanguage, pick } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo") || "";
+  const withReturnTo = (path: string) => returnTo
+    ? `${path}${path.includes("?") ? "&" : "?"}returnTo=${encodeURIComponent(returnTo)}`
+    : path;
   const options = [
-    { id: "student", to: "/register/student", icon: GraduationCap, title: pick("طالب أكاديمية بنان", "BNAN Academy student"), description: pick("سجّل بياناتك واختر المنهج والباقة المناسبة لبدء رحلتك التعليمية.", "Enter your details and choose the right curriculum and package to start learning.") },
-    { id: "course-student", to: "/register/course-student", icon: BookOpen, title: pick("طالب الدورات المستقلة", "Independent courses student"), description: pick("أنشئ حسابًا للدورات فقط بدون اختيار باقة أكاديمية أو دفع عند التسجيل.", "Create a courses-only account without choosing an academic package or paying during signup.") },
-    { id: "teacher", to: "/portal/teacher/signup", icon: School, title: pick("معلم", "Teacher"), description: pick("انضم إلى فريق المعلمين في أكاديمية بنان وابدأ بتقديم حصصك.", "Join BNAN Academy's teaching team and start delivering your classes.") },
+    { id: "student", to: withReturnTo("/register/student"), icon: GraduationCap, title: pick("طالب أكاديمية بنان", "BNAN Academy student"), description: pick("سجّل بياناتك واختر المنهج والباقة المناسبة لبدء رحلتك التعليمية.", "Enter your details and choose the right curriculum and package to start learning.") },
+    { id: "course-student", to: withReturnTo("/register/course-student"), icon: BookOpen, title: pick("طالب الدورات المستقلة", "Independent courses student"), description: pick("أنشئ حسابًا للدورات فقط بدون اختيار باقة أكاديمية أو دفع عند التسجيل.", "Create a courses-only account without choosing an academic package or paying during signup.") },
+    { id: "teacher", to: withReturnTo("/portal/teacher/signup"), icon: School, title: pick("معلم", "Teacher"), description: pick("انضم إلى فريق المعلمين في أكاديمية بنان وابدأ بتقديم حصصك.", "Join BNAN Academy's teaching team and start delivering your classes.") },
   ];
   return (
     <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic ? "rtl" : "ltr"}>
@@ -66,7 +71,7 @@ const AccountTypeSelect = () => {
 
         <p className="mt-8 text-center text-sm text-white/55 font-tajawal">
           {pick("لديك حساب بالفعل؟", "Already have an account?")}{" "}
-          <Link className="font-semibold text-secondary hover:underline" to="/portal/login">
+          <Link className="font-semibold text-secondary hover:underline" to={withReturnTo("/portal/login")}>
             {pick("سجّل الدخول", "Log in")}
           </Link>
         </p>

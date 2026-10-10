@@ -9,8 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import cover from "@/assets/course-default-cover.jpg";
+import { usePortalAuth } from "./PortalAuthContext";
 
 export default function MyCourses() {
+  const { user } = usePortalAuth();
+  const courseBase = user?.role === "teacher" ? "/portal/teacher/enrolled-courses" : "/portal/student/courses";
   const [repurchaseCourse, setRepurchaseCourse] = useState<Course | null>(null);
   const query = useQuery({ queryKey: ["my-course-enrollments"], queryFn: coursesApi.myEnrollments });
   const publicCoursesQuery = useQuery({ queryKey: ["courses", "public"], queryFn: coursesApi.listPublic });
@@ -18,7 +21,7 @@ export default function MyCourses() {
     <div><h1 className="text-2xl font-bold">دوراتي</h1><p className="text-sm text-muted-foreground">يعتمد الوصول إلى الفصل على حالة التسجيل الفعلية.</p></div>
     {query.isLoading ? <p>جاري التحميل...</p> : query.error ? <div className="rounded-xl border p-6 text-destructive">{courseError(query.error)}</div> : !query.data?.length ? <Card><CardContent className="p-10 text-center"><p className="mb-4 text-muted-foreground">لم تسجل في أي دورة بعد.</p><Button asChild><Link to="/courses">استعراض الدورات</Link></Button></CardContent></Card> : <div className="grid gap-4 md:grid-cols-2">{query.data.map((enrollment) => {
       const course = typeof enrollment.course === "object" ? enrollment.course as Course : null;
-      const group = typeof enrollment.group === "object" ? enrollment.group : null;
+      const group = typeof enrollment.group === "object" && enrollment.group && "classroom" in enrollment.group ? enrollment.group : null;
       const classroom = typeof enrollment.classroom === "object" ? enrollment.classroom : typeof group?.classroom === "object" ? group.classroom : null;
       const publicCourse = publicCoursesQuery.data?.find((item) => item.id === course?.id);
       const teacherName = course ? refName(course.teacher) : null;
@@ -29,8 +32,8 @@ export default function MyCourses() {
           <div className="flex gap-2"><Badge>{enrollment.mode === "group" ? "جماعي" : "فردي"}</Badge><Badge variant={enrollment.status === "active" ? "default" : "secondary"}>{enrollment.status}</Badge></div>
           {teacherName && teacherName !== "—" && <p className="text-sm text-muted-foreground">المعلم: {teacherName}</p>}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" asChild><Link to={`/portal/student/courses/${enrollment.id}`}>عرض التفاصيل</Link></Button>
-            {enrollment.status === "active" && classroom && <Button size="sm" asChild><Link to={`/portal/student/courses/${enrollment.id}#course-schedule`}>جدول {classroom.name}</Link></Button>}
+            <Button size="sm" variant="outline" asChild><Link to={`${courseBase}/${enrollment.id}`}>عرض التفاصيل</Link></Button>
+            {enrollment.status === "active" && classroom && <Button size="sm" asChild><Link to={`${courseBase}/${enrollment.id}#course-schedule`}>جدول {classroom.name}</Link></Button>}
             {canRepurchaseCourseEnrollment(enrollment.status) && (
               <Button
                 size="sm"

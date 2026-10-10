@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { buildUsageTimeline, DAY_NAMES, filterUsageClassrooms, getMeetingStatus, type UsageFilter } from "./zoomAccountUsage";
+import { formatScheduleTime } from "./classroomManagement";
 
 const FILTERS: Array<{ value: UsageFilter; label: string }> = [
   { value: "all", label: "الكل" }, { value: "manual", label: "Manual" },
@@ -30,7 +31,7 @@ const Schedule = ({ classroom }: { classroom: ZoomAccountClassroom }) => !classr
     {classroom.schedule.map((entry, index) => (
       <div key={`${entry.day}-${entry.startTime}-${entry.subjectId}-${index}`} className="border-e-2 border-primary/20 pe-2">
         <p className="font-semibold">{DAY_NAMES[entry.day] || entry.day}</p>
-        <p dir="ltr" className="w-fit text-muted-foreground">{entry.startTime}{entry.endTime ? ` - ${entry.endTime}` : ""}</p>
+        <p dir="ltr" className="w-fit text-muted-foreground">{formatScheduleTime(entry.startTime)}{entry.endTime ? ` - ${formatScheduleTime(entry.endTime)}` : ""}</p>
         {entry.subjectName && <p>{entry.subjectName}</p>}
       </div>
     ))}
@@ -110,7 +111,7 @@ export default function ZoomAccountUsageAdmin() {
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-xl"><CalendarDays className="h-5 w-5 text-primary"/>مواعيد استخدام الحساب</CardTitle><p className="text-sm text-muted-foreground">جميع المواعيد المرتبطة بهذا الحساب، مرتبة حسب اليوم والوقت.</p></CardHeader>
-        <CardContent>{timeline.length === 0 ? <div className="rounded-xl border border-dashed py-10 text-center text-muted-foreground">لا توجد مواعيد استخدام</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{timeline.map((group) => <section key={group.day} className="overflow-hidden rounded-xl border"><h3 className="bg-primary/10 px-4 py-3 font-bold text-primary">{DAY_NAMES[group.day] || group.day}</h3><div className="divide-y">{group.entries.map((entry, index) => <div key={`${entry.classroomId}-${entry.startTime}-${index}`} className="p-4"><p dir="ltr" className="w-fit font-mono font-bold">{entry.startTime}{entry.endTime ? ` - ${entry.endTime}` : ""}</p><p className="mt-1 font-semibold">{entry.classroomName} - {entry.gradeName}</p>{entry.subjectName && <p className="text-sm text-muted-foreground">{entry.subjectName}</p>}</div>)}</div></section>)}</div>}</CardContent>
+        <CardContent>{timeline.length === 0 ? <div className="rounded-xl border border-dashed py-10 text-center text-muted-foreground">لا توجد مواعيد استخدام</div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{timeline.map((group) => <section key={group.day} className="overflow-hidden rounded-xl border"><h3 className="bg-primary/10 px-4 py-3 font-bold text-primary">{DAY_NAMES[group.day] || group.day}</h3><div className="divide-y">{group.entries.map((entry, index) => <div key={`${entry.classroomId}-${entry.startTime}-${index}`} className="p-4"><p dir="ltr" className="w-fit font-mono font-bold">{formatScheduleTime(entry.startTime)}{entry.endTime ? ` - ${formatScheduleTime(entry.endTime)}` : ""}</p><p className="mt-1 font-semibold">{entry.classroomName} - {entry.gradeName}</p>{entry.subjectName && <p className="text-sm text-muted-foreground">{entry.subjectName}</p>}</div>)}</div></section>)}</div>}</CardContent>
       </Card>
 
       <section className="space-y-4">

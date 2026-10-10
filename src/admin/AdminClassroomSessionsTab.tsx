@@ -55,6 +55,14 @@ const nameOf = (
   }
   return "";
 };
+const durationLabel = (seconds: number, isArabic: boolean) => {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return isArabic
+    ? `${minutes} دقيقة و${remainingSeconds} ثانية`
+    : `${minutes}m ${remainingSeconds}s`;
+};
 
 export default function AdminClassroomSessionsTab({
   classroomId,
@@ -390,7 +398,7 @@ export default function AdminClassroomSessionsTab({
                                     )}
                                     {durationSeconds !== undefined && (
                                       <span>
-                                        {pick("المدة", "Duration")}: {durationSeconds} {pick("ثانية", "seconds")}
+                                        {pick("المدة", "Duration")}: {durationLabel(durationSeconds, isArabic)}
                                       </span>
                                     )}
                                   </div>

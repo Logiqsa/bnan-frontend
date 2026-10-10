@@ -71,7 +71,7 @@ export default function AdminClassroomSessionsTab({
   classroomId: string;
   active?: boolean;
 }) {
-  const { pick } = useLanguage();
+  const { pick, isArabic } = useLanguage();
   const [selectedId, setSelectedId] = useState("");
   const [player, setPlayer] = useState<PlayerRecording | null>(null);
   const sessions = useQuery({

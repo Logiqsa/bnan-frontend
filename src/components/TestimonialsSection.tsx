@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Star, Send } from "lucide-react";
 import { contentApi, DEFAULT_LEGACY_VISIBILITY } from "@/api/contentApi";
@@ -210,6 +210,9 @@ const RatingForm = () => {
 const ApprovedTestimonialsList = () => {
   const legacyApproved = useMemo(() => MOCK_TESTIMONIALS.filter((item) => item.approved), []);
   const [approved, setApproved] = useState<Testimonial[]>(legacyApproved);
+  const [sequenceCopies, setSequenceCopies] = useState(1);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -224,11 +227,31 @@ const ApprovedTestimonialsList = () => {
       });
   }, [legacyApproved]);
 
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const measure = measureRef.current;
+    if (!viewport || !measure || !approved.length) return;
+
+    const syncCopies = () => {
+      const baseWidth = measure.getBoundingClientRect().width;
+      if (!baseWidth) return;
+      const nextCopies = Math.max(1, Math.ceil(viewport.clientWidth / baseWidth));
+      setSequenceCopies((current) => current === nextCopies ? current : nextCopies);
+    };
+
+    syncCopies();
+    const observer = new ResizeObserver(syncCopies);
+    observer.observe(viewport);
+    observer.observe(measure);
+    return () => observer.disconnect();
+  }, [approved.length]);
+
   if (approved.length === 0) return null;
 
-  const render = (k: string) =>
-    approved.map((t) => (
-      <Card key={`${k}-${t.id}`} className="shrink-0 w-[280px] shadow-elegant border-border/40">
+  const repeatedApproved = Array.from({ length: sequenceCopies }, () => approved).flat();
+  const render = (k: string, items: Testimonial[]) =>
+    items.map((t, index) => (
+      <Card key={`${k}-${index}-${t.id}`} className="shrink-0 w-[280px] shadow-elegant border-border/40">
         <CardContent className="p-5">
           <div className="flex items-center gap-1 mb-2" dir="ltr">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -254,16 +277,19 @@ const ApprovedTestimonialsList = () => {
       >
         آراء وصلتنا منكم 💬
       </motion.h3>
-      <div dir="ltr" className="relative w-full overflow-hidden">
+      <div ref={viewportRef} dir="ltr" className="relative w-full overflow-hidden">
+        <div ref={measureRef} aria-hidden="true" className="invisible absolute flex w-max gap-4 md:gap-6">
+          {render("measure", approved)}
+        </div>
         <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-background to-transparent z-10" />
         <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-background to-transparent z-10" />
         <div
           className="flex w-max gap-4 md:gap-6"
           style={{ animation: "marquee 50s linear infinite", willChange: "transform" }}
         >
-          <div className="flex shrink-0 gap-4 md:gap-6">{render("a")}</div>
+          <div className="flex shrink-0 gap-4 md:gap-6">{render("a", repeatedApproved)}</div>
           <div className="flex shrink-0 gap-4 md:gap-6" aria-hidden="true">
-            {render("b")}
+            {render("b", repeatedApproved)}
           </div>
         </div>
       </div>

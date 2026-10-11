@@ -26,6 +26,7 @@ import {
   School,
   Settings,
   ShieldCheck,
+  Star,
   Trash2,
   Upload,
   UserPlus,
@@ -225,6 +226,18 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Success stories",
       icon: Award,
       path: "/admin?tab=success-stories",
+    },
+    {
+      label: "آراء العملاء",
+      labelEn: "Customer opinions",
+      icon: MessageSquare,
+      path: "/admin?tab=testimonial-images",
+    },
+    {
+      label: "التقييمات",
+      labelEn: "Ratings",
+      icon: Star,
+      path: "/admin?tab=testimonial-ratings",
     },
     {
       label: "الصفحات القانونية",
@@ -454,6 +467,8 @@ const adminNavOrder = [
   "/admin/announcements",
   "/admin/notifications/history",
   "/admin?tab=success-stories",
+  "/admin?tab=testimonial-images",
+  "/admin?tab=testimonial-ratings",
   "/admin?tab=legal-pages",
   "/admin/contact-settings",
   "/admin/client-errors",
@@ -531,7 +546,7 @@ const adminNavGroup = (path: string) => {
     return { ar: "المالية", en: "Finance" };
   if (["zoom", "classroom-sessions", "classroom-recordings", "missing-recordings"].some((part) => path.includes(part)))
     return { ar: "الفصول المباشرة", en: "Live classrooms" };
-  if (["notifications", "success-stories"].some((part) => path.includes(part)))
+  if (["notifications", "success-stories", "testimonial-images", "testimonial-ratings"].some((part) => path.includes(part)))
     return { ar: "المحتوى والتواصل", en: "Content & communication" };
   return { ar: "النظام", en: "System" };
 };

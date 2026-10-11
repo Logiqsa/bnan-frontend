@@ -9,6 +9,8 @@ import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import AudioTestimonialsSection from "@/components/AudioTestimonialsSection";
+import TestimonialsSection from "@/components/TestimonialsSection";
 
 const Index = () => {
   return (
@@ -38,6 +40,8 @@ const Index = () => {
       <CurriculaShowcase />
       <JoinTeacherSection />
       <FeaturesSection />
+      <AudioTestimonialsSection />
+      <TestimonialsSection />
       <CTASection />
       <Footer />
     </div>

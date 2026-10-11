@@ -22,6 +22,8 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import SuccessStoriesAdmin from "./SuccessStoriesAdmin";
+import TestimonialImagesAdmin from "./TestimonialImagesAdmin";
+import TestimonialRatingsAdmin from "./TestimonialRatingsAdmin";
 import ZoomAccountsAdmin from "./zoom/ZoomAccountsAdmin";
 import GradeZoomAssignmentAdmin from "./zoom/GradeZoomAssignmentAdmin";
 import LegalPagesAdmin from "./LegalPagesAdmin";
@@ -70,7 +72,9 @@ function AdminOverview() {
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const tab = requestedTab === "testimonials" || requestedTab === "testimonial-ratings" ? DEFAULT_TAB : requestedTab || DEFAULT_TAB;
+  // Keep the old `testimonials` link working while exposing both testimonial
+  // management pages that are used by the landing page.
+  const tab = requestedTab === "testimonials" ? "testimonial-images" : requestedTab || DEFAULT_TAB;
   const { isArabic, pick } = useLanguage();
 
   const setTab = (value: string) => setSearchParams({ tab: value });
@@ -83,6 +87,12 @@ export default function AdminDashboard() {
         </TabsContent>
         <TabsContent value="success-stories" className="mt-0">
           <SuccessStoriesAdmin />
+        </TabsContent>
+        <TabsContent value="testimonial-images" className="mt-0">
+          <TestimonialImagesAdmin />
+        </TabsContent>
+        <TabsContent value="testimonial-ratings" className="mt-0">
+          <TestimonialRatingsAdmin />
         </TabsContent>
         <TabsContent value="zoom-accounts" className="mt-0">
           <ZoomAccountsAdmin

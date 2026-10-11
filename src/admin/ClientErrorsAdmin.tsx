@@ -219,14 +219,14 @@ export default function ClientErrorsAdmin() {
       setUpdating(false);
     }
   };
-  const remove = async () => {
-    if (!selected || !window.confirm("هل تريد حذف سجل الخطأ نهائيًا؟")) return;
+  const remove = async (record: AdminClientError | null = selected) => {
+    if (!record || !window.confirm("هل تريد حذف سجل الخطأ نهائيًا؟")) return;
     setUpdating(true);
     try {
-      await clientErrorsAdminApi.remove(selected.id);
-      setRows((xs) => xs.filter((x) => x.id !== selected.id));
+      await clientErrorsAdminApi.remove(record.id);
+      setRows((xs) => xs.filter((x) => x.id !== record.id));
       setTotal((v) => (v === undefined ? v : Math.max(0, v - 1)));
-      setSelected(null);
+      setSelected((current) => current?.id === record.id ? null : current);
       toast.success("تم حذف سجل الخطأ.");
     } catch {
       toast.error("تعذر حذف سجل الخطأ.");
@@ -455,17 +455,32 @@ export default function ClientErrorsAdmin() {
                             <Status value={r.status} />
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void open(r);
-                              }}
-                            >
-                              <Eye className="ml-1 h-4 w-4" />
-                              عرض
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void open(r);
+                                }}
+                              >
+                                <Eye className="ml-1 h-4 w-4" />
+                                عرض
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                aria-label={`حذف الخطأ ${r.id}`}
+                                title="حذف"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void remove(r);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

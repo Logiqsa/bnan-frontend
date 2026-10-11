@@ -38,6 +38,7 @@ export default function AdminMissingRecordings() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [retryAllLoading, setRetryAllLoading] = useState(false);
   const [retryStates, setRetryStates] = useState<Record<string, "retrying" | "completed" | "failed">>({});
 
   const load = useCallback(async (background = false) => {
@@ -94,12 +95,37 @@ export default function AdminMissingRecordings() {
     }
   };
 
+  const retryAll = async () => {
+    const pendingItems = items.filter((item) => retryStates[item.id] !== "completed");
+    if (!pendingItems.length) {
+      toast.info(pick("لا توجد جلسات تحتاج إعادة محاولة.", "There are no sessions to retry."));
+      return;
+    }
+
+    setRetryAllLoading(true);
+    await Promise.all(pendingItems.map(async (item) => {
+      setRetryStates((states) => ({ ...states, [item.id]: "retrying" }));
+      try {
+        await adminZoomRecordingApi.retry(item.id);
+        void watchRetry(item.id);
+      } catch (error) {
+        setRetryStates((states) => ({ ...states, [item.id]: "failed" }));
+        toast.error(`${item.title || pick("جلسة بدون اسم", "Untitled session")}: ${errorText(error, isArabic)}`);
+      }
+    }));
+    setRetryAllLoading(false);
+    toast.success(pick("تمت جدولة إعادة محاولة كل الجلسات.", "Retry was queued for all sessions."));
+  };
+
  const removeFromView = (sessionId: string) => { setItems((current) => current.filter((entry) => entry.id !== sessionId)); setTotal((current) => Math.max(0, current - 1)); };
 
  return <DashboardLayout><main dir={isArabic ? "rtl" : "ltr"} className="mx-auto max-w-6xl space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
       <div><h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl"><VideoOff className="h-7 w-7 text-primary" />{pick("التسجيلات غير المكتملة", "Missing recordings")}</h1><p className="mt-2 text-sm text-muted-foreground">{pick("الجلسات التي لم يكتمل جلب تسجيلها من Zoom.", "Sessions whose Zoom recording has not been recovered.")}</p></div>
-      <Button variant="outline" className="gap-2" onClick={() => void load(true)} disabled={loading || refreshing}><RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />{pick("تحديث", "Refresh")}</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="default" className="gap-2" onClick={() => void retryAll()} disabled={loading || refreshing || retryAllLoading || Boolean(retrying)}><RotateCcw className={retryAllLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />{retryAllLoading ? pick("جاري إعادة الكل...", "Retrying all...") : pick("إعادة محاولة الكل", "Retry all")}</Button>
+        <Button variant="outline" className="gap-2" onClick={() => void load(true)} disabled={loading || refreshing || retryAllLoading}><RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />{pick("تحديث", "Refresh")}</Button>
+      </div>
     </header>
     <div className="flex items-center gap-2 text-sm text-muted-foreground"><AlertTriangle className="h-4 w-4 text-amber-600" />{pick(`${total} جلسة تحتاج مراجعة`, `${total} sessions need review`)}</div>
     {loading ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-36 rounded-xl" />)}</div> : !items.length ? <Card><CardContent className="grid min-h-56 place-items-center text-center text-muted-foreground"><div><VideoOff className="mx-auto mb-3 h-10 w-10 opacity-40" /><p>{pick("لا توجد جلسات بدون تسجيل حاليًا.", "There are no missing recordings right now.")}</p></div></CardContent></Card> : <div className="space-y-3">{items.map((item) => { const retryState = retryStates[item.id]; const displayStatus = retryState || item.recording.status; const isRetrying = retryState === "retrying" || retrying === item.id; const isCompleted = retryState === "completed"; const sessionDetailsPath = item.classroom?.id ? `/admin/classrooms/${encodeURIComponent(item.classroom.id)}/sessions/${encodeURIComponent(item.id)}` : `/admin/classroom-sessions?classroomId=${encodeURIComponent(item.classroom?.id || "")}&sessionId=${encodeURIComponent(item.id)}`; const classroomPath = item.classroom?.id ? `/admin/classrooms/${encodeURIComponent(item.classroom.id)}?tab=sessions` : "/admin/classrooms"; const recordingClassroomPath = item.classroom?.id ? `/admin/classrooms/${encodeURIComponent(item.classroom.id)}?tab=recordings` : "/admin/classrooms"; return <Card key={item.id}><CardHeader className="flex-row items-start justify-between gap-3 space-y-0"><div className="min-w-0"><CardTitle className="truncate text-base">{item.title || pick("جلسة بدون اسم", "Untitled session")}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{item.classroom?.id ? <Link className="text-primary hover:underline" to={classroomPath}>{item.classroom.name || pick("عرض الفصل", "View classroom")}</Link> : item.classroom?.name || "—"}{item.subject?.name || item.teacher?.name ? ` — ${[item.subject?.name, item.teacher?.name].filter(Boolean).join(" — ")}` : ""}</p></div><div className="flex items-center gap-2"><Badge variant="outline" className={isCompleted ? "text-green-700" : undefined}>{label(displayStatus, isArabic)}</Badge><Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label={pick("إزالة الجلسة من القائمة", "Remove session from list")} title={pick("إزالة", "Remove")} onClick={() => removeFromView(item.id)}><X className="h-4 w-4" /></Button></div></CardHeader><CardContent className="grid gap-3 text-sm md:grid-cols-[1fr_auto] md:items-end"><div className="grid gap-1 text-muted-foreground sm:grid-cols-2"><p>{pick("انتهت:", "Ended:")} {dateLabel(item.actualEndedAt || item.startAt, isArabic)}</p><Link className="text-primary hover:underline" to={sessionDetailsPath}>{pick("تقرير الحضور:", "Attendance report:")} {label(item.report.status, isArabic)}</Link><p className="break-all">{pick("سبب التسجيل:", "Recording error:")} {item.recording.errorCode || item.jobs.recording?.lastError || "—"}</p><p>{pick("المحاولات:", "Attempts:")} {item.jobs.recording?.attempts ?? 0}</p></div>{isCompleted && item.classroom?.id ? <Button asChild className="gap-2"><Link to={recordingClassroomPath}>{pick("فتح التسجيل", "Open recording")} </Link></Button> : <Button className="gap-2" onClick={() => void retry(item)} disabled={isRetrying}><RotateCcw className={isRetrying ? "h-4 w-4 animate-spin" : "h-4 w-4"} />{isRetrying ? pick("جاري المحاولة...", "Retrying...") : retryState === "failed" ? pick("إعادة المحاولة", "Retry again") : pick("إعادة المحاولة", "Retry")}</Button>}</CardContent></Card>; })}</div>}

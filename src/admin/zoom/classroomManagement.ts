@@ -36,3 +36,10 @@ export const classroomZoomLabel = (item: ClassroomOption) => {
   if (item.zoomAssignmentMode === "grade_default") return "ربط تلقائي";
   return hasCompleteZoomMeeting(item) ? "Zoom جاهز" : "Zoom غير مربوط";
 };
+
+export const classroomKindLabel = (kind?: ClassroomOption["classroomKind"]) => {
+  if (kind === "general") return "عام";
+  if (kind === "private") return "خاص";
+  if (kind === "course") return "دورة";
+  return "غير محدد";
+};

@@ -19,6 +19,7 @@ export interface ClassroomOption {
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string; user?: { fullName?: string } | string } | string | null;
   sourceType?: "legacy" | "course";
+  classroomKind?: "general" | "private" | "course";
   student?: { id?: string; name?: string; fullName?: string } | string | null;
   students?: Array<{ id?: string; name?: string; fullName?: string }>;
   schedule?: {
@@ -216,6 +217,12 @@ export const classroomRecordingsApi = {
   listAllClassrooms: () =>
     apiRequest<{ success: true; data: ClassroomOption[] }>(
       "/classrooms?page=1&limit=100",
+    ),
+
+  updateClassroom: (classroomId: string, body: { name?: string; classroomKind?: ClassroomOption["classroomKind"] }) =>
+    apiRequest<{ success: true; data: ClassroomOption }>(
+      `/classrooms/${encodeURIComponent(classroomId)}`,
+      { method: "PATCH", body: JSON.stringify(body) },
     ),
 
   listClassrooms: (keyword = "") => {

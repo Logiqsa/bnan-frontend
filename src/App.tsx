@@ -57,6 +57,7 @@ import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
 import ZoomAccountUsageAdmin from "@/admin/zoom/ZoomAccountUsageAdmin";
 import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
+import ClassroomKindManagement from "@/admin/ClassroomKindManagement";
 import AdminClassroomHub from "@/admin/AdminClassroomHub";
 import AdminTeacherAssignment from "@/admin/AdminTeacherAssignment";
 import AccountSettings from "@/portal/AccountSettings";
@@ -105,6 +106,7 @@ import { ContactSettingsProvider } from "@/contexts/ContactSettingsContext";
 import { GlobalRuntimeErrorBoundary } from "@/components/GlobalRuntimeErrorBoundary";
 import AdminAnnouncements from "@/admin/AdminAnnouncements";
 import AdminMissingRecordings from "@/admin/AdminMissingRecordings";
+import SupervisorEvaluations from "@/portal/SupervisorEvaluations";
 
 const queryClient = new QueryClient();
 
@@ -491,6 +493,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/classroom-management" element={<AdminGuard><ClassroomKindManagement /></AdminGuard>} />
                     <Route
                       path="/admin/classrooms/:classroomId"
                       element={
@@ -612,6 +615,10 @@ export default function App() {
                           <SupervisorSchedule />
                         </ManualZoomGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/supervisor/evaluations"
+                      element={<PortalGuard role="supervisor"><SupervisorEvaluations /></PortalGuard>}
                     />
                     <Route
                       path="/portal/supervisor/messages"

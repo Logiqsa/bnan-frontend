@@ -162,6 +162,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/classrooms",
     },
     {
+      label: "إدارة الفصول",
+      labelEn: "Classroom management",
+      icon: School,
+      path: "/admin/classroom-management",
+    },
+    {
       label: "جدول الحصص",
       labelEn: "Lesson schedule",
       icon: Calendar,
@@ -426,6 +432,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/supervisor/schedule",
     },
     {
+      label: "التقييمات",
+      labelEn: "Evaluations",
+      icon: BarChart3,
+      path: "/portal/supervisor/evaluations",
+    },
+    {
       label: "الرسائل",
       labelEn: "Messages",
       icon: MessageSquare,
@@ -454,6 +466,7 @@ const adminNavOrder = [
   "/admin?tab=supervisors",
   "/admin?tab=admins",
   "/admin/classrooms",
+  "/admin/classroom-management",
   "/admin/schedule",
   "/admin/courses",
   "/admin/catalog/curriculums",
@@ -540,7 +553,7 @@ const adminNavGroup = (path: string) => {
     return { ar: "الرسائل والطلبات", en: "Messages & requests" };
   if (["all-users", "/admin/teachers", "/admin/students", "/admin/parents", "supervisors", "admins", "teacher-applications"].some((part) => path.includes(part)))
     return { ar: "المستخدمون", en: "Users" };
-  if (["/admin/classrooms", "/admin/schedule", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests", "/admin/teacher-assignment"].some((part) => path.startsWith(part)))
+  if (["/admin/classrooms", "/admin/classroom-management", "/admin/schedule", "/admin/courses", "/admin/catalog", "/admin/certificates", "/admin/classroom-change-requests", "/admin/teacher-assignment"].some((part) => path.startsWith(part)))
     return { ar: "التعليم", en: "Learning" };
   if (["/admin/subscriptions", "/admin/payments", "/admin/payroll", "/admin/subject-requests", "/admin/gulf-subject-requests"].some((part) => path.startsWith(part)))
     return { ar: "المالية", en: "Finance" };

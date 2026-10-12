@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { coursesApi, type CourseEnrollment } from "@/api/coursesApi";
 import { courseStaffApi } from "@/api/courseStaffApi";
 import { teacherApplicationsApi } from "@/api/teacherApplicationsApi";
@@ -34,13 +35,13 @@ const classroomIdOf = (value: unknown) =>
       : "";
 
 const enrollmentStudent = (enrollment: CourseEnrollment) => {
-  const student = enrollment.student;
-  if (!student) return { name: "طالب غير متاح", email: "" };
-  if (typeof student === "string") return { name: student, email: "" };
-  const user = typeof student.user === "object" ? student.user : null;
+  const participant = enrollment.student || enrollment.user;
+  if (!participant) return { name: "حساب غير متاح", email: "" };
+  if (typeof participant === "string") return { name: participant, email: "" };
+  const user = typeof participant.user === "object" ? participant.user : null;
   return {
-    name: user?.fullName || student.fullName || student.name || "طالب غير متاح",
-    email: user?.email || "",
+    name: user?.fullName || participant.fullName || participant.name || "حساب غير متاح",
+    email: user?.email || ("email" in participant ? participant.email || "" : ""),
   };
 };
 
@@ -61,6 +62,7 @@ const enrollmentStatusNames: Record<CourseEnrollment["status"], string> = {
 
 export default function CourseDetailAdmin() {
   const { courseId = "" } = useParams();
+  const queryClient = useQueryClient();
   const [teacherDialogOpen, setTeacherDialogOpen] = useState(false);
   const query = useQuery({
     queryKey: ["admin-course", courseId],
@@ -73,6 +75,15 @@ export default function CourseDetailAdmin() {
   const enrollments = useQuery({
     queryKey: ["admin-course-enrollments", courseId],
     queryFn: () => coursesApi.listEnrollments(courseId),
+  });
+  const removeEnrollment = useMutation({
+    mutationFn: (enrollmentId: string) => coursesApi.revoke(enrollmentId, "removed"),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-course-enrollments", courseId] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-course-groups", courseId] });
+      toast.success("تمت إزالة التسجيل من الدورة.");
+    },
+    onError: (error) => toast.error(courseError(error)),
   });
   const staff = useQuery({
     queryKey: ["course-admin-staff-names"],
@@ -264,7 +275,7 @@ export default function CourseDetailAdmin() {
                         <h2 className="flex items-center gap-2 font-bold"><Users className="h-5 w-5" />الطلاب المسجلون</h2>
                         <p className="mt-1 text-sm text-muted-foreground">كل تسجيلات الدورة وحالتها والمجموعة التابعة لها.</p>
                       </div>
-                      <Badge variant="secondary">{enrollments.data?.total ?? 0} طالب</Badge>
+                      <Badge variant="secondary">{enrollments.data?.enrollments.filter((item) => item.status !== "removed").length ?? 0} مسجل</Badge>
                     </div>
                     {enrollments.isLoading ? (
                       <p className="py-10 text-center">جاري تحميل الطلاب...</p>
@@ -273,13 +284,13 @@ export default function CourseDetailAdmin() {
                         <p>{courseError(enrollments.error)}</p>
                         <Button className="mt-3" variant="outline" onClick={() => void enrollments.refetch()}>إعادة المحاولة</Button>
                       </div>
-                    ) : !enrollments.data?.enrollments.length ? (
+                    ) : !(enrollments.data?.enrollments.some((item) => item.status !== "removed")) ? (
                       <p className="py-10 text-center text-muted-foreground">لا يوجد طلاب مسجلون في الدورة حتى الآن.</p>
                     ) : (
                       <div className="space-y-3">
-                        {enrollments.data.enrollments.map((item) => {
+                        {enrollments.data.enrollments.filter((item) => item.status !== "removed").map((item) => {
                           const student = enrollmentStudent(item);
-                          return <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 p-4"><div><p className="font-semibold">{student.name}</p>{student.email && <p className="mt-1 text-sm text-muted-foreground" dir="ltr">{student.email}</p>}</div><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{item.mode === "group" ? enrollmentGroupName(item) : "فردي"}</Badge><Badge variant={item.status === "active" ? "default" : "secondary"}>{enrollmentStatusNames[item.status]}</Badge></div></div>;
+                          return <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 p-4"><div><p className="font-semibold">{student.name}</p>{student.email && <p className="mt-1 text-sm text-muted-foreground" dir="ltr">{student.email}</p>}</div><div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{item.mode === "group" ? enrollmentGroupName(item) : "فردي"}</Badge><Badge variant={item.status === "active" ? "default" : "secondary"}>{enrollmentStatusNames[item.status]}</Badge><Button type="button" variant="destructive" size="sm" disabled={removeEnrollment.isPending} onClick={() => { if (window.confirm("هل تريد إزالة هذا التسجيل من الدورة؟")) removeEnrollment.mutate(item.id); }}>إزالة</Button></div></div>;
                         })}
                       </div>
                     )}

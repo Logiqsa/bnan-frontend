@@ -18,6 +18,7 @@ export interface NamedRef {
   _id?: string;
   name?: string;
   fullName?: string;
+  email?: string;
   user?:
     | string
     | { id?: string; _id?: string; fullName?: string; email?: string };
@@ -133,6 +134,7 @@ export interface ActiveCourseSession {
 export interface CourseEnrollment {
   id: string;
   course: Course | NamedRef | string;
+  user?: NamedRef | string | null;
   student?: NamedRef | string;
   mode: CourseMode;
   classroom?: CourseClassroom | string | null;

@@ -54,7 +54,7 @@ const academicSteps = [
   "المنهج والصف والباقة",
   "الدفع والتأكيد",
 ];
-const courseOnlySteps = ["بيانات ولي الأمر", "بيانات الطالب", "المنهج والصف"];
+const courseOnlySteps = ["بيانات الطالب", "البيانات الأكاديمية"];
 
 const ERROR_MESSAGES: Record<string, string> = {
   INCORRECT_LOGIN_DATA: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -125,6 +125,7 @@ interface SignupDraft {
   parentPhone: string;
   studentFullName: string;
   studentEmail: string;
+  courseStudentType: "course_academic" | "course_general";
   curriculumId: string;
   gradeId: string;
   subjectIds: string[];
@@ -145,6 +146,7 @@ export const safeSignupDraft = (draft: Partial<SignupDraft>): Partial<SignupDraf
   parentPhone: draft.parentPhone,
   studentFullName: draft.studentFullName,
   studentEmail: draft.studentEmail,
+  courseStudentType: draft.courseStudentType,
   curriculumId: draft.curriculumId,
   gradeId: draft.gradeId,
   subjectIds: draft.subjectIds,
@@ -196,7 +198,13 @@ export default function StudentSignup({
     ? COURSE_STUDENT_SIGNUP_DRAFT_KEY
     : STUDENT_SIGNUP_DRAFT_KEY;
   const [savedDraft] = useState(() => readSignupDraft(courseOnly));
-  const [step, setStep] = useState(() => Math.min(Math.max(savedDraft.step ?? 0, 0), steps.length - 1));
+  const [step, setStep] = useState(() => {
+    const savedStepsLength =
+      courseOnly && savedDraft.courseStudentType === "course_general"
+        ? 1
+        : steps.length;
+    return Math.min(Math.max(savedDraft.step ?? 0, 0), savedStepsLength - 1);
+  });
   const [error, setError] = useState("");
 
   // Step 0: parent
@@ -219,6 +227,13 @@ export default function StudentSignup({
   const [studentEmail, setStudentEmail] = useState(
     savedDraft.studentEmail ?? "",
   );
+  const [courseStudentType, setCourseStudentType] = useState<"course_academic" | "course_general">(
+    savedDraft.courseStudentType ?? "course_academic",
+  );
+  const effectiveSteps =
+    courseOnly && courseStudentType === "course_general"
+      ? [courseOnlySteps[0]]
+      : steps;
   const [studentPassword, setStudentPassword] = useState("");
 
   // Step 2: curriculum / grade / package / subjects
@@ -275,6 +290,7 @@ export default function StudentSignup({
 
   const selectedCurriculum = curriculums.find((c) => c.id === curriculumId);
   const mode = selectedCurriculum?.registrationMode;
+  const detailsStep = courseOnly ? 1 : 2;
   const selectedPackage = packages.find((p) => p.id === packageId);
   const selectedAccessScope = selectedPackage?.accessScope;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
@@ -395,6 +411,7 @@ export default function StudentSignup({
       parentPhone,
       studentFullName,
       studentEmail,
+      courseStudentType,
       curriculumId,
       gradeId,
       subjectIds,
@@ -420,6 +437,7 @@ export default function StudentSignup({
     parentPhone,
     studentFullName,
     studentEmail,
+    courseStudentType,
     curriculumId,
     gradeId,
     subjectIds,
@@ -489,20 +507,22 @@ export default function StudentSignup({
 
   const validStep = useMemo(() => {
     if (step === 0)
-      return (
+      return courseOnly ? (
+        studentFullName.trim().length >= 3 && isValidEmail(studentEmail) && !!studentPassword && !!courseStudentType
+      ) : (
         parentFullName.trim().length >= 3 &&
         isValidEmail(parentEmail) &&
         !!normalizeRegistrationPhone(parentPhone) &&
         !!parentPassword
       );
-    if (step === 1)
+    if (step === 1 && !courseOnly)
       return (
         studentFullName.trim().length >= 3 &&
         isValidEmail(studentEmail) &&
         !!studentPassword
       );
-    if (step === 2) {
-      if (courseOnly) return !!curriculumId && !!gradeId;
+    if (step === detailsStep) {
+      if (courseOnly) return courseStudentType === "course_general" || (!!curriculumId && !!gradeId);
       if (!curriculumId || !gradeId || !packageId || subjects.length === 0)
         return false;
       if (mode === "gulf") return isSharedSubjectPackage ? subjectIds.length >= 2 : subjectIds.length >= 1;
@@ -510,7 +530,7 @@ export default function StudentSignup({
       if (isAllSubjectsPackage) return subjectIds.length === subjects.length;
       return false;
     }
-    if (step === 3) {
+    if (step === 3 && !courseOnly) {
       if (!packageId) return false;
       if (mode === "gulf" && paymentProvider === "tamara")
         return !!city.trim() && !!region.trim() && !!line1.trim();
@@ -540,6 +560,8 @@ export default function StudentSignup({
     region,
     line1,
     courseOnly,
+    courseStudentType,
+    detailsStep,
   ]);
 
   const submitParentStep = async () => {
@@ -602,11 +624,11 @@ export default function StudentSignup({
   const next = async () => {
     if (!validStep) {
       setError(
-        step === 0 && parentEmail.trim() && !isValidEmail(parentEmail)
+          !courseOnly && step === 0 && parentEmail.trim() && !isValidEmail(parentEmail)
           ? "أدخل بريد ولي الأمر بصيغة صحيحة مثل name@example.com."
-          : step === 1 && studentEmail.trim() && !isValidEmail(studentEmail)
+          : !courseOnly && step === 1 && studentEmail.trim() && !isValidEmail(studentEmail)
             ? "أدخل بريد الطالب بصيغة صحيحة مثل name@example.com."
-            : step === 0 &&
+            : !courseOnly && step === 0 &&
           parentPhone.trim() &&
           !normalizeRegistrationPhone(parentPhone)
               ? "أدخل رقم موبايل مصري أو سعودي صحيحًا."
@@ -615,9 +637,13 @@ export default function StudentSignup({
       return;
     }
     setError("");
-    if (step === 0) {
+    if (step === 0 && !courseOnly) {
       if (parentCreds) setStep(1);
       else await submitParentStep();
+      return;
+    }
+    if (courseOnly && courseStudentType === "course_general") {
+      await submit();
       return;
     }
     if (step === steps.length - 1) {
@@ -628,20 +654,20 @@ export default function StudentSignup({
   };
 
   const submit = async () => {
-    if (!parentCreds || !mode) return;
+    if (!courseOnly && (!parentCreds || !mode)) return;
     setSubmitting(true);
     setError("");
     try {
       if (courseOnly) {
         const response = await authApi.registerCourseStudent({
-          parent: parentCreds,
           student: {
             fullName: studentFullName.trim(),
             email: studentEmail.trim(),
             password: studentPassword,
-            grade: gradeId,
+            ...(courseStudentType === "course_academic" ? { grade: gradeId } : { grade: "" }),
           },
-          curriculum: curriculumId,
+          ...(courseStudentType === "course_academic" ? { curriculum: curriculumId } : {}),
+          studentType: courseStudentType,
         });
         courseRegistrationIntentStore.bindStudent(response.data.student.userId);
         setVerification({ email: studentEmail.trim(), kind: "student" });
@@ -853,10 +879,14 @@ export default function StudentSignup({
           <div
             className={cn(
               "grid gap-2 pt-4",
-              courseOnly ? "grid-cols-3" : "grid-cols-4",
+              effectiveSteps.length === 1
+                ? "grid-cols-1"
+                : courseOnly
+                  ? "grid-cols-2"
+                  : "grid-cols-4",
             )}
           >
-            {steps.map((title, index) => (
+            {effectiveSteps.map((title, index) => (
               <div key={title} className="text-center">
                 <div
                   className={`h-2 rounded-full ${index <= step ? "bg-secondary" : "bg-muted"}`}
@@ -881,7 +911,7 @@ export default function StudentSignup({
               </div>
             )}
 
-            {step === 0 && (
+            {step === 0 && !courseOnly && (
               <div className="grid sm:grid-cols-2 gap-4">
                 <LabeledInput
                   label="اسم ولي الأمر الكامل *"
@@ -917,7 +947,30 @@ export default function StudentSignup({
               </div>
             )}
 
-            {step === 1 && (
+            {step === 0 && courseOnly && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="mb-3 font-cairo font-bold">نوع طالب الدورات *</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button type="button" onClick={() => setCourseStudentType("course_academic")} className={cn("rounded-xl border p-4 text-right transition-colors", courseStudentType === "course_academic" ? "border-secondary bg-secondary/10" : "hover:border-secondary/50")}>
+                      <span className="block font-cairo font-semibold">طالب دورات (أكاديمي)</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">يدخل المنهج والصف للتسجيل في الدورات المناسبة.</span>
+                    </button>
+                    <button type="button" onClick={() => { setCourseStudentType("course_general"); setCurriculumId(""); setGradeId(""); }} className={cn("rounded-xl border p-4 text-right transition-colors", courseStudentType === "course_general" ? "border-secondary bg-secondary/10" : "hover:border-secondary/50")}>
+                      <span className="block font-cairo font-semibold">طالب دورات (عام)</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">لا يحتاج إلى إدخال منهج أو صف.</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <LabeledInput label="اسم الطالب الكامل *" value={studentFullName} onChange={setStudentFullName} />
+                  <LabeledInput label="البريد الإلكتروني للطالب *" type="email" dir="ltr" value={studentEmail} onChange={setStudentEmail} />
+                  <LabeledInput label="كلمة مرور الطالب *" type="password" dir="ltr" value={studentPassword} onChange={setStudentPassword} />
+                </div>
+              </div>
+            )}
+
+            {step === 1 && !courseOnly && (
               <div className="grid sm:grid-cols-2 gap-4">
                 <LabeledInput
                   label="اسم الطالب الكامل *"
@@ -941,8 +994,11 @@ export default function StudentSignup({
               </div>
             )}
 
-            {step === 2 && (
+            {((step === 2 && !courseOnly) || (step === 1 && courseOnly)) && (
               <div className="space-y-5">
+                {courseOnly && courseStudentType === "course_general" ? (
+                  <div className="rounded-xl border bg-muted/30 p-5 text-center text-sm text-muted-foreground">هذا النوع لا يحتاج إلى اختيار منهج أو صف. يمكنك إنشاء الحساب مباشرة.</div>
+                ) : <>
                 <div>
                   <h3 className="font-cairo font-bold mb-3">
                     اختر المنهج الدراسي *
@@ -1204,6 +1260,7 @@ export default function StudentSignup({
                     )}
                   </div>
                 )}
+                </>}
 
                 {gradeId && packageId && !courseOnly && (
                   <div>
@@ -1409,17 +1466,17 @@ export default function StudentSignup({
             <Button onClick={next} disabled={parentBusy || submitting}>
               {parentBusy || submitting ? (
                 <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-              ) : step === steps.length - 1 ? null : (
+              ) : step === effectiveSteps.length - 1 ? null : (
                 <ArrowLeft className="h-4 w-4 mr-2" />
               )}
-              {step === 0
-                ? "التحقق والمتابعة"
-                : step === steps.length - 1
-                  ? courseOnly
-                    ? "إنشاء الحساب"
-                    : mode === "gulf"
-                      ? "المتابعة للدفع"
-                      : "إرسال الطلب"
+              {step === effectiveSteps.length - 1
+                ? courseOnly
+                  ? "إنشاء الحساب"
+                  : mode === "gulf"
+                    ? "المتابعة للدفع"
+                    : "إرسال الطلب"
+                : step === 0
+                  ? courseOnly ? "التالي" : "التحقق والمتابعة"
                   : "التالي"}
             </Button>
           </div>

@@ -26,9 +26,10 @@ export interface DirectRegisterBody {
 }
 
 export interface CourseStudentRegisterBody {
-  parent: { email: string; password: string };
+  parent?: { email: string; password: string };
   student: Omit<StudentRegistrationInput, "subjects">;
-  curriculum: string;
+  curriculum?: string;
+  studentType?: "course_academic" | "course_general";
 }
 
 export interface CourseStudentRegistrationResponse {
@@ -40,9 +41,10 @@ export interface CourseStudentRegistrationResponse {
       id: string;
       userId: string;
       registrationType: "course_only";
+      studentType: "course_academic" | "course_general";
       registrationStatus: "approved";
-      curriculum: string;
-      grade: string;
+      curriculum: string | null;
+      grade: string | null;
     };
   };
 }
@@ -82,6 +84,7 @@ export interface PortalUser {
   status: string;
   registrationMode?: RegistrationMode;
   registrationModes?: RegistrationMode[];
+  studentType?: "academy" | "course_academic" | "course_general";
 }
 
 export interface AuthResponse {

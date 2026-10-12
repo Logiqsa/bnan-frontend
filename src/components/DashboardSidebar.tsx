@@ -632,7 +632,10 @@ const SidebarContent = ({
   const location = useLocation();
   const navigate = useNavigate();
   const role = user?.role || "student";
-  const items = roleNavItems[role] || [];
+  const studentAcademicOnlyPaths = new Set(["/portal/student/subjects", "/portal/student/schedule", "/portal/student/assignments", "/portal/student/evaluations", "/portal/student/subscriptions", "/portal/student/subject-requests", "/portal/student/change-requests"]);
+  const items = role === "student" && user?.studentType && user.studentType !== "academy"
+    ? (roleNavItems[role] || []).filter((item) => !studentAcademicOnlyPaths.has(item.path))
+    : roleNavItems[role] || [];
   const { isArabic, pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
   const scheduleRoles = role === "teacher" || role === "student" || role === "supervisor";

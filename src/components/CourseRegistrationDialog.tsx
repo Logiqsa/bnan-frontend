@@ -96,6 +96,18 @@ export default function CourseRegistrationDialog({
     setBusy(true);
     try {
       if (price === 0) {
+        const existingEnrollment = (await coursesApi.myEnrollments()).find((enrollment) => {
+          if (enrollment.status !== "active") return false;
+          const enrolledCourse = typeof enrollment.course === "object"
+            ? enrollment.course.id || enrollment.course._id
+            : enrollment.course;
+          return enrolledCourse === course.id;
+        });
+        if (existingEnrollment) {
+          clearCurrentIntent();
+          nav(`${user.role === "teacher" ? "/portal/teacher/enrolled-courses" : "/portal/student/courses"}/${existingEnrollment.id}`);
+          return;
+        }
         await coursesApi.enrollFree(course.id, mode);
         await queryClient.invalidateQueries({ queryKey: ["my-course-enrollments"] });
         clearCurrentIntent();

@@ -6,6 +6,7 @@ import CourseRegistrationDialog from "./CourseRegistrationDialog";
 
 const mocks = vi.hoisted(() => ({
   enrollFree: vi.fn(),
+  myEnrollments: vi.fn(),
   checkout: vi.fn(),
   navigate: vi.fn(),
   success: vi.fn(),
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/api/coursesApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/api/coursesApi")>()),
-  coursesApi: { enrollFree: mocks.enrollFree, checkout: mocks.checkout },
+  coursesApi: { enrollFree: mocks.enrollFree, myEnrollments: mocks.myEnrollments, checkout: mocks.checkout },
 }));
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: mocks.portalUser }) }));
 vi.mock("react-router-dom", async (importOriginal) => ({
@@ -53,6 +54,7 @@ const renderDialog = () => {
 describe("CourseRegistrationDialog free re-enrollment", () => {
   beforeEach(() => {
     mocks.enrollFree.mockReset().mockResolvedValue({ id: "new-enrollment", status: "active" });
+    mocks.myEnrollments.mockReset().mockResolvedValue([]);
     mocks.checkout.mockReset();
     mocks.navigate.mockReset();
     mocks.success.mockReset();

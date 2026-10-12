@@ -193,7 +193,7 @@ export default function CourseDetails() {
                       )}
                       {activeEnrollment ? (
                         <Button className="w-full" size="lg" asChild>
-                          <Link to={`/portal/student/courses/${activeEnrollment.id}`}>عرض دورتي</Link>
+                          <Link to={`${user?.role === "teacher" ? "/portal/teacher/enrolled-courses" : "/portal/student/courses"}/${activeEnrollment.id}`}>عرض دورتي</Link>
                         </Button>
                       ) : (
                         <Button

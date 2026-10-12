@@ -10,7 +10,7 @@ export const useActiveCourseEnrollments = () => {
   const query = useQuery({
     queryKey: ["my-course-enrollments"],
     queryFn: coursesApi.myEnrollments,
-    enabled: user?.role === "student",
+    enabled: user?.role === "student" || user?.role === "teacher",
   });
   const byCourseId = new Map(
     (query.data || [])

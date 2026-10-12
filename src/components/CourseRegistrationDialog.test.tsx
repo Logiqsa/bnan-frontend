@@ -170,7 +170,7 @@ describe("CourseRegistrationDialog free re-enrollment", () => {
     fireEvent.click(screen.getByRole("button", { name: "تفعيل التسجيل" }));
 
     await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith(
-      "/register/course-student?returnTo=%2Fcourses%2Fcourse-1%3FcontinueRegistration%3D1",
+      "/register?returnTo=%2Fcourses%2Fcourse-1%3FcontinueRegistration%3D1",
     ));
     expect(JSON.parse(localStorage.getItem("bnan_course_registration_intent") || "{}")).toMatchObject({
       courseId: "course-1",

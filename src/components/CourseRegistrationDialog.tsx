@@ -75,7 +75,7 @@ export default function CourseRegistrationDialog({
         provider,
         returnTo,
       });
-      const registrationPath = course.courseType === "general" ? "/register" : "/register/course-student";
+      const registrationPath = "/register/course-student";
       nav(`${registrationPath}?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }

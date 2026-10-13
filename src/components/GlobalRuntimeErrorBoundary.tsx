@@ -41,6 +41,15 @@ const isExpectedRequestFailure = (reason: unknown) => {
   return false;
 };
 
+// Chromium reports this ResizeObserver notification as a window error when a
+// portal (such as a Dialog or Select) changes size during its layout pass. It
+// is browser layout noise, not an application exception, and rendering the
+// fatal error screen here makes otherwise usable pages disappear.
+const isIgnorableBrowserError = (event: ErrorEvent) => {
+  const message = event.message || event.error?.message || "";
+  return /ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i.test(message);
+};
+
 const currentPage = () => typeof window === "undefined" ? "غير متاح" : window.location.pathname;
 
 export class GlobalRuntimeErrorBoundary extends Component<GlobalRuntimeErrorBoundaryProps, RuntimeErrorState> {
@@ -69,6 +78,7 @@ export class GlobalRuntimeErrorBoundary extends Component<GlobalRuntimeErrorBoun
   }
 
   private handleWindowError = (event: ErrorEvent) => {
+    if (isIgnorableBrowserError(event)) return;
     if (event.error && isExpectedRequestFailure(event.error)) return;
     const error = toError(event.error ?? event.message, "حدث خطأ غير متوقع أثناء تشغيل الصفحة.");
     this.showUnexpectedError(error, "window");

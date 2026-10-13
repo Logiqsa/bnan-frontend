@@ -68,4 +68,12 @@ describe("GlobalRuntimeErrorBoundary", () => {
     expect(screen.getByText("واجهة عادية")).toBeInTheDocument();
     expect(screen.queryByText("حدث خطأ غير متوقع")).not.toBeInTheDocument();
   });
+
+  it("ignores Chromium ResizeObserver layout notifications", () => {
+    render(<GlobalRuntimeErrorBoundary><main>واجهة عادية</main></GlobalRuntimeErrorBoundary>);
+    window.dispatchEvent(new ErrorEvent("error", { message: "ResizeObserver loop completed with undelivered notifications" }));
+
+    expect(screen.getByText("واجهة عادية")).toBeInTheDocument();
+    expect(screen.queryByText("حدث خطأ غير متوقع")).not.toBeInTheDocument();
+  });
 });

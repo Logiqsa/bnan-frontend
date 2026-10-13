@@ -442,6 +442,20 @@ export const coursesApi = {
         )
       ).data,
     ),
+  updateGroup: async (groupId: string, body: { capacity: number; moveFromGroupId?: string; moveCount?: number }) =>
+    group(
+      (await apiRequest<Envelope<Raw<Omit<CourseGroup, "id">>>>(`/admin/courses/groups/${groupId}`, {
+        method: "PATCH", body: JSON.stringify(body),
+      })).data,
+    ),
+  moveEnrollment: async (targetGroupId: string, enrollmentId: string) =>
+    enrollment(
+      (await apiRequest<Envelope<Raw<Omit<CourseEnrollment, "id">>>>(`/admin/courses/groups/${targetGroupId}/move-enrollment`, {
+        method: "POST", body: JSON.stringify({ enrollmentId }),
+      })).data,
+    ),
+  deleteGroup: async (groupId: string, force = false) =>
+    (await apiRequest<Envelope<{ id: string; deleted: boolean }>>(`/admin/courses/groups/${groupId}${force ? "?force=true" : ""}`, { method: "DELETE" })).data,
   revoke: async (id: string, status: "cancelled" | "refunded" | "removed") =>
     enrollment(
       (

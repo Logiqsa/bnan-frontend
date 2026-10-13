@@ -891,6 +891,11 @@ export default function CourseForm({
                     onChange={(e) => setGroupCapacity(e.target.value)}
                     placeholder="اختياري — الافتراضي 20"
                   />
+                  {course && (
+                    <p className="text-xs text-muted-foreground">
+                      عند الحفظ سيتم تطبيق السعة على كل مجموعات الدورة الحالية. يمكنك تخصيص مجموعة لاحقًا من إدارة المجموعات.
+                    </p>
+                  )}
                 </label>
               )}
             </div>

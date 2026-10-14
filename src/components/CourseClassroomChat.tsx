@@ -155,6 +155,7 @@ export default function CourseClassroomChat({
   const [sending, setSending] = useState(false);
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [creatingRoom, setCreatingRoom] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const rooms = useQuery({
     queryKey: ["course-chat-room", classroomId, user?.role],
@@ -271,12 +272,27 @@ export default function CourseClassroomChat({
     }
   };
 
+  const createRoom = async () => {
+    if (creatingRoom) return;
+    setCreatingRoom(true);
+    try {
+      await chatApi.createClassroomRoom(classroomId);
+      await rooms.refetch();
+      toast.success("تم إنشاء محادثة المجموعة");
+    } catch (error) {
+      toast.error(courseError(error));
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
+
   if (rooms.isLoading) {
     return (
       <div className="-mx-4 flex h-[calc(100dvh-8rem)] min-h-0 w-[calc(100%+2rem)] flex-col overflow-hidden rounded-none border-x-0 bg-card shadow-sm sm:mx-0 sm:h-[clamp(28rem,70vh,42rem)] sm:w-auto sm:rounded-2xl sm:border-x">
         <div className="border-b bg-muted/30 p-3">
           <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-2">
             <span className="h-5 w-32 animate-pulse rounded bg-muted" />
+            <ClassroomSessionActions classroomId={classroomId} />
           </div>
         </div>
         <div className="grid min-h-0 flex-1 place-items-center text-muted-foreground">
@@ -293,9 +309,24 @@ export default function CourseClassroomChat({
     );
   if (!roomId) {
     return (
-      <div className="p-10 text-center text-muted-foreground">
-        <MessageCircle className="mx-auto mb-3 h-9 w-9" />
-        <p>محادثة الفصل غير متاحة بعد.</p>
+      <div className="space-y-4 p-10 text-center text-muted-foreground">
+        <div className="flex justify-center">
+          <ClassroomSessionActions classroomId={classroomId} />
+        </div>
+        <div>
+          <MessageCircle className="mx-auto mb-3 h-9 w-9" />
+          <p>محادثة الفصل غير متاحة بعد.</p>
+          {(user?.role === "teacher" || user?.role === "admin") && (
+            <Button
+              className="mt-4"
+              disabled={creatingRoom}
+              onClick={() => void createRoom()}
+            >
+              {creatingRoom && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+              إنشاء محادثة المجموعة
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -307,6 +338,7 @@ export default function CourseClassroomChat({
           <span className="min-w-0 truncate font-semibold">
             {rooms.data?.displayName || "محادثة الدورة"}
           </span>
+          <ClassroomSessionActions classroomId={classroomId} />
         </div>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-6">

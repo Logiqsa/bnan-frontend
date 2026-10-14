@@ -100,6 +100,18 @@ export const chatApi = {
         )
       ).data,
     ),
+  createClassroomRoom: async (classroomId: string) =>
+    withId(
+      (
+        await apiRequest<{ success: true; data: Raw<Omit<ChatRoomSummary, "id">> }>(
+          "/chats/classroom-room",
+          {
+            method: "POST",
+            body: JSON.stringify({ classroomId }),
+          },
+        )
+      ).data,
+    ),
   adminRooms: async (classroomId: string) => {
     const rooms: ChatRoomSummary[] = [];
     let page = 1;

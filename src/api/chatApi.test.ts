@@ -48,6 +48,21 @@ describe("chatApi classroom Admin contract", () => {
     vi.mocked(apiRequest).mockReset();
   });
 
+  it("creates a classroom room for the selected classroom", async () => {
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      success: true,
+      data: { _id: "room-1", classroomId: "classroom-1" },
+    });
+
+    await expect(chatApi.createClassroomRoom("classroom-1")).resolves.toEqual(
+      expect.objectContaining({ id: "room-1" }),
+    );
+    expect(apiRequest).toHaveBeenCalledWith("/chats/classroom-room", {
+      method: "POST",
+      body: JSON.stringify({ classroomId: "classroom-1" }),
+    });
+  });
+
   it("requests only classroom rooms for the selected classroom and follows scoped pagination", async () => {
     vi.mocked(apiRequest)
       .mockResolvedValueOnce({

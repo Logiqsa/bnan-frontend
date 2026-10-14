@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CourseClassroomChat from "./CourseClassroomChat";
 import { ApiError } from "@/api/client";
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   messages: vi.fn(),
   send: vi.fn(),
   deleteMessage: vi.fn(),
+  createClassroomRoom: vi.fn(),
   user: { id: "teacher-user", role: "teacher" },
 }));
 
@@ -32,12 +34,16 @@ vi.mock("@/api/chatApi", () => ({
     messages: mocks.messages,
     send: mocks.send,
     deleteMessage: mocks.deleteMessage,
+    createClassroomRoom: mocks.createClassroomRoom,
   },
 }));
 vi.mock("@/lib/socket", () => ({
   getSocket: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() }),
 }));
 vi.mock("@/lib/courseUi", () => ({ courseError: () => "حدث خطأ" }));
+vi.mock("@/components/chat/VoiceMessageRecorder", () => ({
+  default: () => <button type="button">تسجيل صوتي</button>,
+}));
 
 const scheduled = {
   sessionId: null,
@@ -59,9 +65,11 @@ const live = {
 const renderChat = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}>
-      <CourseClassroomChat classroomId="classroom-1" />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <CourseClassroomChat classroomId="classroom-1" />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 };
 
@@ -78,8 +86,23 @@ describe("CourseClassroomChat session controls", () => {
     mocks.endSession.mockReset();
     mocks.send.mockReset();
     mocks.deleteMessage.mockReset();
+    mocks.createClassroomRoom.mockReset();
     mocks.rooms.mockResolvedValue([{ id: "room-1", classroomId: "classroom-1", displayName: "محادثة الفصل" }]);
     mocks.messages.mockResolvedValue({ success: true, data: [], pagination: { hasMore: false } });
+  });
+
+  it("lets a teacher create a missing group chat room", async () => {
+    mocks.rooms
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: "room-1", classroomId: "classroom-1" }]);
+    mocks.createClassroomRoom.mockResolvedValue({ id: "room-1", classroomId: "classroom-1" });
+    mocks.activeSession.mockResolvedValue(null);
+    renderChat();
+
+    fireEvent.click(await screen.findByRole("button", { name: "إنشاء محادثة المجموعة" }));
+
+    await waitFor(() => expect(mocks.createClassroomRoom).toHaveBeenCalledWith("classroom-1"));
+    await waitFor(() => expect(mocks.rooms).toHaveBeenCalledTimes(2));
   });
 
   it("shows the teacher start action only when the backend marks the window available", async () => {

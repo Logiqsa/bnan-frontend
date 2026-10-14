@@ -180,7 +180,8 @@ export default function PortalSchedule({
   const [scheduleEndTime, setScheduleEndTime] = useState("");
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [deletingSchedule, setDeletingSchedule] = useState(false);
-  const selectedRegularActive = role === "teacher" && selected?.scheduleKind !== "course" &&
+  const canStartSession = role === "teacher" || role === "admin";
+  const selectedRegularActive = canStartSession && selected?.scheduleKind !== "course" &&
     (selected?.activeSession?.status === "starting" || selected?.activeSession?.status === "live" || selected?.activeSession?.status === "awaiting_zoom_end");
   const activeSessionQuery = useQuery({
     queryKey: ["teacher-regular-active-session", selectedRegularActive ? selected.classroom.id : ""],
@@ -738,13 +739,13 @@ export default function PortalSchedule({
                 ? pick("الحصة انتهت", "Lesson ended")
                 : waitingForZoom
                   ? pick("في انتظار انتهاء Zoom", "Waiting for Zoom to end")
-                : role === "teacher" && selected && isLiveForTeacher(selected)
+                : canStartSession && selected && isLiveForTeacher(selected)
                   ? pick("الحصة مباشرة الآن", "Lesson is live now")
                   : selected?.scheduleKind === "course"
                     ? pick("تفاصيل موعد الدورة", "Course session details")
                   : canManageGulfEntry
                     ? pick("إدارة موعد الحصة", "Manage lesson time")
-                    : role === "teacher"
+                    : canStartSession
                       ? pick("هل تريد بدء الحصة الآن؟", "Start the lesson now?")
                       : pick("تفاصيل الحصة", "Lesson details")}
             </DialogTitle>
@@ -801,7 +802,7 @@ export default function PortalSchedule({
             </div>
           ) : !canManageGulfEntry && (
             <>
-              {role === "teacher" && startError && (
+              {canStartSession && startError && (
                 <div
                   role="alert"
                   className="rounded-xl bg-destructive/10 text-destructive p-3 text-sm"
@@ -809,7 +810,7 @@ export default function PortalSchedule({
                   {startError}
                 </div>
               )}
-              {role === "teacher" &&
+              {canStartSession &&
                 selected?.scheduleKind === "course" &&
                 courseLessonPhase(selected) === "upcoming" && (
                   <div className="rounded-xl bg-muted p-3 text-sm">
@@ -849,10 +850,9 @@ export default function PortalSchedule({
                     <Video className="me-2 h-4 w-4" />
                     عرض التسجيلات
                   </Button>
-                ) : role === "teacher" &&
+                ) : canStartSession &&
                   selected?.scheduleKind === "course" &&
-                  courseLessonPhase(selected) === "upcoming" ? null : role ===
-                  "teacher" ? (
+                  courseLessonPhase(selected) === "upcoming" ? null : canStartSession ? (
                   <Button
                     disabled={starting}
                     onClick={
@@ -865,7 +865,7 @@ export default function PortalSchedule({
                         ? pick("دخول الحصة", "Join lesson")
                         : pick("بدء الحصة", "Start lesson")}
                   </Button>
-                ) : role === "admin" ? null : (
+                ) : (
                   <Button
                     disabled={
                       selected?.activeSession?.status !== "live" || joining

@@ -367,7 +367,12 @@ export const coursesApi = {
   joinActiveSession: async (classroomId: string) =>
     (
       await apiRequest<
-        Envelope<ActiveCourseSession & { meetingLink?: string }>
+        Envelope<
+          ActiveCourseSession & {
+            meetingLink?: string;
+            teacherStartUrl?: string;
+          }
+        >
       >(`/classrooms/${classroomId}/sessions/active/join`)
     ).data,
   startCourseSession: async (

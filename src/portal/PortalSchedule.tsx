@@ -315,12 +315,12 @@ export default function PortalSchedule({
       return;
     setJoining(true);
     try {
-      const url =
-        selected.scheduleKind === "course"
-          ? (await coursesApi.joinActiveSession(selected.classroom.id))
-              .meetingLink
-          : (await joinLesson(selected.classroom.id)).data?.meetingLink;
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      const joinResult = selected.scheduleKind === "course"
+        ? await coursesApi.joinActiveSession(selected.classroom.id)
+        : (await joinLesson(selected.classroom.id)).data;
+      const resolvedUrl =
+        joinResult?.teacherStartUrl || joinResult?.meetingLink;
+      if (resolvedUrl) window.open(resolvedUrl, "_blank", "noopener,noreferrer");
       else setError("لم ترجع الخدمة رابط دخول صالحًا.");
     } catch (value) {
       setError((value as ApiError).message || "تعذر دخول الحصة.");

@@ -182,9 +182,10 @@ export default function TeacherCourseDetail() {
     setError("");
     try {
       const session = await coursesApi.joinActiveSession(classroomId);
-      if (!session.meetingLink)
+      const url = session.teacherStartUrl || session.meetingLink;
+      if (!url)
         throw new Error("لم يرجع الخادم رابط Zoom صالحًا.");
-      window.open(session.meetingLink, "_blank", "noopener,noreferrer");
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (caught) {
       setError(courseError(caught));
     } finally {

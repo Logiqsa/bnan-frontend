@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { coursesApi, type CourseScheduleSlot } from "@/api/coursesApi";
 import { courseError } from "@/lib/courseUi";
+import { hasLegacyCourseScheduleSlots, newEditableCourseScheduleSlot, serializeCourseScheduleSlots, toEditableCourseScheduleSlots, type EditableCourseScheduleSlot } from "@/lib/courseScheduleEditor";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -54,21 +55,44 @@ export default function CourseClassroomSchedule() {
     retry: false,
   });
   const [timezone, setTimezone] = useState("Africa/Cairo");
-  const [slots, setSlots] = useState<CourseScheduleSlot[]>([]);
+  const [slots, setSlots] = useState<EditableCourseScheduleSlot[]>([]);
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [conflictNotice, setConflictNotice] = useState("");
+  const editRevision = useRef(0);
+  const legacy = Boolean(q.data?.slots?.length && hasLegacyCourseScheduleSlots(q.data.slots));
+  const changeSlots = (updater: (current: EditableCourseScheduleSlot[]) => EditableCourseScheduleSlot[]) => {
+    editRevision.current += 1;
+    setDirty(true);
+    setSlots(updater);
+  };
   useEffect(() => {
-    if (q.data) {
+    if (q.data && !dirty) {
       setTimezone(q.data.timezone || "Africa/Cairo");
-      setSlots(q.data.slots || []);
+      setSlots(toEditableCourseScheduleSlots(q.data.slots || []));
     }
-  }, [q.data]);
+  }, [dirty, q.data]);
   const save = async () => {
+    if (legacy) return toast.error(courseError({ code: "COURSE_SCHEDULE_LEGACY_SLOT_IDS_REQUIRED" }));
+    const revision = editRevision.current;
     setBusy(true);
+    setConflictNotice("");
     try {
-      await coursesApi.updateSchedule(classroomId, { timezone, slots });
+      await coursesApi.updateSchedule(classroomId, { timezone, slots: serializeCourseScheduleSlots(slots) });
+      const latest = await coursesApi.getSchedule(classroomId);
+      if (editRevision.current === revision && latest) {
+        setTimezone(latest.timezone || "Africa/Cairo");
+        setSlots(toEditableCourseScheduleSlots(latest.slots || []));
+        setDirty(false);
+      }
       toast.success("تم حفظ جدول الفصل");
-      q.refetch();
+      await q.refetch();
     } catch (e) {
+      const code = (e as { code?: string })?.code || "";
+      if (["COURSE_SCHEDULE_CONCURRENT_UPDATE", "COURSE_SCHEDULE_SLOT_ID_UNKNOWN", "COURSE_SCHEDULE_SLOT_ID_FOREIGN", "COURSE_SCHEDULE_SLOT_IDENTITY_AMBIGUOUS"].includes(code)) {
+        await coursesApi.getSchedule(classroomId).catch(() => null);
+        setConflictNotice("تم جلب أحدث نسخة من الخادم دون حذف تعديلاتك الحالية. راجع تغييراتك وأعد تحميل الصفحة قبل إعادة تطبيقها.");
+      }
       toast.error(courseError(e));
     } finally {
       setBusy(false);
@@ -111,21 +135,21 @@ export default function CourseClassroomSchedule() {
                   <span>المنطقة الزمنية</span>
                   <Input
                     value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    disabled={!editable}
+                    onChange={(e) => { editRevision.current += 1; setDirty(true); setTimezone(e.target.value); }}
+                    disabled={!editable || legacy || busy}
                   />
                 </label>
                 <div className="space-y-3">
                   {slots.map((s, i) => (
                     <div
-                      key={i}
+                      key={s.clientKey}
                       className="grid gap-2 rounded-xl border p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
                     >
                       <Select
                         value={s.day}
-                        disabled={!editable}
+                        disabled={!editable || legacy || busy}
                         onValueChange={(x) =>
-                          setSlots((v) =>
+                          changeSlots((v) =>
                             v.map((y, n) =>
                               n === i
                                 ? { ...y, day: x as CourseScheduleSlot["day"] }
@@ -150,9 +174,9 @@ export default function CourseClassroomSchedule() {
                         <Input
                           type="time"
                           value={s.startTime}
-                          disabled={!editable}
+                          disabled={!editable || legacy || busy}
                           onChange={(e) =>
-                            setSlots((v) =>
+                            changeSlots((v) =>
                               v.map((y, n) =>
                                 n === i ? { ...y, startTime: e.target.value } : y,
                               ),
@@ -165,9 +189,9 @@ export default function CourseClassroomSchedule() {
                         <Input
                           type="time"
                           value={s.endTime || ""}
-                          disabled={!editable}
+                          disabled={!editable || legacy || busy}
                           onChange={(e) =>
-                            setSlots((v) =>
+                            changeSlots((v) =>
                               v.map((y, n) =>
                                 n === i
                                   ? { ...y, endTime: e.target.value || undefined }
@@ -177,12 +201,12 @@ export default function CourseClassroomSchedule() {
                           }
                         />
                       </label>
-                      {editable && (
+                      {editable && !legacy && (
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() =>
-                            setSlots((v) => v.filter((_, n) => n !== i))
+                            changeSlots((v) => v.filter((_, n) => n !== i))
                           }
                         >
                           <Trash2 className="h-4 w-4" />
@@ -196,18 +220,20 @@ export default function CourseClassroomSchedule() {
                     </p>
                   )}
                 </div>
-                {editable && (
+                {legacy && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">هذا جدول قديم متاح للعرض فقط. يلزم ترقية بيانات المواعيد بشكل منظّم قبل السماح بتعديله.</p>}
+                {conflictNotice && <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{conflictNotice}</p>}
+                {editable && !legacy && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       onClick={() =>
-                        setSlots((v) => [
+                        changeSlots((v) => [
                           ...v,
-                          {
+                          newEditableCourseScheduleSlot({
                             day: "sunday",
                             startTime: "18:00",
                             endTime: "19:00",
-                          },
+                          }),
                         ])
                       }
                     >

@@ -5,14 +5,19 @@ import { MemoryRouter } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import StudentSchedule from "./StudentSchedule";
 
-const mocks = vi.hoisted(() => ({ home: vi.fn(), schedule: vi.fn(), join: vi.fn(), report: vi.fn() }));
+const mocks = vi.hoisted(() => ({ home: vi.fn(), schedule: vi.fn(), join: vi.fn(), joinWeekly: vi.fn(), report: vi.fn() }));
 vi.mock("@/api/studentHomeApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/studentHomeApi")>();
   return { ...actual, studentHomeApi: { get: mocks.home } };
 });
 vi.mock("@/api/scheduleApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/scheduleApi")>();
-  return { ...actual, getUnifiedScheduleWeek: mocks.schedule, joinLesson: mocks.join };
+  return {
+    ...actual,
+    getUnifiedScheduleWeek: mocks.schedule,
+    joinLesson: mocks.join,
+    joinWeeklySlotEntry: mocks.joinWeekly,
+  };
 });
 vi.mock("@/api/studentSessionReportApi", () => ({
   studentSessionReportApi: { getReport: mocks.report },
@@ -40,7 +45,7 @@ describe("StudentSchedule", () => {
     localStorage.setItem("bnan_language", "ar");
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date("2026-09-23T10:00:00Z"));
-    mocks.home.mockReset(); mocks.schedule.mockReset(); mocks.join.mockReset(); mocks.report.mockReset();
+    mocks.home.mockReset(); mocks.schedule.mockReset(); mocks.join.mockReset(); mocks.joinWeekly.mockReset(); mocks.report.mockReset();
     vi.spyOn(window, "open").mockImplementation(() => null);
   });
 
@@ -71,6 +76,22 @@ describe("StudentSchedule", () => {
     await waitFor(() => expect(mocks.join).toHaveBeenCalledWith("classroom-1"));
     expect(window.open).toHaveBeenCalledWith("https://zoom.example/join", "_blank", "noopener,noreferrer");
     expect(window.open).not.toHaveBeenCalledWith(expect.stringContaining("classroom-1"), expect.anything(), expect.anything());
+  });
+
+  it("uses the authenticated weekly-slot entry operation when the active Session supplies its slot identity", async () => {
+    const weeklyLesson = {
+      ...lesson(true),
+      activeSession: { ...lesson(true).activeSession, weeklySlotKey: "zws_test-slot" },
+    };
+    mocks.home.mockResolvedValue(home("gulf"));
+    mocks.schedule.mockResolvedValue(week([weeklyLesson]));
+    mocks.joinWeekly.mockResolvedValue({ success: true, data: { meetingLink: "https://zoom.example/weekly" } });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /دخول الحصة/ }));
+    await waitFor(() => expect(mocks.joinWeekly).toHaveBeenCalledWith("classroom-1", "zws_test-slot"));
+    expect(mocks.join).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith("https://zoom.example/weekly", "_blank", "noopener,noreferrer");
   });
 
   it.each([
@@ -107,7 +128,7 @@ describe("StudentSchedule", () => {
     mocks.home.mockResolvedValue(home("gulf")); mocks.schedule.mockResolvedValue(week([detailedLesson]));
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "فتح تفاصيل العلوم" }));
-    expect(screen.getByRole("link", { name: /فتح التسجيل/ })).toHaveAttribute("href", "https://zoom.example/verified-recording");
+    expect(screen.getByRole("button", { name: /مشاهدة التسجيل/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /فتح الملخص/ })).toHaveAttribute("href", "https://docs.example/verified-summary");
     expect(document.querySelector("video")).not.toBeInTheDocument();
   });

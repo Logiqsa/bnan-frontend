@@ -118,7 +118,9 @@ export default function CourseEnrollmentDetail() {
     setJoining(true);
     setJoinError("");
     try {
-      const session = await coursesApi.joinActiveSession(classroomId);
+      const session = activeSessionQuery.data?.weeklySlotKey
+        ? await coursesApi.joinWeeklySlotEntry(classroomId, activeSessionQuery.data.weeklySlotKey)
+        : await coursesApi.joinActiveSession(classroomId);
       if (!session.meetingLink)
         throw new Error("لم يرجع الخادم رابط دخول صالحًا.");
       window.open(session.meetingLink, "_blank", "noopener,noreferrer");

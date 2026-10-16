@@ -181,7 +181,10 @@ export default function TeacherCourseDetail() {
     setBusyKey(`join-${classroomId}`);
     setError("");
     try {
-      const session = await coursesApi.joinActiveSession(classroomId);
+      const active = assignment?.groups.find((group) => classroomIdOf(group.classroom) === classroomId)?.activeSession;
+      const session = active?.weeklySlotKey
+        ? await coursesApi.joinWeeklySlotEntry(classroomId, active.weeklySlotKey)
+        : await coursesApi.joinActiveSession(classroomId);
       const url = session.teacherStartUrl || session.meetingLink;
       if (!url)
         throw new Error("لم يرجع الخادم رابط Zoom صالحًا.");

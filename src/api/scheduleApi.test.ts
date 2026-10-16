@@ -7,6 +7,7 @@ import {
   getAdminScheduleWeek,
   getUnifiedClassroomSchedule,
   getUnifiedScheduleWeek,
+  joinWeeklySlotEntry,
   reconcileUnifiedClassroomSchedule,
   startClassroomSession,
 } from "./scheduleApi";
@@ -26,6 +27,19 @@ describe("regular session lifecycle API", () => {
     vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { sessionId: "session-1", status: "live" } });
     await expect(getActiveClassroomSession("classroom-1")).resolves.toMatchObject({ sessionId: "session-1" });
     expect(apiRequest).toHaveBeenCalledWith("/classrooms/classroom-1/sessions/active");
+  });
+
+  it("uses the authenticated stable weekly-slot entry route without a provider URL", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      success: true,
+      data: { meetingLink: "https://zoom.example/join", weeklySlotKey: "course:slot-1" },
+    });
+
+    await joinWeeklySlotEntry("classroom-1", "course:slot-1");
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/classrooms/classroom-1/weekly-slots/course%3Aslot-1/entry",
+    );
   });
 
   it("starts the classroom occurrence using the subject assignment from the active-session contract", async () => {

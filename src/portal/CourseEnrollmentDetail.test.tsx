@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   activeSession: vi.fn(),
   schedule: vi.fn(),
   join: vi.fn(),
+  joinWeekly: vi.fn(),
   recordings: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock("@/api/coursesApi", async (importOriginal) => ({
     activeSession: mocks.activeSession,
     getSchedule: mocks.schedule,
     joinActiveSession: mocks.join,
+    joinWeeklySlotEntry: mocks.joinWeekly,
   },
 }));
 vi.mock("@/api/classroomRecordingsApi", async (importOriginal) => ({
@@ -62,6 +64,7 @@ describe("CourseEnrollmentDetail", () => {
     mocks.schedule.mockResolvedValue({ timezone: "Africa/Cairo", isActive: true, slots: [{ day: "saturday", startTime: "10:00", endTime: "11:00" }] });
     mocks.recordings.mockResolvedValue({ success: true, data: [{ sessionName: "تسجيل المراجعة", recordingLink: "/uploads/record.mp4", localUrl: "/uploads/record.mp4", shareUrl: null }] });
     mocks.join.mockResolvedValue({ sessionId: "session-1", status: "live", canJoin: true, meetingLink: "https://zoom.example/join" });
+    mocks.joinWeekly.mockResolvedValue({ sessionId: "session-1", status: "live", canJoin: true, meetingLink: "https://zoom.example/weekly" });
     vi.spyOn(window, "open").mockImplementation(() => null);
   });
 
@@ -90,7 +93,7 @@ describe("CourseEnrollmentDetail", () => {
     expect(await screen.findByRole("heading", { name: "جدول الدورة الأسبوعي" })).toBeInTheDocument();
     expect(screen.getByText("مواعيد أسبوعية متكررة وليست جلسات بتاريخ محدد.")).toBeInTheDocument();
     expect(screen.getByText("السبت")).toBeInTheDocument();
-    expect(screen.getByText("10:00 - 11:00")).toBeInTheDocument();
+    expect(screen.getByText("10:00 صباحا - 11:00 صباحا")).toBeInTheDocument();
     expect(screen.queryByText(/2026-09-23/)).not.toBeInTheDocument();
   });
 
@@ -101,6 +104,18 @@ describe("CourseEnrollmentDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: "دخول الحصة الآن" }));
     await waitFor(() => expect(mocks.join).toHaveBeenCalledWith("classroom-1"));
     expect(window.open).toHaveBeenCalledWith("https://zoom.example/join", "_blank", "noopener,noreferrer");
+  });
+
+  it("uses the stable authenticated entry operation for a weekly-assignment Session", async () => {
+    mocks.activeSession.mockResolvedValue({
+      sessionId: "session-1", title: "مراجعة مباشرة", status: "live", canJoin: true,
+      weeklySlotKey: "zws_test-slot",
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "دخول الحصة الآن" }));
+    await waitFor(() => expect(mocks.joinWeekly).toHaveBeenCalledWith("classroom-1", "zws_test-slot"));
+    expect(mocks.join).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith("https://zoom.example/weekly", "_blank", "noopener,noreferrer");
   });
 
   it("hides Join when canJoin is false and renders the recordings archive without fabricated metadata", async () => {

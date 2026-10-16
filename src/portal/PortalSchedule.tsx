@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Video,
 } from "lucide-react";
-import { deleteUnifiedScheduleEntry, endSession, getActiveClassroomSession, getAdminScheduleWeek, getUnifiedScheduleWeek, joinLesson, startLesson, upsertUnifiedScheduleEntry } from "@/api/scheduleApi";
+import { deleteUnifiedScheduleEntry, endSession, getActiveClassroomSession, getAdminScheduleWeek, getUnifiedScheduleWeek, joinLesson, joinWeeklySlotEntry, startLesson, upsertUnifiedScheduleEntry } from "@/api/scheduleApi";
 import { coursesApi } from "@/api/coursesApi";
 import { ApiError } from "@/api/client";
 import type { PortalLesson, RegistrationMode } from "@/api/types";
@@ -315,9 +315,14 @@ export default function PortalSchedule({
       return;
     setJoining(true);
     try {
-      const joinResult = selected.scheduleKind === "course"
-        ? await coursesApi.joinActiveSession(selected.classroom.id)
-        : (await joinLesson(selected.classroom.id)).data;
+      const weeklySlotKey = selected.activeSession?.weeklySlotKey;
+      const joinResult = weeklySlotKey
+        ? (selected.scheduleKind === "course"
+          ? await coursesApi.joinWeeklySlotEntry(selected.classroom.id, weeklySlotKey)
+          : (await joinWeeklySlotEntry(selected.classroom.id, weeklySlotKey)).data)
+        : (selected.scheduleKind === "course"
+          ? await coursesApi.joinActiveSession(selected.classroom.id)
+          : (await joinLesson(selected.classroom.id)).data);
       const resolvedUrl =
         joinResult?.teacherStartUrl || joinResult?.meetingLink;
       if (resolvedUrl) window.open(resolvedUrl, "_blank", "noopener,noreferrer");

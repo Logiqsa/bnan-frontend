@@ -9,7 +9,7 @@ interface ScheduleWeekMetadata {
   timezone?: string;
 }
 interface StartResponse { success:true; data:{session:{id?:string;_id?:string}|null;meetingLink:string;teacherStartUrl?:string} }
-interface JoinResponse { success:true; data:{meetingLink?:string;teacherStartUrl?:string;status?:string} }
+interface JoinResponse { success:true; data:{meetingLink?:string;teacherStartUrl?:string;status?:string;weeklySlotKey?:string} }
 
 export interface PortalScheduleWeek extends ScheduleWeekMetadata {
   lessons: PortalLesson[];
@@ -248,6 +248,8 @@ export const startClassroomSession = (
 );
 
 export const joinLesson = (classroomId: string) => apiRequest<JoinResponse>(`/classrooms/${classroomId}/sessions/active/join`);
+export const joinWeeklySlotEntry = (classroomId: string, weeklySlotKey: string) =>
+  apiRequest<JoinResponse>(`/classrooms/${encodeURIComponent(classroomId)}/weekly-slots/${encodeURIComponent(weeklySlotKey)}/entry`);
 
 export interface ActiveClassroomSession {
   sessionId: string | null;
@@ -257,6 +259,7 @@ export interface ActiveClassroomSession {
   subjectId?: string;
   classroomSubjectId?: string;
   occurrenceKey?: string;
+  weeklySlotKey?: string;
   scheduledStartAt?: string | null;
   scheduledEndAt?: string | null;
   actualStartedAt?: string | null;

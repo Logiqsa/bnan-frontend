@@ -8,6 +8,7 @@ import {
   endSession,
   getActiveClassroomSession,
   joinLesson,
+  joinWeeklySlotEntry,
   startClassroomSession,
 } from "@/api/scheduleApi";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
@@ -118,7 +119,9 @@ export default function ClassroomSessionActions({
     joinRequestRef.current = true;
     setJoiningSession(true);
     try {
-      const result = await joinLesson(classroomId);
+      const result = activeSession.weeklySlotKey
+        ? await joinWeeklySlotEntry(classroomId, activeSession.weeklySlotKey)
+        : await joinLesson(classroomId);
       const meetingUrl = result.data?.meetingLink;
       if (!meetingUrl) throw new Error("MEETING_LINK_MISSING");
       window.open(meetingUrl, "_blank", "noopener,noreferrer");

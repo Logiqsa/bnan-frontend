@@ -139,6 +139,19 @@ describe("coursesApi", () => {
     );
   });
 
+  it("preserves server-owned slotId in the schedule request body", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { timezone: "Africa/Cairo", slots: [] } });
+    await coursesApi.updateSchedule("room-1", {
+      timezone: "Africa/Cairo",
+      slots: [{ slotId: "csl_abcdefghijklmnopqrstuv", day: "sunday", startTime: "18:00" }],
+    });
+    const options = vi.mocked(apiRequest).mock.calls[0][1];
+    expect(JSON.parse(String(options?.body))).toEqual({
+      timezone: "Africa/Cairo",
+      slots: [{ slotId: "csl_abcdefghijklmnopqrstuv", day: "sunday", startTime: "18:00" }],
+    });
+  });
+
   it("loads and normalizes course enrollments for admins", async () => {
     vi.mocked(apiRequest).mockResolvedValue({
       success: true,
@@ -225,6 +238,19 @@ describe("coursesApi", () => {
     expect(
       JSON.parse(String(vi.mocked(apiRequest).mock.calls.at(-1)?.[1]?.body)),
     ).toMatchObject({ courseId: "course-1" });
+  });
+
+  it("uses the same authenticated stable weekly-slot entry route for courses", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({
+      success: true,
+      data: { meetingLink: "https://zoom.example/join", weeklySlotKey: "course:slot-1" },
+    });
+
+    await coursesApi.joinWeeklySlotEntry("room-1", "course:slot-1");
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/classrooms/room-1/weekly-slots/course%3Aslot-1/entry",
+    );
   });
 
   it("uploads the course image as multipart data", async () => {

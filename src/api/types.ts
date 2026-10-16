@@ -111,6 +111,7 @@ export interface ActiveSession {
   subjectId?: string;
   classroomSubjectId?: string;
   occurrenceKey?: string;
+  weeklySlotKey?: string;
   chatRoomId?: string;
   recordingUrl?: string | null;
   recording_url?: string | null;

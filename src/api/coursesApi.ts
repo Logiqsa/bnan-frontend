@@ -127,6 +127,7 @@ export interface ActiveCourseSession {
   teacher?: { id?: string; userId?: string; fullName?: string } | null;
   startAt?: string;
   classroomId?: string;
+  weeklySlotKey?: string;
   subjectId?: string;
   classroomSubjectId?: string;
   occurrenceKey?: string;
@@ -152,6 +153,7 @@ export interface CourseEnrollmentsResponse {
   total: number;
 }
 export interface CourseScheduleSlot {
+  readonly slotId?: string;
   day:
     | "saturday"
     | "sunday"
@@ -374,6 +376,17 @@ export const coursesApi = {
           }
         >
       >(`/classrooms/${classroomId}/sessions/active/join`)
+    ).data,
+  joinWeeklySlotEntry: async (classroomId: string, weeklySlotKey: string) =>
+    (
+      await apiRequest<
+        Envelope<
+          ActiveCourseSession & {
+            meetingLink?: string;
+            teacherStartUrl?: string;
+          }
+        >
+      >(`/classrooms/${classroomId}/weekly-slots/${encodeURIComponent(weeklySlotKey)}/entry`)
     ).data,
   startCourseSession: async (
     classroomId: string,

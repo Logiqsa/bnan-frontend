@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, ThumbsUp, Video, BookOpen } from "lucide-react";
+import { Users, ThumbsUp, Video, BookOpen, type LucideIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { homeStatisticsApi, type HomeStatisticKey } from "@/api/homeStatisticsApi";
 
-const stats = [
-  { icon: BookOpen, value: 300, suffix: "+", label: "كورس متاح" },
-  { icon: Video, value: 120, suffix: "+", label: "معلم معتمد" },
-  { icon: ThumbsUp, value: 98, suffix: "%", label: "نسبة الرضا" },
-  { icon: Users, value: 5.6, suffix: " ألف", label: "طالب ملتحق", decimals: 1 },
-];
+const icons: Record<HomeStatisticKey, typeof Users> = { courses: BookOpen, teachers: Video, satisfaction: ThumbsUp, students: Users };
 
 function useCountUp(target: number, duration = 2000, decimals = 0, inView = false) {
   const [count, setCount] = useState(0);
@@ -30,7 +27,7 @@ function useCountUp(target: number, duration = 2000, decimals = 0, inView = fals
   return count;
 }
 
-const StatCard = ({ icon: Icon, value, suffix, label, decimals = 0, index }: any) => {
+const StatCard = ({ icon: Icon, value, suffix, label, decimals = 0, index }: { icon: LucideIcon; value: number; suffix: string; label: string; decimals?: number; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const count = useCountUp(value, 2000, decimals, inView);
@@ -65,12 +62,14 @@ const StatCard = ({ icon: Icon, value, suffix, label, decimals = 0, index }: any
 };
 
 const StatsCounter = () => {
+  const statistics = useQuery({ queryKey: ["home-statistics"], queryFn: homeStatisticsApi.public, staleTime: 5 * 60_000 });
+  const stats = statistics.data?.statistics || [];
   return (
     <section className="py-12 md:py-16 bg-muted/20">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto">
           {stats.map((stat, i) => (
-            <StatCard key={stat.label} {...stat} index={i} />
+            <StatCard key={stat.key} {...stat} icon={icons[stat.key]} index={i} />
           ))}
         </div>
       </div>

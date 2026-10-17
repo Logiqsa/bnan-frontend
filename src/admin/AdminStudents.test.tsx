@@ -24,10 +24,14 @@ describe("AdminStudents", () => {
   it("renders data, server filters and pagination without mutation controls", async () => {
     mocks.list.mockResolvedValue(response);
     configureOptions();
-    render(<QueryClientProvider client={client()}><MemoryRouter><AdminStudents /></MemoryRouter></QueryClientProvider>);
+    render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/students?page=2"]}><AdminStudents /></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText("طالب")).toBeInTheDocument();
     expect(screen.getByText("طالب أكاديمي")).toBeInTheDocument();
     expect(screen.getByText("صفحة 1 من 2 — 21 نتيجة")).toBeInTheDocument();
+    expect(screen.getByLabelText("رقم الصفحة")).toHaveValue(2);
+    fireEvent.change(screen.getByLabelText("رقم الصفحة"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "انتقال" }));
+    expect(mocks.list).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 20 }));
     fireEvent.change(screen.getByLabelText("بحث"), { target: { value: "Ali" } });
     expect(mocks.list).toHaveBeenCalledWith(expect.objectContaining({ search: "Ali", page: 1, limit: 20 }));
     expect(screen.queryByRole("button", { name: /حذف|تعديل|تعطيل|تفعيل/ })).not.toBeInTheDocument();

@@ -186,12 +186,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin?tab=zoom-accounts",
     },
     {
-      label: "ربط الصفوف بـ Zoom",
-      labelEn: "Assign classes to Zoom",
-      icon: Users,
-      path: "/admin?tab=zoom-grades",
-    },
-    {
       label: "رفع تسجيل حصة",
       labelEn: "Upload lesson recording",
       icon: Upload,
@@ -250,6 +244,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Contact settings",
       icon: ContactRound,
       path: "/admin/contact-settings",
+    },
+    {
+      label: "إحصائيات الصفحة الرئيسية",
+      labelEn: "Home statistics",
+      icon: BarChart3,
+      path: "/admin/home-statistics",
     },
     {
       label: "أخطاء التطبيقات",
@@ -467,7 +467,6 @@ const adminNavOrder = [
   "/admin/payments",
   "/admin/payroll",
   "/admin?tab=zoom-accounts",
-  "/admin?tab=zoom-grades",
   "/admin/classroom-recordings",
   "/admin/notifications",
   "/admin/announcements",
@@ -477,6 +476,7 @@ const adminNavOrder = [
   "/admin?tab=testimonial-ratings",
   "/admin?tab=legal-pages",
   "/admin/contact-settings",
+  "/admin/home-statistics",
   "/admin/client-errors",
   "/admin/settings",
 ];

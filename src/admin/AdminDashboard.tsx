@@ -25,7 +25,6 @@ import SuccessStoriesAdmin from "./SuccessStoriesAdmin";
 import TestimonialImagesAdmin from "./TestimonialImagesAdmin";
 import TestimonialRatingsAdmin from "./TestimonialRatingsAdmin";
 import ZoomAccountsAdmin from "./zoom/ZoomAccountsAdmin";
-import GradeZoomAssignmentAdmin from "./zoom/GradeZoomAssignmentAdmin";
 import LegalPagesAdmin from "./LegalPagesAdmin";
 import TeacherApplicationsAdmin from "./TeacherApplicationsAdmin";
 import UsersAdmin from "./UsersAdmin";
@@ -74,7 +73,7 @@ export default function AdminDashboard() {
   const requestedTab = searchParams.get("tab");
   // Keep the old `testimonials` link working while exposing both testimonial
   // management pages that are used by the landing page.
-  const tab = requestedTab === "testimonials" ? "testimonial-images" : requestedTab || DEFAULT_TAB;
+  const tab = requestedTab === "testimonials" ? "testimonial-images" : requestedTab === "zoom-grades" ? "zoom-accounts" : requestedTab || DEFAULT_TAB;
   const { isArabic, pick } = useLanguage();
 
   const setTab = (value: string) => setSearchParams({ tab: value });
@@ -94,14 +93,7 @@ export default function AdminDashboard() {
         <TabsContent value="testimonial-ratings" className="mt-0">
           <TestimonialRatingsAdmin />
         </TabsContent>
-        <TabsContent value="zoom-accounts" className="mt-0">
-          <ZoomAccountsAdmin
-            onGoToGradeAssignment={() => setTab("zoom-grades")}
-          />
-        </TabsContent>
-        <TabsContent value="zoom-grades" className="mt-0">
-          <GradeZoomAssignmentAdmin />
-        </TabsContent>
+        <TabsContent value="zoom-accounts" className="mt-0"><ZoomAccountsAdmin /></TabsContent>
         <TabsContent value="legal-pages" className="mt-0">
           <LegalPagesAdmin />
         </TabsContent>

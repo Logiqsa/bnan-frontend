@@ -87,6 +87,7 @@ import CourseClassroomSchedule from "@/portal/CourseClassroomSchedule";
 import TeacherCourseGroupDetail from "@/portal/TeacherCourseGroupDetail";
 import ClientErrorsAdmin from "@/admin/ClientErrorsAdmin";
 import ContactSettingsAdmin from "@/admin/ContactSettingsAdmin";
+import HomeStatisticsAdmin from "@/admin/HomeStatisticsAdmin";
 import ClassroomChangeRequestsAdmin from "@/admin/ClassroomChangeRequestsAdmin";
 import AdminMessages from "@/admin/AdminMessages";
 import AdminPayroll, { AdminTeacherPayrollStatementPage } from "@/admin/AdminPayroll";
@@ -473,6 +474,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/home-statistics" element={<AdminGuard><HomeStatisticsAdmin /></AdminGuard>} />
                     <Route
                       path="/admin/notifications"
                       element={

@@ -26,7 +26,7 @@ export const filterUsageClassrooms = (classrooms: ZoomAccountClassroom[], filter
 export interface TimelineEntry {
   classroomId: string;
   classroomName: string;
-  gradeName: string;
+  academicLabel: string;
   day: string;
   startTime: string;
   endTime: string | null;
@@ -40,7 +40,7 @@ export const buildUsageTimeline = (classrooms: ZoomAccountClassroom[]) => {
     entries.push({
       classroomId: classroom.id,
       classroomName: classroom.name,
-      gradeName: classroom.grade?.name || "بدون صف",
+      academicLabel: classroom.courseGroup?.name || classroom.grade?.name || "بدون صف أو مجموعة",
       day: entry.day,
       startTime: entry.startTime,
       endTime: entry.endTime,

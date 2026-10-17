@@ -26,7 +26,9 @@ export interface ZoomAccountClassroom {
   isActive: boolean;
   zoomAssignmentMode: ZoomAssignmentMode;
   curriculum: { id: string; name: string; registrationMode: "egyptian" | "gulf" };
-  grade: { id: string; name: string };
+  grade: { id: string; name: string } | null;
+  course: { id: string; name: string } | null;
+  courseGroup: { id: string; name: string } | null;
   zoomMeetingId: string | null;
   meetingLink: string | null;
   zoomProvisioning: { status: ZoomProvisioningStatus } | null;

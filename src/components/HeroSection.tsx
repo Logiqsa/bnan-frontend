@@ -1,55 +1,31 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Play, Users, BookOpen, Phone, Tag, GraduationCap } from "lucide-react";
+import { Play, Users, BookOpen, ThumbsUp, Video } from "lucide-react";
 import { useContactSettings, whatsappHref } from "@/contexts/ContactSettingsContext";
 import AppStoreButtons from "@/components/AppStoreButtons";
-
-const floatingBubbles = [
-  {
-    icon: Users,
-    title: "الطلاب المسجّلون",
-    value: "+5k",
-    position: "top-[18%] right-[2%]",
-    delay: 0.6,
-    floatDelay: "0s",
-  },
-  {
-    icon: Phone,
-    title: "خدمات الدعم الإلكتروني",
-    value: "24/7",
-    position: "bottom-[22%] left-[1%]",
-    delay: 0.8,
-    floatDelay: "1s",
-  },
-  {
-    icon: Tag,
-    title: "خصم 20%",
-    value: "لجميع الكورسات",
-    position: "bottom-[8%] right-[2%]",
-    delay: 1.0,
-    floatDelay: "2s",
-  },
-  {
-    icon: GraduationCap,
-    title: "معلم متخصص",
-    value: "+200",
-    position: "top-[15%] left-[1%]",
-    delay: 1.2,
-    floatDelay: "0.5s",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { homeStatisticsApi, type HomeStatisticKey } from "@/api/homeStatisticsApi";
+const icons: Record<HomeStatisticKey, typeof Users> = { courses: BookOpen, teachers: Video, satisfaction: ThumbsUp, students: Users };
+const positions = ["top-[18%] right-[2%]", "bottom-[22%] left-[1%]", "bottom-[8%] right-[2%]", "top-[15%] left-[1%]"];
 
 const HeroSection = () => {
   const { settings } = useContactSettings();
+  const statistics = useQuery({ queryKey: ["home-statistics"], queryFn: homeStatisticsApi.public, staleTime: 5 * 60_000 });
+  const floatingBubbles = (statistics.data?.statistics || []).map((item, index) => ({ icon: icons[item.key], title: item.label, value: `${item.value.toLocaleString("ar-EG", { minimumFractionDigits: item.decimals, maximumFractionDigits: item.decimals })}${item.suffix}`, position: positions[index], delay: 0.6 + index * 0.2, floatDelay: `${index * 0.5}s` }));
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
-    <section className="relative min-h-screen flex items-start md:items-center overflow-hidden">
-      <div className="absolute inset-0 bg-hero-gradient" />
+    <section className="relative min-h-screen flex items-start md:items-center overflow-hidden bg-[#f7f8fa]">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/hero.jpg')" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-white/25 to-[#e8f3fb]/65" aria-hidden="true" />
 
       {/* Decorative blobs */}
-      <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-secondary/10 blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-secondary/5 blur-3xl animate-float" style={{ animationDelay: "1.5s" }} />
+      <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-sky-300/25 blur-3xl animate-float" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-blue-200/35 blur-3xl animate-float" style={{ animationDelay: "1.5s" }} />
 
       {/* Floating education emojis */}
       {[
@@ -63,7 +39,7 @@ const HeroSection = () => {
       ].map((item, i) => (
         <div
           key={i}
-          className={`absolute ${item.position} ${item.size} opacity-30 md:opacity-40 animate-float pointer-events-none select-none`}
+          className={`absolute ${item.position} ${item.size} opacity-45 md:opacity-55 animate-float pointer-events-none select-none`}
           style={{ animationDelay: item.delay }}
         >
           {item.emoji}
@@ -80,15 +56,15 @@ const HeroSection = () => {
           className={`absolute ${bubble.position} z-20 hidden md:block`}
         >
           <div
-            className="animate-float bg-card/90 backdrop-blur-md rounded-2xl px-5 py-3 shadow-elegant border border-border/20 flex items-center gap-3"
+            className="animate-float rounded-2xl border border-white/90 bg-white/85 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md flex items-center gap-3"
             style={{ animationDelay: bubble.floatDelay }}
           >
-            <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center shrink-0">
-              <bubble.icon className="w-5 h-5 text-secondary" />
+            <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+              <bubble.icon className="w-5 h-5 text-sky-700" />
             </div>
             <div className="text-right">
-              <p className="text-xs font-cairo text-muted-foreground">{bubble.title}</p>
-              <p className="text-sm font-cairo font-bold text-foreground">{bubble.value}</p>
+              <p className="text-xs font-cairo text-slate-500">{bubble.title}</p>
+              <p className="text-sm font-cairo font-bold text-[#102a53]">{bubble.value}</p>
             </div>
           </div>
         </motion.div>
@@ -100,11 +76,11 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-primary-foreground"
+            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-[#102a53] drop-shadow-[0_1px_0_rgba(255,255,255,0.8)]"
           >
             <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
-            <span className="text-secondary">
+            <span className="text-sky-600">
               في مكان واحد
             </span>
           </motion.h1>
@@ -113,10 +89,10 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg md:text-xl font-serif-text font-normal mb-8 max-w-2xl mx-auto text-primary-foreground/70"
+            className="text-lg md:text-xl font-serif-text font-normal mb-8 max-w-2xl mx-auto text-slate-700"
           >
             مع{" "}
-            <span className="font-bold text-secondary">بنان</span>{" "}
+            <span className="font-bold text-sky-700">بنان</span>{" "}
             خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 
@@ -127,7 +103,7 @@ const HeroSection = () => {
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <a href="/curricula">
-              <Button size="lg" className="font-cairo text-lg bg-secondary text-secondary-foreground shadow-sky hover:bg-secondary/90 px-8">
+              <Button size="lg" className="font-cairo text-lg bg-[#102a53] text-white shadow-[0_12px_24px_rgba(16,42,83,0.25)] hover:bg-[#183969] px-8">
                 ابدأ رحلتك التعليمية
               </Button>
             </a>
@@ -135,7 +111,7 @@ const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="font-cairo text-lg border-2 border-primary-foreground/50 text-primary-foreground bg-primary-foreground/10 hover:bg-primary-foreground/20 px-8 backdrop-blur-sm"
+                className="font-cairo text-lg border-2 border-[#102a53]/35 text-[#102a53] bg-white/70 hover:bg-white px-8 backdrop-blur-sm"
               >
                 <Play className="w-5 h-5 ml-2" />
                 اطلب حصة مجانية
@@ -162,15 +138,15 @@ const HeroSection = () => {
             {floatingBubbles.map((bubble, i) => (
               <div
                 key={i}
-                className="animate-float bg-card/90 backdrop-blur-md rounded-xl px-3 py-2.5 shadow-elegant border border-border/20 flex items-center gap-2"
+                className="animate-float rounded-xl border border-white/90 bg-white/85 px-3 py-2.5 shadow-[0_12px_28px_rgba(16,42,83,0.14)] backdrop-blur-md flex items-center gap-2"
                 style={{ animationDelay: bubble.floatDelay }}
               >
-                <div className="w-8 h-8 rounded-full bg-secondary/15 flex items-center justify-center shrink-0">
-                  <bubble.icon className="w-4 h-4 text-secondary" />
+                <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                  <bubble.icon className="w-4 h-4 text-sky-700" />
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-cairo text-muted-foreground">{bubble.title}</p>
-                  <p className="text-xs font-cairo font-bold text-foreground">{bubble.value}</p>
+                  <p className="text-[10px] font-cairo text-slate-500">{bubble.title}</p>
+                  <p className="text-xs font-cairo font-bold text-[#102a53]">{bubble.value}</p>
                 </div>
               </div>
             ))}

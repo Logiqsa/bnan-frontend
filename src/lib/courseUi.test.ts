@@ -18,4 +18,10 @@ describe("course schedule identity errors", () => {
     expect(message).not.toBe("raw backend message");
     expect(message.length).toBeGreaterThan(20);
   });
+
+  it("maps weekly allocation readiness errors to Arabic feedback", () => {
+    expect(courseError({ code: "WEEKLY_ZOOM_ASSIGNMENT_PENDING" })).toContain("يجري تخصيص");
+    expect(courseError({ code: "WEEKLY_ZOOM_HOST_BUSY" })).toContain("مستخدم");
+    expect(courseError({ code: "WEEKLY_ZOOM_ASSIGNMENT_QUARANTINED" })).toContain("للتحقق الآمن");
+  });
 });

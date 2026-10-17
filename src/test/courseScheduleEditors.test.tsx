@@ -141,6 +141,8 @@ describe("admin and supervisor course schedule editor", () => {
     mocks.updateSchedule.mockResolvedValue(schedule()).mockResolvedValue(final);
     render(<AdminEditor />);
     expect(await screen.findByText("المواعيد الأسبوعية")).toBeInTheDocument();
+    expect(screen.getByText("تجهيز Zoom تلقائيًا")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ربط وإنشاء الرابط/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "إضافة موعد" }));
     fireEvent.click(screen.getByRole("button", { name: "حفظ الجدول" }));
     await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalledTimes(1));

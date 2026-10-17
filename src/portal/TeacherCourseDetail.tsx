@@ -123,6 +123,12 @@ const startErrors: Record<string, string> = {
   START_WINDOW_CLOSED: "انتهت نافذة بدء هذه الحصة.",
   CLASSROOM_SESSION_ALREADY_ACTIVE: "توجد حصة نشطة بالفعل لهذه المجموعة.",
   ZOOM_MEETING_NOT_READY: "رابط Zoom الخاص بالمجموعة غير جاهز.",
+  WEEKLY_ZOOM_ASSIGNMENT_PENDING: "يجري تجهيز اجتماع Zoom لهذا الموعد. حدّث الصفحة وحاول بعد قليل.",
+  WEEKLY_ZOOM_ASSIGNMENT_UNALLOCATED: "لا يوجد حساب Zoom متاح لهذا الموعد حاليًا.",
+  WEEKLY_ZOOM_ASSIGNMENT_QUARANTINED: "توقف تجهيز Zoom لهذا الموعد للتحقق الآمن. تواصل مع الإدارة.",
+  WEEKLY_ZOOM_HOST_BUSY: "حساب Zoom مشغول بحصة أخرى. حاول مرة أخرى بعد قليل.",
+  WEEKLY_ZOOM_HOST_UNAVAILABLE: "لا يمكن تأكيد توفر حساب Zoom لهذا الموعد حاليًا.",
+  WEEKLY_ZOOM_OCCURRENCE_NOT_MATERIALIZED: "الحصة قيد التجهيز ولم تصبح جاهزة للبدء بعد.",
 };
 
 export default function TeacherCourseDetail() {

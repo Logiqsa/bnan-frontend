@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from "lucide-react";
 import { ApiError } from "@/api/client";
+import { courseError } from "@/lib/courseUi";
 import { getUnifiedScheduleWeek, joinLesson, joinWeeklySlotEntry } from "@/api/scheduleApi";
 import type { PortalLesson } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ const displayDate = (value: string | undefined, locale: string) => value ? new D
 
 const joinError = (error: unknown, pick: (ar: string, en: string) => string) => {
   const apiError = error as ApiError;
+  if (apiError.code?.startsWith("WEEKLY_ZOOM_")) return courseError(apiError);
   if (apiError.code === "SESSION_NOT_ACTIVE" || apiError.status === 404) return pick("الحصة ليست متاحة للدخول الآن.", "The lesson is not available to join now.");
   if (apiError.code === "CLASSROOM_ZOOM_NOT_CONFIGURED" || apiError.status === 409) return pick("رابط الحصة غير مُجهز حاليًا.", "The lesson link is not configured yet.");
   return apiError.message || pick("تعذر الدخول إلى الحصة.", "Unable to join the lesson.");
@@ -85,7 +87,7 @@ export default function StudentSchedule() {
       lesson={selectedLesson}
       open={Boolean(selectedLesson)}
       onOpenChange={(open) => { if (!open) { setSelectedLesson(null); setJoinMessage(""); } }}
-      onJoin={(lesson) => { setJoinMessage(""); setJoiningClassroom(lesson.classroom.id); joinMutation.mutate(lesson.classroom.id); }}
+      onJoin={(lesson) => { setJoinMessage(""); setJoiningClassroom(lesson.classroom.id); joinMutation.mutate({ classroomId: lesson.classroom.id, weeklySlotKey: lesson.activeSession?.weeklySlotKey }); }}
       joining={joinMutation.isPending && joiningClassroom === selectedLesson?.classroom.id}
       joinError={joinMessage}
     />

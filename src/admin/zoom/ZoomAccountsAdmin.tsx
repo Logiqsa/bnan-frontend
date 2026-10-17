@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Eye, Loader2, MoreVertical, Plus, Pencil, Power, PowerOff } from "lucide-react";
+import { CalendarClock, Eye, Loader2, MoreVertical, Plus, Pencil, Power, PowerOff } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { zoomAccountsApi, ZOOM_ERROR_MESSAGES, type ZoomAccount } from "@/api/zoomAccountsApi";
@@ -107,10 +107,7 @@ const ZoomAccountsAdmin = ({ onGoToGradeAssignment }: { onGoToGradeAssignment?: 
           <h2 className="text-xl font-cairo font-bold">حسابات زوم</h2>
           <p className="text-muted-foreground font-tajawal text-sm">إدارة حسابات Zoom المستخدمة لإنشاء فصول جديدة</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="w-4 h-4" />
-          إضافة حساب زوم
-        </Button>
+        <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate("/admin/zoom-availability")} className="gap-2"><CalendarClock className="w-4 h-4" />الأوقات المتاحة</Button><Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" />إضافة حساب زوم</Button></div>
       </div>
 
       {!loading && items.length > 0 && (

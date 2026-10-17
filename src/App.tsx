@@ -56,6 +56,7 @@ import ScrollToHash from "@/components/ScrollToHash";
 import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import ManualZoomGuard from "@/admin/zoom/ManualZoomGuard";
 import ZoomAccountUsageAdmin from "@/admin/zoom/ZoomAccountUsageAdmin";
+import WeeklyZoomAvailabilityAdmin from "@/admin/zoom/WeeklyZoomAvailabilityAdmin";
 import ClassroomManagement from "@/admin/zoom/ClassroomManagement";
 import ClassroomKindManagement from "@/admin/ClassroomKindManagement";
 import AdminClassroomHub from "@/admin/AdminClassroomHub";
@@ -580,6 +581,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/zoom-availability" element={<AdminGuard><WeeklyZoomAvailabilityAdmin /></AdminGuard>} />
                     <Route
                       path="/portal/supervisor/classrooms"
                       element={

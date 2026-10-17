@@ -8,6 +8,7 @@ import AdminEditor from "@/admin/CourseClassroomScheduleAdmin";
 const mocks = vi.hoisted(() => ({
   getSchedule: vi.fn(), updateSchedule: vi.fn(), listGroups: vi.fn(),
   getClassroom: vi.fn(), getAvailability: vi.fn(), generateMeeting: vi.fn(),
+  getClassroomWeeklyAssignments: vi.fn(),
   toastSuccess: vi.fn(), toastError: vi.fn(), role: "teacher",
 }));
 
@@ -16,6 +17,9 @@ vi.mock("@/api/coursesApi", () => ({ coursesApi: {
 } }));
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: {
   getClassroom: mocks.getClassroom, getAvailability: mocks.getAvailability, generateMeeting: mocks.generateMeeting,
+} }));
+vi.mock("@/api/zoomAccountsApi", () => ({ zoomAccountsApi: {
+  getClassroomWeeklyAssignments: mocks.getClassroomWeeklyAssignments,
 } }));
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: mocks.toastError } }));
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { role: mocks.role } }) }));
@@ -59,6 +63,7 @@ beforeEach(() => {
   mocks.getSchedule.mockReset(); mocks.updateSchedule.mockReset(); mocks.listGroups.mockReset();
   mocks.getClassroom.mockReset(); mocks.getAvailability.mockReset(); mocks.generateMeeting.mockReset();
   mocks.role = "teacher"; zoomDefaults();
+  mocks.getClassroomWeeklyAssignments.mockResolvedValue({ data: { classroom: { id: "room-1", name: "Course room" }, slots: [] } });
   vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "client-key-new") });
 });
 
@@ -134,6 +139,18 @@ describe("teacher course schedule editor", () => {
 });
 
 describe("admin and supervisor course schedule editor", () => {
+  it("shows the ready per-slot participant link and creating account to an admin", async () => {
+    mocks.role = "admin";
+    mocks.getSchedule.mockResolvedValue(schedule());
+    mocks.getClassroomWeeklyAssignments.mockResolvedValue({ data: {
+      classroom: { id: "room-1", name: "Course room" },
+      slots: [{ assignmentId: "assignment-1", weeklySlotKey: "zws_test", slotId: firstId, day: "saturday", startTime: "10:00", endTime: "11:00", timezone: "Africa/Cairo", status: "ready", state: "ready", cutoverState: "active", assignmentVersion: 0, account: { id: "zoom-1", name: "Zoom Arabic 1", hostFingerprint: "fingerprint" }, meeting: { id: "meeting-1", participantUrl: "https://zoom.example/j/meeting-1", type: 3 }, reason: null }],
+    } });
+    render(<AdminEditor />);
+    expect(await screen.findByText(/الحساب: Zoom Arabic 1/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "https://zoom.example/j/meeting-1" })).toBeInTheDocument();
+  });
+
   it("hydrates a new ID and includes it in the second save without UI keys", async () => {
     const authoritative = schedule([identified(firstId), identified(secondId, "saturday", "09:00")]);
     const final = schedule([identified(secondId, "monday", "09:30")]);

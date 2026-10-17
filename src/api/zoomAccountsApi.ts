@@ -46,6 +46,64 @@ export interface ZoomAccountUsage {
   };
 }
 
+export type WeeklyZoomSlotStatus = "ready" | "cutover_pending" | "allocating" | "provisioning" | "pending" | "quarantined" | "failed" | "cancelled";
+
+export interface WeeklyZoomClassroomAssignment {
+  assignmentId: string;
+  weeklySlotKey: string;
+  slotId: string;
+  day: string;
+  startTime: string;
+  endTime?: string | null;
+  timezone: string;
+  status: WeeklyZoomSlotStatus;
+  state: string;
+  cutoverState: string;
+  assignmentVersion: number;
+  meeting: { id: string; participantUrl: string; type: 3 | 8 } | null;
+  account: { id: string; name: string; hostFingerprint: string | null } | null;
+  reason: string | null;
+}
+
+export interface WeeklyZoomClassroomAssignments {
+  classroom: { id: string; name: string };
+  slots: WeeklyZoomClassroomAssignment[];
+}
+
+export interface WeeklyZoomAvailabilityAccount {
+  account: {
+    id: string;
+    name: string;
+    hostFingerprint: string | null;
+    isActive: boolean;
+    isVerified: boolean;
+    poolEnabled: boolean;
+    safetyStatus: string;
+    safetyReason: string | null;
+    legacyMaterialization: string;
+    eligible: boolean;
+  };
+  busyBookings: Array<{
+    source: "weekly_assignment" | "legacy_capacity";
+    state: string;
+    classroomId: string;
+    classroomName: string;
+    category: string;
+    startTime: string;
+    endTime: string;
+    unknown: boolean;
+  }>;
+  freeWindows: Array<{ startTime: string; endTime: string; durationMinutes: number; fitsRequestedDuration: boolean | null }>;
+  eligibleWindows: Array<{ startTime: string; endTime: string; durationMinutes: number; fitsRequestedDuration: boolean | null }>;
+}
+
+export interface WeeklyZoomPoolAvailability {
+  advisory: true;
+  day: string;
+  durationMinutes: number | null;
+  accounts: WeeklyZoomAvailabilityAccount[];
+}
+
 export interface CreateZoomAccountPayload {
   name: string;
   accountId: string;
@@ -92,6 +150,19 @@ export const zoomAccountsApi = {
 
   getZoomAccountClassrooms: (id: string) =>
     apiRequest<ItemResponse<ZoomAccountUsage>>(`/admin/zoom-accounts/${id}/classrooms`),
+
+  getClassroomWeeklyAssignments: (classroomId: string) =>
+    apiRequest<ItemResponse<WeeklyZoomClassroomAssignments>>(
+      `/admin/zoom-accounts/classrooms/${encodeURIComponent(classroomId)}/weekly-assignments`,
+    ),
+
+  getWeeklyPoolAvailability: (day: string, durationMinutes?: number) => {
+    const query = new URLSearchParams({ day });
+    if (durationMinutes != null) query.set("durationMinutes", String(durationMinutes));
+    return apiRequest<ItemResponse<WeeklyZoomPoolAvailability>>(
+      `/admin/zoom-accounts/weekly-availability?${query.toString()}`,
+    );
+  },
 
   createZoomAccount: (payload: CreateZoomAccountPayload) =>
     apiRequest<ItemResponse<ZoomAccount>>("/admin/zoom-accounts", {

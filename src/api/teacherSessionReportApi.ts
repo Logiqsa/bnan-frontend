@@ -1,11 +1,20 @@
 import { apiRequest } from "@/api/client";
 
 export interface ZoomSessionParticipant {
+  key?: string;
   name?: string;
   email?: string;
+  userId?: string;
   joinTime?: string;
   leaveTime?: string;
   durationSeconds?: number;
+  totalDurationSeconds?: number;
+  visitCount?: number;
+  visits?: Array<{
+    joinedAt?: string | null;
+    leftAt?: string | null;
+    durationSeconds?: number;
+  }>;
 }
 
 export interface TeacherSessionReport {
@@ -17,6 +26,8 @@ export interface TeacherSessionReport {
     participantRows?: number;
     uniqueParticipants?: number;
     durationMinutes?: number;
+    meetingDurationSeconds?: number | null;
+    participantTotalDurationSeconds?: number;
     processedAt?: string;
   } | null;
   participants: ZoomSessionParticipant[];

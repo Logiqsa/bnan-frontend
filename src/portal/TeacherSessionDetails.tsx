@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
+  CircleAlert,
   Clock3,
   ExternalLink,
   FileText,
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
@@ -121,10 +123,43 @@ export default function TeacherSessionDetails() {
       ? null
       : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
   };
-  const kindLabel = (kind?: string) => {
-    if (kind === "live") return pick("حصة مباشرة", "Live session");
-    if (kind === "manual_recording") return pick("تسجيل يدوي", "Manual recording");
-    return kind;
+  const formatDuration = (seconds?: number | null) => {
+    if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return null;
+    const rounded = Math.round(seconds);
+    const hours = Math.floor(rounded / 3600);
+    const minutes = Math.floor((rounded % 3600) / 60);
+    const remainingSeconds = rounded % 60;
+    const parts: string[] = [];
+    if (hours) parts.push(pick(`${hours} ${hours === 1 ? "ساعة" : "ساعات"}`, `${hours} ${hours === 1 ? "hour" : "hours"}`));
+    if (minutes) parts.push(pick(`${minutes} ${minutes === 1 ? "دقيقة" : "دقائق"}`, `${minutes} ${minutes === 1 ? "minute" : "minutes"}`));
+    if (remainingSeconds || !parts.length) parts.push(pick(`${remainingSeconds} ${remainingSeconds === 1 ? "ثانية" : "ثوانٍ"}`, `${remainingSeconds} ${remainingSeconds === 1 ? "second" : "seconds"}`));
+    return parts.join(pick(" و", " and "));
+  };
+  const sessionStatusLabel = (status?: string) => {
+    const labels: Record<string, [string, string]> = {
+      scheduled: ["مجدولة", "Scheduled"],
+      starting: ["يتم بدء الحصة", "Starting now"],
+      live: ["مباشرة الآن", "Live now"],
+      awaiting_zoom_end: ["في انتظار تأكيد الانتهاء", "Awaiting end confirmation"],
+      ended: ["انتهت", "Ended"],
+      completed: ["انتهت", "Completed"],
+      cancelled: ["ملغاة", "Cancelled"],
+    };
+    const label = status ? labels[status.toLowerCase()] : undefined;
+    return label ? pick(...label) : status;
+  };
+  const processingStatusLabel = (status?: string) => {
+    const labels: Record<string, [string, string]> = {
+      pending: ["قيد الانتظار", "Pending"],
+      processing: ["قيد المعالجة", "Processing"],
+      queued: ["في قائمة المعالجة", "Queued"],
+      completed: ["مكتمل", "Completed"],
+      ready: ["جاهز", "Ready"],
+      failed: ["فشل", "Failed"],
+      unavailable: ["غير متاح", "Unavailable"],
+    };
+    const label = status ? labels[status.toLowerCase()] : undefined;
+    return label ? pick(...label) : status;
   };
 
   const backPath = isAdmin
@@ -196,8 +231,7 @@ export default function TeacherSessionDetails() {
                 <div className="min-w-0">
                   <h1 className="break-words text-2xl font-bold tracking-tight sm:text-3xl">{session.title || session.sessionName || pick("تفاصيل الجلسة", "Session details")}</h1>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {session.status && <Badge variant="secondary">{session.status}</Badge>}
-                    {session.sessionKind && <Badge variant="outline">{kindLabel(session.sessionKind)}</Badge>}
+                    {session.status && <Badge variant="secondary">{sessionStatusLabel(session.status)}</Badge>}
                   </div>
                 </div>
                 {canOpenTeacherEntry && (
@@ -240,9 +274,10 @@ export default function TeacherSessionDetails() {
                 ) : report ? (
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      {report.status && <Badge variant="secondary">{pick("الحالة", "Status")}: {report.status}</Badge>}
+                      {report.status && <Badge variant="secondary">{pick("الحالة", "Status")}: {processingStatusLabel(report.status)}</Badge>}
                       {typeof report.summary?.uniqueParticipants === "number" && <Badge variant="outline">{pick("المشاركون", "Participants")}: {report.summary.uniqueParticipants}</Badge>}
-                      {typeof report.summary?.durationMinutes === "number" && <Badge variant="outline">{pick("المدة", "Duration")}: {report.summary.durationMinutes} {pick("دقيقة", "minutes")}</Badge>}
+                      {formatDuration(report.summary?.meetingDurationSeconds) && <Badge variant="outline">{pick("مدة لقاء Zoom", "Zoom meeting duration")}: {formatDuration(report.summary?.meetingDurationSeconds)}</Badge>}
+                      {typeof report.summary?.durationMinutes === "number" && <Badge variant="outline" className="inline-flex items-center gap-1">{pick("مدة الحصة التعليمية", "Instructional duration")}: {formatDuration(report.summary.durationMinutes * 60)}<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-full text-muted-foreground hover:text-foreground" aria-label={pick("توضيح مدة الحصة التعليمية", "Explain instructional duration")}><CircleAlert className="h-3.5 w-3.5" /></button></TooltipTrigger><TooltipContent className="max-w-72 leading-6">{report.summary.uniqueParticipants === 1 ? pick("تُحسب من وقت دخول الطالب الموثّق حتى نهاية الجلسة. لا تمثل مدة ملف التسجيل.", "Calculated from the verified student's entry until session end; it is not the recording length.") : pick("تُحسب من وقت دخول أول طالب موثّق حتى نهاية الجلسة. لا تمثل مدة ملف التسجيل.", "Calculated from the first verified student entry until session end; it is not the recording length.")}</TooltipContent></Tooltip></Badge>}
                     </div>
                     {report.participants.length === 0 ? (
                       <p className="rounded-lg bg-muted/40 p-5 text-center text-sm text-muted-foreground">{pick("لا توجد بيانات مشاركين متاحة.", "No participant data is available.")}</p>
@@ -251,13 +286,11 @@ export default function TeacherSessionDetails() {
                         <summary className="cursor-pointer px-4 py-3 font-medium">{pick("عرض المشاركين", "View participants")} ({pagination?.total ?? report.participants.length})</summary>
                         <div className="space-y-3 border-t p-3 sm:p-4">
                           {report.participants.map((participant, index) => (
-                            <div key={`${participant.email || participant.name || "participant"}-${index}`} className="min-w-0 rounded-lg bg-muted/40 p-3 text-sm">
-                              <p className="break-words font-medium">{participant.name || pick("مشارك", "Participant")}</p>
+                            <div key={participant.key || `${participant.email || participant.name || "participant"}-${index}`} className="min-w-0 rounded-xl border bg-muted/30 p-3 text-sm">
+                              <div className="flex flex-wrap items-center justify-between gap-2"><p className="break-words font-medium">{participant.name || pick("مشارك", "Participant")}</p><div className="flex flex-wrap gap-1.5"><Badge variant="secondary">{pick("إجمالي المشاركة", "Total participation")}: {formatDuration(participant.totalDurationSeconds ?? participant.durationSeconds) || pick("0 ثوانٍ", "0 seconds")}</Badge>{typeof participant.visitCount === "number" && <Badge variant="outline">{pick(`دخل ${participant.visitCount} ${participant.visitCount === 1 ? "مرة" : "مرات"}`, `${participant.visitCount} join${participant.visitCount === 1 ? "" : "s"}`)}</Badge>}</div></div>
                               {participant.email && <p className="mt-1 break-all text-xs text-muted-foreground">{participant.email}</p>}
-                              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-                                {formatDate(participant.joinTime) && <span>{pick("الدخول", "Joined")}: {formatDate(participant.joinTime)}</span>}
-                                {formatDate(participant.leaveTime) && <span>{pick("الخروج", "Left")}: {formatDate(participant.leaveTime)}</span>}
-                                {typeof participant.durationSeconds === "number" && <span>{pick("المدة", "Duration")}: {participant.durationSeconds} {pick("ثانية", "seconds")}</span>}
+                              <div className="mt-3 space-y-2 border-t pt-2 text-xs text-muted-foreground">
+                                {(participant.visits?.length ? participant.visits : [{ joinedAt: participant.joinTime, leftAt: participant.leaveTime, durationSeconds: participant.durationSeconds }]).map((visit, visitIndex) => <div key={`${visit.joinedAt || "unknown"}-${visitIndex}`} className="flex flex-wrap items-center gap-x-4 gap-y-1"><span className="font-medium text-foreground/80">{pick(`الدخول ${visitIndex + 1}`, `Join ${visitIndex + 1}`)}</span>{formatDate(visit.joinedAt) && <span>{pick("من", "From")}: {formatDate(visit.joinedAt)}</span>}{formatDate(visit.leftAt) && <span>{pick("إلى", "To")}: {formatDate(visit.leftAt)}</span>}<span>{pick("المدة", "Duration")}: {formatDuration(visit.durationSeconds) || pick("0 ثوانٍ", "0 seconds")}</span></div>)}
                               </div>
                             </div>
                           ))}
@@ -277,23 +310,22 @@ export default function TeacherSessionDetails() {
             </Card>
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5" />{pick("التسجيل", "Recording")}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {session.recording?.status && <Badge variant="secondary">{session.recording.status}</Badge>}
+              <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-[#0d2048] via-[#102a5d] to-[#06152f] text-white shadow-lg">
+                <CardHeader className="border-b border-white/10 bg-white/5"><CardTitle className="flex items-center gap-2 text-white"><span className="grid h-9 w-9 place-items-center rounded-lg bg-sky-300/15 text-sky-200"><Video className="h-5 w-5" /></span>{pick("تسجيل الحصة", "Session recording")}</CardTitle></CardHeader>
+                <CardContent className="pt-5">
                   {session.recording?.localUrl || session.recording?.shareUrl ? (
-                    <Button onClick={() => setSelectedRecording({
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="space-y-1">{session.recording?.status && <Badge className="border-0 bg-sky-300 text-[#08204a] hover:bg-sky-200">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-slate-200">{pick("التسجيل جاهز للمشاهدة داخل المنصة.", "The recording is ready to watch in Bnan.")}</p></div><Button className="w-full bg-white text-[#0b2454] hover:bg-sky-100 sm:w-auto" onClick={() => setSelectedRecording({
                       sessionName: session.title || session.sessionName || pick("تسجيل الحصة", "Session recording"),
                       recordingLink: session.recording?.localUrl || session.recording?.shareUrl || "",
-                    })}><Play className="me-2 h-4 w-4" />{pick("مشاهدة التسجيل", "Watch recording")}</Button>
-                  ) : <p className="text-sm text-muted-foreground">{pick("التسجيل غير متاح حاليًا", "The recording is not currently available")}</p>}
+                    })}><Play className="me-2 h-4 w-4" />{pick("مشاهدة التسجيل", "Watch recording")}</Button></div>
+                  ) : <div className="space-y-2">{session.recording?.status && <Badge className="border-0 bg-sky-300 text-[#08204a] hover:bg-sky-200">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-slate-200">{pick("التسجيل غير متاح حاليًا", "The recording is not currently available")}</p></div>}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />{pick("ملخص الجلسة", "Session summary")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  {session.summary?.status && <Badge variant="secondary">{session.summary.status}</Badge>}
+                  {session.summary?.status && <Badge variant="secondary">{processingStatusLabel(session.summary.status)}</Badge>}
                   {session.summary?.title && <h3 className="break-words font-semibold">{session.summary.title}</h3>}
                   {session.summary?.content && <div className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-muted/40 p-4 text-sm leading-7">{session.summary.content}</div>}
                   {summaryNextSteps.length > 0 && (

@@ -27,12 +27,17 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
         {unreadCount > 0 && <Badge className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center px-1 text-[10px]">{unreadCount > 99 ? "99+" : unreadCount}</Badge>}
       </Button>
     </PopoverTrigger>
-    <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 p-0" align="end" dir={isArabic ? "rtl" : "ltr"}>
+    <PopoverContent
+      className="z-[100] w-[min(26rem,calc(100vw-2rem))] max-w-none overflow-hidden p-0 shadow-xl"
+      align="start"
+      collisionPadding={16}
+      dir={isArabic ? "rtl" : "ltr"}
+    >
       <div className={`flex items-center justify-between border-b p-3 ${isArabic ? "flex-row-reverse" : "flex-row"}`}>
         <h4 className="font-cairo font-semibold">{pick("الإشعارات", "Notifications")}</h4>
         {unreadCount > 0 && <Button variant="ghost" size="sm" onClick={() => run(markAllRead())} className="gap-1 text-xs"><Check className="h-3 w-3" />{pick("قراءة الكل", "Mark all read")}</Button>}
       </div>
-      <ScrollArea className="h-80">
+      <ScrollArea className="h-[min(28rem,calc(100dvh-9rem))]">
         {loading && items.length === 0 ? <div className="grid h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           : error && items.length === 0 ? <div className="space-y-3 p-6 text-center text-sm text-muted-foreground"><p>{error}</p><Button variant="outline" size="sm" onClick={() => void reload()} className="gap-1"><RefreshCw className="h-3 w-3" />{pick("إعادة المحاولة", "Retry")}</Button></div>
           : items.length === 0 ? <div className="p-6 text-center font-cairo text-sm text-muted-foreground">{pick("لا توجد إشعارات", "No notifications")}</div>
@@ -40,9 +45,9 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
             if (!notification.isRead) run(markRead(notification.id));
             const link = notificationLink(notification, role);
             if (link) navigate(link);
-          }} className={`cursor-pointer p-3 transition hover:bg-muted/50 ${!notification.isRead ? "bg-primary/5" : ""}`}>
-            <div className={`flex items-start justify-between gap-2 ${isArabic ? "flex-row-reverse" : "flex-row"}`}><p dir="auto" className="font-cairo text-sm font-medium">{notification.title}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
-            {notification.body && <p dir="auto" className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>}
+          }} className={`min-w-0 cursor-pointer p-3.5 transition hover:bg-muted/50 ${!notification.isRead ? "bg-primary/5" : ""}`}>
+            <div className={`flex min-w-0 items-start justify-between gap-2 ${isArabic ? "flex-row-reverse" : "flex-row"}`}><p dir="auto" className="min-w-0 break-words font-cairo text-sm font-medium leading-6">{notification.title || pick("إشعار جديد", "New notification")}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
+            {notification.body && <p dir="auto" className="mt-1 break-words whitespace-normal text-xs leading-5 text-muted-foreground">{notification.body}</p>}
             <p dir="auto" className="mt-1 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: isArabic ? ar : enUS })}</p>
           </li>)}</ul>}
       </ScrollArea>

@@ -15,13 +15,15 @@ const HeroSection = () => {
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
-    <section className="relative min-h-screen flex items-start md:items-center overflow-hidden bg-[#f7f8fa]">
+    <section className="relative flex min-h-[calc(100svh-4rem)] items-start overflow-hidden bg-[#f7f8fa] md:min-h-screen md:items-center">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/hero.jpg')" }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-white/35" aria-hidden="true" />
+      {/* Keep the paper texture visible on every viewport; this is a tint only,
+          not a replacement background. */}
+      <div className="absolute inset-0 bg-white/10 md:bg-white/15" aria-hidden="true" />
 
       {/* Floating education emojis */}
       {[
@@ -52,7 +54,7 @@ const HeroSection = () => {
           className={`absolute ${bubble.position} z-20 hidden md:block`}
         >
           <div
-            className="animate-float rounded-2xl border border-white/90 bg-white/85 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md flex items-center gap-3"
+            className="animate-float rounded-2xl border border-white/90 bg-white/88 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md flex items-center gap-3"
             style={{ animationDelay: bubble.floatDelay }}
           >
             <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
@@ -66,13 +68,13 @@ const HeroSection = () => {
         </motion.div>
       ))}
 
-      <div className="container mx-auto px-4 relative z-10 pt-6 md:-translate-y-10 md:pt-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <div className="container relative z-10 mx-auto px-4 pb-7 pt-20 sm:pt-24 md:-translate-y-10 md:pb-6 md:pt-6">
+        <div className="mx-auto max-w-3xl text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-[#102a53] drop-shadow-[0_1px_0_rgba(255,255,255,0.8)]"
+            className="mb-6 text-[2.45rem] font-display font-bold leading-[1.28] text-[#102a53] drop-shadow-[0_1px_0_rgba(255,255,255,0.8)] sm:text-5xl md:text-6xl md:leading-tight lg:text-7xl"
           >
             <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
@@ -85,7 +87,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg md:text-xl font-serif-text font-normal mb-8 max-w-2xl mx-auto text-slate-700"
+            className="mx-auto mb-8 max-w-2xl text-lg font-serif-text font-normal leading-relaxed text-slate-700 md:text-xl"
           >
             مع{" "}
             <span className="font-bold text-sky-700">بنان</span>{" "}
@@ -96,10 +98,10 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            className="flex flex-col justify-center gap-4 sm:flex-row"
           >
             <a href="/curricula">
-              <Button size="lg" className="font-cairo text-lg bg-[#102a53] text-white shadow-[0_12px_24px_rgba(16,42,83,0.25)] hover:bg-[#183969] px-8">
+              <Button size="lg" className="w-full px-8 font-cairo text-lg text-white shadow-[0_12px_24px_rgba(16,42,83,0.25)] hover:bg-[#183969] sm:w-auto bg-[#102a53]">
                 ابدأ رحلتك التعليمية
               </Button>
             </a>
@@ -107,7 +109,7 @@ const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="font-cairo text-lg border-2 border-[#102a53]/35 text-[#102a53] bg-white/70 hover:bg-white px-8 backdrop-blur-sm"
+                className="w-full border-2 border-[#102a53]/55 bg-white/70 px-8 font-cairo text-lg text-[#102a53] backdrop-blur-sm hover:bg-white sm:w-auto"
               >
                 <Play className="w-5 h-5 ml-2" />
                 اطلب حصة مجانية
@@ -134,15 +136,15 @@ const HeroSection = () => {
             {floatingBubbles.map((bubble, i) => (
               <div
                 key={i}
-                className="animate-float rounded-xl border border-white/90 bg-white/85 px-3 py-2.5 shadow-[0_12px_28px_rgba(16,42,83,0.14)] backdrop-blur-md flex items-center gap-2"
+                className="animate-float flex items-center gap-2 rounded-xl border border-[#c9d9e7]/90 bg-[#eef4fa]/92 px-3 py-2.5 shadow-[0_10px_22px_rgba(16,42,83,0.12)] backdrop-blur-md"
                 style={{ animationDelay: bubble.floatDelay }}
               >
-                <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-                  <bubble.icon className="w-4 h-4 text-sky-700" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100">
+                  <bubble.icon className="h-4 w-4 text-sky-700" />
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-cairo text-slate-500">{bubble.title}</p>
-                  <p className="text-xs font-cairo font-bold text-[#102a53]">{bubble.value}</p>
+                  <p className="font-cairo text-[10px] text-slate-500">{bubble.title}</p>
+                  <p className="font-cairo text-xs font-bold text-[#102a53]">{bubble.value}</p>
                 </div>
               </div>
             ))}

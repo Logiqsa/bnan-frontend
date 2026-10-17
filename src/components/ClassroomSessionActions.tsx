@@ -13,6 +13,7 @@ import {
 } from "@/api/scheduleApi";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { Button } from "@/components/ui/button";
+import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
 
 const formatDuration = (startedAt: string, now: number) => {
   const elapsed = Math.max(0, now - new Date(startedAt).getTime());
@@ -93,16 +94,19 @@ export default function ClassroomSessionActions({
 
   const startClassroomLesson = async () => {
     if (user?.role !== "teacher" || !activeSession?.canStart || startingSession || startRequestRef.current) return;
+    const zoomWindow = reserveZoomWindow();
     startRequestRef.current = true;
     setStartingSession(true);
     try {
       const result = await startClassroomSession(classroomId, activeSession);
       const meetingUrl = result.data.teacherStartUrl || result.data.meetingLink;
-      if (meetingUrl) window.open(meetingUrl, "_blank", "noopener,noreferrer");
+      if (meetingUrl) navigateReservedZoomWindow(zoomWindow, meetingUrl);
+      else closeReservedZoomWindow(zoomWindow);
       const sessionId = result.data.session?.id || result.data.session?._id || activeSession.sessionId;
       if (sessionId) navigate(`/portal/teacher/classrooms/${encodeURIComponent(classroomId)}/sessions/${encodeURIComponent(sessionId)}`);
       await refreshClassroomSession();
     } catch (error) {
+      closeReservedZoomWindow(zoomWindow);
       const apiError = error as ApiError;
       if (["TOO_EARLY_TO_START", "START_WINDOW_CLOSED"].includes(apiError?.code)) {
         await refreshClassroomSession();

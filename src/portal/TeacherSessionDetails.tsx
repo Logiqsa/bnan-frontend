@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
@@ -15,6 +15,7 @@ import {
 import { classroomRecordingsApi, type ClassroomSession } from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
 import { teacherSessionReportApi } from "@/api/teacherSessionReportApi";
+import { getTeacherSessionEntry } from "@/api/scheduleApi";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
+import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
 
 const objectName = (value: unknown) => {
   if (!value || typeof value !== "object") return undefined;
@@ -66,6 +68,8 @@ export default function TeacherSessionDetails() {
   const isAdmin = useLocation().pathname.startsWith("/admin/");
   const [reportPage, setReportPage] = useState(1);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
+  const [openingZoom, setOpeningZoom] = useState(false);
+  const openingZoomRef = useRef(false);
   const locale = language === "ar" ? "ar-EG-u-ca-gregory" : "en-US";
   const closeRecording = useCallback(() => setSelectedRecording(null), []);
 
@@ -129,6 +133,32 @@ export default function TeacherSessionDetails() {
       ? "/portal/teacher/classrooms"
       : `/portal/teacher/classrooms/${encodeURIComponent(classroomId)}`;
   const notFound = sessionQuery.error instanceof ApiError && sessionQuery.error.status === 404;
+  const sessionRecordId = session ? objectId(session) : undefined;
+  const canOpenTeacherEntry = !isAdmin && Boolean(resolvedClassroomId && sessionRecordId && ["starting", "live"].includes(session.status || ""));
+  const openTeacherEntry = async () => {
+    if (!resolvedClassroomId || !sessionRecordId || openingZoomRef.current) return;
+    openingZoomRef.current = true;
+    setOpeningZoom(true);
+    const popup = reserveZoomWindow();
+    try {
+      const result = await getTeacherSessionEntry(resolvedClassroomId, sessionRecordId);
+      if (!navigateReservedZoomWindow(popup, result.data.teacherStartUrl)) {
+        throw new Error("POPUP_BLOCKED");
+      }
+    } catch (error) {
+      closeReservedZoomWindow(popup);
+      const apiError = error as ApiError;
+      const message = apiError.code === "SESSION_NOT_ACTIVE"
+        ? pick("لم تعد هذه الحصة نشطة. حدّث الصفحة.", "This session is no longer active. Refresh the page.")
+        : apiError.code === "TEACHER_START_URL_UNAVAILABLE"
+          ? pick("تعذر تجهيز رابط المضيف حاليًا. حاول مرة أخرى.", "The host link is unavailable right now. Please try again.")
+          : apiError.message || pick("تعذر فتح رابط Zoom. تحقق من السماح بالنوافذ المنبثقة.", "Unable to open Zoom. Check your popup permissions.");
+      window.alert(message);
+    } finally {
+      openingZoomRef.current = false;
+      setOpeningZoom(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -170,6 +200,12 @@ export default function TeacherSessionDetails() {
                     {session.sessionKind && <Badge variant="outline">{kindLabel(session.sessionKind)}</Badge>}
                   </div>
                 </div>
+                {canOpenTeacherEntry && (
+                  <Button type="button" className="shrink-0" disabled={openingZoom} onClick={() => void openTeacherEntry()}>
+                    {openingZoom ? <RefreshCw className="me-2 h-4 w-4 animate-spin" /> : <ExternalLink className="me-2 h-4 w-4" />}
+                    {openingZoom ? pick("جاري فتح Zoom...", "Opening Zoom...") : pick("فتح Zoom كمعلم", "Open Zoom as teacher")}
+                  </Button>
+                )}
               </div>
             </header>
 

@@ -18,6 +18,7 @@ import {
 } from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
 import { apiErrorCode, courseError } from "@/lib/courseUi";
+import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
@@ -165,6 +166,7 @@ export default function TeacherCourseDetail() {
     slot: CourseScheduleSlot,
   ) => {
     const key = `${groupId}-${slot.day}-${slot.startTime}`;
+    const zoomWindow = reserveZoomWindow();
     setBusyKey(key);
     setError("");
     try {
@@ -176,9 +178,12 @@ export default function TeacherCourseDetail() {
       });
       const url = session.teacherStartUrl || session.meetingLink;
       if (!url) throw new Error("لم يرجع الخادم رابط Zoom صالحًا.");
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (!navigateReservedZoomWindow(zoomWindow, url)) {
+        throw new Error("تعذر فتح Zoom تلقائيًا. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.");
+      }
       await client.invalidateQueries({ queryKey: ["teacher-courses"] });
     } catch (caught) {
+      closeReservedZoomWindow(zoomWindow);
       const apiError = caught as ApiError;
       setError(startErrors[apiErrorCode(apiError)] || courseError(caught));
     } finally {

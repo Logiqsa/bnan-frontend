@@ -36,6 +36,7 @@ import TeacherSessionAttendance from "./TeacherSessionAttendance";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { apiErrorCode } from "@/lib/courseUi";
+import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
 
 const dayNames = [
   "السبت",
@@ -366,6 +367,7 @@ export default function PortalSchedule({
   };
   const start = async () => {
     if (!selected || starting || isLessonEnded(selected)) return;
+    const zoomWindow = reserveZoomWindow();
     setStarting(true);
     setStartError("");
     try {
@@ -387,11 +389,14 @@ export default function PortalSchedule({
         regularSession?.data.teacherStartUrl ||
         regularSession?.data.meetingLink;
       if (!url) {
+        closeReservedZoomWindow(zoomWindow);
         setStartError("بدأت الحصة، لكن الخدمة لم تُرجع رابط Zoom صالحًا.");
         await load();
         return;
       }
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (!navigateReservedZoomWindow(zoomWindow, url)) {
+        setStartError("تعذر فتح Zoom تلقائيًا. اسمح بالنوافذ المنبثقة ثم استخدم زر فتح Zoom في صفحة الحصة.");
+      }
       const sessionId = courseSession?.sessionId || regularSession?.data.session?.id || regularSession?.data.session?._id;
       if (sessionId) navigate(`/portal/teacher/classrooms/${encodeURIComponent(selected.classroom.id)}/sessions/${encodeURIComponent(sessionId)}`);
       if (
@@ -405,6 +410,7 @@ export default function PortalSchedule({
       setSelected(null);
       await load();
     } catch (value) {
+      closeReservedZoomWindow(zoomWindow);
       const apiError = value as ApiError;
       const timestamp =
         apiError.code === "TOO_EARLY_TO_START"

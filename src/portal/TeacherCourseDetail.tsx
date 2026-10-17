@@ -17,7 +17,7 @@ import {
   type ClassroomSession,
 } from "@/api/classroomRecordingsApi";
 import { ApiError } from "@/api/client";
-import { courseError } from "@/lib/courseUi";
+import { apiErrorCode, courseError } from "@/lib/courseUi";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
@@ -129,6 +129,8 @@ const startErrors: Record<string, string> = {
   WEEKLY_ZOOM_HOST_BUSY: "حساب Zoom مشغول بحصة أخرى. حاول مرة أخرى بعد قليل.",
   WEEKLY_ZOOM_HOST_UNAVAILABLE: "لا يمكن تأكيد توفر حساب Zoom لهذا الموعد حاليًا.",
   WEEKLY_ZOOM_OCCURRENCE_NOT_MATERIALIZED: "الحصة قيد التجهيز ولم تصبح جاهزة للبدء بعد.",
+  WEEKLY_ZOOM_OCCURRENCE_CANCELLED: "تم إلغاء هذه الحصة في الجدول، ولا يمكن بدءها.",
+  WEEKLY_ZOOM_OCCURRENCE_COMPLETED: "هذه الحصة مكتملة بالفعل، ولا يمكن بدءها مرة أخرى.",
 };
 
 export default function TeacherCourseDetail() {
@@ -178,7 +180,7 @@ export default function TeacherCourseDetail() {
       await client.invalidateQueries({ queryKey: ["teacher-courses"] });
     } catch (caught) {
       const apiError = caught as ApiError;
-      setError(startErrors[apiError.code] || courseError(caught));
+      setError(startErrors[apiErrorCode(apiError)] || courseError(caught));
     } finally {
       setBusyKey("");
     }

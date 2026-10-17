@@ -59,9 +59,16 @@ const errors: Record<string,string> = {
   WEEKLY_ZOOM_HOST_UNAVAILABLE: "لا يمكن تأكيد توفر حساب Zoom لهذا الموعد حاليًا.",
   WEEKLY_ZOOM_OCCURRENCE_NOT_MATERIALIZED: "الحصة قيد التجهيز ولم تصبح متاحة للبدء بعد.",
   WEEKLY_ZOOM_OCCURRENCE_AMBIGUOUS: "تعذر مطابقة الحصة بموعدها الأسبوعي بأمان.",
+  WEEKLY_ZOOM_OCCURRENCE_CANCELLED: "تم إلغاء هذه الحصة في الجدول، ولا يمكن بدءها.",
+  WEEKLY_ZOOM_OCCURRENCE_COMPLETED: "هذه الحصة مكتملة بالفعل، ولا يمكن بدءها مرة أخرى.",
   PAYROLL_STATEMENT_EXISTS: "يوجد بالفعل كشف مستحقات لهذا المعلم خلال هذه الفترة.",
   PAYROLL_STATEMENT_PERIOD_OVERLAP: "الفترة المحددة متداخلة مع كشف مستحقات موجود لهذا المعلم.",
   PAYROLL_STATEMENT_PAID: "لا يمكن حذف كشف تم صرفه بالفعل.",
   PAYROLL_STATEMENT_NOT_EDITABLE: "لا يمكن تعديل أو إعادة إرسال كشف تم إرساله أو صرفه بالفعل.",
 };
-export const courseError = (value: unknown) => { const e = value as ApiError; return errors[e?.code] || e?.message || "حدث خطأ غير متوقع."; };
+export const apiErrorCode = (value: unknown) => {
+  const error = value as ApiError;
+  const raw = error?.code && error.code !== "API_ERROR" ? error.code : error?.message || "";
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+};
+export const courseError = (value: unknown) => { const e = value as ApiError; return errors[apiErrorCode(e)] || e?.message || "حدث خطأ غير متوقع."; };

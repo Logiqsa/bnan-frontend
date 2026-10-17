@@ -35,6 +35,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
+import { apiErrorCode } from "@/lib/courseUi";
 
 const dayNames = [
   "السبت",
@@ -437,9 +438,11 @@ export default function PortalSchedule({
         WEEKLY_ZOOM_HOST_UNAVAILABLE: "لا يمكن تأكيد توفر حساب Zoom لهذا الموعد حاليًا.",
         WEEKLY_ZOOM_OCCURRENCE_NOT_MATERIALIZED: "الحصة قيد التجهيز ولم تصبح جاهزة للبدء بعد. حدّث الصفحة وحاول بعد قليل.",
         WEEKLY_ZOOM_OCCURRENCE_AMBIGUOUS: "تعذر مطابقة الحصة بموعدها الأسبوعي بأمان. تواصل مع الإدارة.",
+        WEEKLY_ZOOM_OCCURRENCE_CANCELLED: "تم إلغاء هذه الحصة في الجدول، ولا يمكن بدءها.",
+        WEEKLY_ZOOM_OCCURRENCE_COMPLETED: "هذه الحصة مكتملة بالفعل، ولا يمكن بدءها مرة أخرى.",
       };
       setStartError(
-        messages[apiError.code] || apiError.message || "تعذر بدء الحصة.",
+        messages[apiErrorCode(apiError)] || apiError.message || "تعذر بدء الحصة.",
       );
     } finally {
       setStarting(false);

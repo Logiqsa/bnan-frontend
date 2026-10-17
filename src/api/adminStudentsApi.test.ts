@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "@/api/client";
-import { getAdminStudent, listAdminStudents } from "@/api/adminStudentsApi";
+import { getAdminStudent, getAdminStudentRegistrations, listAdminStudents } from "@/api/adminStudentsApi";
 
 vi.mock("@/api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -15,5 +15,10 @@ describe("admin students API", () => {
     vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { id: "student-1" } });
     await expect(getAdminStudent("student-1")).resolves.toEqual({ id: "student-1" });
     expect(apiRequest).toHaveBeenCalledWith("/admin/students/student-1");
+  });
+  it("loads the admin-only student registration detail", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: { courses: [], classrooms: [] } });
+    await expect(getAdminStudentRegistrations("student-1")).resolves.toEqual({ courses: [], classrooms: [] });
+    expect(apiRequest).toHaveBeenCalledWith("/admin/students/student-1/registrations");
   });
 });

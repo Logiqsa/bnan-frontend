@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Eye, Pencil, Plus } from "lucide-react";
 import { coursesApi } from "@/api/coursesApi";
 import { courseStaffApi } from "@/api/courseStaffApi";
+import { teacherApplicationsApi } from "@/api/teacherApplicationsApi";
 import { courseError, courseImageUrl, isFreeCourse, refId, refName } from "@/lib/courseUi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TeacherApplicationDetails } from "@/admin/TeacherApplicationDetails";
+import { Loader2 } from "lucide-react";
 import cover from "@/assets/course-default-cover.jpg";
 
 const flag = (yes: boolean, active: string, inactive: string) => (
@@ -28,6 +32,7 @@ const flag = (yes: boolean, active: string, inactive: string) => (
 
 export default function CoursesAdmin() {
   const [publicationTab, setPublicationTab] = useState<"published" | "unpublished">("published");
+  const [teacherDialogId, setTeacherDialogId] = useState("");
   const queryClient = useQueryClient();
   const courses = useQuery({
     queryKey: ["admin-courses"],
@@ -54,6 +59,22 @@ export default function CoursesAdmin() {
       ? populatedName
       : "غير متاح";
   };
+  const teacherDetailId = (value: Parameters<typeof refId>[0]) => {
+    const teacherId = refId(value);
+    const match = staff.data?.find(
+      (item) => item.id === teacherId || item.userId === teacherId,
+    );
+    if (match?.userId) return match.userId;
+    if (value && typeof value === "object" && "user" in value) {
+      return refId(value.user as Parameters<typeof refId>[0]) || teacherId;
+    }
+    return teacherId;
+  };
+  const teacherDetails = useQuery({
+    queryKey: ["course-list-teacher-details", teacherDialogId],
+    queryFn: () => teacherApplicationsApi.getByUserId(teacherDialogId),
+    enabled: Boolean(teacherDialogId),
+  });
   const publish = useMutation({
     mutationFn: ({
       id,
@@ -124,7 +145,7 @@ export default function CoursesAdmin() {
               );
 
               return (
-                <TabsContent key={tab} value={tab} className="mt-0">
+                <TabsContent key={tab} value={tab} className="mt-5">
                   {!filteredCourses.length ? (
                     <Card>
                       <CardContent className="p-12 text-center text-muted-foreground">
@@ -180,11 +201,13 @@ export default function CoursesAdmin() {
                 <CardContent className="flex min-h-[8.5rem] flex-1 flex-col space-y-3 px-4 pb-4 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">المعلم</p>
-                    <p className="font-medium">
-                      {staff.isLoading
-                        ? "جاري تحميل الاسم..."
-                        : staffName(course.teacher)}
-                    </p>
+                    {staff.isLoading ? <p className="font-medium">جاري تحميل الاسم...</p> : teacherDetailId(course.teacher) ? <button
+                      type="button"
+                      className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => setTeacherDialogId(teacherDetailId(course.teacher))}
+                    >
+                      {staffName(course.teacher)}
+                    </button> : <p className="font-medium">{staffName(course.teacher)}</p>}
                     {course.supervisor && (
                       <p className="mt-1 text-xs text-muted-foreground">
                         المشرف: {staffName(course.supervisor)}
@@ -234,6 +257,15 @@ export default function CoursesAdmin() {
           </>
         )}
         </Tabs>
+        <Dialog open={Boolean(teacherDialogId)} onOpenChange={(open) => !open && setTeacherDialogId("")}>
+          <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>تفاصيل المعلم</DialogTitle>
+              <DialogDescription>بيانات المعلم المسؤول عن الدورة.</DialogDescription>
+            </DialogHeader>
+            {teacherDetails.isLoading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-7 w-7 animate-spin" /></div> : teacherDetails.error ? <div className="py-10 text-center text-destructive"><p>{courseError(teacherDetails.error)}</p><Button className="mt-3" variant="outline" onClick={() => void teacherDetails.refetch()}>إعادة المحاولة</Button></div> : teacherDetails.data?.data ? <TeacherApplicationDetails application={teacherDetails.data.data} /> : <p className="py-10 text-center text-muted-foreground">لا توجد تفاصيل إضافية متاحة لهذا المعلم.</p>}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

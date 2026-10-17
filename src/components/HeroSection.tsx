@@ -21,11 +21,7 @@ const HeroSection = () => {
         style={{ backgroundImage: "url('/hero.jpg')" }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-white/25 to-[#e8f3fb]/65" aria-hidden="true" />
-
-      {/* Decorative blobs */}
-      <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-sky-300/25 blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-blue-200/35 blur-3xl animate-float" style={{ animationDelay: "1.5s" }} />
+      <div className="absolute inset-0 bg-white/35" aria-hidden="true" />
 
       {/* Floating education emojis */}
       {[
@@ -125,7 +121,7 @@ const HeroSection = () => {
             transition={{ duration: 0.7, delay: 0.45 }}
             className="mx-auto mt-8 w-full max-w-md"
           >
-            <AppStoreButtons onDark className="max-w-md grid-cols-1 sm:grid-cols-2" />
+            <AppStoreButtons heroStyle className="max-w-md grid-cols-1 sm:grid-cols-2" />
           </motion.div>
 
           {/* Mobile Bubbles - in-flow grid below stats */}

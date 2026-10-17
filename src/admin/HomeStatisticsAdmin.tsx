@@ -8,6 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const displayMarks = [
+  { value: "", label: "بدون علامة" },
+  { value: "+", label: "+" },
+  { value: "%", label: "%" },
+  { value: " ألف", label: "ألف" },
+];
+
+const decimalPlacesFor = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  const fraction = String(Number(value.toFixed(2))).split(".")[1];
+  return fraction?.length || 0;
+};
 
 export default function HomeStatisticsAdmin() {
   const client = useQueryClient();
@@ -20,5 +34,8 @@ export default function HomeStatisticsAdmin() {
     onError: () => toast.error("تعذر حفظ الإحصائيات. راجع القيم المدخلة."),
   });
   const update = (index: number, field: keyof HomeStatistic, value: string | number) => setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
-  return <DashboardLayout><main className="mx-auto max-w-5xl space-y-6" dir="rtl"><div><h1 className="text-3xl font-bold">إحصائيات الصفحة الرئيسية</h1><p className="mt-1 text-muted-foreground">هذه الأرقام تظهر نفسها في Hero وبطاقات الإحصائيات أسفل الصفحة الرئيسية.</p></div>{query.isLoading ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin" /></div> : query.isError ? <Card><CardContent className="p-8 text-center"><p>تعذر تحميل الإحصائيات.</p><Button className="mt-3" variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></CardContent></Card> : <Card><CardHeader><CardTitle>الأرقام المعروضة</CardTitle></CardHeader><CardContent className="space-y-4">{items.map((item, index) => <div key={item.key} className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1.5fr_1fr_1fr_120px]"><div><Label>الوصف</Label><Input className="mt-2" value={item.label} onChange={(event) => update(index, "label", event.target.value)} /></div><div><Label>الرقم</Label><Input className="mt-2" type="number" min="0" step="any" value={item.value} onChange={(event) => update(index, "value", Number(event.target.value))} /></div><div><Label>اللاحقة</Label><Input className="mt-2" value={item.suffix} onChange={(event) => update(index, "suffix", event.target.value)} placeholder="مثال: + أو %" /></div><div><Label>منازل عشرية</Label><Input className="mt-2" type="number" min="0" max="2" value={item.decimals} onChange={(event) => update(index, "decimals", Number(event.target.value))} /></div></div>)}<div className="flex justify-end"><Button size="lg" disabled={save.isPending || !items.length} onClick={() => save.mutate()}>{save.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}حفظ الأرقام</Button></div></CardContent></Card>}</main></DashboardLayout>;
+  const updateValue = (index: number, value: number) => setItems((current) => current.map((item, itemIndex) => itemIndex === index
+    ? { ...item, value, decimals: decimalPlacesFor(value) }
+    : item));
+  return <DashboardLayout><main className="mx-auto max-w-5xl space-y-6" dir="rtl"><div><h1 className="text-3xl font-bold">إحصائيات الصفحة الرئيسية</h1><p className="mt-1 text-muted-foreground">هذه الأرقام تظهر نفسها في Hero وبطاقات الإحصائيات أسفل الصفحة الرئيسية.</p></div>{query.isLoading ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin" /></div> : query.isError ? <Card><CardContent className="p-8 text-center"><p>تعذر تحميل الإحصائيات.</p><Button className="mt-3" variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></CardContent></Card> : <Card><CardHeader><CardTitle>الأرقام المعروضة</CardTitle></CardHeader><CardContent className="space-y-4">{items.map((item, index) => <div key={item.key} className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1.5fr_1fr_180px]"><div><Label>الوصف</Label><Input className="mt-2" value={item.label} onChange={(event) => update(index, "label", event.target.value)} /></div><div><Label>القيمة</Label><Input className="mt-2" type="number" min="0" step="any" value={item.value} onChange={(event) => updateValue(index, Number(event.target.value))} /></div><div><Label>العلامة المعروضة</Label><Select value={item.suffix || "none"} onValueChange={(value) => update(index, "suffix", value === "none" ? "" : value)}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent>{displayMarks.map((mark) => <SelectItem key={mark.value || "none"} value={mark.value || "none"}>{mark.label}</SelectItem>)}</SelectContent></Select></div></div>)}<p className="text-sm text-muted-foreground">يُحدد عدد المنازل العشرية تلقائيًا حسب القيمة التي تدخلها.</p><div className="flex justify-end"><Button size="lg" disabled={save.isPending || !items.length} onClick={() => save.mutate()}>{save.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}حفظ الأرقام</Button></div></CardContent></Card>}</main></DashboardLayout>;
 }

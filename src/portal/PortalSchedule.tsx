@@ -430,6 +430,13 @@ export default function PortalSchedule({
         TEACHER_NOT_ASSIGNED_TO_SUBJECT: "أنت غير مكلّف بهذه المادة.",
         COURSE_TEACHER_ACCESS_DENIED: "غير مصرح لك ببدء هذه الدورة.",
         ZOOM_MEETING_NOT_READY: "رابط Zoom الخاص بالمجموعة غير جاهز.",
+        WEEKLY_ZOOM_ASSIGNMENT_PENDING: "يجري تجهيز اجتماع Zoom لهذا الموعد. حدّث الصفحة وحاول بعد قليل.",
+        WEEKLY_ZOOM_ASSIGNMENT_UNALLOCATED: "لا يوجد حساب Zoom متاح لهذا الموعد حاليًا.",
+        WEEKLY_ZOOM_ASSIGNMENT_QUARANTINED: "توقف تجهيز Zoom لهذا الموعد للتحقق الآمن. تواصل مع الإدارة.",
+        WEEKLY_ZOOM_HOST_BUSY: "حساب Zoom مشغول بحصة أخرى. حاول مرة أخرى بعد قليل.",
+        WEEKLY_ZOOM_HOST_UNAVAILABLE: "لا يمكن تأكيد توفر حساب Zoom لهذا الموعد حاليًا.",
+        WEEKLY_ZOOM_OCCURRENCE_NOT_MATERIALIZED: "الحصة قيد التجهيز ولم تصبح جاهزة للبدء بعد. حدّث الصفحة وحاول بعد قليل.",
+        WEEKLY_ZOOM_OCCURRENCE_AMBIGUOUS: "تعذر مطابقة الحصة بموعدها الأسبوعي بأمان. تواصل مع الإدارة.",
       };
       setStartError(
         messages[apiError.code] || apiError.message || "تعذر بدء الحصة.",

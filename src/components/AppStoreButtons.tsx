@@ -13,17 +13,21 @@ const GooglePlayMark = ({ small = false }: { small?: boolean }) => (
   </svg>
 );
 
-type Props = { onDark?: boolean; compact?: boolean; footerStyle?: boolean; className?: string };
+type Props = { onDark?: boolean; compact?: boolean; footerStyle?: boolean; heroStyle?: boolean; className?: string };
 
-const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false, className = "" }: Props) => {
+const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false, heroStyle = false, className = "" }: Props) => {
   const { pick } = useLanguage();
   const surface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground hover:border-secondary/60 hover:bg-primary-foreground/5"
+    : heroStyle
+    ? "border-[#102a53]/15 bg-white/85 text-[#102a53] shadow-[0_10px_22px_rgba(16,42,83,0.1)] hover:border-[#102a53]/30 hover:bg-white"
     : onDark
     ? "border-white/25 bg-transparent text-white hover:border-white/45 hover:bg-white/5"
     : "border-border bg-card text-foreground hover:border-primary/30";
   const iosSurface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground"
+    : heroStyle
+    ? "border-[#102a53] bg-[#102a53] text-white shadow-[0_10px_22px_rgba(16,42,83,0.16)]"
     : onDark
     ? "border-white/20 bg-white/10 text-white"
     : "border-border bg-muted/50 text-foreground";

@@ -33,6 +33,7 @@ const TeacherRequests = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [ignoringId, setIgnoringId] = useState<string | null>(null);
   const requests = useQuery({
     queryKey: teacherPendingRequestsPageQueryKey(page, REQUESTS_PER_PAGE),
     queryFn: () => teacherRequestsApi.listPending({ page, limit: REQUESTS_PER_PAGE }),
@@ -88,6 +89,17 @@ const TeacherRequests = () => {
       );
     },
     onSettled: () => setAcceptingId(null),
+  });
+
+  const ignoreRequest = useMutation({
+    mutationFn: teacherRequestsApi.ignore,
+    onMutate: (requestId) => setIgnoringId(requestId),
+    onSuccess: async () => {
+      toast.success(pick("تم تجاهل الطلب ولن يختفي عند المعلمين الآخرين.", "Request ignored; other teachers can still see it."));
+      await queryClient.invalidateQueries({ queryKey: teacherPendingRequestsQueryKey });
+    },
+    onError: () => toast.error(pick("تعذر تجاهل الطلب. حاول مرة أخرى.", "Unable to ignore the request. Please try again.")),
+    onSettled: () => setIgnoringId(null),
   });
 
   const formatDate = (value?: string) => {
@@ -226,6 +238,7 @@ const TeacherRequests = () => {
               {requests.data.data.map((request) => {
               const requestDate = formatDate(request.requestedAt);
               const isAccepting = acceptingId === request.requestId;
+              const isIgnoring = ignoringId === request.requestId;
               return (
                 <Card key={request.requestId} className="flex flex-col shadow-sm">
                   <CardHeader className="space-y-3">
@@ -287,9 +300,9 @@ const TeacherRequests = () => {
                         {pick("تاريخ الطلب:", "Requested:")} {requestDate}
                       </p>
                     )}
-                    <Button
-                      className="mt-auto w-full"
-                      disabled={acceptRequest.isPending}
+                    <div className="mt-auto flex gap-2"><Button
+                      className="flex-1"
+                      disabled={acceptRequest.isPending || ignoreRequest.isPending}
                       onClick={() => acceptRequest.mutate(request.requestId)}
                     >
                       {isAccepting ? (
@@ -300,7 +313,7 @@ const TeacherRequests = () => {
                       {isAccepting
                         ? pick("جاري قبول الطلب...", "Accepting request...")
                         : pick("قبول الطلب", "Accept request")}
-                    </Button>
+                    </Button><Button variant="outline" className="flex-1" disabled={acceptRequest.isPending || ignoreRequest.isPending} onClick={() => ignoreRequest.mutate(request.requestId)}>{isIgnoring && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{pick("تجاهل", "Ignore")}</Button></div>
                   </CardContent>
                 </Card>
               );

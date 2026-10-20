@@ -20,6 +20,7 @@ export interface SubjectRequestCheckoutBody {
   packageId: string;
   provider: GulfPaymentProvider;
   notes?: string;
+  subjectNotes?: Record<string, string>;
   discountCode?: string;
   paymentAddress?: TamaraPaymentAddress;
   locale?: "ar_SA" | "en_US";
@@ -44,6 +45,7 @@ export interface DirectSubjectRequestBody {
   packageId?: string;
   addToSharedSubscription?: boolean;
   notes?: string;
+  subjectNotes?: Record<string, string>;
 }
 
 export interface DirectSubjectRequestResult {

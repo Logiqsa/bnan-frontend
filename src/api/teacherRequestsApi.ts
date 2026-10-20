@@ -65,4 +65,8 @@ export const teacherRequestsApi = {
     });
     return response.data;
   },
+  ignore: async (requestId: string) => (await apiRequest<{ success: true }>(
+    `/gulf-teacher-requests/${encodeURIComponent(requestId)}/ignore`,
+    { method: "PATCH" },
+  )).data,
 };

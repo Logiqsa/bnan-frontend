@@ -8,6 +8,10 @@ export interface TeacherSessionStatistics {
   sessionsCount: number;
   totalMinutes: number;
   totalHours: number;
+  gulfMinutes: number;
+  gulfHours: number;
+  gulfSessionsCount: number;
+  egyptianSessionsCount: number;
   period?: { from: string; to: string } | null;
 }
 

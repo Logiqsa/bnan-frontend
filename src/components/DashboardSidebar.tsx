@@ -156,12 +156,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/teacher-assignment",
     },
     {
-      label: "بيانات تدريسي",
-      labelEn: "Teaching profile",
-      icon: BookOpen,
-      path: "/portal/teacher/teaching-profile",
-    },
-    {
       label: "الفصول",
       labelEn: "Classrooms",
       icon: School,
@@ -276,6 +270,12 @@ export const roleNavItems: Record<string, NavItem[]> = {
       labelEn: "Dashboard",
       icon: LayoutDashboard,
       path: "/portal/teacher",
+    },
+    {
+      label: "بيانات تدريسي",
+      labelEn: "Teaching profile",
+      icon: BookOpen,
+      path: "/portal/teacher/teaching-profile",
     },
     {
       label: "الفصول",

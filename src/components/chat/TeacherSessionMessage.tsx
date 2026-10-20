@@ -108,6 +108,20 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
     const hasSummaryDetails = Boolean(
       message.summaryContent || message.summaryDocUrl || nextSteps.length,
     );
+    const summaryStateText = message.summaryStatus === "pending"
+      ? pick(
+        "Zoom يجهّز نص الملخص الآن، وستتحدث هذه البطاقة تلقائيًا.",
+        "Zoom is preparing the summary text. This card will update automatically.",
+      )
+      : message.summaryStatus === "unavailable"
+        ? pick(
+          "Zoom لم يرسل نص الملخص لهذه الجلسة.",
+          "Zoom did not provide summary text for this session.",
+        )
+        : pick(
+          "تفاصيل الملخص غير متاحة حاليًا",
+          "Summary details are not currently available",
+        );
 
     return (
       <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border border-sky-200 bg-sky-50/60 text-foreground" title={createdAt || undefined}>
@@ -160,12 +174,7 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
                   )}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                {pick(
-                  "تفاصيل الملخص غير متاحة حاليًا",
-                  "Summary details are not currently available",
-                )}
-              </p>
+              <p className="text-xs text-muted-foreground">{summaryStateText}</p>
             )}
             {createdAt && <p className="mt-2 text-[10px] text-muted-foreground">{createdAt}</p>}
           </div>

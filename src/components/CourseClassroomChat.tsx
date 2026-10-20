@@ -48,6 +48,11 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
   );
 
   if (message.messageType === "session_summary") {
+    const summaryStateText = message.summaryStatus === "pending"
+      ? "Zoom يجهّز نص الملخص الآن، وستتحدث هذه البطاقة تلقائيًا."
+      : message.summaryStatus === "unavailable"
+        ? "Zoom لم يرسل نص الملخص لهذه الجلسة."
+        : "تفاصيل الملخص غير متاحة حاليًا.";
     return (
       <div className="mx-auto w-full max-w-2xl rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-foreground shadow-sm">
         <div className="flex items-start gap-3">
@@ -78,6 +83,9 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
                       فتح مستند الملخص
                     </a>
                   </Button>
+                )}
+                {!message.summaryContent && !message.summaryDocUrl && (
+                  <p className="text-sm text-muted-foreground">{summaryStateText}</p>
                 )}
               </div>
             </details>

@@ -34,6 +34,7 @@ export interface ChatMessage {
   summaryTitle?: string;
   summaryContent?: string;
   summaryDocUrl?: string;
+  summaryStatus?: "pending" | "ready" | "unavailable";
   reportSummary?: {
     participantRows?: number;
     uniqueParticipants?: number;

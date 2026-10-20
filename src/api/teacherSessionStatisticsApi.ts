@@ -11,6 +11,9 @@ export interface TeacherSessionStatistics {
   gulfMinutes: number;
   gulfHours: number;
   gulfSessionsCount: number;
+  courseMinutes: number;
+  courseHours: number;
+  courseSessionsCount: number;
   egyptianSessionsCount: number;
   period?: { from: string; to: string } | null;
 }

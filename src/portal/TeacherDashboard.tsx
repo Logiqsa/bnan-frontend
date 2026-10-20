@@ -152,9 +152,10 @@ const TeacherDashboardContent = () => {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {sessionStatistics.data.gulfSessionsCount > 0 && <div className="rounded-xl bg-primary/5 p-4"><p className="text-sm text-muted-foreground">{pick("إجمالي الساعات (المنهج الخليجي)", "Total hours (Gulf curriculum)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.gulfHours.toLocaleString(isArabic ? "ar-EG" : "en-US", { maximumFractionDigits: 2 })}</p></div>}
+              {(sessionStatistics.data.gulfSessionsCount > 0 || sessionStatistics.data.courseSessionsCount > 0) && <div className="rounded-xl bg-primary/5 p-4"><p className="text-sm text-muted-foreground">{pick("إجمالي الساعات (الخليجي والدورات)", "Total hours (Gulf and courses)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.totalHours.toLocaleString(isArabic ? "ar-EG" : "en-US", { maximumFractionDigits: 2 })}</p></div>}
               {sessionStatistics.data.egyptianSessionsCount > 0 && <div className="rounded-xl bg-muted/50 p-4"><p className="text-sm text-muted-foreground">{pick("عدد الحصص (المنهج المصري)", "Sessions (Egyptian curriculum)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.egyptianSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
-              {sessionStatistics.data.gulfSessionsCount === 0 && sessionStatistics.data.egyptianSessionsCount === 0 && <p className="text-sm text-muted-foreground">{pick("لا توجد حصص مكتملة في هذه الفترة.", "No completed sessions in this period.")}</p>}
+              {sessionStatistics.data.courseSessionsCount > 0 && <div className="rounded-xl bg-sky-50 p-4"><p className="text-sm text-muted-foreground">{pick("جلسات الدورات", "Course sessions")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.courseSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
+              {sessionStatistics.data.gulfSessionsCount === 0 && sessionStatistics.data.egyptianSessionsCount === 0 && sessionStatistics.data.courseSessionsCount === 0 && <p className="text-sm text-muted-foreground">{pick("لا توجد حصص مكتملة في هذه الفترة.", "No completed sessions in this period.")}</p>}
             </div>
           )}
         </CardContent>

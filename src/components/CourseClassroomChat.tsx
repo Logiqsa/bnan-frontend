@@ -19,6 +19,7 @@ import { getSocket } from "@/lib/socket";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import TeacherMessageAttachments from "@/components/chat/TeacherMessageAttachments";
+import ZoomLinkifiedText from "@/components/chat/ZoomLinkifiedText";
 import VoiceMessageRecorder from "@/components/chat/VoiceMessageRecorder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -378,7 +379,7 @@ export default function CourseClassroomChat({
                   className={`${audioOnly ? "w-full max-w-sm bg-transparent p-0" : `max-w-[80%] rounded-2xl px-4 py-2 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}`}
                 >
                   {!audioOnly && <p className="mb-1 text-xs opacity-70">{message.sender?.fullName || "مستخدم"}</p>}
-                  {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
+                  {message.text && <p className="whitespace-pre-wrap break-words"><ZoomLinkifiedText text={message.text} /></p>}
                   <TeacherMessageAttachments attachments={message.attachments} />
                   {message.createdAt && (
                     <p className="mt-1 text-[10px] opacity-60">

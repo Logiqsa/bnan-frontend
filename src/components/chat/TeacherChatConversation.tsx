@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import TeacherMessageAttachments from "@/components/chat/TeacherMessageAttachments";
 import TeacherChatComposer from "@/components/chat/TeacherChatComposer";
 import TeacherSessionMessage from "@/components/chat/TeacherSessionMessage";
+import ZoomLinkifiedText from "@/components/chat/ZoomLinkifiedText";
 import { removeTeacherChatMessage, type TeacherMessagesData } from "@/components/chat/removeTeacherChatMessage";
 import { updateTeacherChatMessage } from "@/components/chat/updateTeacherChatMessage";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -427,7 +428,7 @@ const TeacherChatConversation = ({
                       </div>
                     ) : content && (
                       <p className="whitespace-pre-wrap break-words leading-5">
-                        {content}
+                        <ZoomLinkifiedText text={content} />
                       </p>
                     )}
                     <TeacherMessageAttachments attachments={message.attachments} />

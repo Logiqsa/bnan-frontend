@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +15,14 @@ import { toast } from "sonner";
 
 const NotificationsBell = ({ role }: { role: PortalRole }) => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const { isArabic, pick } = useLanguage();
   const { items, unreadCount, loading, error, reload, markRead, markAllRead } = useNotificationsContext();
   const run = (operation: Promise<void>) => {
     void operation.catch(() => toast.error(pick("تعذر تحديث الإشعارات.", "Unable to update notifications.")));
   };
 
-  return <Popover>
+  return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
       <Button variant="outline" size="icon" className="relative bg-background shadow-sm" aria-label={pick("فتح الإشعارات", "Open notifications")}>
         <Bell className="h-5 w-5" />
@@ -28,7 +30,7 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
       </Button>
     </PopoverTrigger>
     <PopoverContent
-      className="z-[100] w-[min(26rem,calc(100vw-2rem))] max-w-none overflow-hidden p-0 shadow-xl"
+      className="z-[100] w-[calc(100vw-1rem)] max-w-[26rem] overflow-hidden p-0 shadow-xl sm:w-[26rem]"
       align="start"
       collisionPadding={16}
       dir={isArabic ? "rtl" : "ltr"}
@@ -37,14 +39,17 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
         <h4 className="font-cairo font-semibold">{pick("الإشعارات", "Notifications")}</h4>
         {unreadCount > 0 && <Button variant="ghost" size="sm" onClick={() => run(markAllRead())} className="gap-1 text-xs"><Check className="h-3 w-3" />{pick("قراءة الكل", "Mark all read")}</Button>}
       </div>
-      <ScrollArea className="h-[min(28rem,calc(100dvh-9rem))]">
+      <ScrollArea className="h-[min(28rem,calc(100dvh-7rem))]">
         {loading && items.length === 0 ? <div className="grid h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           : error && items.length === 0 ? <div className="space-y-3 p-6 text-center text-sm text-muted-foreground"><p>{error}</p><Button variant="outline" size="sm" onClick={() => void reload()} className="gap-1"><RefreshCw className="h-3 w-3" />{pick("إعادة المحاولة", "Retry")}</Button></div>
           : items.length === 0 ? <div className="p-6 text-center font-cairo text-sm text-muted-foreground">{pick("لا توجد إشعارات", "No notifications")}</div>
           : <ul className={`divide-y ${isArabic ? "text-right" : "text-left"}`}>{items.map((notification) => <li key={notification.id} onClick={() => {
             if (!notification.isRead) run(markRead(notification.id));
             const link = notificationLink(notification, role);
-            if (link) navigate(link);
+            if (link) {
+              setOpen(false);
+              navigate(link);
+            }
           }} className={`min-w-0 cursor-pointer p-3.5 transition hover:bg-muted/50 ${!notification.isRead ? "bg-primary/5" : ""}`}>
             <div className={`flex min-w-0 items-start justify-between gap-2 ${isArabic ? "flex-row-reverse" : "flex-row"}`}><p dir="auto" className="min-w-0 break-words font-cairo text-sm font-medium leading-6">{notification.title || pick("إشعار جديد", "New notification")}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
             {notification.body && <p dir="auto" className="mt-1 break-words whitespace-normal text-xs leading-5 text-muted-foreground">{notification.body}</p>}

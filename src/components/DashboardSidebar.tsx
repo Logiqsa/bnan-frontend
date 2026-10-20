@@ -632,7 +632,10 @@ const SidebarContent = ({
   const location = useLocation();
   const navigate = useNavigate();
   const role = user?.role || "student";
-  const studentAcademicOnlyPaths = new Set(["/portal/student/subjects", "/portal/student/schedule", "/portal/student/assignments", "/portal/student/evaluations", "/portal/student/subscriptions", "/portal/student/subject-requests", "/portal/student/change-requests"]);
+  // A general-course student does not have academic subjects/subscriptions,
+  // but their active CourseEnrollment has a real weekly schedule. Do not hide
+  // the unified schedule entry for course-only accounts.
+  const studentAcademicOnlyPaths = new Set(["/portal/student/subjects", "/portal/student/assignments", "/portal/student/evaluations", "/portal/student/subscriptions", "/portal/student/subject-requests", "/portal/student/change-requests"]);
   const items = role === "student" && user?.studentType && user.studentType !== "academy"
     ? (roleNavItems[role] || []).filter((item) => !studentAcademicOnlyPaths.has(item.path))
     : roleNavItems[role] || [];

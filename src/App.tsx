@@ -25,6 +25,7 @@ import ParentAppNotice from "@/portal/ParentAppNotice";
 import TeacherSignup from "@/portal/TeacherSignup";
 import TeacherDashboard from "@/portal/TeacherDashboard";
 import TeacherRequests from "@/portal/TeacherRequests";
+import TeacherTeachingProfile from "@/portal/TeacherTeachingProfile";
 import TeacherMessages from "@/portal/TeacherMessages";
 import TeacherPayroll from "@/portal/TeacherPayroll";
 import TeacherPayrollStatementDetail from "@/portal/TeacherPayrollStatementDetail";
@@ -218,6 +219,10 @@ export default function App() {
                           <PortalSchedule role="teacher" />
                         </PortalGuard>
                       }
+                    />
+                    <Route
+                      path="/portal/teacher/teaching-profile"
+                      element={<PortalGuard role="teacher"><TeacherTeachingProfile /></PortalGuard>}
                     />
                     <Route
                       path="/portal/teacher/requests"

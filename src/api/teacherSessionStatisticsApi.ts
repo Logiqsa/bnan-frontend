@@ -17,6 +17,18 @@ export interface TeacherSessionStatistics {
   egyptianSessionsCount: number;
   period?: { from: string; to: string } | null;
 }
+export interface TeacherSessionDetail {
+  id: string;
+  title: string;
+  type: "egyptian" | "gulf" | "course" | "other";
+  curriculumName?: string | null;
+  courseName?: string | null;
+  gradeName?: string | null;
+  subjectName?: string | null;
+  classroomName?: string | null;
+  startedAt: string;
+  durationMinutes: number;
+}
 
 export const teacherSessionStatisticsApi = {
   getMine: async (from: string, to: string) => {
@@ -25,5 +37,13 @@ export const teacherSessionStatisticsApi = {
       `/teachers/me/statistics/sessions?${params.toString()}`,
     );
     return response.data;
+  },
+  getDetails: async (from: string, to: string) => {
+    const params = new URLSearchParams({ from, to });
+    return (
+      await apiRequest<{ success: true; data: { sessions: TeacherSessionDetail[] } }>(
+        `/teachers/me/statistics/sessions/details?${params.toString()}`,
+      )
+    ).data;
   },
 };

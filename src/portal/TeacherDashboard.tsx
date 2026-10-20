@@ -24,6 +24,8 @@ import {
 } from "@/api/teacherRequestsApi";
 import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
 import { teacherSessionStatisticsApi } from "@/api/teacherSessionStatisticsApi";
+import type { TeacherSessionDetail } from "@/api/teacherSessionStatisticsApi";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
@@ -86,6 +88,8 @@ const TeacherDashboardContent = () => {
     staleTime: 60_000,
     retry: 1,
   });
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const sessionDetails = useQuery({ queryKey: ["teacher-session-statistics-details", statisticsPeriod.from, statisticsPeriod.to], queryFn: () => teacherSessionStatisticsApi.getDetails(statisticsPeriod.from, statisticsPeriod.to), enabled: detailsOpen, staleTime: 30_000, retry: 1 });
   const pendingReviews = notifications.filter(
     (notification) =>
       notification.key === "ASSIGNMENT_SUBMITTED" && !notification.isRead,
@@ -106,6 +110,24 @@ const TeacherDashboardContent = () => {
   };
 
   const dateLocale = pick("ar-EG-u-ca-gregory", "en-US-u-ca-gregory");
+  const sessionTypeLabel = (type: TeacherSessionDetail["type"]) => {
+    const labels: Record<TeacherSessionDetail["type"], string> = {
+      egyptian: pick("مصري", "Egyptian"),
+      gulf: pick("خليجي", "Gulf"),
+      course: pick("دورة", "Course"),
+      other: pick("أخرى", "Other"),
+    };
+    return labels[type];
+  };
+  const formatSessionDuration = (minutes: number) => {
+    if (minutes >= 60) {
+      return pick(
+        `${(minutes / 60).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ساعة`,
+        `${(minutes / 60).toLocaleString("en-US", { maximumFractionDigits: 2 })} hr`,
+      );
+    }
+    return pick(`${minutes.toLocaleString("ar-EG")} دقيقة`, `${minutes.toLocaleString("en-US")} min`);
+  };
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -151,11 +173,25 @@ const TeacherDashboardContent = () => {
               <Button type="button" size="sm" variant="outline" onClick={() => void sessionStatistics.refetch()}>{pick("إعادة المحاولة", "Retry")}</Button>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(sessionStatistics.data.gulfSessionsCount > 0 || sessionStatistics.data.courseSessionsCount > 0) && <div className="rounded-xl bg-primary/5 p-4"><p className="text-sm text-muted-foreground">{pick("إجمالي الساعات (الخليجي والدورات)", "Total hours (Gulf and courses)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.totalHours.toLocaleString(isArabic ? "ar-EG" : "en-US", { maximumFractionDigits: 2 })}</p></div>}
-              {sessionStatistics.data.egyptianSessionsCount > 0 && <div className="rounded-xl bg-muted/50 p-4"><p className="text-sm text-muted-foreground">{pick("عدد الحصص (المنهج المصري)", "Sessions (Egyptian curriculum)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.egyptianSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
-              {sessionStatistics.data.courseSessionsCount > 0 && <div className="rounded-xl bg-sky-50 p-4"><p className="text-sm text-muted-foreground">{pick("جلسات الدورات", "Course sessions")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.courseSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
-              {sessionStatistics.data.gulfSessionsCount === 0 && sessionStatistics.data.egyptianSessionsCount === 0 && sessionStatistics.data.courseSessionsCount === 0 && <p className="text-sm text-muted-foreground">{pick("لا توجد حصص مكتملة في هذه الفترة.", "No completed sessions in this period.")}</p>}
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(sessionStatistics.data.gulfSessionsCount > 0 || sessionStatistics.data.courseSessionsCount > 0) && <div className="rounded-xl bg-primary/5 p-4"><p className="text-sm text-muted-foreground">{pick("إجمالي الساعات (الخليجي والدورات)", "Total hours (Gulf and courses)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.totalHours.toLocaleString(isArabic ? "ar-EG" : "en-US", { maximumFractionDigits: 2 })}</p></div>}
+                {sessionStatistics.data.egyptianSessionsCount > 0 && <div className="rounded-xl bg-muted/50 p-4"><p className="text-sm text-muted-foreground">{pick("عدد الحصص (المنهج المصري)", "Sessions (Egyptian curriculum)")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.egyptianSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
+                {sessionStatistics.data.courseSessionsCount > 0 && <div className="rounded-xl bg-sky-50 p-4"><p className="text-sm text-muted-foreground">{pick("جلسات الدورات", "Course sessions")}</p><p className="mt-1 text-2xl font-bold tabular-nums">{sessionStatistics.data.courseSessionsCount.toLocaleString(isArabic ? "ar-EG" : "en-US")}</p></div>}
+                {sessionStatistics.data.gulfSessionsCount === 0 && sessionStatistics.data.egyptianSessionsCount === 0 && sessionStatistics.data.courseSessionsCount === 0 && <p className="text-sm text-muted-foreground">{pick("لا توجد حصص مكتملة في هذه الفترة.", "No completed sessions in this period.")}</p>}
+              </div>
+              <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="sm"><ClipboardList className="ms-1 h-4 w-4" />{pick("عرض تفصيلي", "View details")}</Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{pick("تفاصيل الحصص والجلسات", "Session details")}</DialogTitle>
+                    <p className="text-sm text-muted-foreground">{statisticsPeriod.label}</p>
+                  </DialogHeader>
+                  {sessionDetails.isPending ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : sessionDetails.isError ? <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 p-3 text-sm text-destructive"><span>{pick("تعذر تحميل التفاصيل.", "Unable to load details.")}</span><Button size="sm" variant="outline" onClick={() => void sessionDetails.refetch()}>{pick("إعادة المحاولة", "Retry")}</Button></div> : sessionDetails.data?.sessions.length ? <div className="space-y-3">{sessionDetails.data.sessions.map((session) => <div key={session.id} className="rounded-xl border p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold">{session.title}</p><p className="mt-1 text-sm text-muted-foreground">{new Date(session.startedAt).toLocaleString(dateLocale, { dateStyle: "medium", timeStyle: "short" })}</p></div><Badge variant="secondary">{sessionTypeLabel(session.type)}</Badge></div><div className="mt-3 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2"><p>{pick("المنهج: ", "Curriculum: ")}{session.curriculumName || pick("غير محدد", "Not specified")}</p><p>{pick("المدة: ", "Duration: ")}{formatSessionDuration(session.durationMinutes)}</p>{session.courseName && <p>{pick("الدورة: ", "Course: ")}{session.courseName}</p>}{session.subjectName && <p>{pick("المادة: ", "Subject: ")}{session.subjectName}</p>}{session.gradeName && <p>{pick("الصف: ", "Grade: ")}{session.gradeName}</p>}{session.classroomName && <p>{pick("الفصل: ", "Class: ")}{session.classroomName}</p>}</div></div>)}</div> : <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">{pick("لا توجد حصص أو جلسات مكتملة في هذه الفترة.", "No completed sessions in this period.")}</p>}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </CardContent>

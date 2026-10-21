@@ -1206,17 +1206,6 @@ export default function StudentSignup({
                         })}
                       </div>
                     )}
-                    {mode === "gulf" && subjectIds.length > 0 && (
-                      <div className="mt-5 space-y-3 border-t pt-4">
-                        <p className="font-cairo text-sm font-bold">ملاحظات لكل مادة (اختياري)</p>
-                        {subjects.filter((subject) => subjectIds.includes(subject.id)).map((subject) => (
-                          <label key={`note-${subject.id}`} className="block text-sm font-tajawal">
-                            <span className="mb-1 block">{subject.name}</span>
-                            <textarea className="min-h-20 w-full rounded-lg border bg-background p-2" maxLength={2000} value={subjectNotes[subject.id] || ""} onChange={(event) => setSubjectNotes((current) => ({ ...current, [subject.id]: event.target.value }))} placeholder="ملاحظات خاصة بهذه المادة" />
-                          </label>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1358,6 +1347,17 @@ export default function StudentSignup({
                       <p className="text-destructive font-tajawal text-sm">
                         نوع الباقة غير مدعوم.
                       </p>
+                    )}
+                    {mode === "gulf" && subjectIds.length > 0 && (
+                      <div className="mt-5 space-y-3 border-t pt-4">
+                        <p className="font-cairo text-sm font-bold">ملاحظات لكل مادة (اختياري)</p>
+                        {subjects.filter((subject) => subjectIds.includes(subject.id)).map((subject) => (
+                          <label key={`note-${subject.id}`} className="block text-sm font-tajawal">
+                            <span className="mb-1 block">{subject.name}</span>
+                            <textarea className="min-h-20 w-full rounded-lg border bg-background p-2" maxLength={2000} value={subjectNotes[subject.id] || ""} onChange={(event) => setSubjectNotes((current) => ({ ...current, [subject.id]: event.target.value }))} placeholder="ملاحظات خاصة بهذه المادة" />
+                          </label>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}

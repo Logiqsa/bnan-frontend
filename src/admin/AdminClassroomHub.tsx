@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ClipboardList, Eye, Loader2, MessageSquare, Play, RefreshCw, School, Users, UserPlus, Video } from "lucide-react";
+import { BookPlus, CalendarDays, ClipboardList, Eye, Loader2, MessageSquare, Play, RefreshCw, School, Trash2, Users, UserPlus, Video } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { adminAssignmentsApi } from "@/api/adminAssignmentsApi";
 import { adminClassroomAttendanceApi, type AdminAttendanceStatus } from "@/api/adminClassroomAttendanceApi";
@@ -63,6 +63,7 @@ export default function AdminClassroomHub() {
   const [attendanceFilters, setAttendanceFilters] = useState({ student: "", session: "", status: "", from: "", to: "", page: 1 });
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const queryClient = useQueryClient();
 
   const details = useQuery({
@@ -97,6 +98,22 @@ export default function AdminClassroomHub() {
       ]);
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "تعذر إضافة الطالب إلى الفصل."),
+  });
+  const addSubject = useMutation({
+    mutationFn: () => classroomRecordingsApi.addSubject(classroomId, selectedSubjectId),
+    onSuccess: async () => {
+      setSelectedSubjectId(""); toast.success("تمت إضافة المادة إلى الفصل.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-subjects", classroomId] });
+    },
+    onError: () => toast.error("تعذر إضافة المادة إلى الفصل."),
+  });
+  const deleteSubject = useMutation({
+    mutationFn: (classroomSubjectId: string) => classroomRecordingsApi.deleteSubject(classroomId, classroomSubjectId),
+    onSuccess: async () => {
+      toast.success("تم حذف المادة من الفصل.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-subjects", classroomId] });
+    },
+    onError: (error) => toast.error(error instanceof ApiError && error.status === 409 ? "لا يمكن حذف المادة لأنها مستخدمة في الجدول. احذف حصصها أولًا." : "تعذر حذف المادة من الفصل."),
   });
   const recordings = useQuery({
     queryKey: ["admin-classroom-hub-recordings", classroomId],
@@ -148,6 +165,8 @@ export default function AdminClassroomHub() {
   });
 
   const subjectItems = subjects.data?.data?.subjects || [];
+  const eligibleSubjectItems = subjects.data?.data?.eligibleSubjects || [];
+  const availableSubjectItems = eligibleSubjectItems.filter((subject) => !subject.isAssigned && !subjectItems.some((assigned) => assigned.subjectId === subject.id));
   const studentItems = students.data?.data || [];
   const availableStudentItems = availableStudents.data?.data || [];
   const classroom = details.data?.data;
@@ -190,6 +209,7 @@ export default function AdminClassroomHub() {
     <Breadcrumb dir="rtl"><BreadcrumbList className="min-w-0 flex-nowrap overflow-hidden"><BreadcrumbItem><BreadcrumbLink asChild><Link to="/admin">الرئيسية</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator className="rotate-180" /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/admin/classrooms">الفصول</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator className="rotate-180" /><BreadcrumbItem className="min-w-0"><BreadcrumbPage className="block max-w-[45vw] truncate sm:max-w-md" title={display(classroom.name)}>{display(classroom.name)}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
     <div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h1 className="text-2xl font-bold sm:text-3xl">إدارة الفصل</h1><p className="mt-1 truncate text-sm text-muted-foreground" title={display(classroom.name)}>{display(classroom.name)}</p></div><Badge variant={classroom.isActive === false ? "outline" : "default"}>{classroom.isActive === false ? "غير نشط" : "نشط"}</Badge></div>
     <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4"><div><p className="text-xs text-muted-foreground">المنهج</p><p className="font-semibold">{referenceName(classroom.curriculum) || "—"}</p></div><div><p className="text-xs text-muted-foreground">الصف</p><p className="font-semibold">{referenceName(classroom.grade) || "—"}</p></div><div><p className="text-xs text-muted-foreground">الطلاب</p><p className="font-semibold">{students.isSuccess ? studentItems.length : "—"}</p></div><div><p className="text-xs text-muted-foreground">Zoom</p><p className="font-semibold">{zoomState === "ready" ? "مرتبط" : zoomState === "creating" ? "جارٍ التجهيز" : zoomState === "failed" ? "فشل التجهيز" : "غير مرتبط"}</p></div></CardContent></Card>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><BookPlus className="h-5 w-5 text-primary"/>إدارة مواد الفصل</CardTitle><p className="text-sm text-muted-foreground">أضف مادة من مواد الصف أو احذف مادة غير مستخدمة في الجدول.</p></CardHeader><CardContent className="space-y-4"><QueryState loading={subjects.isLoading} error={subjects.error} retry={() => void subjects.refetch()}/>{subjects.isSuccess && <><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{subjectItems.map((subject) => <div key={subject.classroomSubjectId || subject.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div className="min-w-0"><p className="truncate font-medium">المادة: {subject.name || subject.subject?.name || "مادة"}</p><p className="mt-1 truncate text-xs text-muted-foreground">{subject.teacher ? "تم تعيين معلم" : "بدون معلم"}</p></div><Button type="button" size="icon" variant="ghost" className="shrink-0 text-destructive hover:text-destructive" aria-label={`حذف مادة ${subject.name}`} disabled={deleteSubject.isPending} onClick={() => deleteSubject.mutate(subject.classroomSubjectId || subject.id)}>{deleteSubject.isPending && deleteSubject.variables === (subject.classroomSubjectId || subject.id) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}</Button></div>)}{!subjectItems.length && <p className="text-sm text-muted-foreground">لا توجد مواد مضافة حاليًا.</p>}</div><div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_auto]"><AdminSearchableSelect label="إضافة مادة" value={selectedSubjectId} placeholder="اختر مادة" options={availableSubjectItems.map((subject) => ({ value: subject.id, label: subject.name }))} onChange={(value) => setSelectedSubjectId(value || "")} noOptionsLabel="تمت إضافة كل المواد المتاحة." emptyLabel="لا توجد مادة مطابقة." searchPlaceholder="ابحث باسم المادة"/><Button className="self-end" onClick={() => addSubject.mutate()} disabled={!selectedSubjectId || addSubject.isPending}>{addSubject.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <BookPlus className="ml-2 h-4 w-4"/>}إضافة المادة</Button></div></>}</CardContent></Card>
     <Button className="mb-3" variant="outline" onClick={() => changeTab("sessions")}><CalendarDays className="ml-2 h-4 w-4" />الحصص</Button><Tabs value={activeTab} onValueChange={changeTab} dir="rtl"><div className="overflow-x-auto"><TabsList className="min-w-max">{tabs.map(([value, label]) => <TabsTrigger key={value} value={value}>{label}</TabsTrigger>)}</TabsList></div>
       <AdminClassroomSessionsTab classroomId={classroomId} active={activeTab === "sessions"} />
       <AdminClassroomEvaluationsTab classroomId={classroomId} active={activeTab === "evaluations"} />

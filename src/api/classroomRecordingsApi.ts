@@ -70,6 +70,7 @@ export interface ClassroomSubjectOption {
   canRequestLeave?: boolean;
   isActive: boolean;
 }
+export interface EligibleClassroomSubject { id: string; name: string; isAssigned: boolean }
 
 export interface ClassroomStudentOption {
   studentId: string;
@@ -225,6 +226,7 @@ export const classroomRecordingsApi = {
     supervisorId: string;
     classroomKind: "shared";
     sharedAcademicTargets: Array<{ curriculum: string; grade: string }>;
+    subjects: string[];
   }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>(
     "/classrooms",
     { method: "POST", body: JSON.stringify(body) },
@@ -253,8 +255,20 @@ export const classroomRecordingsApi = {
   },
 
   listSubjects: (classroomId: string) =>
-    apiRequest<{ success: true; data: { subjects: ClassroomSubjectOption[]; sourceType?: "legacy" | "course" } }>(
+    apiRequest<{ success: true; data: { subjects: ClassroomSubjectOption[]; eligibleSubjects?: EligibleClassroomSubject[]; sourceType?: "legacy" | "course"; classroomKind?: ClassroomOption["classroomKind"] } }>(
       `/classrooms/${classroomId}/subjects`,
+    ),
+
+  addSubject: (classroomId: string, subjectId: string) =>
+    apiRequest<{ success: true; data: ClassroomSubjectOption }>(
+      `/classrooms/${encodeURIComponent(classroomId)}/subjects`,
+      { method: "POST", body: JSON.stringify({ subject: subjectId }) },
+    ),
+
+  deleteSubject: (classroomId: string, classroomSubjectId: string) =>
+    apiRequest<void>(
+      `/classrooms/${encodeURIComponent(classroomId)}/subjects/${encodeURIComponent(classroomSubjectId)}`,
+      { method: "DELETE" },
     ),
 
   listStudents: (classroomId: string) =>

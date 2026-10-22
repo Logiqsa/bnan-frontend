@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Plus, UsersRound, X } from "lucide-react";
+import { BookOpen, Check, ChevronsUpDown, Loader2, Plus, UsersRound, X } from "lucide-react";
 import { classroomRecordingsApi } from "@/api/classroomRecordingsApi";
 import { catalogApi, type CurriculumOption, type GradeOption } from "@/api/catalogApi";
 import { courseStaffApi, type CourseStaffOption } from "@/api/courseStaffApi";
@@ -36,6 +36,10 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   const [firstId, setFirstId] = useState("");
   const [secondId, setSecondId] = useState("");
   const [gradePickerOpen, setGradePickerOpen] = useState(false);
+  const [subjectPickerOpen, setSubjectPickerOpen] = useState(false);
+  const [subjectOptions, setSubjectOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -79,17 +83,28 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   const selectedPair = pairs.find((pair) => pair.targets.some((item) => item.grade === firstId));
   const availableSupervisors = useMemo(() => first ? supervisors.filter((item) => !item.curriculumIds?.length || item.curriculumIds.includes(first.curriculum)) : supervisors, [first, supervisors]);
 
-  const choosePair = (pair: (typeof pairs)[number]) => {
+  const choosePair = async (pair: (typeof pairs)[number]) => {
     const ordered = [...pair.targets].sort((left, right) => left.gradeName.localeCompare(right.gradeName, "ar"));
     setFirstId(ordered[0].grade); setSecondId(ordered[1].grade); setSupervisorId(""); setError("");
     setName(`${pair.name} - مشترك`); setGradePickerOpen(false);
+    setSelectedSubjectIds([]); setSubjectOptions([]); setSubjectsLoading(true);
+    try {
+      const responses = await Promise.all(pair.targets.map((target) => catalogApi.subjects(target.grade)));
+      const byName = new Map<string, { id: string; name: string }>();
+      responses.flatMap((response) => response.data).forEach((subject) => {
+        const key = subject.name.trim().toLocaleLowerCase("ar");
+        if (!byName.has(key)) byName.set(key, { id: subject.id, name: subject.name });
+      });
+      setSubjectOptions([...byName.values()].sort((left, right) => left.name.localeCompare(right.name, "ar")));
+    } catch { setError("تعذر تحميل مواد الصفين."); }
+    finally { setSubjectsLoading(false); }
   };
-  const reset = () => { setOpen(false); setName(""); setFirstId(""); setSecondId(""); setSupervisorId(""); setError(""); };
+  const reset = () => { setOpen(false); setName(""); setFirstId(""); setSecondId(""); setSupervisorId(""); setSelectedSubjectIds([]); setSubjectOptions([]); setError(""); };
   const submit = async () => {
     if (!name.trim() || !first || !second || !supervisorId) return setError("اختر الصفين، واكتب اسم الفصل، وحدد المشرف.");
     setSaving(true); setError("");
     try {
-      await classroomRecordingsApi.createSharedClassroom({ name: name.trim(), curriculum: first.curriculum, grade: first.grade, supervisorId, classroomKind: "shared", sharedAcademicTargets: [first, second].map(({ curriculum, grade }) => ({ curriculum, grade })) });
+      await classroomRecordingsApi.createSharedClassroom({ name: name.trim(), curriculum: first.curriculum, grade: first.grade, supervisorId, classroomKind: "shared", sharedAcademicTargets: [first, second].map(({ curriculum, grade }) => ({ curriculum, grade })), subjects: selectedSubjectIds });
       reset(); onCreated();
     } catch { setError("تعذر إنشاء الفصل المشترك. تأكد من إعداد حساب Zoom للصف الأساسي وصلاحية المشرف."); }
     finally { setSaving(false); }
@@ -102,6 +117,7 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
       {loading ? <div className="grid min-h-40 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary"/></div> : <>
         <div className="rounded-xl border bg-muted/20 p-4 sm:p-5"><label className="mb-2 block text-sm font-semibold">اختر الصف</label><Popover open={gradePickerOpen} onOpenChange={setGradePickerOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" aria-expanded={gradePickerOpen} className="h-11 w-full justify-between gap-3 bg-background px-4 font-normal"><span className="truncate">{selectedPair ? `${selectedPair.name} · ${selectedPair.curriculumName}` : "ابحث واختر الصف"}</span><ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50"/></Button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl"><Command className="[&_[cmdk-input-wrapper]]:gap-2 [&_[cmdk-input-wrapper]_svg]:m-0"><CommandInput className="px-1" placeholder="ابحث باسم الصف..."/><CommandList className="p-1"><CommandEmpty>لا يوجد صف متاح مطابق.</CommandEmpty><CommandGroup className="space-y-1">{pairs.map((pair) => <CommandItem className="min-h-11 gap-3 px-3 py-2.5" key={pair.id} value={`${pair.name} ${pair.curriculumName}`} onSelect={() => choosePair(pair)}><Check className={cn("h-4 w-4 shrink-0", selectedPair?.id === pair.id ? "opacity-100" : "opacity-0")}/><span className="flex min-w-0 flex-1 items-center justify-between gap-4"><strong className="truncate">{pair.name}</strong><span className="shrink-0 text-xs text-muted-foreground">{pair.curriculumName}</span></span></CommandItem>)}</CommandGroup></CommandList></Command></PopoverContent></Popover><p className="mt-3 text-xs leading-5 text-muted-foreground">تظهر فقط الصفوف التي لها مساران متاحان ولم تُربط بفصل مشترك سابق.</p></div>
         {selectedPair && <div className="grid gap-3 sm:grid-cols-2">{selectedPair.targets.map((target, index) => <div key={target.grade} className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4"><div className="flex items-center justify-between gap-2"><Badge variant="outline" className="border-emerald-300 bg-white">الصف {index + 1}</Badge><Check className="h-5 w-5 text-emerald-600"/></div><p className="mt-3 font-bold text-emerald-950">{target.gradeName}</p><p className="mt-1 text-xs text-emerald-700">{target.curriculumName}</p></div>)}</div>}
+        {selectedPair && <div className="rounded-xl border p-4 sm:p-5"><div className="mb-3 flex items-center justify-between gap-3"><div><p className="flex items-center gap-2 font-semibold"><BookOpen className="h-4 w-4 text-primary"/>مواد الفصل</p><p className="mt-1 text-xs text-muted-foreground">مواد الصفين مجمعة بدون تكرار. اختر ما تريد إضافته للفصل.</p></div><Badge variant="secondary">{selectedSubjectIds.length} مختارة</Badge></div><Popover open={subjectPickerOpen} onOpenChange={setSubjectPickerOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" className="h-11 w-full justify-between" disabled={subjectsLoading}>{subjectsLoading ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/>جاري تحميل المواد</span> : "ابحث واختر المواد"}<ChevronsUpDown className="h-4 w-4 opacity-50"/></Button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl"><Command><CommandInput placeholder="ابحث باسم المادة..."/><CommandList><CommandEmpty>لا توجد مادة مطابقة.</CommandEmpty><CommandGroup>{subjectOptions.map((subject) => { const checked = selectedSubjectIds.includes(subject.id); return <CommandItem key={subject.id} value={subject.name} onSelect={() => setSelectedSubjectIds((current) => checked ? current.filter((id) => id !== subject.id) : [...current, subject.id])}><Check className={cn("ml-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")}/>{subject.name}</CommandItem>; })}</CommandGroup></CommandList></Command></PopoverContent></Popover>{selectedSubjectIds.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{subjectOptions.filter((subject) => selectedSubjectIds.includes(subject.id)).map((subject) => <button type="button" key={subject.id} onClick={() => setSelectedSubjectIds((current) => current.filter((id) => id !== subject.id))} className="rounded-full border bg-muted/40 px-3 py-1.5 text-xs hover:bg-destructive/10">{subject.name} ×</button>)}</div>}</div>}
         <div className="grid gap-4 lg:grid-cols-2"><label className="text-sm font-semibold">اسم الفصل<Input className="mt-2 h-11" value={name} onChange={(event) => setName(event.target.value)} placeholder="أولى ابتدائي - مشترك"/></label><label className="text-sm font-semibold">المشرف<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={supervisorId} onChange={(event) => setSupervisorId(event.target.value)} disabled={!first}><option value="">اختر المشرف</option>{availableSupervisors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
       </>}
       {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}

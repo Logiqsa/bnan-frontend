@@ -514,11 +514,11 @@ export default function PortalSchedule({
               {role === "admin"
                 ? pick(
                     "متابعة حصص جميع الفصول خلال الشهر",
-                    "Track all classroom lessons throughout the month — Africa/Cairo time",
+                    "Track all classroom lessons throughout the month",
                   )
                 : pick(
-                    "متابعة حصصك خلال الشهر — بتوقيت Africa/Cairo",
-                    "Track your lessons throughout the month — Africa/Cairo time",
+                    "متابعة حصصك خلال الشهر",
+                    "Track your lessons throughout the month",
                   )}
             </p>
           </div>

@@ -9,10 +9,6 @@ vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { r
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: { listAllClassrooms: mocks.listAllClassrooms } }));
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: {} }));
-vi.mock("@/admin/GradeStageFilter", () => ({
-  default: ({ grades, gradeId, onGradeChange, disabled }: { grades: Array<{ id: string; name: string }>; gradeId: string; onGradeChange: (value: string) => void; disabled?: boolean }) => <label>الصف<select aria-label="الصف" value={gradeId} disabled={disabled} onChange={(event) => onGradeChange(event.target.value)}><option value="">اختر الصف</option>{grades.map((grade) => <option key={grade.id} value={grade.id}>{grade.name}</option>)}</select></label>,
-}));
-
 const classroom = {
   id: "classroom-1",
   name: "أول ابتدائي - عربي",
@@ -45,7 +41,7 @@ describe("Admin Classroom Management page", () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "إدارة الفصول" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("المنهج"), { target: { value: "curriculum-1" } });
-    fireEvent.change(screen.getByLabelText("الصف"), { target: { value: "grade-1" } });
+    fireEvent.change(screen.getByLabelText("المرحلة"), { target: { value: "primary" } });
     return screen.getByRole("link", { name: `إدارة الفصل ${classroom.name}` });
   };
 
@@ -65,13 +61,14 @@ describe("Admin Classroom Management page", () => {
     expect(await screen.findByText("تم فتح إدارة الفصل")).toBeInTheDocument();
   });
 
-  it("shows a shared classroom as its own grade choice", async () => {
+  it("separates Egyptian Arabic and shared classrooms into tabs", async () => {
     mocks.listAllClassrooms.mockResolvedValue({ success: true, data: [classroom, sharedClassroom] });
     renderPage();
     await screen.findByRole("heading", { name: "إدارة الفصول" });
     fireEvent.change(screen.getByLabelText("المنهج"), { target: { value: "curriculum-1" } });
-    expect(screen.getByRole("option", { name: "أول ابتدائي - مشترك" })).toHaveValue("shared-classroom:shared-classroom-1");
-    fireEvent.change(screen.getByLabelText("الصف"), { target: { value: "shared-classroom:shared-classroom-1" } });
+    fireEvent.change(screen.getByLabelText("المرحلة"), { target: { value: "primary" } });
+    expect(screen.getByRole("link", { name: `إدارة الفصل ${classroom.name}` })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /مشترك/ }));
     expect(screen.getByRole("link", { name: "إدارة الفصل أول ابتدائي - مشترك" })).toHaveAttribute("href", "/admin/classrooms/shared-classroom-1");
     expect(screen.queryByRole("link", { name: `إدارة الفصل ${classroom.name}` })).not.toBeInTheDocument();
   });

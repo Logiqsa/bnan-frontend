@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { sharedGradeBaseName, sharedTargetScore, type SharedTarget } from "./SharedClassroomCreateCard";
+import { schoolGradeOrder, schoolStageForGrade, sharedGradeBaseName, sharedTargetScore, type SharedTarget } from "./SharedClassroomCreateCard";
 
 const target = (grade: string, gradeName: string): SharedTarget => ({
   curriculum: "curriculum-1",
   curriculumName: "المنهج المصري",
   grade,
   gradeName,
+});
+
+describe("shared classroom grade ordering", () => {
+  it("recognizes school stages including Arabic hamza variants", () => {
+    expect(schoolStageForGrade("أولى ابتدائي - عربي")).toBe("primary");
+    expect(schoolStageForGrade("ثالث إعدادي - لغات")).toBe("preparatory");
+    expect(schoolStageForGrade("ثانية ثانوي علمي - عربي")).toBe("secondary");
+  });
+
+  it("sorts grade years in their educational order", () => {
+    expect(schoolGradeOrder("أولى ابتدائي")).toBe(1);
+    expect(schoolGradeOrder("ثاني إعدادي")).toBe(2);
+    expect(schoolGradeOrder("سادس ابتدائي")).toBe(6);
+  });
 });
 
 describe("shared classroom suggestions", () => {

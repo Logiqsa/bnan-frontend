@@ -513,7 +513,7 @@ export default function PortalSchedule({
             <p className="text-muted-foreground mt-1">
               {role === "admin"
                 ? pick(
-                    "متابعة حصص جميع الفصول خلال الشهر — بتوقيت Africa/Cairo",
+                    "متابعة حصص جميع الفصول خلال الشهر",
                     "Track all classroom lessons throughout the month — Africa/Cairo time",
                   )
                 : pick(

@@ -19,7 +19,11 @@ export interface ClassroomOption {
   subject?: { id?: string; name?: string } | string | null;
   teacher?: { id?: string; name?: string; fullName?: string; user?: { fullName?: string } | string } | string | null;
   sourceType?: "legacy" | "course";
-  classroomKind?: "general" | "private" | "course";
+  classroomKind?: "general" | "shared" | "private" | "course";
+  sharedAcademicTargets?: Array<{
+    curriculum: string | { id?: string; _id?: string; name?: string };
+    grade: string | { id?: string; _id?: string; name?: string };
+  }>;
   student?: { id?: string; name?: string; fullName?: string } | string | null;
   students?: Array<{ id?: string; name?: string; fullName?: string }>;
   schedule?: {
@@ -214,6 +218,17 @@ const language = () =>
   localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
 
 export const classroomRecordingsApi = {
+  createSharedClassroom: (body: {
+    name: string;
+    curriculum: string;
+    grade: string;
+    supervisorId: string;
+    classroomKind: "shared";
+    sharedAcademicTargets: Array<{ curriculum: string; grade: string }>;
+  }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>(
+    "/classrooms",
+    { method: "POST", body: JSON.stringify(body) },
+  ),
   listAllClassrooms: () =>
     apiRequest<{ success: true; data: ClassroomOption[] }>(
       "/classrooms?page=1&limit=100",

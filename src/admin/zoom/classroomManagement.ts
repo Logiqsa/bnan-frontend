@@ -39,6 +39,7 @@ export const classroomZoomLabel = (item: ClassroomOption) => {
 
 export const classroomKindLabel = (kind?: ClassroomOption["classroomKind"]) => {
   if (kind === "general") return "عام";
+  if (kind === "shared") return "مشترك";
   if (kind === "private") return "خاص";
   if (kind === "course") return "دورة";
   return "غير محدد";

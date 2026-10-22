@@ -80,6 +80,19 @@ describe("AdminClassroomHub", () => {
     expect(screen.getByRole("tab", { name: "نظرة عامة" })).toHaveAttribute("data-state", "active");
   });
 
+  it("shows both linked grades for a shared classroom", async () => {
+    mocks.getClassroom.mockResolvedValue({ success: true, data: {
+      id: "c1", name: "أول ابتدائي - مشترك", isActive: true, classroomKind: "shared",
+      curriculum: { name: "المنهج المصري" }, grade: { name: "أول ابتدائي - عربي" },
+      sharedAcademicTargets: [
+        { curriculum: "curriculum-1", grade: { id: "g1", name: "أول ابتدائي - عربي" } },
+        { curriculum: "curriculum-1", grade: { id: "g2", name: "أول ابتدائي - لغات" } },
+      ],
+    } });
+    renderPage();
+    expect(await screen.findByText("أول ابتدائي - عربي + أول ابتدائي - لغات")).toBeInTheDocument();
+  });
+
   it("renders every authoritative subject-teacher relationship without using a classroom-level teacher", async () => {
     mocks.getClassroom.mockResolvedValue({ success: true, data: { id: "c1", name: "فصل أول", isActive: true, teacher: { name: "معلم غير معتمد" }, curriculum: { name: "المنهج المصري" }, grade: { name: "الصف الأول" } } });
     mocks.listSubjects.mockResolvedValue({ success: true, data: { subjects: [

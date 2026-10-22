@@ -24,8 +24,8 @@ const sharedClassroom = {
   name: "أول ابتدائي - مشترك",
   classroomKind: "shared",
   sharedAcademicTargets: [
-    { curriculum: "curriculum-1", grade: "grade-1" },
-    { curriculum: "curriculum-1", grade: "grade-2" },
+    { curriculum: "curriculum-1", grade: { id: "grade-1", name: "أول ابتدائي - عربي" } },
+    { curriculum: "curriculum-1", grade: { id: "grade-2", name: "أول ابتدائي - لغات" } },
   ],
 };
 const gulfPrivateClassroom = {
@@ -79,6 +79,7 @@ describe("Admin Classroom Management page", () => {
     expect(screen.getByRole("link", { name: `إدارة الفصل ${classroom.name}` })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /مشترك/ }));
     expect(screen.getByRole("link", { name: "إدارة الفصل أول ابتدائي - مشترك" })).toHaveAttribute("href", "/admin/classrooms/shared-classroom-1");
+    expect(screen.getByText(/أول ابتدائي - عربي \+ أول ابتدائي - لغات/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: `إدارة الفصل ${classroom.name}` })).not.toBeInTheDocument();
   });
 

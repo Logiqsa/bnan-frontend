@@ -16,7 +16,8 @@ import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomKindLabel, classroomZoomL
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 import SharedClassroomCreateCard from "./SharedClassroomCreateCard";
 
-type ClassroomLane = "arabic" | "languages" | "shared" | "general";
+type ClassroomLane = "arabic" | "languages";
+type ClassroomKindFilter = "general" | "private" | "shared" | "course";
 const normalizeArabic = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").toLocaleLowerCase("ar");
 const stageDefinitions = [
   { id: "primary", name: "المرحلة الابتدائية", words: ["ابتدا"] },
@@ -27,12 +28,11 @@ const classroomStage = (item: ClassroomOption) => {
   const name = normalizeArabic(referenceName(item.grade));
   return stageDefinitions.find((stage) => stage.words.some((word) => name.includes(word)))?.id || "other";
 };
-const classroomLane = (item: ClassroomOption, egyptian: boolean): ClassroomLane => {
-  if (!egyptian) return "general";
-  if (item.classroomKind === "shared") return "shared";
+const classroomLane = (item: ClassroomOption): ClassroomLane => {
   const name = normalizeArabic(`${referenceName(item.grade)} ${item.name}`);
   return /لغات|language/.test(name) ? "languages" : "arabic";
 };
+const classroomKind = (item: ClassroomOption): ClassroomKindFilter => item.classroomKind || "general";
 
 const safeError = (error: ApiError) => {
   if (error.status === 400) return "تحقق من اليوم ومدة الحصة ثم حاول مرة أخرى.";
@@ -74,6 +74,7 @@ export default function ClassroomManagement() {
   const [curriculumId, setCurriculumId] = useState("");
   const [stageId, setStageId] = useState("");
   const [lane, setLane] = useState<ClassroomLane>("arabic");
+  const [kindFilter, setKindFilter] = useState<ClassroomKindFilter>("general");
   const [selected, setSelected] = useState<ClassroomOption | null>(null);
   const [details, setDetails] = useState<ClassroomOption | null>(null);
   const [schedule, setSchedule] = useState<ClassroomScheduleEntry[]>([]);
@@ -100,10 +101,13 @@ export default function ClassroomManagement() {
   const egyptian = curriculumMode === "egyptian";
   const curriculumClassrooms = useMemo(() => classrooms.filter((item) => referenceId(item.curriculum) === curriculumId), [classrooms, curriculumId]);
   const availableStages = useMemo(() => stageDefinitions.filter((stage) => curriculumClassrooms.some((item) => classroomStage(item) === stage.id)), [curriculumClassrooms]);
-  const lanes: Array<{ id: ClassroomLane; name: string }> = egyptian
-    ? [{ id: "arabic", name: "عربي" }, { id: "languages", name: "لغات" }, { id: "shared", name: "مشترك" }]
-    : [{ id: "general", name: "عام" }];
-  const visible = useMemo(() => curriculumClassrooms.filter((item) => classroomStage(item) === stageId && classroomLane(item, egyptian) === lane), [curriculumClassrooms, egyptian, lane, stageId]);
+  const lanes: Array<{ id: ClassroomLane; name: string }> = [{ id: "arabic", name: "عربي" }, { id: "languages", name: "لغات" }];
+  const kindFilters: Array<{ id: ClassroomKindFilter; name: string }> = [
+    { id: "general", name: "عام" }, { id: "private", name: "خاص" },
+    ...(egyptian ? [{ id: "shared" as const, name: "مشترك" }] : []),
+    { id: "course", name: "دورة" },
+  ];
+  const visible = useMemo(() => curriculumClassrooms.filter((item) => classroomStage(item) === stageId && classroomKind(item) === kindFilter && (!egyptian || kindFilter === "shared" || classroomLane(item) === lane)), [curriculumClassrooms, egyptian, kindFilter, lane, stageId]);
 
   const openClassroom = async (item: ClassroomOption) => {
     setSelected(item); setDetails(item); setSchedule([]); setAvailability(null); setAvailabilityError(""); setError(""); setScheduleLoading(true);
@@ -168,8 +172,8 @@ export default function ClassroomManagement() {
     <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><h1 className="text-2xl font-bold sm:text-3xl">{isAdmin ? "إدارة الفصول" : "فصولي"}</h1><p className="mt-2 text-sm text-muted-foreground">{isAdmin ? "استعرض الفصول وافتح الفصل لمتابعة تفاصيله." : "الفصول المسندة إليك مرتبة حسب المنهج والصف."}</p></header>
     {isAdmin && <SharedClassroomCreateCard onCreated={loadClassrooms}/>}
     {loading ? <div className="grid min-h-64 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : error && !selected ? <Card><CardContent className="grid min-h-48 place-items-center text-center"><div><p>{error}</p><Button className="mt-3" onClick={loadClassrooms}>إعادة المحاولة</Button></div></CardContent></Card> : classrooms.length === 0 ? <Card><CardContent className="grid min-h-48 place-items-center text-muted-foreground"><div><School className="mx-auto mb-3 h-9 w-9"/><p>لا توجد فصول متاحة</p></div></CardContent></Card> : !selected ? <>
-      <Card><CardContent className="grid gap-4 p-4 sm:grid-cols-2"><label className="min-w-0 text-sm font-semibold">المنهج<select value={curriculumId} onChange={(event) => { const value = event.target.value; const mode = classrooms.find((item) => referenceId(item.curriculum) === value)?.curriculum; setCurriculumId(value); setStageId(""); setLane(typeof mode !== "string" && mode?.registrationMode === "egyptian" ? "arabic" : "general"); }} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="">اختر المنهج</option>{curricula.map((value) => <option key={referenceId(value)} value={referenceId(value)}>{referenceName(value)}</option>)}</select></label><label className="min-w-0 text-sm font-semibold">المرحلة<select aria-label="المرحلة" value={stageId} onChange={(event) => setStageId(event.target.value)} disabled={!curriculumId} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="">اختر المرحلة</option>{availableStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></label></CardContent></Card>
-      {stageId && <section className="space-y-4"><div role="tablist" aria-label="نوع الفصول" className={`grid h-12 w-full gap-1 rounded-lg bg-muted p-1 ${egyptian ? "grid-cols-3" : "grid-cols-1"}`}>{lanes.map((item) => { const count = curriculumClassrooms.filter((classroom) => classroomStage(classroom) === stageId && classroomLane(classroom, egyptian) === item.id).length; const active = lane === item.id; return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => setLane(item.id)} className={`inline-flex items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition ${active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/60 hover:text-foreground"}`}><span>{item.name}</span><Badge variant={active ? "default" : "secondary"} className="min-w-6 justify-center px-1.5">{count}</Badge></button>; })}</div><div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">فصول {lanes.find((item) => item.id === lane)?.name}</h2><p className="text-sm text-muted-foreground">{visible.length} فصل</p></div>{visible.length === 0 ? <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد فصول في هذا القسم</CardContent></Card> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visible.map((item) => {
+      <Card><CardContent className="grid gap-4 p-4 sm:grid-cols-2"><label className="min-w-0 text-sm font-semibold">المنهج<select value={curriculumId} onChange={(event) => { setCurriculumId(event.target.value); setStageId(""); setLane("arabic"); setKindFilter("general"); }} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="">اختر المنهج</option>{curricula.map((value) => <option key={referenceId(value)} value={referenceId(value)}>{referenceName(value)}</option>)}</select></label><label className="min-w-0 text-sm font-semibold">المرحلة<select aria-label="المرحلة" value={stageId} onChange={(event) => setStageId(event.target.value)} disabled={!curriculumId} className="mt-2 h-10 w-full rounded-md border bg-background px-3"><option value="">اختر المرحلة</option>{availableStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></label></CardContent></Card>
+      {stageId && <section className="space-y-4"><div><p className="mb-2 text-sm font-semibold">نوع الفصل</p><div role="tablist" aria-label="نوع الفصل" className={`grid h-12 w-full gap-1 rounded-lg bg-muted p-1 ${egyptian ? "grid-cols-4" : "grid-cols-3"}`}>{kindFilters.map((item) => { const count = curriculumClassrooms.filter((classroom) => classroomStage(classroom) === stageId && classroomKind(classroom) === item.id).length; const active = kindFilter === item.id; return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => setKindFilter(item.id)} className={`inline-flex items-center justify-center gap-2 rounded-md px-2 text-sm font-semibold transition ${active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/60 hover:text-foreground"}`}><span>{item.name}</span><Badge variant={active ? "default" : "secondary"} className="min-w-6 justify-center px-1.5">{count}</Badge></button>; })}</div></div>{egyptian && kindFilter !== "shared" && <div><p className="mb-2 text-sm font-semibold">المسار</p><div role="tablist" aria-label="مسار الفصل" className="grid h-11 w-full grid-cols-2 gap-1 rounded-lg border bg-card p-1">{lanes.map((item) => { const count = curriculumClassrooms.filter((classroom) => classroomStage(classroom) === stageId && classroomKind(classroom) === kindFilter && classroomLane(classroom) === item.id).length; const active = lane === item.id; return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => setLane(item.id)} className={`inline-flex items-center justify-center gap-2 rounded-md text-sm font-semibold transition ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}><span>{item.name}</span><span className="text-xs opacity-80">({count})</span></button>; })}</div></div>}<div className="flex items-center justify-between gap-3"><h2 className="text-lg font-bold">فصول {kindFilters.find((item) => item.id === kindFilter)?.name}{egyptian && kindFilter !== "shared" ? ` - ${lanes.find((item) => item.id === lane)?.name}` : ""}</h2><p className="text-sm text-muted-foreground">{visible.length} فصل</p></div>{visible.length === 0 ? <Card><CardContent className="py-10 text-center text-muted-foreground">لا توجد فصول في هذا القسم</CardContent></Card> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visible.map((item) => {
         const card = <Card className="h-full transition hover:border-primary/40 hover:shadow-md"><CardContent className="space-y-3 p-4"><div className="flex justify-between gap-3"><h3 className={isAdmin ? "min-w-0 truncate font-bold" : "font-bold"}>{item.name}</h3><ChevronLeft className={`h-4 w-4 text-muted-foreground${isAdmin ? " shrink-0" : ""}`}/></div><p className="text-sm text-muted-foreground">{referenceName(item.curriculum)} · {referenceName(item.grade)}</p><div className="flex flex-wrap gap-2"><Badge variant="outline">نوع الفصل: {classroomKindLabel(item.classroomKind)}</Badge><Badge variant="outline">{item.zoomAssignmentMode === "manual" ? "يدوي" : "ربط تلقائي"}</Badge><Badge variant="outline">{classroomZoomLabel(item)}</Badge></div><p className="text-xs text-muted-foreground">تاريخ الإنشاء: {formatDate(item.createdAt)}</p></CardContent></Card>;
         const detailsPath = isAdmin
           ? `/admin/classrooms/${encodeURIComponent(item.id)}`

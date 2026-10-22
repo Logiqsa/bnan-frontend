@@ -28,6 +28,14 @@ const sharedClassroom = {
     { curriculum: "curriculum-1", grade: "grade-2" },
   ],
 };
+const gulfPrivateClassroom = {
+  ...classroom,
+  id: "gulf-private-1",
+  name: "أحمد - الرياضيات",
+  classroomKind: "private",
+  curriculum: { id: "curriculum-gulf", name: "المنهج السعودي", registrationMode: "gulf" },
+  grade: { id: "grade-gulf-1", name: "الأول الابتدائي - سعودي" },
+};
 
 const renderPage = () => render(<MemoryRouter initialEntries={["/admin/classrooms"]}><Routes><Route path="/admin/classrooms" element={<ClassroomManagement />} /><Route path="/admin/classrooms/:classroomId" element={<div>تم فتح إدارة الفصل</div>} /></Routes></MemoryRouter>);
 
@@ -81,5 +89,17 @@ describe("Admin Classroom Management page", () => {
     fireEvent.click(screen.getByRole("button", { name: "تأكيد الحذف" }));
     expect(mocks.deleteClassroom).toHaveBeenCalledWith(classroom.id);
     expect(await screen.findByText("لا توجد فصول متاحة")).toBeInTheDocument();
+  });
+
+  it("filters non-Egyptian classrooms by their real classroom kind", async () => {
+    mocks.listAllClassrooms.mockResolvedValue({ success: true, data: [gulfPrivateClassroom] });
+    renderPage();
+    await screen.findByRole("heading", { name: "إدارة الفصول" });
+    fireEvent.change(screen.getByLabelText("المنهج"), { target: { value: "curriculum-gulf" } });
+    fireEvent.change(screen.getByLabelText("المرحلة"), { target: { value: "primary" } });
+    expect(screen.getByText("لا توجد فصول في هذا القسم")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /خاص/ }));
+    expect(screen.getByRole("link", { name: `إدارة الفصل ${gulfPrivateClassroom.name}` })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /مشترك/ })).not.toBeInTheDocument();
   });
 });

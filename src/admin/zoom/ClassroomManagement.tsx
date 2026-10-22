@@ -77,8 +77,17 @@ export default function ClassroomManagement() {
   const grades = useMemo(() => Array.from(new Map(classrooms.filter((item) => referenceId(item.curriculum) === curriculumId).map((item) => [referenceId(item.grade), item.grade] as const).filter(([id]) => Boolean(id))).values()), [classrooms, curriculumId]);
   const selectedCurriculum = classrooms.find((item) => referenceId(item.curriculum) === curriculumId)?.curriculum;
   const curriculumMode = typeof selectedCurriculum === "string" ? undefined : selectedCurriculum?.registrationMode;
-  const gradeOptions = useMemo(() => grades.map((grade) => ({ id: referenceId(grade), name: referenceName(grade) })).filter((grade) => grade.id), [grades]);
-  const visible = useMemo(() => classrooms.filter((item) => referenceId(item.curriculum) === curriculumId && referenceId(item.grade) === gradeId), [classrooms, curriculumId, gradeId]);
+  const gradeOptions = useMemo(() => {
+    const regular = grades.map((grade) => ({ id: referenceId(grade), name: referenceName(grade) })).filter((grade) => grade.id);
+    const shared = classrooms
+      .filter((item) => item.classroomKind === "shared" && referenceId(item.curriculum) === curriculumId)
+      .map((item) => ({ id: `shared-classroom:${item.id}`, name: item.name }));
+    return [...regular, ...shared];
+  }, [classrooms, curriculumId, grades]);
+  const visible = useMemo(() => {
+    const sharedClassroomId = gradeId.startsWith("shared-classroom:") ? gradeId.slice("shared-classroom:".length) : "";
+    return classrooms.filter((item) => referenceId(item.curriculum) === curriculumId && (sharedClassroomId ? item.id === sharedClassroomId : referenceId(item.grade) === gradeId));
+  }, [classrooms, curriculumId, gradeId]);
 
   const openClassroom = async (item: ClassroomOption) => {
     setSelected(item); setDetails(item); setSchedule([]); setAvailability(null); setAvailabilityError(""); setError(""); setScheduleLoading(true);

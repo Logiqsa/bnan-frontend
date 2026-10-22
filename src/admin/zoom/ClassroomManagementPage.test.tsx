@@ -22,6 +22,16 @@ const classroom = {
   zoomAssignmentMode: "manual",
   createdAt: "2026-09-24T00:00:00.000Z",
 };
+const sharedClassroom = {
+  ...classroom,
+  id: "shared-classroom-1",
+  name: "أول ابتدائي - مشترك",
+  classroomKind: "shared",
+  sharedAcademicTargets: [
+    { curriculum: "curriculum-1", grade: "grade-1" },
+    { curriculum: "curriculum-1", grade: "grade-2" },
+  ],
+};
 
 const renderPage = () => render(<MemoryRouter initialEntries={["/admin/classrooms"]}><Routes><Route path="/admin/classrooms" element={<ClassroomManagement />} /><Route path="/admin/classrooms/:classroomId" element={<div>تم فتح إدارة الفصل</div>} /></Routes></MemoryRouter>);
 
@@ -53,5 +63,16 @@ describe("Admin Classroom Management page", () => {
     expect(card).toHaveFocus();
     fireEvent.click(card);
     expect(await screen.findByText("تم فتح إدارة الفصل")).toBeInTheDocument();
+  });
+
+  it("shows a shared classroom as its own grade choice", async () => {
+    mocks.listAllClassrooms.mockResolvedValue({ success: true, data: [classroom, sharedClassroom] });
+    renderPage();
+    await screen.findByRole("heading", { name: "إدارة الفصول" });
+    fireEvent.change(screen.getByLabelText("المنهج"), { target: { value: "curriculum-1" } });
+    expect(screen.getByRole("option", { name: "أول ابتدائي - مشترك" })).toHaveValue("shared-classroom:shared-classroom-1");
+    fireEvent.change(screen.getByLabelText("الصف"), { target: { value: "shared-classroom:shared-classroom-1" } });
+    expect(screen.getByRole("link", { name: "إدارة الفصل أول ابتدائي - مشترك" })).toHaveAttribute("href", "/admin/classrooms/shared-classroom-1");
+    expect(screen.queryByRole("link", { name: `إدارة الفصل ${classroom.name}` })).not.toBeInTheDocument();
   });
 });

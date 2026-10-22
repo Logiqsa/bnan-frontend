@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, ChevronLeft, Loader2, RefreshCw, School, Search, Video } from "lucide-react";
+import { CalendarDays, ChevronLeft, Loader2, RefreshCw, School, Search, Trash2, Video } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { classroomRecordingsApi, type ClassroomOption } from "@/api/classroomRecordingsApi";
 import { classroomZoomApi, type ClassroomScheduleEntry, type ZoomScheduleAvailability, type ZoomScheduleAvailabilityAccount, type ZoomScheduleWindow } from "@/api/classroomZoomApi";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { normalizeZoomState, referenceId, referenceName } from "./classroomZoomNormalization";
@@ -83,6 +84,8 @@ export default function ClassroomManagement() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [updatingKind, setUpdatingKind] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ClassroomOption | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadClassrooms = () => {
     setLoading(true); setError("");
@@ -140,6 +143,23 @@ export default function ClassroomManagement() {
     } finally { setUpdatingKind(""); }
   };
 
+  const deleteClassroom = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true); setError("");
+    try {
+      await classroomRecordingsApi.deleteClassroom(deleteTarget.id);
+      setClassrooms((current) => current.filter((item) => item.id !== deleteTarget.id));
+      if (selected?.id === deleteTarget.id) { setSelected(null); setDetails(null); }
+      setDeleteTarget(null);
+    } catch (caught) {
+      const apiError = caught as ApiError;
+      setError(apiError.code === "CLASSROOM_HAS_ACTIVE_SESSION"
+        ? "لا يمكن حذف الفصل أثناء وجود حصة مباشرة. أنهِ الحصة أولًا ثم حاول مرة أخرى."
+        : apiError.code === "CLASSROOM_NOT_FOUND" ? "الفصل محذوف بالفعل أو غير موجود." : safeError(apiError));
+      setDeleteTarget(null);
+    } finally { setDeleting(false); }
+  };
+
   const zoom = normalizeZoomState(details);
   const registrationMode = details?.curriculum?.registrationMode || selected?.curriculum?.registrationMode;
   const schedulePath = selected ? `${user?.role === "supervisor" ? "/portal/supervisor/classrooms" : "/admin/classrooms"}/${encodeURIComponent(selected.id)}/schedule` : "";
@@ -154,7 +174,7 @@ export default function ClassroomManagement() {
         const detailsPath = isAdmin
           ? `/admin/classrooms/${encodeURIComponent(item.id)}`
           : `/portal/supervisor/classrooms/${encodeURIComponent(item.id)}`;
-        return <div key={item.id} className="space-y-2"><Link to={detailsPath} aria-label={`إدارة الفصل ${item.name}`} className="block rounded-xl text-start outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{card}</Link>{isAdmin && <div className="rounded-xl border bg-card p-3"><label className="flex items-center justify-between gap-3 text-sm font-semibold">نوع الفصل<select aria-label={`نوع الفصل ${item.name}`} value={item.classroomKind || ""} disabled={updatingKind === item.id || item.classroomKind === "shared"} onChange={(event) => void updateClassroomKind(item, event.target.value as ClassroomOption["classroomKind"])} className="h-9 rounded-md border bg-background px-2 text-sm font-normal"><option value="">غير محدد</option><option value="general">عام</option>{item.classroomKind === "shared" && <option value="shared">مشترك</option>}<option value="private">خاص</option><option value="course">دورة</option></select></label></div>}</div>;
+        return <div key={item.id} className="space-y-2"><Link to={detailsPath} aria-label={`إدارة الفصل ${item.name}`} className="block rounded-xl text-start outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">{card}</Link>{isAdmin && <div className="flex items-center gap-2 rounded-xl border bg-card p-3"><label className="flex min-w-0 flex-1 items-center justify-between gap-3 text-sm font-semibold">نوع الفصل<select aria-label={`نوع الفصل ${item.name}`} value={item.classroomKind || ""} disabled={updatingKind === item.id || item.classroomKind === "shared"} onChange={(event) => void updateClassroomKind(item, event.target.value as ClassroomOption["classroomKind"])} className="h-9 rounded-md border bg-background px-2 text-sm font-normal"><option value="">غير محدد</option><option value="general">عام</option>{item.classroomKind === "shared" && <option value="shared">مشترك</option>}<option value="private">خاص</option><option value="course">دورة</option></select></label><Button type="button" size="icon" variant="outline" className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`حذف الفصل ${item.name}`} onClick={() => setDeleteTarget(item)}><Trash2 className="h-4 w-4"/></Button></div>}</div>;
       })}</div>}</section>}
     </> : <>
       <Button variant="ghost" className="px-1" onClick={() => { setSelected(null); setDetails(null); setAvailability(null); setError(""); }}><ChevronLeft className="ml-2 h-4 w-4 rotate-180"/>العودة إلى الفصول</Button>
@@ -164,5 +184,6 @@ export default function ClassroomManagement() {
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Search className="h-5 w-5 text-primary"/>المواعيد المتاحة</CardTitle><p className="text-sm text-muted-foreground">اختر اليوم ومدة الحصة الاختيارية لمعرفة توافر حساب Zoom.</p></CardHeader><CardContent className="space-y-5"><div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"><label className="text-sm font-semibold">اليوم<select value={day} onChange={(event) => setDay(event.target.value)} className="mt-2 h-10 w-full rounded-md border bg-background px-3">{CLASSROOM_DAYS.map((value) => <option key={value} value={value}>{CLASSROOM_DAY_NAMES[value]}</option>)}</select></label><label className="text-sm font-semibold">مدة الحصة بالدقائق (اختياري)<Input className="mt-2" type="number" min="1" value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="مثال: 120"/></label><Button onClick={loadAvailability} disabled={availabilityLoading}>{availabilityLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <Search className="ml-2 h-4 w-4"/>}معرفة المواعيد المتاحة</Button></div>{availabilityError && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{availabilityError}<Button variant="link" className="mr-2 h-auto p-0" onClick={loadAvailability}><RefreshCw className="ml-1 h-3 w-3"/>تحديث</Button></div>}{availability && <div className="space-y-4"><div className="rounded-lg bg-muted/50 p-3 text-sm"><p>{availability.mode === "current_account" ? `الحساب الحالي: ${availability.accounts[0]?.account.name || "—"}` : "خيارات حسابات Zoom المتاحة"}</p><p className="mt-1 text-muted-foreground">اليوم: {CLASSROOM_DAY_NAMES[availability.day] || availability.day}</p></div>{availability.accounts.map((account) => <AccountAvailability key={account.account.id} value={account} duration={availability.durationMinutes || undefined}/>)}<p className="text-xs text-muted-foreground">المواعيد المعروضة استرشادية ويتم التحقق مرة أخرى عند حفظ الجدول.</p></div>}</CardContent></Card>
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5 text-primary"/>تفاصيل Zoom</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2"><Badge variant="outline">{details ? classroomZoomLabel(details) : "—"}</Badge>{zoom.accountName && <Badge variant="outline">{zoom.accountName}</Badge>}</div>{zoom.meetingLink && <a href={zoom.meetingLink} target="_blank" rel="noreferrer" className="block break-all text-sm text-primary underline" dir="ltr">{zoom.meetingLink}</a>}{details?.zoomAssignmentMode === "manual" && <Button asChild variant="outline"><Link to={`${user?.role === "supervisor" ? "/portal/supervisor/classrooms/zoom" : "/admin/classroom-zoom"}?classroomId=${encodeURIComponent(details.id)}`}>إدارة Zoom</Link></Button>}</CardContent></Card>
     </>}
+    <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}><AlertDialogContent dir="rtl"><AlertDialogHeader><AlertDialogTitle>حذف الفصل «{deleteTarget?.name}»؟</AlertDialogTitle><AlertDialogDescription>سيتم إيقاف الفصل وأرشفة طلابه ومواده ومشرفيه وجدوله ومحادثته، وإلغاء الحصص المستقبلية والطلبات المرتبطة به. السجلات السابقة ستظل محفوظة للمراجعة.</AlertDialogDescription></AlertDialogHeader>{deleteTarget?.classroomKind === "shared" && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">بعد الحذف سيصبح الصفان متاحين لإنشاء فصل مشترك جديد.</p>}<AlertDialogFooter><AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleting} onClick={(event) => { event.preventDefault(); void deleteClassroom(); }}>{deleting && <Loader2 className="ml-2 h-4 w-4 animate-spin"/>}تأكيد الحذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </div></DashboardLayout>;
 }

@@ -242,6 +242,12 @@ export const classroomRecordingsApi = {
       { method: "PATCH", body: JSON.stringify(body) },
     ),
 
+  deleteClassroom: (classroomId: string) =>
+    apiRequest<{ success: true; data: { classroomId: string; status: "archived"; alreadyArchived: boolean } }>(
+      `/classrooms/${encodeURIComponent(classroomId)}`,
+      { method: "DELETE" },
+    ),
+
   listClassrooms: (keyword = "") => {
     const query = new URLSearchParams({
       status: "active",

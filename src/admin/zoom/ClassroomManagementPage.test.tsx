@@ -3,11 +3,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ClassroomManagement from "./ClassroomManagement";
 
-const mocks = vi.hoisted(() => ({ listAllClassrooms: vi.fn() }));
+const mocks = vi.hoisted(() => ({ listAllClassrooms: vi.fn(), deleteClassroom: vi.fn() }));
 
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { role: "admin" } }) }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
-vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: { listAllClassrooms: mocks.listAllClassrooms } }));
+vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: { listAllClassrooms: mocks.listAllClassrooms, deleteClassroom: mocks.deleteClassroom } }));
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: {} }));
 const classroom = {
   id: "classroom-1",
@@ -35,6 +35,7 @@ describe("Admin Classroom Management page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listAllClassrooms.mockResolvedValue({ success: true, data: [classroom] });
+    mocks.deleteClassroom.mockResolvedValue({ success: true, data: { classroomId: classroom.id, status: "archived", alreadyArchived: false } });
   });
 
   const showClassroom = async () => {
@@ -71,5 +72,14 @@ describe("Admin Classroom Management page", () => {
     fireEvent.click(screen.getByRole("tab", { name: /مشترك/ }));
     expect(screen.getByRole("link", { name: "إدارة الفصل أول ابتدائي - مشترك" })).toHaveAttribute("href", "/admin/classrooms/shared-classroom-1");
     expect(screen.queryByRole("link", { name: `إدارة الفصل ${classroom.name}` })).not.toBeInTheDocument();
+  });
+
+  it("confirms deletion and removes the archived classroom from the list", async () => {
+    await showClassroom();
+    fireEvent.click(screen.getByRole("button", { name: `حذف الفصل ${classroom.name}` }));
+    expect(screen.getByRole("heading", { name: `حذف الفصل «${classroom.name}»؟` })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "تأكيد الحذف" }));
+    expect(mocks.deleteClassroom).toHaveBeenCalledWith(classroom.id);
+    expect(await screen.findByText("لا توجد فصول متاحة")).toBeInTheDocument();
   });
 });

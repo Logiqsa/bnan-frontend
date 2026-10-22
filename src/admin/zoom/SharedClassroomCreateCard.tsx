@@ -28,6 +28,7 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   const [curricula, setCurricula] = useState<CurriculumOption[]>([]);
   const [grades, setGrades] = useState<Record<string, GradeOption[]>>({});
   const [supervisors, setSupervisors] = useState<CourseStaffOption[]>([]);
+  const [usedGradeIds, setUsedGradeIds] = useState<Set<string>>(new Set());
   const [supervisorId, setSupervisorId] = useState("");
   const [firstId, setFirstId] = useState("");
   const [secondId, setSecondId] = useState("");
@@ -38,11 +39,16 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   useEffect(() => {
     if (!open || curricula.length) return;
     setLoading(true);
-    Promise.all([catalogApi.curriculums(), courseStaffApi.supervisors()])
-      .then(async ([curriculumResponse, supervisorRows]) => {
+    Promise.all([catalogApi.curriculums(), courseStaffApi.supervisors(), classroomRecordingsApi.listAllClassrooms()])
+      .then(async ([curriculumResponse, supervisorRows, classroomResponse]) => {
         const egyptian = curriculumResponse.data.filter((item) => item.registrationMode === "egyptian");
         setCurricula(egyptian);
         setSupervisors(supervisorRows);
+        setUsedGradeIds(new Set(classroomResponse.data
+          .filter((item) => item.classroomKind === "shared" && item.isActive !== false)
+          .flatMap((item) => item.sharedAcademicTargets || [])
+          .map((target) => typeof target.grade === "string" ? target.grade : target.grade.id || target.grade._id || "")
+          .filter(Boolean)));
         const gradeRows = await Promise.all(egyptian.map(async (item) => [item.id, (await catalogApi.grades(item.id)).data] as const));
         setGrades(Object.fromEntries(gradeRows));
       })
@@ -50,7 +56,9 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
       .finally(() => setLoading(false));
   }, [open, curricula.length]);
 
-  const targets = useMemo(() => curricula.flatMap((curriculum) => (grades[curriculum.id] || []).map((grade) => ({ curriculum: curriculum.id, curriculumName: curriculum.name, grade: grade.id, gradeName: grade.name }))), [curricula, grades]);
+  const targets = useMemo(() => curricula.flatMap((curriculum) => (grades[curriculum.id] || [])
+    .filter((grade) => !usedGradeIds.has(grade.id))
+    .map((grade) => ({ curriculum: curriculum.id, curriculumName: curriculum.name, grade: grade.id, gradeName: grade.name }))), [curricula, grades, usedGradeIds]);
   const first = targets.find((item) => item.grade === firstId);
   const second = targets.find((item) => item.grade === secondId);
   const suggestion = useMemo(() => {
@@ -82,7 +90,7 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
     <CardContent className="space-y-6 p-5 sm:p-6">
       {loading ? <div className="grid min-h-40 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary"/></div> : <>
         <div className="grid gap-4 lg:grid-cols-2">
-          <label className="rounded-xl border bg-card p-4 text-sm font-semibold"><span className="mb-3 flex items-center gap-2"><Badge>1</Badge>الصف الأساسي</span><select className="h-11 w-full rounded-lg border bg-background px-3 font-normal" value={firstId} onChange={(event) => chooseFirst(event.target.value)}><option value="">اختر الصف الأول</option>{targets.map((item) => <option key={item.grade} value={item.grade}>{item.gradeName} · {item.curriculumName}</option>)}</select><p className="mt-2 text-xs font-normal text-muted-foreground">يُستخدم حساب Zoom والمشرف الخاصان بهذا الصف.</p></label>
+          <label className="rounded-xl border bg-card p-4 text-sm font-semibold"><span className="mb-3 flex items-center gap-2"><Badge>1</Badge>الصف الأساسي</span><select className="h-11 w-full rounded-lg border bg-background px-3 font-normal" value={firstId} onChange={(event) => chooseFirst(event.target.value)}><option value="">اختر الصف الأول</option>{targets.map((item) => <option key={item.grade} value={item.grade}>{item.gradeName} · {item.curriculumName}</option>)}</select><p className="mt-2 text-xs font-normal text-muted-foreground">الصفوف المرتبطة بفصل مشترك سابق لا تظهر هنا.</p></label>
           <label className="rounded-xl border bg-card p-4 text-sm font-semibold"><span className="mb-3 flex items-center gap-2"><Badge>2</Badge>الصف الثاني</span><select className="h-11 w-full rounded-lg border bg-background px-3 font-normal" value={secondId} disabled={!first} onChange={(event) => { setSecondId(event.target.value); setError(""); }}><option value="">اختر الصف الثاني</option>{targets.filter((item) => item.grade !== firstId).sort((left, right) => first ? sharedTargetScore(first, right) - sharedTargetScore(first, left) : 0).map((item) => <option key={item.grade} value={item.grade}>{item.gradeName} · {item.curriculumName}</option>)}</select>{first && suggestion && suggestion.grade !== secondId && <button type="button" onClick={() => setSecondId(suggestion.grade)} className="mt-3 flex w-full items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-start text-xs font-normal text-amber-900 transition hover:bg-amber-100"><Lightbulb className="h-4 w-4 shrink-0"/><span>المقترح حسب الاسم: <strong>{suggestion.gradeName}</strong></span></button>}{second && <p className="mt-3 flex items-center gap-1.5 text-xs font-normal text-emerald-700"><Check className="h-4 w-4"/>تم اختيار الصفين</p>}</label>
         </div>
         <div className="grid gap-4 lg:grid-cols-2"><label className="text-sm font-semibold">اسم الفصل<Input className="mt-2 h-11" value={name} onChange={(event) => setName(event.target.value)} placeholder="أولى ابتدائي - مشترك"/></label><label className="text-sm font-semibold">المشرف<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={supervisorId} onChange={(event) => setSupervisorId(event.target.value)} disabled={!first}><option value="">اختر المشرف</option>{availableSupervisors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, ChevronsUpDown, Loader2, Plus, UsersRound, X } from "lucide-react";
 import { classroomRecordingsApi } from "@/api/classroomRecordingsApi";
+import { ApiError } from "@/api/client";
 import { catalogApi, type CurriculumOption, type GradeOption } from "@/api/catalogApi";
 import { courseStaffApi, type CourseStaffOption } from "@/api/courseStaffApi";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,20 @@ export const sharedTargetScore = (first: SharedTarget, candidate: SharedTarget) 
   const firstWords = normalizedWords(first.gradeName);
   const overlap = [...normalizedWords(candidate.gradeName)].filter((word) => firstWords.has(word)).length;
   return overlap * 10 + (first.curriculum === candidate.curriculum ? 1 : 0);
+};
+
+const sharedClassroomErrorMessage = (error: unknown) => {
+  if (!(error instanceof ApiError)) return "تعذر إنشاء الفصل المشترك. حاول مرة أخرى.";
+  const messages: Record<string, string> = {
+    GRADE_ZOOM_ACCOUNT_NOT_CONFIGURED: "لا يوجد حساب Zoom مربوط بأيٍ من الصفين. اربط حساب Zoom بأحدهما أولًا.",
+    ZOOM_ACCOUNT_INACTIVE: "حساب Zoom المرتبط بالصفين غير مفعّل.",
+    ZOOM_MEETING_CREATION_FAILED: "تعذر إنشاء اجتماع Zoom حاليًا. راجع بيانات حساب Zoom وحاول مجددًا.",
+    ZOOM_MEETING_SETTINGS_REJECTED: "رفض Zoom إعدادات الاجتماع. راجع إعدادات الحساب وحاول مجددًا.",
+    GRADE_ALREADY_IN_SHARED_CLASSROOM: "أحد الصفين مرتبط بالفعل بفصل مشترك.",
+    SUPERVISOR_NOT_FOUND: "المشرف المختار غير متاح.",
+    SUPERVISOR_NOT_IN_CURRICULUM: "المشرف المختار غير مرتبط بهذا المنهج.",
+  };
+  return messages[error.code] || error.message || "تعذر إنشاء الفصل المشترك.";
 };
 
 export default function SharedClassroomCreateCard({ onCreated }: { onCreated: () => void }) {
@@ -134,7 +149,7 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
     try {
       await classroomRecordingsApi.createSharedClassroom({ name: name.trim(), curriculum: first.curriculum, grade: first.grade, supervisorId, classroomKind: "shared", sharedAcademicTargets: [first, second].map(({ curriculum, grade }) => ({ curriculum, grade })), subjects: selectedSubjectIds });
       reset(); onCreated();
-    } catch { setError("تعذر إنشاء الفصل المشترك. تأكد من إعداد حساب Zoom للصف الأساسي وصلاحية المشرف."); }
+    } catch (requestError) { setError(sharedClassroomErrorMessage(requestError)); }
     finally { setSaving(false); }
   };
 

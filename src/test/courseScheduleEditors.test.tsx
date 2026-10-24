@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getClassroom: vi.fn(), getAvailability: vi.fn(), generateMeeting: vi.fn(),
   getClassroomWeeklyAssignments: vi.fn(),
   retryClassroomWeeklyAssignments: vi.fn(),
+  deleteUnifiedScheduleEntry: vi.fn(),
   toastSuccess: vi.fn(), toastError: vi.fn(), role: "teacher",
 }));
 
@@ -23,6 +24,7 @@ vi.mock("@/api/zoomAccountsApi", () => ({ zoomAccountsApi: {
   getClassroomWeeklyAssignments: mocks.getClassroomWeeklyAssignments,
   retryClassroomWeeklyAssignments: mocks.retryClassroomWeeklyAssignments,
 } }));
+vi.mock("@/api/scheduleApi", () => ({ deleteUnifiedScheduleEntry: mocks.deleteUnifiedScheduleEntry }));
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: mocks.toastError } }));
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { role: mocks.role } }) }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
@@ -67,6 +69,7 @@ beforeEach(() => {
   mocks.role = "teacher"; zoomDefaults();
   mocks.getClassroomWeeklyAssignments.mockResolvedValue({ data: { classroom: { id: "room-1", name: "Course room" }, slots: [] } });
   mocks.retryClassroomWeeklyAssignments.mockResolvedValue({ data: { attemptedCount: 0, readyCount: 0, unresolvedCount: 0, results: [] } });
+  mocks.deleteUnifiedScheduleEntry.mockResolvedValue(undefined);
   vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "client-key-new") });
 });
 
@@ -168,7 +171,7 @@ describe("admin and supervisor course schedule editor", () => {
     expect(screen.getByRole("link", { name: "https://zoom.example/j/meeting-1" })).toBeInTheDocument();
   });
 
-  it("hydrates a new ID and includes it in the second save without UI keys", async () => {
+  it("hydrates a new ID and deletes an existing slot immediately without another save", async () => {
     const authoritative = schedule([identified(firstId), identified(secondId, "saturday", "09:00")]);
     const final = schedule([identified(secondId, "monday", "09:30")]);
     mocks.getSchedule.mockResolvedValueOnce(schedule()).mockResolvedValueOnce(authoritative).mockResolvedValueOnce(final);
@@ -183,12 +186,10 @@ describe("admin and supervisor course schedule editor", () => {
     expect(mocks.updateSchedule.mock.calls[0][1].slots[1]).not.toHaveProperty("slotId");
     expect(JSON.stringify(mocks.updateSchedule.mock.calls[0][1])).not.toContain("clientKey");
     await waitFor(() => expect(screen.getByDisplayValue("09:00")).toBeInTheDocument());
-    fireEvent.change(screen.getByDisplayValue("09:00"), { target: { value: "09:30" } });
-    fireEvent.change(screen.getAllByLabelText("اليوم")[1], { target: { value: "monday" } });
-    fireEvent.click(document.querySelector(".lucide-trash2")!.closest("button")!);
-    fireEvent.click(screen.getByRole("button", { name: "حفظ الجدول" }));
-    await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalledTimes(2));
-    expect(mocks.updateSchedule.mock.calls[1][1].slots).toEqual([identified(secondId, "monday", "09:30")]);
+    const deleteButtons = screen.getAllByRole("button", { name: "حذف الموعد" });
+    fireEvent.click(deleteButtons[0]);
+    await waitFor(() => expect(mocks.deleteUnifiedScheduleEntry).toHaveBeenCalledWith("room-1", firstId));
+    expect(mocks.updateSchedule).toHaveBeenCalledTimes(1);
   });
 
   it("locks a delayed save/refetch and keeps concurrent unsaved input", async () => {

@@ -172,6 +172,7 @@ describe("admin and supervisor course schedule editor", () => {
   });
 
   it("hydrates a new ID and deletes an existing slot immediately without another save", async () => {
+    mocks.role = "admin";
     const authoritative = schedule([identified(firstId), identified(secondId, "saturday", "09:00")]);
     const final = schedule([identified(secondId, "monday", "09:30")]);
     mocks.getSchedule.mockResolvedValueOnce(schedule()).mockResolvedValueOnce(authoritative).mockResolvedValueOnce(final);
@@ -186,6 +187,7 @@ describe("admin and supervisor course schedule editor", () => {
     expect(mocks.updateSchedule.mock.calls[0][1].slots[1]).not.toHaveProperty("slotId");
     expect(JSON.stringify(mocks.updateSchedule.mock.calls[0][1])).not.toContain("clientKey");
     await waitFor(() => expect(screen.getByDisplayValue("09:00")).toBeInTheDocument());
+    expect((await screen.findAllByText("الحالة: جارٍ تخصيص الحساب وتجهيز Zoom")).length).toBeGreaterThan(0);
     const deleteButtons = screen.getAllByRole("button", { name: "حذف الموعد" });
     fireEvent.click(deleteButtons[0]);
     await waitFor(() => expect(mocks.deleteUnifiedScheduleEntry).toHaveBeenCalledWith("room-1", firstId));

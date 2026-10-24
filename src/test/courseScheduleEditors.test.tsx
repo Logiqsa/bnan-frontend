@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getSchedule: vi.fn(), updateSchedule: vi.fn(), listGroups: vi.fn(),
   getClassroom: vi.fn(), getAvailability: vi.fn(), generateMeeting: vi.fn(),
   getClassroomWeeklyAssignments: vi.fn(),
+  retryClassroomWeeklyAssignments: vi.fn(),
   toastSuccess: vi.fn(), toastError: vi.fn(), role: "teacher",
 }));
 
@@ -20,6 +21,7 @@ vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: {
 } }));
 vi.mock("@/api/zoomAccountsApi", () => ({ zoomAccountsApi: {
   getClassroomWeeklyAssignments: mocks.getClassroomWeeklyAssignments,
+  retryClassroomWeeklyAssignments: mocks.retryClassroomWeeklyAssignments,
 } }));
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, error: mocks.toastError } }));
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { role: mocks.role } }) }));
@@ -64,6 +66,7 @@ beforeEach(() => {
   mocks.getClassroom.mockReset(); mocks.getAvailability.mockReset(); mocks.generateMeeting.mockReset();
   mocks.role = "teacher"; zoomDefaults();
   mocks.getClassroomWeeklyAssignments.mockResolvedValue({ data: { classroom: { id: "room-1", name: "Course room" }, slots: [] } });
+  mocks.retryClassroomWeeklyAssignments.mockResolvedValue({ data: { attemptedCount: 0, readyCount: 0, unresolvedCount: 0, results: [] } });
   vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "client-key-new") });
 });
 
@@ -139,6 +142,20 @@ describe("teacher course schedule editor", () => {
 });
 
 describe("admin and supervisor course schedule editor", () => {
+  it("retries Zoom preparation when the admin refresh button is pressed", async () => {
+    mocks.role = "admin";
+    mocks.getSchedule.mockResolvedValue(schedule());
+    mocks.getClassroomWeeklyAssignments.mockResolvedValue({ data: {
+      classroom: { id: "room-1", name: "Course room" },
+      slots: [{ assignmentId: "assignment-1", weeklySlotKey: "zws_test", slotId: firstId, day: "saturday", startTime: "10:00", endTime: "11:00", timezone: "Africa/Cairo", status: "quarantined", state: "quarantined", cutoverState: "active", assignmentVersion: 0, account: { id: "zoom-1", name: "Zoom Arabic 1", hostFingerprint: "fingerprint" }, meeting: null, reason: "WEEKLY_ZOOM_PROVIDER_OUTCOME_UNKNOWN" }],
+    } });
+    mocks.retryClassroomWeeklyAssignments.mockResolvedValue({ data: { attemptedCount: 1, readyCount: 1, unresolvedCount: 0, results: [{ assignmentId: "assignment-1", status: "ready", reason: "reconciled" }] } });
+    render(<AdminEditor />);
+    fireEvent.click(await screen.findByRole("button", { name: "تحديث وتجهيز Zoom" }));
+    await waitFor(() => expect(mocks.retryClassroomWeeklyAssignments).toHaveBeenCalledWith("room-1"));
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم تجهيز 1 موعد Zoom بنجاح."));
+  });
+
   it("shows the ready per-slot participant link and creating account to an admin", async () => {
     mocks.role = "admin";
     mocks.getSchedule.mockResolvedValue(schedule());

@@ -106,6 +106,13 @@ export interface WeeklyZoomPoolAvailability {
   accounts: WeeklyZoomAvailabilityAccount[];
 }
 
+export interface WeeklyZoomRetryResult {
+  attemptedCount: number;
+  readyCount: number;
+  unresolvedCount: number;
+  results: Array<{ assignmentId: string; status: "ready" | "pending" | "failed" | "skipped"; reason: string | null }>;
+}
+
 export interface CreateZoomAccountPayload {
   name: string;
   accountId: string;
@@ -156,6 +163,12 @@ export const zoomAccountsApi = {
   getClassroomWeeklyAssignments: (classroomId: string) =>
     apiRequest<ItemResponse<WeeklyZoomClassroomAssignments>>(
       `/admin/zoom-accounts/classrooms/${encodeURIComponent(classroomId)}/weekly-assignments`,
+    ),
+
+  retryClassroomWeeklyAssignments: (classroomId: string) =>
+    apiRequest<ItemResponse<WeeklyZoomRetryResult>>(
+      `/admin/zoom-accounts/classrooms/${encodeURIComponent(classroomId)}/weekly-assignments/retry`,
+      { method: "POST" },
     ),
 
   getWeeklyPoolAvailability: (day: string, durationMinutes?: number) => {

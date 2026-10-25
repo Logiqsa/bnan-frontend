@@ -20,14 +20,14 @@ const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false,
   const surface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground hover:border-secondary/60 hover:bg-primary-foreground/5"
     : heroStyle
-    ? "border-[#102a53] bg-[#102a53] text-white shadow-[0_12px_24px_rgba(16,42,83,0.22)] hover:border-[#183969] hover:bg-[#183969]"
+    ? "border-primary bg-primary text-white shadow-[0_12px_24px_rgba(25,31,63,0.22)] hover:border-navy-light hover:bg-navy-light"
     : onDark
     ? "border-white/25 bg-transparent text-white hover:border-white/45 hover:bg-white/5"
     : "border-border bg-card text-foreground hover:border-primary/30";
   const iosSurface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground"
     : heroStyle
-    ? "border-[#102a53] bg-[#102a53] text-white shadow-[0_12px_24px_rgba(16,42,83,0.22)]"
+    ? "border-primary bg-primary text-white shadow-[0_12px_24px_rgba(25,31,63,0.22)]"
     : onDark
     ? "border-white/20 bg-white/10 text-white"
     : "border-border bg-muted/50 text-foreground";

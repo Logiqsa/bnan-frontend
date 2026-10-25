@@ -62,7 +62,7 @@ const HeroSection = () => {
             </div>
             <div className="text-right">
               <p className="text-xs font-cairo text-slate-500">{bubble.title}</p>
-              <p className="text-sm font-cairo font-bold text-[#102a53]">{bubble.value}</p>
+              <p className="text-sm font-cairo font-bold text-primary">{bubble.value}</p>
             </div>
           </div>
         </motion.div>
@@ -74,11 +74,11 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="mb-6 text-[2.45rem] font-display font-bold leading-[1.28] text-[#102a53] drop-shadow-[0_1px_0_rgba(255,255,255,0.8)] sm:text-5xl md:text-6xl md:leading-tight lg:text-7xl"
+            className="mb-6 text-[2.45rem] font-display font-bold leading-[1.28] text-primary drop-shadow-[0_1px_0_rgba(255,255,255,0.8)] sm:text-5xl md:text-6xl md:leading-tight lg:text-7xl"
           >
             <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
-            <span className="text-sky-600">
+            <span className="text-[hsl(204_66%_48%)]">
               في مكان واحد
             </span>
           </motion.h1>
@@ -90,7 +90,7 @@ const HeroSection = () => {
             className="mx-auto mb-8 max-w-2xl text-lg font-serif-text font-normal leading-relaxed text-slate-700 md:text-xl"
           >
             مع{" "}
-            <span className="font-bold text-sky-700">بنان</span>{" "}
+            <span className="font-bold text-[hsl(204_66%_42%)]">بنان</span>{" "}
             خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 
@@ -101,7 +101,7 @@ const HeroSection = () => {
             className="flex flex-col justify-center gap-4 sm:flex-row"
           >
             <a href="/curricula">
-              <Button size="lg" className="w-full px-8 font-cairo text-lg text-white shadow-[0_12px_24px_rgba(16,42,83,0.25)] hover:bg-[#183969] sm:w-auto bg-[#102a53]">
+              <Button size="lg" className="w-full bg-primary px-8 font-cairo text-lg text-primary-foreground shadow-[0_12px_24px_rgba(25,31,63,0.25)] hover:bg-navy-light sm:w-auto">
                 ابدأ رحلتك التعليمية
               </Button>
             </a>
@@ -109,7 +109,7 @@ const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full border-2 border-[#102a53]/55 bg-white/70 px-8 font-cairo text-lg text-[#102a53] backdrop-blur-sm hover:bg-white sm:w-auto"
+                className="w-full border-2 border-primary/55 bg-white/70 px-8 font-cairo text-lg text-primary backdrop-blur-sm hover:bg-white sm:w-auto"
               >
                 <Play className="w-5 h-5 ml-2" />
                 اطلب حصة مجانية
@@ -144,7 +144,7 @@ const HeroSection = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-cairo text-[10px] text-slate-500">{bubble.title}</p>
-                  <p className="font-cairo text-xs font-bold text-[#102a53]">{bubble.value}</p>
+                  <p className="font-cairo text-xs font-bold text-primary">{bubble.value}</p>
                 </div>
               </div>
             ))}

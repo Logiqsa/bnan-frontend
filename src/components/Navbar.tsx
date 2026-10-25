@@ -78,7 +78,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
             <button
               type="button"
               onClick={toggleLanguage}
-              className="inline-flex shrink-0 items-center gap-[6px] rounded-full bg-[#102145] px-3 py-1.5 font-cairo text-sm text-white/70 transition-colors hover:bg-[#193466] hover:text-white"
+              className="inline-flex shrink-0 items-center gap-[6px] rounded-full bg-primary px-3 py-1.5 font-cairo text-sm text-white/75 transition-colors hover:bg-navy-light hover:text-white"
               aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
             >
               <Globe className="h-4 w-4" aria-hidden="true" />
@@ -136,7 +136,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="-mx-4 rounded-b-2xl border-t border-white/10 bg-[#102145] px-4 pb-5 pt-4 text-white shadow-xl lg:hidden"
+            className="-mx-4 rounded-b-2xl border-t border-white/10 bg-primary px-4 pb-5 pt-4 text-white shadow-xl lg:hidden"
           >
             <div className="flex flex-col gap-3">
               <Button

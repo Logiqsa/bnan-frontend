@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CalendarDays, ChevronLeft, Clock3, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronLeft, Clock3, Copy, ExternalLink, Loader2, Pencil, Plus, RefreshCw, Save, Trash2, Video } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { classroomRecordingsApi, type ClassroomSubjectOption } from "@/api/classroomRecordingsApi";
@@ -17,6 +17,7 @@ import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { referenceName } from "./classroomZoomNormalization";
 import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
+import { zoomAccountsApi, type WeeklyZoomClassroomAssignments, type WeeklyZoomSlotStatus } from "@/api/zoomAccountsApi";
 
 type Day = typeof CLASSROOM_DAYS[number];
 type Row = ClassroomScheduleEntry & { key: string };
@@ -32,6 +33,16 @@ const errorMessage = (error: unknown) => {
   }
   if (apiError.status === 409) return "الموعد يتعارض مع حجز آخر. راجع الأوقات وحاول مجددًا.";
   return apiError.message || "تعذر إكمال الطلب. حاول مرة أخرى.";
+};
+const zoomStatusLabel: Record<WeeklyZoomSlotStatus, string> = {
+  ready: "جاهز",
+  cutover_pending: "بانتظار التفعيل",
+  allocating: "جارٍ تخصيص الحساب",
+  provisioning: "جارٍ تجهيز اجتماع Zoom",
+  pending: "بانتظار التخصيص",
+  quarantined: "متوقف للتحقق",
+  failed: "فشل التجهيز",
+  cancelled: "ملغي",
 };
 
 export default function ClassroomScheduleManagement({
@@ -54,6 +65,8 @@ export default function ClassroomScheduleManagement({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [weeklyZoom, setWeeklyZoom] = useState<WeeklyZoomClassroomAssignments | null>(null);
+  const [refreshingZoom, setRefreshingZoom] = useState(false);
   const mode = classroom && typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : undefined;
   const backPath = user?.role === "teacher"
     ? "/portal/teacher/classrooms"
@@ -68,9 +81,12 @@ export default function ClassroomScheduleManagement({
     const load = async () => {
       setLoading(true);
       try {
-        const [classroomResponse, subjectsResponse] = await Promise.all([
+        const [classroomResponse, subjectsResponse, assignments] = await Promise.all([
           classroomZoomApi.getClassroom(classroomId),
           classroomRecordingsApi.listSubjects(classroomId),
+          user?.role === "admin"
+            ? zoomAccountsApi.getClassroomWeeklyAssignments(classroomId).then((response) => response.data).catch(() => null)
+            : Promise.resolve(null),
         ]);
         if (!active) return;
         const details = classroomResponse.data;
@@ -95,6 +111,7 @@ export default function ClassroomScheduleManagement({
         setRows(normalized);
         setOriginalEntries(entries);
         setGulfSubjectId(normalized[0]?.classroomSubjectId || activeSubjects[0]?.classroomSubjectId || "");
+        setWeeklyZoom(assignments);
         setActiveDay((normalized[0]?.day as Day) || "saturday");
       } catch (error) {
         if (active) toast.error(errorMessage(error));
@@ -104,11 +121,24 @@ export default function ClassroomScheduleManagement({
     };
     if (classroomId) void load();
     return () => { active = false; };
-  }, [classroomId]);
+  }, [classroomId, user?.role]);
 
   const rowsByDay = useMemo(() => new Map(CLASSROOM_DAYS.map((day) => [day, rows.filter((row) => row.day === day)])), [rows]);
   const updateRow = (key: string, patch: Partial<Row>) => setRows((current) => current.map((row) => row.key === key ? { ...row, ...patch } : row));
   const addLesson = (day: Day) => setRows((current) => [...current, newRow(day, mode === "gulf" ? gulfSubjectId : subjects[0]?.classroomSubjectId)]);
+  const refreshZoom = async () => {
+    if (user?.role !== "admin") return;
+    setRefreshingZoom(true);
+    try {
+      const response = await zoomAccountsApi.getClassroomWeeklyAssignments(classroomId);
+      setWeeklyZoom(response.data);
+    } catch (error) { toast.error(errorMessage(error)); }
+    finally { setRefreshingZoom(false); }
+  };
+  const copyZoomLink = async (value: string) => {
+    try { await navigator.clipboard.writeText(value); toast.success("تم نسخ رابط Zoom للمشاركين."); }
+    catch { toast.error("تعذر نسخ الرابط. انسخه يدويًا."); }
+  };
 
   const save = async () => {
     if (!mode || !subjects.length) return toast.error("لا توجد مواد مكلّفة داخل الفصل.");
@@ -141,6 +171,7 @@ export default function ClassroomScheduleManagement({
       setRows(normalized);
       setOriginalEntries(refreshed);
       setGulfSubjectId(normalized[0]?.classroomSubjectId || subjects[0]?.classroomSubjectId || "");
+      if (user?.role === "admin") await refreshZoom();
       toast.success("تم حفظ جدول الفصل بنجاح.");
       setIsEditing(false);
     } catch (error) { toast.error(errorMessage(error)); }
@@ -151,6 +182,7 @@ export default function ClassroomScheduleManagement({
     {!embedded && <nav aria-label="مسار التنقل" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><Link to={backPath} className="hover:text-primary">{user?.role === "admin" ? "إدارة الفصول" : "فصولي"}</Link><ChevronLeft className="h-4 w-4"/><span className="text-foreground">{classroom?.name || "تعديل الجدول"}</span></nav>}
     {loading ? <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> : !classroom || !mode ? <Card><CardContent className="py-16 text-center"><p>تعذر تحميل بيانات جدول الفصل.</p><Button className="mt-4" variant="outline" onClick={() => navigate(backPath)}>العودة إلى الفصول</Button></CardContent></Card> : <>
       <header className="rounded-2xl border bg-gradient-to-l from-primary/[0.09] via-card to-card p-5 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="mb-2 flex flex-wrap gap-2"><Badge variant="outline">{mode === "egyptian" ? "منهج مصري" : "منهج سعودي"}</Badge><Badge variant="outline">{referenceName(classroom.grade)}</Badge></div><h1 className="text-2xl font-bold sm:text-3xl">{canEdit ? "تعديل " : ""}جدول {classroom.name}</h1><p className="mt-2 text-sm text-muted-foreground">{canEdit ? "اختر اليوم، ثم أضف المادة وحدد موعد كل حصة." : canManageSchedule ? "راجع جدول الفصل، ثم اضغط تعديل الجدول لإجراء أي تغيير." : "يمكنك مراجعة جدول الفصل؛ تعديله متاح للإدارة فقط."}</p></div>{canManageSchedule && (canEdit ? <Button onClick={() => void save()} disabled={saving} size="lg" className="shrink-0 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button> : <Button onClick={() => setIsEditing(true)} size="lg" className="shrink-0 gap-2"><Pencil className="h-4 w-4"/>تعديل الجدول</Button>)}</div></header>
+      {user?.role === "admin" && rows.length > 0 && <div className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3"><div><p className="flex items-center gap-2 font-semibold"><Video className="h-4 w-4 text-primary"/>روابط Zoom للمواعيد</p><p className="mt-1 text-xs text-muted-foreground">يظهر رابط المشاركين وحالة التجهيز داخل كل حصة.</p></div><Button type="button" size="sm" variant="outline" onClick={() => void refreshZoom()} disabled={refreshingZoom}><RefreshCw className={`me-2 h-4 w-4 ${refreshingZoom ? "animate-spin" : ""}`}/>تحديث الروابط</Button></div>}
       <Tabs value={activeDay} onValueChange={(value) => setActiveDay(value as Day)} dir="rtl">
         <div className="schedule-day-tabs-scroll w-full max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch]"><TabsList className="h-auto w-max min-w-full justify-start gap-1 p-1.5 sm:justify-center">{CLASSROOM_DAYS.map((day) => <TabsTrigger key={day} value={day} className="shrink-0 snap-start gap-2 px-4 py-2.5"><span>{CLASSROOM_DAY_NAMES[day]}</span>{(rowsByDay.get(day)?.length || 0) > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{rowsByDay.get(day)?.length}</Badge>}</TabsTrigger>)}</TabsList></div>
         {CLASSROOM_DAYS.map((day) => { const dayRows = rowsByDay.get(day) || []; return <TabsContent key={day} value={day} className="mt-3"><Card><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>حصص يوم {CLASSROOM_DAY_NAMES[day]}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{dayRows.length ? `${dayRows.length} حصة` : "لا توجد حصص في هذا اليوم"}</p></div>{canEdit && <Button variant="outline" onClick={() => addLesson(day)} className="gap-2"><Plus className="h-4 w-4"/>إضافة حصة</Button>}</CardHeader><CardContent className="space-y-3 p-4 sm:p-6">
@@ -158,7 +190,7 @@ export default function ClassroomScheduleManagement({
             <div className="space-y-2"><Label className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary"/>المادة</Label><Select value={mode === "gulf" ? gulfSubjectId : row.classroomSubjectId} onValueChange={(classroomSubjectId) => mode === "gulf" ? setGulfSubjectId(classroomSubjectId) : updateRow(row.key, { classroomSubjectId })} disabled={!canEdit}><SelectTrigger><SelectValue placeholder="اختر المادة"/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>من</Label><Time12Input value={row.startTime} onChange={(startTime) => updateRow(row.key, { startTime })} disabled={!canEdit}/></div>
             <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>إلى</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })} disabled={!canEdit}/></div>
-          </div><p className="mt-3 flex flex-wrap items-center gap-1 rounded-lg bg-primary/5 px-3 py-2 text-sm font-medium text-primary">الموعد: من <ScheduleTimeText value={row.startTime}/>{row.endTime && <> إلى <ScheduleTimeText value={row.endTime}/></>}</p></div>)}
+          </div><p className="mt-3 flex flex-wrap items-center gap-1 rounded-lg bg-primary/5 px-3 py-2 text-sm font-medium text-primary">الموعد: من <ScheduleTimeText value={row.startTime}/>{row.endTime && <> إلى <ScheduleTimeText value={row.endTime}/></>}</p>{user?.role === "admin" && (() => { const zoomSlot = row.id ? weeklyZoom?.slots.find((slot) => slot.slotId === row.id) : undefined; return <div className="mt-3 rounded-lg border bg-background p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="flex items-center gap-2 text-sm font-semibold"><Video className="h-4 w-4 text-primary"/>Zoom</p><Badge variant={zoomSlot?.status === "ready" ? "default" : "outline"}>{zoomSlot ? zoomStatusLabel[zoomSlot.status] : "جارٍ تجهيز الموعد"}</Badge></div>{zoomSlot?.meeting?.participantUrl ? <div className="mt-3 flex flex-wrap items-center gap-2"><a href={zoomSlot.meeting.participantUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 break-all text-sm text-primary underline" dir="ltr">{zoomSlot.meeting.participantUrl}</a><Button type="button" size="sm" variant="outline" asChild><a href={zoomSlot.meeting.participantUrl} target="_blank" rel="noreferrer"><ExternalLink className="me-2 h-4 w-4"/>فتح</a></Button><Button type="button" size="sm" variant="outline" onClick={() => void copyZoomLink(zoomSlot.meeting!.participantUrl)}><Copy className="me-2 h-4 w-4"/>نسخ</Button></div> : <p className="mt-2 text-xs text-muted-foreground">{zoomSlot?.reason || "لم يصبح رابط المشاركين جاهزًا بعد."}</p>}</div>; })()}</div>)}
         </CardContent></Card></TabsContent>; })}
       </Tabs>
       {canEdit && <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur"><p className="hidden text-sm text-muted-foreground sm:block">راجع المواد والمواعيد في كل الأيام قبل الحفظ.</p><Button onClick={() => void save()} disabled={saving} className="w-full gap-2 sm:w-auto">{saving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الجدول</Button></div>}

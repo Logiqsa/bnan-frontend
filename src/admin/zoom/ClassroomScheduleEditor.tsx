@@ -42,18 +42,18 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
     }).catch(() => toast.error(pick("تعذر تحميل مواد الفصل", "Unable to load classroom subjects"))).finally(() => setLoading(false));
   }, [classroomId, entries, open, pick]);
 
-  const addRow = () => setRows((current) => [...current, { key: crypto.randomUUID(), day: DAYS.find((day) => mode === "egyptian" || !current.some((row) => row.day === day)) || "saturday", startTime: "09:00", endTime: "10:00", classroomSubjectId: mode === "gulf" ? gulfSubjectId : subjects[0]?.classroomSubjectId || "" }]);
+  const addRow = () => setRows((current) => [...current, { key: crypto.randomUUID(), day: "saturday", startTime: "09:00", endTime: "10:00", classroomSubjectId: mode === "gulf" ? gulfSubjectId : subjects[0]?.classroomSubjectId || "" }]);
   const updateRow = (key: string, patch: Partial<Row>) => setRows((current) => current.map((row) => row.key === key ? { ...row, ...patch } : row));
 
   const save = async () => {
     if (!subjects.length) return toast.error(pick("لا توجد مواد مكلّفة داخل الفصل", "No assigned subjects are available"));
     if (mode === "gulf" && !gulfSubjectId) return toast.error(pick("اختر المادة", "Select a subject"));
     if (rows.some((row) => !DAYS.includes(row.day as typeof DAYS[number]) || !row.startTime || !row.endTime || row.endTime <= row.startTime)) return toast.error(pick("راجع الأيام والأوقات؛ وقت النهاية يجب أن يكون بعد البداية", "Check days and times; end time must be after start time"));
-    if (mode === "gulf" && new Set(rows.map((row) => row.day)).size !== rows.length) return toast.error(pick("الجدول السعودي يسمح بموعد واحد فقط لكل يوم", "The Gulf schedule allows only one entry per day"));
-    if (mode === "egyptian") {
+    {
       const signatures = rows.map((row) => `${row.day}-${row.startTime}`);
-      const assignments = rows.map((row) => `${row.day}-${row.classroomSubjectId}`);
-      if (new Set(signatures).size !== signatures.length || new Set(assignments).size !== assignments.length) return toast.error(pick("لا يمكن تكرار نفس الوقت أو المادة داخل اليوم", "The same time or subject cannot be repeated within a day"));
+      if (new Set(signatures).size !== signatures.length) return toast.error(pick("لا يمكن تكرار نفس الوقت داخل اليوم", "The same time cannot be repeated within a day"));
+    }
+    if (mode === "egyptian") {
       if (rows.some((row) => !row.classroomSubjectId)) return toast.error(pick("اختر مادة لكل حصة", "Select a subject for every lesson"));
     }
     setSaving(true);
@@ -72,7 +72,7 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
 
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger asChild><Button size="sm" variant="outline" className="gap-2"><CalendarDays className="h-4 w-4"/>{entries.length ? pick("تعديل الجدول", "Edit schedule") : pick("تحديد الجدول", "Set schedule")}</Button></DialogTrigger>
-    <DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{pick("تحديد جدول الفصل", "Set classroom schedule")}</DialogTitle><DialogDescription>{mode === "egyptian" ? pick("يمكن إضافة أكثر من حصة في اليوم مع اختيار مادة كل حصة.", "You can add multiple lessons per day and select a subject for each.") : pick("اختر المادة ثم أضف موعدًا واحدًا لكل يوم.", "Choose the subject, then add one time slot per day.")}</DialogDescription></DialogHeader>
+    <DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{pick("تحديد جدول الفصل", "Set classroom schedule")}</DialogTitle><DialogDescription>{mode === "egyptian" ? pick("يمكن إضافة أكثر من حصة في اليوم مع اختيار مادة كل حصة.", "You can add multiple lessons per day and select a subject for each.") : pick("اختر المادة ثم أضف مواعيد الحصص؛ يمكن إضافة أكثر من حصة في اليوم.", "Choose the subject, then add lesson times; multiple lessons can be added per day.")}</DialogDescription></DialogHeader>
       {loading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-primary"/></div> : <div className="space-y-4">
         {mode === "gulf" && <div className="space-y-2"><Label>{pick("المادة", "Subject")}</Label><Select value={gulfSubjectId} onValueChange={setGulfSubjectId}><SelectTrigger><SelectValue placeholder={pick("اختر المادة", "Select subject")}/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>}
         <div className="space-y-2">{rows.map((row) => <div key={row.key} className="grid gap-3 rounded-xl border bg-muted/20 p-3 sm:grid-cols-2 sm:items-end">
@@ -82,7 +82,7 @@ export default function ClassroomScheduleEditor({ classroomId, mode, entries, on
           <div className="space-y-1.5"><Label>{pick("إلى", "To")}</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })}/></div>
           <Button type="button" variant="ghost" className="text-destructive hover:text-destructive sm:col-span-2" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}><Trash2 className="me-2 h-4 w-4"/>{pick("حذف الحصة", "Delete lesson")}</Button>
         </div>)}</div>
-        <Button type="button" variant="outline" className="w-full border-dashed" onClick={addRow} disabled={mode === "gulf" && rows.length >= DAYS.length}><Plus className="me-2 h-4 w-4"/>{pick("إضافة موعد", "Add time slot")}</Button>
+        <Button type="button" variant="outline" className="w-full border-dashed" onClick={addRow}><Plus className="me-2 h-4 w-4"/>{pick("إضافة موعد", "Add time slot")}</Button>
       </div>}
       <DialogFooter><Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>{pick("إلغاء", "Cancel")}</Button><Button onClick={() => void save()} disabled={loading || saving || !subjects.length}>{saving && <Loader2 className="me-2 h-4 w-4 animate-spin"/>}{pick("حفظ الجدول", "Save schedule")}</Button></DialogFooter>
     </DialogContent>

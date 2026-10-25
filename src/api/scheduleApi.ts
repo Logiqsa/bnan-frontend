@@ -39,6 +39,7 @@ interface UnifiedScheduleResponse {
   data: ScheduleWeekMetadata & { days?: Array<{ date: string; day: string; lessons?: UnifiedScheduleEntry[] }> };
 }
 export interface UnifiedScheduleEntryInput {
+  entryId?: string;
   day: string;
   classroomSubjectId: string;
   startTime: string;
@@ -62,7 +63,7 @@ const toPortalLesson = (
   lesson: UnifiedScheduleEntry,
   day: { date: string; day: string },
 ): PortalLesson => ({
-  key: `${lesson.type}-${lesson.id}-${lesson.date || day.date}`,
+  key: `${lesson.type}-${lesson.id}-${lesson.date || day.date}-${lesson.startTime}`,
   lessonId:
     lesson.type === "classroom" && lesson.system === "egyptian"
       ? lesson.id
@@ -183,18 +184,8 @@ export async function reconcileUnifiedClassroomSchedule(
     originalEntries.flatMap((entry) => (entry.id ? [[entry.id, entry] as const] : [])),
   );
   const nextIds = new Set(nextEntries.flatMap((entry) => (entry.id ? [entry.id] : [])));
-  const replacementIds = new Set(
-    nextEntries.flatMap((entry) => {
-      const original = entry.id ? originalById.get(entry.id) : undefined;
-      return original &&
-        (original.day !== entry.day ||
-          original.classroomSubjectId !== entry.classroomSubjectId)
-        ? [entry.id]
-        : [];
-    }),
-  );
   const deleteIds = originalEntries.flatMap((entry) =>
-    entry.id && (!nextIds.has(entry.id) || replacementIds.has(entry.id))
+    entry.id && !nextIds.has(entry.id)
       ? [entry.id]
       : [],
   );
@@ -205,7 +196,7 @@ export async function reconcileUnifiedClassroomSchedule(
 
   const changedEntries = nextEntries.filter((entry) => {
     const original = entry.id ? originalById.get(entry.id) : undefined;
-    return !original || replacementIds.has(entry.id || "") || !sameScheduleEntry(original, entry);
+    return !original || !sameScheduleEntry(original, entry);
   });
   await Promise.all(
     changedEntries.map((entry) => {
@@ -213,6 +204,7 @@ export async function reconcileUnifiedClassroomSchedule(
         throw new Error("SCHEDULE_ENTRY_FIELDS_REQUIRED");
       }
       return upsertUnifiedScheduleEntry(classroomId, {
+        ...(entry.id ? { entryId: entry.id } : {}),
         day: entry.day,
         classroomSubjectId: entry.classroomSubjectId,
         startTime: entry.startTime,

@@ -59,6 +59,24 @@ describe("Classroom Hub embedded Schedule and Zoom sections", () => {
     expect(screen.getAllByRole("button", { name: "حفظ الجدول" })).toHaveLength(2);
   });
 
+  it("allows more than one Saudi lesson on the same day", async () => {
+    mocks.getClassroom.mockResolvedValue({
+      success: true,
+      data: { ...classroom, curriculum: { ...classroom.curriculum, registrationMode: "gulf" } },
+    });
+    mocks.getSchedule.mockResolvedValue({
+      success: true,
+      data: { timezone: "Africa/Cairo", entries: [{ id: "entry-1", day: "saturday", startTime: "09:00", endTime: "10:00", classroomSubjectId: "cs1" }] },
+    });
+
+    render(<LanguageProvider><MemoryRouter><ClassroomScheduleManagement classroomId="c1" embedded /></MemoryRouter></LanguageProvider>);
+    await screen.findByRole("heading", { name: "جدول فصل أول" });
+    fireEvent.click(screen.getByRole("button", { name: "تعديل الجدول" }));
+    fireEvent.click(screen.getByRole("button", { name: "إضافة حصة" }));
+
+    expect(screen.getByRole("heading", { name: "الحصة 2" })).toBeInTheDocument();
+  });
+
   it("keeps the Schedule route using the page layout", async () => {
     render(<LanguageProvider><MemoryRouter initialEntries={["/admin/classrooms/c1/schedule"]}><Routes><Route path="/admin/classrooms/:classroomId/schedule" element={<ClassroomScheduleManagement />} /></Routes></MemoryRouter></LanguageProvider>);
     expect(await screen.findByRole("heading", { name: "جدول فصل أول" })).toBeInTheDocument();

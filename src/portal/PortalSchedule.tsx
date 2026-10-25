@@ -476,6 +476,7 @@ export default function PortalSchedule({
     setStartError("");
     try {
       await upsertUnifiedScheduleEntry(selected.classroom.id, {
+        ...(selected.scheduleEntryId ? { entryId: selected.scheduleEntryId } : {}),
         day: selected.day,
         classroomSubjectId: selected.classroomSubjectId,
         startTime: scheduleStartTime || selected.startTime,

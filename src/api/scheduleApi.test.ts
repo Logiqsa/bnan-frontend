@@ -138,7 +138,7 @@ describe("regular session lifecycle API", () => {
     );
     expect(apiRequest).toHaveBeenCalledWith(
       "/schedules/classroom/classroom-1",
-      { method: "PUT", body: JSON.stringify({ day: "sunday", classroomSubjectId: "subject-1", startTime: "11:00", endTime: "12:00" }) },
+      { method: "PUT", body: JSON.stringify({ entryId: "updated-entry", day: "sunday", classroomSubjectId: "subject-1", startTime: "11:00", endTime: "12:00" }) },
     );
     expect(apiRequest).toHaveBeenCalledWith(
       "/schedules/classroom/classroom-1",

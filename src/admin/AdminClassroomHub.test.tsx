@@ -47,6 +47,7 @@ const renderPage = (path = "/admin/classrooms/c1") => {
 describe("AdminClassroomHub", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => undefined);
     mocks.getClassroom.mockResolvedValue({ success: true, data: { id: "c1", name: "فصل أول", isActive: true, curriculum: { name: "المنهج المصري" }, grade: { name: "الصف الأول" } } });
@@ -54,7 +55,7 @@ describe("AdminClassroomHub", () => {
     mocks.listStudents.mockResolvedValue({ success: true, results: 1, data: [{ studentId: "st1", fullName: "طالب أول" }] });
     mocks.listAvailableStudents.mockResolvedValue({ success: true, results: 0, data: [] });
     mocks.assignStudent.mockResolvedValue({ success: true, data: {} });
-    mocks.listSessions.mockResolvedValue({ success: true, data: [] });
+    mocks.listSessions.mockResolvedValue({ success: true, data: [{ id: "s1", title: "الحصة الأولى", status: "completed" }] });
     mocks.listRecordings.mockResolvedValue({ success: true, data: [] });
     mocks.getSession.mockResolvedValue({ success: true, data: { id: "s1", title: "الحصة الأولى", status: "completed", startAt: "2026-09-24T10:00:00.000Z" } });
     mocks.getSessionReport.mockResolvedValue({ success: true, pagination: { currentPage: 1, perPage: 50, total: 2, lastPage: 1 }, data: { sessionId: "s1", status: "ready", participants: [] } });
@@ -114,12 +115,9 @@ describe("AdminClassroomHub", () => {
 
   it("loads classroom-scoped attendance lazily without calling unrelated tab APIs", async () => {
     renderPage("/admin/classrooms/c1?tab=attendance");
-    expect(await screen.findByRole("columnheader", { name: "الطالب" })).toBeInTheDocument();
-    expect(screen.getByText("طالب أول")).toBeInTheDocument();
-    expect(screen.getByText("لم تُسجل جلسة")).toBeInTheDocument();
-    expect(screen.getByText("لم يسجل")).toBeInTheDocument();
-    expect(mocks.listAttendance).toHaveBeenCalledWith("c1", { page: 1, limit: 20 });
-    expect(mocks.listSessions).not.toHaveBeenCalled();
+    expect(await screen.findByText("اختر جلسة لعرض حضور طلبة الفصل")).toBeInTheDocument();
+    expect(mocks.listAttendance).not.toHaveBeenCalled();
+    expect(mocks.listSessions).toHaveBeenCalledWith("c1");
     expect(mocks.listRecordings).not.toHaveBeenCalled();
     expect(screen.getByTestId("location")).toHaveTextContent("tab=attendance");
   });
@@ -169,7 +167,11 @@ describe("AdminClassroomHub", () => {
   it("loads attendance only for the attendance tab and keeps the classroom scope", async () => {
     mocks.listAttendance.mockResolvedValue({ success: true, results: 1, data: [{ id: "att1", student: { id: "st1", name: "طالب أول" }, session: { id: "s1", name: "الحصة الأولى" }, status: "late", joinedAt: "2026-09-24T10:00:00.000Z", duration: 12 }], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 1 } });
     renderPage("/admin/classrooms/c1?tab=attendance");
-    await waitFor(() => expect(mocks.listAttendance).toHaveBeenCalledWith("c1", expect.objectContaining({ page: 1, limit: 20 })));
+    const sessionSelect = (await screen.findAllByRole("combobox")).find((item) => item.textContent?.includes("اختر الجلسة"));
+    expect(sessionSelect).toBeDefined();
+    fireEvent.click(sessionSelect!);
+    fireEvent.click(await screen.findByRole("option", { name: "الحصة الأولى" }));
+    await waitFor(() => expect(mocks.listAttendance).toHaveBeenCalledWith("c1", expect.objectContaining({ session: "s1", page: 1, limit: 20 })));
     expect(await screen.findByText("طالب أول")).toBeInTheDocument();
     expect(screen.getByText("متأخر")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "الطالب" })).toBeInTheDocument();

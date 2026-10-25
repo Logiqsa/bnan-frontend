@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@/api/zoomAccountsApi", () => ({ zoomAccountsApi: {
   getClassroomWeeklyAssignments: mocks.getWeeklyAssignments,
+  retryClassroomWeeklyAssignments: vi.fn(),
 } }));
 
 vi.mock("@/portal/PortalAuthContext", () => ({ usePortalAuth: () => ({ user: { role: "admin" } }) }));
@@ -108,9 +109,26 @@ describe("Classroom Hub embedded Schedule and Zoom sections", () => {
   it("renders the existing Zoom management content in embedded mode", async () => {
     render(<LanguageProvider><MemoryRouter><ClassroomZoomManagement classroomId="c1" embedded /></MemoryRouter></LanguageProvider>);
     expect(await screen.findByText("إدارة رابط Zoom")).toBeInTheDocument();
+    expect(await screen.findByText("روابط Zoom الأسبوعية")).toBeInTheDocument();
     expect(screen.queryByTestId("dashboard-layout")).not.toBeInTheDocument();
     expect(mocks.listClassrooms).toHaveBeenCalled();
     expect(mocks.getClassroom).toHaveBeenCalledWith("c1");
+  });
+
+  it("shows every weekly Zoom link in the Zoom tab", async () => {
+    mocks.getSchedule.mockResolvedValue({ success: true, data: { timezone: "Africa/Cairo", entries: [
+      { id: "entry-1", day: "saturday", startTime: "09:00", endTime: "10:00", classroomSubjectId: "cs1", subjectName: "رياضيات" },
+      { id: "entry-2", day: "saturday", startTime: "11:00", endTime: "12:00", classroomSubjectId: "cs1", subjectName: "رياضيات" },
+    ] } });
+    mocks.getWeeklyAssignments.mockResolvedValue({ success: true, data: { classroom: { id: "c1", name: "فصل أول" }, slots: [
+      { assignmentId: "a1", weeklySlotKey: "z1", slotId: "entry-1", day: "saturday", startTime: "09:00", timezone: "Africa/Cairo", status: "ready", state: "ready", cutoverState: "active", assignmentVersion: 1, meeting: { id: "m1", participantUrl: "https://zoom.example/j/one", type: 3 }, account: { id: "za1", name: "Zoom 1", hostFingerprint: null }, reason: null },
+      { assignmentId: "a2", weeklySlotKey: "z2", slotId: "entry-2", day: "saturday", startTime: "11:00", timezone: "Africa/Cairo", status: "ready", state: "ready", cutoverState: "active", assignmentVersion: 1, meeting: { id: "m2", participantUrl: "https://zoom.example/j/two", type: 3 }, account: { id: "za2", name: "Zoom 2", hostFingerprint: null }, reason: null },
+    ] } });
+
+    render(<LanguageProvider><MemoryRouter><ClassroomZoomManagement classroomId="c1" embedded /></MemoryRouter></LanguageProvider>);
+
+    expect(await screen.findByRole("link", { name: "https://zoom.example/j/one" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "https://zoom.example/j/two" })).toBeInTheDocument();
   });
 
   it("keeps the legacy Zoom route using the page layout", async () => {

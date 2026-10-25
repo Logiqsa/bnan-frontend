@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, CheckCircle2, ExternalLink, GraduationCap, Loader2, RefreshCw, School, UserRound, Video } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, CheckCircle2, Copy, ExternalLink, GraduationCap, Loader2, RefreshCw, School, UserRound, Video } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/api/client";
 import { classroomRecordingsApi, type ClassroomOption } from "@/api/classroomRecordingsApi";
@@ -28,9 +28,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasZoomMeetingLink, normalizeZoomState, referenceId, referenceName, zoomDisplayState } from "./classroomZoomNormalization";
 import { formatScheduleTime } from "./classroomManagement";
 import ClassroomScheduleEditor from "./ClassroomScheduleEditor";
+import { zoomAccountsApi, type WeeklyZoomClassroomAssignments, type WeeklyZoomSlotStatus } from "@/api/zoomAccountsApi";
 
 const dayAr: Record<string, string> = { saturday: "السبت", sunday: "الأحد", monday: "الاثنين", tuesday: "الثلاثاء", wednesday: "الأربعاء", thursday: "الخميس", friday: "الجمعة" };
 const dayEn: Record<string, string> = { saturday: "Saturday", sunday: "Sunday", monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday", friday: "Friday" };
+const weeklyZoomStatus: Record<WeeklyZoomSlotStatus, [string, string]> = {
+  ready: ["جاهز", "Ready"], cutover_pending: ["بانتظار التفعيل", "Pending activation"],
+  allocating: ["جارٍ تخصيص الحساب", "Allocating account"], provisioning: ["جارٍ تجهيز الاجتماع", "Provisioning meeting"],
+  pending: ["بانتظار التخصيص", "Pending allocation"], quarantined: ["متوقف للتحقق", "Paused for review"],
+  failed: ["فشل التجهيز", "Provisioning failed"], cancelled: ["ملغي", "Cancelled"],
+};
 
 const getMeeting = (classroom?: ClassroomZoomDetails | null, generated?: GeneratedZoomMeeting | null) => {
   if (generated) return generated;
@@ -96,7 +103,8 @@ function AccountCard({ account, selected, onSelect }: { account: AvailableZoomAc
 }
 
 function ZoomSection({ classroomId, classroom, registrationMode, scheduleEntries, scheduleTimezone, scheduleLoading, onRefreshClassroom, onScheduleSaved }: { classroomId: string; classroom: ClassroomZoomDetails | null; registrationMode: "egyptian" | "gulf"; scheduleEntries: ClassroomScheduleEntry[]; scheduleTimezone?: string; scheduleLoading: boolean; onRefreshClassroom: () => Promise<void>; onScheduleSaved: () => void }) {
-  const { pick } = useLanguage();
+  const { isArabic, pick } = useLanguage();
+  const { user } = usePortalAuth();
   const [availability, setAvailability] = useState<ZoomAvailability | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [generated, setGenerated] = useState<GeneratedZoomMeeting | null>(null);
@@ -106,10 +114,22 @@ function ZoomSection({ classroomId, classroom, registrationMode, scheduleEntries
   const generationLock = useRef(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  const [weeklyAssignments, setWeeklyAssignments] = useState<WeeklyZoomClassroomAssignments | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
   const entries = scheduleEntries;
   const meeting = getMeeting(classroom, generated);
   const meetingReady = Boolean(meeting);
   const selected = availability?.accounts.find((account) => account.id === selectedId);
+
+  const loadWeeklyAssignments = useCallback(async () => {
+    if (user?.role !== "admin") return;
+    setWeeklyLoading(true); setError("");
+    try {
+      const response = await zoomAccountsApi.getClassroomWeeklyAssignments(classroomId);
+      setWeeklyAssignments(response.data);
+    } catch (err) { setError(safeError(err, pick)); }
+    finally { setWeeklyLoading(false); }
+  }, [classroomId, pick, user?.role]);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -123,6 +143,8 @@ function ZoomSection({ classroomId, classroom, registrationMode, scheduleEntries
   }, [classroomId, pick]);
 
   useEffect(() => { setSelectedId(""); setGenerated(null); setMeetingAlreadyExists(false); }, [classroomId]);
+
+  useEffect(() => { if (user?.role === "admin") void loadWeeklyAssignments(); }, [loadWeeklyAssignments, user?.role]);
 
   useEffect(() => {
     if (scheduleLoading) return;
@@ -152,7 +174,30 @@ function ZoomSection({ classroomId, classroom, registrationMode, scheduleEntries
     } finally { generationLock.current = false; setGenerating(false); }
   };
 
+  const retryWeeklyAssignments = async () => {
+    setWeeklyLoading(true); setError("");
+    try {
+      const result = await zoomAccountsApi.retryClassroomWeeklyAssignments(classroomId);
+      await loadWeeklyAssignments();
+      if (result.data.readyCount > 0) toast.success(pick(`تم تجهيز ${result.data.readyCount} موعد Zoom.`, `${result.data.readyCount} Zoom slot(s) are ready.`));
+      else if (result.data.attemptedCount === 0) toast.success(pick("كل مواعيد Zoom جاهزة.", "All Zoom slots are ready."));
+      else toast.error(pick("بعض المواعيد ما زالت قيد التجهيز.", "Some slots are still being prepared."));
+    } catch (err) { setError(safeError(err, pick)); }
+    finally { setWeeklyLoading(false); }
+  };
+  const copyWeeklyLink = async (value: string) => {
+    try { await navigator.clipboard.writeText(value); toast.success(pick("تم نسخ رابط Zoom.", "Zoom link copied.")); }
+    catch { toast.error(pick("تعذر نسخ الرابط.", "Unable to copy the link.")); }
+  };
+
   if (classroom?.zoomAssignmentMode === "grade_default") return null;
+  if (user?.role === "admin") return <div className="space-y-5">
+    <Schedule entries={entries} timezone={scheduleTimezone} action={<ClassroomScheduleEditor classroomId={classroomId} mode={registrationMode} entries={entries} onSaved={() => { onScheduleSaved(); window.setTimeout(() => void loadWeeklyAssignments(), 1000); }}/>}/>
+    {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4"/><AlertTitle>{pick("تعذر تحميل مواعيد Zoom", "Unable to load Zoom slots")}</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+    <Card className="overflow-hidden shadow-elegant"><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5 text-primary"/>{pick("روابط Zoom الأسبوعية", "Weekly Zoom links")}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{pick("لكل موعد في الجدول اجتماع ورابط مستقل.", "Each schedule slot has its own meeting and link.")}</p></div><Button type="button" size="sm" variant="outline" onClick={() => void retryWeeklyAssignments()} disabled={weeklyLoading || !entries.length}><RefreshCw className={cn("me-2 h-4 w-4", weeklyLoading && "animate-spin")}/>{pick("تحديث وتجهيز", "Refresh and provision")}</Button></CardHeader><CardContent className="space-y-3 p-4 sm:p-5">
+      {weeklyLoading && !weeklyAssignments ? <div className="grid min-h-40 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary"/></div> : !entries.length ? <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">{pick("أضف مواعيد الجدول أولًا.", "Add schedule slots first.")}</p> : entries.map((entry, index) => { const slot = entry.id ? weeklyAssignments?.slots.find((item) => item.slotId === entry.id) : undefined; const link = slot?.meeting?.participantUrl; return <section key={entry.id || `${entry.day}-${entry.startTime}-${index}`} className={cn("rounded-xl border p-4", slot?.status === "ready" && "border-emerald-200 bg-emerald-50/30")}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-bold">{(isArabic ? dayAr : dayEn)[entry.day.toLowerCase()] || entry.day} · <span dir="ltr">{formatScheduleTime(entry.startTime)}{entry.endTime ? ` – ${formatScheduleTime(entry.endTime)}` : ""}</span></p><p className="mt-1 text-sm text-muted-foreground">{entry.subjectName || pick("حصة", "Lesson")}{slot?.account?.name ? ` · ${pick("الحساب", "Account")}: ${slot.account.name}` : ""}</p></div><Badge variant={slot?.status === "ready" ? "default" : "outline"}>{slot ? pick(...weeklyZoomStatus[slot.status]) : pick("جارٍ تجهيز الموعد", "Preparing slot")}</Badge></div>{link ? <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3"><a href={link} target="_blank" rel="noreferrer" dir="ltr" className="min-w-0 flex-1 break-all text-sm text-primary underline">{link}</a><Button size="sm" variant="outline" asChild><a href={link} target="_blank" rel="noreferrer"><ExternalLink className="me-2 h-4 w-4"/>{pick("فتح", "Open")}</a></Button><Button size="sm" variant="outline" onClick={() => void copyWeeklyLink(link)}><Copy className="me-2 h-4 w-4"/>{pick("نسخ", "Copy")}</Button></div> : <p className="mt-3 border-t pt-3 text-sm text-muted-foreground">{slot?.reason || pick("لم يصبح رابط المشاركين جاهزًا بعد.", "The participant link is not ready yet.")}</p>}</section>; })}
+    </CardContent></Card>
+  </div>;
   return <div className="space-y-5">
     <Schedule entries={entries} timezone={availability?.timezone || scheduleTimezone} action={<ClassroomScheduleEditor classroomId={classroomId} mode={registrationMode} entries={entries} onSaved={onScheduleSaved}/>}/>
     {meeting ? <Card className="overflow-hidden border-emerald-200 shadow-elegant"><CardContent className="flex flex-col gap-4 bg-emerald-50/60 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-emerald-100"><CheckCircle2 className="h-6 w-6 text-emerald-700"/></span><div><h2 className="font-bold text-emerald-950">{pick("Zoom جاهز", "Zoom Ready")}</h2><p className="mt-1 text-sm text-emerald-800">{pick("الحساب:", "Account:")} <strong>{meeting.zoomAccount?.name || selected?.name || "—"}</strong></p></div></div>

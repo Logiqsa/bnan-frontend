@@ -7,6 +7,7 @@ import { ApiError } from "@/api/client";
 import {
   endSession,
   getActiveClassroomSession,
+  getTeacherSessionEntry,
   joinLesson,
   joinWeeklySlotEntry,
   startClassroomSession,
@@ -50,11 +51,13 @@ export default function ClassroomSessionActions({
   const cache = useQueryClient();
   const [startingSession, setStartingSession] = useState(false);
   const [joiningSession, setJoiningSession] = useState(false);
+  const [openingTeacherEntry, setOpeningTeacherEntry] = useState(false);
   const [endingSession, setEndingSession] = useState(false);
   const [endingRequested, setEndingRequested] = useState(false);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const startRequestRef = useRef(false);
   const joinRequestRef = useRef(false);
+  const teacherEntryRequestRef = useRef(false);
   const endRequestRef = useRef(false);
   const usesSessionControls = user?.role === "teacher" || user?.role === "student";
   const sessionQueryKey = useMemo(
@@ -139,6 +142,33 @@ export default function ClassroomSessionActions({
     }
   };
 
+  const openTeacherSession = async () => {
+    if (
+      user?.role !== "teacher" ||
+      !activeSession?.sessionId ||
+      !["starting", "live"].includes(activeSession.status) ||
+      openingTeacherEntry ||
+      teacherEntryRequestRef.current
+    ) return;
+    const zoomWindow = reserveZoomWindow();
+    teacherEntryRequestRef.current = true;
+    setOpeningTeacherEntry(true);
+    try {
+      const result = await getTeacherSessionEntry(classroomId, activeSession.sessionId);
+      if (!navigateReservedZoomWindow(zoomWindow, result.data.teacherStartUrl)) {
+        throw new Error("MEETING_LINK_MISSING");
+      }
+    } catch (error) {
+      closeReservedZoomWindow(zoomWindow);
+      const apiError = error as ApiError;
+      if (apiError?.code === "SESSION_NOT_ACTIVE") await refreshClassroomSession();
+      toast.error(sessionActionError(error, "تعذر فتح الحصة على Zoom."));
+    } finally {
+      teacherEntryRequestRef.current = false;
+      setOpeningTeacherEntry(false);
+    }
+  };
+
   const endClassroomLesson = async () => {
     if (user?.role !== "teacher" || activeSession?.status !== "live" || !activeSession.sessionId || endingSession || endingRequested || endRequestRef.current) return;
     endRequestRef.current = true;
@@ -177,10 +207,20 @@ export default function ClassroomSessionActions({
         <span className="text-xs text-muted-foreground">لم يحن موعد بدء الحصة بعد</span>
       )}
       {user?.role === "teacher" && activeSession?.status === "starting" && (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" />جاري بدء الحصة...</span>
+        <>
+          <span className="text-xs text-muted-foreground">تم تجهيز الحصة</span>
+          <Button size="sm" disabled={openingTeacherEntry} onClick={() => void openTeacherSession()}>
+            {openingTeacherEntry ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <LogIn className="me-1 h-4 w-4" />}
+            {openingTeacherEntry ? "جاري فتح Zoom..." : "دخول الحصة"}
+          </Button>
+        </>
       )}
       {user?.role === "teacher" && activeSession?.status === "live" && <>
         {liveStartedAt && <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800"><Timer className="h-3.5 w-3.5" />مدة الحصة <span dir="ltr">{formatDuration(liveStartedAt, clockNow)}</span></span>}
+        <Button size="sm" disabled={openingTeacherEntry} onClick={() => void openTeacherSession()}>
+          {openingTeacherEntry ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <LogIn className="me-1 h-4 w-4" />}
+          {openingTeacherEntry ? "جاري فتح Zoom..." : "دخول الحصة"}
+        </Button>
         {!endingRequested && <Button size="sm" variant="outline" disabled={endingSession} onClick={() => void endClassroomLesson()}>
           {endingSession ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <Square className="me-1 h-4 w-4" />}
           {endingSession ? "جاري الإنهاء..." : "إنهاء الحصة"}

@@ -7,6 +7,7 @@ import { ApiError } from "@/api/client";
 
 const mocks = vi.hoisted(() => ({
   activeSession: vi.fn(),
+  teacherEntry: vi.fn(),
   startSession: vi.fn(),
   joinSession: vi.fn(),
   endSession: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("@/portal/PortalAuthContext", () => ({
 }));
 vi.mock("@/api/scheduleApi", () => ({
   getActiveClassroomSession: mocks.activeSession,
+  getTeacherSessionEntry: mocks.teacherEntry,
   startClassroomSession: mocks.startSession,
   joinLesson: mocks.joinSession,
   endSession: mocks.endSession,
@@ -81,6 +83,7 @@ describe("CourseClassroomChat session controls", () => {
     mocks.rooms.mockReset();
     mocks.messages.mockReset();
     mocks.activeSession.mockReset();
+    mocks.teacherEntry.mockReset();
     mocks.startSession.mockReset();
     mocks.joinSession.mockReset();
     mocks.endSession.mockReset();
@@ -141,6 +144,29 @@ describe("CourseClassroomChat session controls", () => {
     expect(await screen.findByText(/مدة الحصة/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ابدأ الحصة" })).not.toBeInTheDocument();
     expect(window.open).toHaveBeenCalledWith("https://zoom.example/join", "_blank", "noopener,noreferrer");
+  });
+
+  it("lets the teacher re-enter a session that is waiting for Zoom to confirm it started", async () => {
+    mocks.activeSession.mockResolvedValue({
+      ...live,
+      status: "starting",
+      canJoin: false,
+    });
+    mocks.teacherEntry.mockResolvedValue({
+      success: true,
+      data: {
+        sessionId: "session-1",
+        status: "starting",
+        teacherStartUrl: "https://zoom.example/start",
+      },
+    });
+    renderChat();
+
+    fireEvent.click(await screen.findByRole("button", { name: "دخول الحصة" }));
+
+    await waitFor(() => expect(mocks.teacherEntry).toHaveBeenCalledWith("classroom-1", "session-1"));
+    expect(window.open).toHaveBeenCalledWith("https://zoom.example/start", "_blank", "noopener,noreferrer");
+    expect(screen.queryByText("جاري بدء الحصة...")).not.toBeInTheDocument();
   });
 
   it("refreshes the backend session state after a start-window conflict", async () => {

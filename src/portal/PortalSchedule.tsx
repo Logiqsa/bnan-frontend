@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
+  CalendarClock,
   ClipboardList,
   ChevronLeft,
   ChevronRight,
@@ -180,6 +181,7 @@ export default function PortalSchedule({
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [scheduleStartTime, setScheduleStartTime] = useState("");
   const [scheduleEndTime, setScheduleEndTime] = useState("");
+  const [rescheduling, setRescheduling] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [deletingSchedule, setDeletingSchedule] = useState(false);
   const canStartSession = role === "teacher" || role === "admin";
@@ -272,6 +274,7 @@ export default function PortalSchedule({
   useEffect(() => {
     setScheduleStartTime(selected?.startTime || "");
     setScheduleEndTime(selected?.endTime || "");
+    setRescheduling(false);
   }, [selected]);
   useEffect(() => {
     if (!awaitingEnd || !selected || selected.classroom.id !== awaitingEnd.classroomId) return;
@@ -766,7 +769,7 @@ export default function PortalSchedule({
                   : selected?.scheduleKind === "course"
                     ? pick("تفاصيل موعد الدورة", "Course session details")
                   : canManageGulfEntry
-                    ? pick("إدارة موعد الحصة", "Manage lesson time")
+                    ? pick("تفاصيل الحصة", "Lesson details")
                     : canStartSession
                       ? pick("هل تريد بدء الحصة الآن؟", "Start the lesson now?")
                       : pick("تفاصيل الحصة", "Lesson details")}
@@ -779,15 +782,25 @@ export default function PortalSchedule({
           </DialogHeader>
           {canManageGulfEntry && (
             <div className="rounded-xl border bg-muted/30 p-4">
-              <p className="mb-3 text-sm font-semibold">{pick("إدارة موعد المادة", "Manage subject time")}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1 text-sm"><span>{pick("وقت البداية", "Start time")}</span><Input type="time" value={scheduleStartTime} onChange={(event) => setScheduleStartTime(event.target.value)} /></label>
-                <label className="grid gap-1 text-sm"><span>{pick("وقت النهاية", "End time")}</span><Input type="time" value={scheduleEndTime} onChange={(event) => setScheduleEndTime(event.target.value)} /></label>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button type="button" size="sm" onClick={() => void saveGulfEntry()} disabled={savingSchedule || deletingSchedule}>{savingSchedule ? pick("جارٍ الحفظ...", "Saving...") : pick("حفظ الموعد", "Save time")}</Button>
-                <Button type="button" size="sm" variant="destructive" onClick={() => void deleteGulfEntry()} disabled={savingSchedule || deletingSchedule || !selected?.scheduleEntryId}>{deletingSchedule ? pick("جارٍ الحذف...", "Deleting...") : pick("حذف الموعد", "Delete time")}</Button>
-              </div>
+              {!rescheduling ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => setRescheduling(true)}>
+                  <CalendarClock className="me-2 h-4 w-4" />
+                  {pick("تأجيل الحصة", "Reschedule lesson")}
+                </Button>
+              ) : (
+                <div className="rounded-lg border bg-background p-3">
+                  <p className="mb-3 text-sm font-semibold">{pick("اختر الموعد الجديد", "Choose the new time")}</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-sm"><span>{pick("وقت البداية", "Start time")}</span><Input type="time" value={scheduleStartTime} onChange={(event) => setScheduleStartTime(event.target.value)} /></label>
+                    <label className="grid gap-1 text-sm"><span>{pick("وقت النهاية", "End time")}</span><Input type="time" value={scheduleEndTime} onChange={(event) => setScheduleEndTime(event.target.value)} /></label>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" size="sm" onClick={() => void saveGulfEntry()} disabled={savingSchedule || deletingSchedule}>{savingSchedule ? pick("جارٍ الحفظ...", "Saving...") : pick("حفظ الموعد الجديد", "Save new time")}</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setRescheduling(false)} disabled={savingSchedule || deletingSchedule}>{pick("إلغاء", "Cancel")}</Button>
+                    <Button type="button" size="sm" variant="destructive" onClick={() => void deleteGulfEntry()} disabled={savingSchedule || deletingSchedule || !selected?.scheduleEntryId}>{deletingSchedule ? pick("جارٍ الحذف...", "Deleting...") : pick("حذف الموعد", "Delete time")}</Button>
+                  </div>
+                </div>
+              )}
               <div className="mt-4 border-t pt-4">
                 <ClassroomSessionActions classroomId={selected!.classroom.id} />
               </div>

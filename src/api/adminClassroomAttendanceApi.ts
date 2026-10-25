@@ -19,6 +19,7 @@ export interface AdminClassroomAttendanceParams {
   limit?: number;
   session?: string;
   student?: string;
+  search?: string;
   from?: string;
   to?: string;
   status?: AdminAttendanceStatus;

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -169,6 +169,10 @@ describe("AdminClassroomHub", () => {
     await waitFor(() => expect(mocks.listAttendance).toHaveBeenCalledWith("c1", expect.objectContaining({ page: 1, limit: 20 })));
     expect(await screen.findByText("طالب أول")).toBeInTheDocument();
     expect(screen.getByText("متأخر")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "الطالب" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "الجلسة" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("searchbox", { name: "بحث باسم الطالب" }), { target: { value: "طالب" } });
+    await waitFor(() => expect(mocks.listAttendance).toHaveBeenLastCalledWith("c1", expect.objectContaining({ search: "طالب", page: 1, limit: 20 })));
   });
 
   it("renders the contextual Chat tab at tab=chat", async () => {

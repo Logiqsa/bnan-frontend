@@ -180,7 +180,6 @@ export default function TeacherClassroomSessions() {
     () => subjects.data?.subjects || [],
     [subjects.data?.subjects],
   );
-  const isPrivateClassroom = subjects.isSuccess && subjects.data?.sourceType !== "course";
   const classroomName = subjects.data?.classroom?.name || "";
   const leaveRequestsBySubject = useMemo(
     () =>
@@ -311,9 +310,7 @@ export default function TeacherClassroomSessions() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {subjects.data?.sourceType !== "course" && (
-                <ClassroomSessionActions classroomId={classroomId} />
-              )}
+              <ClassroomSessionActions classroomId={classroomId} />
               <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to="/portal/teacher/classrooms">
                   <ArrowRight className="me-2 h-4 w-4" />
@@ -330,43 +327,43 @@ export default function TeacherClassroomSessions() {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-8">
-            <TabsTrigger value="chat">
-              <MessageCircle className="me-1 h-4 w-4" />
-              المحادثة
-            </TabsTrigger>
-            <TabsTrigger value="assignments">
-              <FileText className="me-1 h-4 w-4" />
-              الواجبات
-            </TabsTrigger>
-            <TabsTrigger value="recordings">
-              <Video className="me-1 h-4 w-4" />
-              التسجيلات
-            </TabsTrigger>
-            <TabsTrigger value="completed-sessions">
-              <Clock3 className="me-1 h-4 w-4" />
-              الحصص المنتهية
-            </TabsTrigger>
-            <TabsTrigger value="evaluations">
-              <ClipboardCheck className="me-1 h-4 w-4" />
-              التقييمات
-            </TabsTrigger>
-            <TabsTrigger value="plans">
-              <FileText className="me-1 h-4 w-4" />
-              الخطط
-            </TabsTrigger>
-            <TabsTrigger value="schedule">
-              <CalendarDays className="me-1 h-4 w-4" />
-              الجدول
-            </TabsTrigger>
-            {isPrivateClassroom && (
-              <TabsTrigger value="zoom">
+          <div className="overflow-x-auto rounded-xl bg-muted">
+            <TabsList className="flex h-auto min-w-max justify-start gap-1 bg-transparent p-1">
+              <TabsTrigger value="overview" className="min-w-28">نظرة عامة</TabsTrigger>
+              <TabsTrigger value="schedule" className="min-w-28">
+                <CalendarDays className="me-1 h-4 w-4" />
+                الجدول
+              </TabsTrigger>
+              <TabsTrigger value="zoom" className="min-w-28">
                 <Video className="me-1 h-4 w-4" />
                 Zoom
               </TabsTrigger>
-            )}
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="chat" className="min-w-28">
+                <MessageCircle className="me-1 h-4 w-4" />
+                المحادثة
+              </TabsTrigger>
+              <TabsTrigger value="assignments" className="min-w-28">
+                <FileText className="me-1 h-4 w-4" />
+                الواجبات
+              </TabsTrigger>
+              <TabsTrigger value="recordings" className="min-w-28">
+                <Video className="me-1 h-4 w-4" />
+                التسجيلات
+              </TabsTrigger>
+              <TabsTrigger value="completed-sessions" className="min-w-32">
+                <Clock3 className="me-1 h-4 w-4" />
+                الحصص المنتهية
+              </TabsTrigger>
+              <TabsTrigger value="evaluations" className="min-w-28">
+                <ClipboardCheck className="me-1 h-4 w-4" />
+                التقييمات
+              </TabsTrigger>
+              <TabsTrigger value="plans" className="min-w-28">
+                <FileText className="me-1 h-4 w-4" />
+                الخطط
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="plans" className="mt-5">
             <ClassroomPlansPanel classroomId={classroomId} canEdit />
@@ -516,11 +513,9 @@ export default function TeacherClassroomSessions() {
             <ClassroomScheduleManagement classroomId={classroomId} embedded />
           </TabsContent>
 
-          {isPrivateClassroom && (
-            <TabsContent value="zoom" className="mt-5">
-              <ClassroomZoomManagement classroomId={classroomId} embedded teacherMode />
-            </TabsContent>
-          )}
+          <TabsContent value="zoom" className="mt-5">
+            <ClassroomZoomManagement classroomId={classroomId} embedded teacherMode />
+          </TabsContent>
 
           <TabsContent value="recordings" className="mt-5">
             {recordings.isPending ? (

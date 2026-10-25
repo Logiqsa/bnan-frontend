@@ -43,6 +43,9 @@ vi.mock("@/components/ClassroomSessionActions", () => ({
 vi.mock("@/admin/zoom/ClassroomScheduleManagement", () => ({
   default: () => <div>جدول الفصل التجريبي</div>,
 }));
+vi.mock("@/admin/zoom/ClassroomZoomManagement", () => ({
+  default: () => <div>رابط Zoom للفصل التجريبي</div>,
+}));
 vi.mock("@/layouts/DashboardLayout", () => ({
   default: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
@@ -114,9 +117,19 @@ describe("TeacherClassroomSessions classroom details", () => {
     expect(screen.getByRole("tab", { name: /التسجيلات/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /الواجبات/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /المحادثة/ })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "Zoom" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Zoom" })).toBeInTheDocument();
     expect(await screen.findByText("المواد والمعلمون")).toBeInTheDocument();
     expect(screen.getByText("طالب الفصل")).toBeInTheDocument();
+  });
+
+  it("keeps Zoom and session controls available for course classrooms", async () => {
+    mocks.subjects.mockResolvedValueOnce({ data: { ...baseSubjects, sourceType: "course" } });
+    renderPage();
+
+    expect(await screen.findByText("فصل ألف")).toBeInTheDocument();
+    expect(screen.getByText("تحكم الحصة للفصل classroom-1")).toBeInTheDocument();
+    openTab(/^Zoom$/);
+    expect(await screen.findByText("رابط Zoom للفصل التجريبي")).toBeInTheDocument();
   });
 
   it("keeps the student section empty state independent", async () => {

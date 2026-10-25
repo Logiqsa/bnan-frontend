@@ -114,7 +114,10 @@ describe("AdminClassroomHub", () => {
 
   it("loads classroom-scoped attendance lazily without calling unrelated tab APIs", async () => {
     renderPage("/admin/classrooms/c1?tab=attendance");
-    expect(await screen.findByText("لا توجد سجلات حضور لهذا الفصل.")).toBeInTheDocument();
+    expect(await screen.findByRole("columnheader", { name: "الطالب" })).toBeInTheDocument();
+    expect(screen.getByText("طالب أول")).toBeInTheDocument();
+    expect(screen.getByText("لم تُسجل جلسة")).toBeInTheDocument();
+    expect(screen.getByText("لم يسجل")).toBeInTheDocument();
     expect(mocks.listAttendance).toHaveBeenCalledWith("c1", { page: 1, limit: 20 });
     expect(mocks.listSessions).not.toHaveBeenCalled();
     expect(mocks.listRecordings).not.toHaveBeenCalled();

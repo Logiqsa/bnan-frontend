@@ -1,10 +1,4 @@
-import {
-  API_BASE_URL,
-  ApiError,
-  apiRequest,
-  refreshAccessToken,
-  tokenStore,
-} from "./client";
+import { API_BASE_URL, ApiError, apiRequest, refreshAccessToken, tokenStore } from "./client";
 
 export interface ClassroomOption {
   id: string;
@@ -17,7 +11,15 @@ export interface ClassroomOption {
   };
   grade?: { id: string; _id?: string; name: string };
   subject?: { id?: string; name?: string } | string | null;
-  teacher?: { id?: string; name?: string; fullName?: string; user?: { fullName?: string } | string } | string | null;
+  teacher?:
+    | {
+        id?: string;
+        name?: string;
+        fullName?: string;
+        user?: { fullName?: string } | string;
+      }
+    | string
+    | null;
   sourceType?: "legacy" | "course";
   classroomKind?: "general" | "shared" | "private" | "course";
   sharedAcademicTargets?: Array<{
@@ -70,7 +72,11 @@ export interface ClassroomSubjectOption {
   canRequestLeave?: boolean;
   isActive: boolean;
 }
-export interface EligibleClassroomSubject { id: string; name: string; isAssigned: boolean }
+export interface EligibleClassroomSubject {
+  id: string;
+  name: string;
+  isAssigned: boolean;
+}
 
 export interface ClassroomStudentOption {
   studentId: string;
@@ -96,6 +102,12 @@ export interface AvailableClassroomStudent {
   email?: string;
 }
 
+export interface StudentTransferTarget {
+  id: string;
+  name: string;
+  classroomKind: "general" | "shared" | "private";
+}
+
 export interface ClassroomSession {
   id?: string;
   _id?: string;
@@ -110,12 +122,15 @@ export interface ClassroomSession {
   actualStartedAt?: string;
   actualEndedAt?: string;
   occurrenceKey?: string;
-  courseGroup?: string | {
-    id?: string;
-    _id?: string;
-    name?: string;
-    course?: string | { id?: string; _id?: string; name?: string } | null;
-  } | null;
+  courseGroup?:
+    | string
+    | {
+        id?: string;
+        _id?: string;
+        name?: string;
+        course?: string | { id?: string; _id?: string; name?: string } | null;
+      }
+    | null;
   recordingUrl?: string | null;
   recordingLink?: string | null;
   recording?: {
@@ -170,16 +185,12 @@ export interface SessionRecording {
 
 export interface ClassroomRecordingsResponse {
   success: true;
-  data:
-    | SessionRecording[]
-    | { recordings?: SessionRecording[]; data?: SessionRecording[] };
+  data: SessionRecording[] | { recordings?: SessionRecording[]; data?: SessionRecording[] };
 }
 
 export interface ClassroomSessionsResponse {
   success: true;
-  data:
-    | ClassroomSession[]
-    | { sessions?: ClassroomSession[]; data?: ClassroomSession[] };
+  data: ClassroomSession[] | { sessions?: ClassroomSession[]; data?: ClassroomSession[] };
 }
 
 export interface ClassroomSessionReport {
@@ -215,38 +226,23 @@ interface UploadResult {
   };
 }
 
-const language = () =>
-  localStorage.getItem("bnan_language") === "en" ? "en" : "ar";
+const language = () => (localStorage.getItem("bnan_language") === "en" ? "en" : "ar");
 
 export const classroomRecordingsApi = {
-  createSharedClassroom: (body: {
-    name: string;
-    curriculum: string;
-    grade: string;
-    supervisorId: string;
-    classroomKind: "shared";
-    sharedAcademicTargets: Array<{ curriculum: string; grade: string }>;
-    subjects: string[];
-  }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>(
-    "/classrooms",
-    { method: "POST", body: JSON.stringify(body) },
-  ),
-  listAllClassrooms: () =>
-    apiRequest<{ success: true; data: ClassroomOption[] }>(
-      "/classrooms?page=1&limit=100",
-    ),
+  createSharedClassroom: (body: { name: string; curriculum: string; grade: string; supervisorId: string; classroomKind: "shared"; sharedAcademicTargets: Array<{ curriculum: string; grade: string }>; subjects: string[] }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>("/classrooms", { method: "POST", body: JSON.stringify(body) }),
+  listAllClassrooms: () => apiRequest<{ success: true; data: ClassroomOption[] }>("/classrooms?page=1&limit=100"),
 
-  updateClassroom: (classroomId: string, body: { name?: string; classroomKind?: ClassroomOption["classroomKind"] }) =>
-    apiRequest<{ success: true; data: ClassroomOption }>(
-      `/classrooms/${encodeURIComponent(classroomId)}`,
-      { method: "PATCH", body: JSON.stringify(body) },
-    ),
+  updateClassroom: (classroomId: string, body: { name?: string; classroomKind?: ClassroomOption["classroomKind"] }) => apiRequest<{ success: true; data: ClassroomOption }>(`/classrooms/${encodeURIComponent(classroomId)}`, { method: "PATCH", body: JSON.stringify(body) }),
 
   deleteClassroom: (classroomId: string) =>
-    apiRequest<{ success: true; data: { classroomId: string; status: "archived"; alreadyArchived: boolean } }>(
-      `/classrooms/${encodeURIComponent(classroomId)}`,
-      { method: "DELETE" },
-    ),
+    apiRequest<{
+      success: true;
+      data: {
+        classroomId: string;
+        status: "archived";
+        alreadyArchived: boolean;
+      };
+    }>(`/classrooms/${encodeURIComponent(classroomId)}`, { method: "DELETE" }),
 
   listClassrooms: (keyword = "") => {
     const query = new URLSearchParams({
@@ -255,39 +251,34 @@ export const classroomRecordingsApi = {
       limit: keyword ? "20" : "100",
     });
     if (keyword) query.set("keyword", keyword);
-    return apiRequest<{ success: true; data: ClassroomOption[] }>(
-      `/classrooms?${query}`,
-    );
+    return apiRequest<{ success: true; data: ClassroomOption[] }>(`/classrooms?${query}`);
   },
 
   listSubjects: (classroomId: string) =>
-    apiRequest<{ success: true; data: { subjects: ClassroomSubjectOption[]; eligibleSubjects?: EligibleClassroomSubject[]; sourceType?: "legacy" | "course"; classroomKind?: ClassroomOption["classroomKind"] } }>(
-      `/classrooms/${classroomId}/subjects`,
-    ),
+    apiRequest<{
+      success: true;
+      data: {
+        subjects: ClassroomSubjectOption[];
+        eligibleSubjects?: EligibleClassroomSubject[];
+        sourceType?: "legacy" | "course";
+        classroomKind?: ClassroomOption["classroomKind"];
+      };
+    }>(`/classrooms/${classroomId}/subjects`),
 
-  addSubject: (classroomId: string, subjectId: string) =>
-    apiRequest<{ success: true; data: ClassroomSubjectOption }>(
-      `/classrooms/${encodeURIComponent(classroomId)}/subjects`,
-      { method: "POST", body: JSON.stringify({ subject: subjectId }) },
-    ),
+  addSubject: (classroomId: string, subjectId: string) => apiRequest<{ success: true; data: ClassroomSubjectOption }>(`/classrooms/${encodeURIComponent(classroomId)}/subjects`, { method: "POST", body: JSON.stringify({ subject: subjectId }) }),
 
-  deleteSubject: (classroomId: string, classroomSubjectId: string) =>
-    apiRequest<void>(
-      `/classrooms/${encodeURIComponent(classroomId)}/subjects/${encodeURIComponent(classroomSubjectId)}`,
-      { method: "DELETE" },
-    ),
+  deleteSubject: (classroomId: string, classroomSubjectId: string) => apiRequest<void>(`/classrooms/${encodeURIComponent(classroomId)}/subjects/${encodeURIComponent(classroomSubjectId)}`, { method: "DELETE" }),
 
-  listStudents: (classroomId: string) =>
-    apiRequest<ClassroomStudentsResponse>(
-      `/classrooms/${classroomId}/students`,
-    ),
+  listStudents: (classroomId: string) => apiRequest<ClassroomStudentsResponse>(`/classrooms/${classroomId}/students`),
 
   listAvailableStudents: (classroomId: string, search = "") => {
     const query = new URLSearchParams();
     if (search.trim()) query.set("search", search.trim());
-    return apiRequest<{ success: true; results: number; data: AvailableClassroomStudent[] }>(
-      `/classrooms/${classroomId}/available-students${query.toString() ? `?${query}` : ""}`,
-    );
+    return apiRequest<{
+      success: true;
+      results: number;
+      data: AvailableClassroomStudent[];
+    }>(`/classrooms/${classroomId}/available-students${query.toString() ? `?${query}` : ""}`);
   },
 
   assignStudent: (classroomId: string, studentId: string) =>
@@ -296,54 +287,43 @@ export const classroomRecordingsApi = {
       body: JSON.stringify({ classroom: classroomId, student: studentId }),
     }),
 
-  listRecordings: (classroomId: string) =>
-    apiRequest<ClassroomRecordingsResponse>(
-      `/classrooms/${classroomId}/recordings`,
-    ),
+  listStudentTransferTargets: (classroomId: string, search = "") => {
+    const query = new URLSearchParams();
+    if (search.trim()) query.set("search", search.trim());
+    return apiRequest<{
+      success: true;
+      results: number;
+      data: StudentTransferTarget[];
+    }>(`/classrooms/${encodeURIComponent(classroomId)}/student-transfer-targets${query.toString() ? `?${query}` : ""}`);
+  },
 
-  listSessions: (classroomId: string) =>
-    apiRequest<ClassroomSessionsResponse>(
-      `/classrooms/${classroomId}/sessions`,
-    ),
+  transferStudent: (classroomId: string, studentId: string, targetClassroomId: string) =>
+    apiRequest<{ success: true; data: unknown }>(`/classrooms/${encodeURIComponent(classroomId)}/students/${encodeURIComponent(studentId)}/transfer`, {
+      method: "POST",
+      body: JSON.stringify({ classroom: targetClassroomId }),
+    }),
 
-  getSession: (sessionId: string) =>
-    apiRequest<{ success: true; data: ClassroomSession }>(
-      `/sessions/${encodeURIComponent(sessionId)}`,
-    ),
+  listRecordings: (classroomId: string) => apiRequest<ClassroomRecordingsResponse>(`/classrooms/${classroomId}/recordings`),
 
-  getSessionReport: (sessionId: string) =>
-    apiRequest<ClassroomSessionReportResponse>(
-      `/sessions/${encodeURIComponent(sessionId)}/report`,
-    ),
+  listSessions: (classroomId: string) => apiRequest<ClassroomSessionsResponse>(`/classrooms/${classroomId}/sessions`),
 
-  upload: (
-    classroomId: string,
-    body: FormData,
-    onProgress: (value: number) => void,
-  ) =>
+  getSession: (sessionId: string) => apiRequest<{ success: true; data: ClassroomSession }>(`/sessions/${encodeURIComponent(sessionId)}`),
+
+  getSessionReport: (sessionId: string) => apiRequest<ClassroomSessionReportResponse>(`/sessions/${encodeURIComponent(sessionId)}/report`),
+
+  upload: (classroomId: string, body: FormData, onProgress: (value: number) => void) =>
     new Promise<UploadResult>((resolve, reject) => {
       const send = (retried = false) => {
         const request = new XMLHttpRequest();
-        request.open(
-          "POST",
-          `${API_BASE_URL}/classrooms/${classroomId}/recordings`,
-        );
+        request.open("POST", `${API_BASE_URL}/classrooms/${classroomId}/recordings`);
         const token = tokenStore.get();
         if (token) request.setRequestHeader("Authorization", `Bearer ${token}`);
         request.setRequestHeader("lang", language());
         request.responseType = "json";
         request.upload.onprogress = ({ lengthComputable, loaded, total }) => {
-          if (lengthComputable && total)
-            onProgress(Math.round((loaded * 100) / total));
+          if (lengthComputable && total) onProgress(Math.round((loaded * 100) / total));
         };
-        request.onerror = () =>
-          reject(
-            new ApiError(
-              0,
-              "NETWORK_ERROR",
-              "تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مجددًا.",
-            ),
-          );
+        request.onerror = () => reject(new ApiError(0, "NETWORK_ERROR", "تعذر الاتصال بالخدمة. تحقق من الإنترنت وحاول مجددًا."));
         request.onload = async () => {
           const payload = request.response || {};
           if (request.status === 201) {
@@ -361,15 +341,7 @@ export const classroomRecordingsApi = {
               window.dispatchEvent(new Event("bnan:session-expired"));
             }
           }
-          reject(
-            new ApiError(
-              request.status,
-              payload.code || "API_ERROR",
-              payload.message || "حدث خطأ غير متوقع.",
-              payload.errors,
-              payload.data,
-            ),
-          );
+          reject(new ApiError(request.status, payload.code || "API_ERROR", payload.message || "حدث خطأ غير متوقع.", payload.errors, payload.data));
         };
         request.send(body);
       };

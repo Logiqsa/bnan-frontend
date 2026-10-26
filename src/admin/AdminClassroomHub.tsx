@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookPlus, CalendarDays, ClipboardList, Eye, Loader2, MessageSquare, Play, RefreshCw, School, Trash2, Users, UserPlus, Video } from "lucide-react";
+import { ArrowRightLeft, BookPlus, CalendarDays, ClipboardList, Eye, Loader2, MessageSquare, Play, RefreshCw, School, Trash2, Users, UserPlus, Video } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { adminAssignmentsApi } from "@/api/adminAssignmentsApi";
 import { adminClassroomAttendanceApi, type AdminAttendanceStatus } from "@/api/adminClassroomAttendanceApi";
@@ -12,6 +12,7 @@ import AdminSearchableSelect from "@/components/admin/AdminSearchableSelect";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,9 +29,15 @@ import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import { toast } from "sonner";
 
 const tabs = [
-  ["overview", "نظرة عامة"], ["sessions", "الحصص"], ["schedule", "الجدول"], ["recordings", "التسجيلات"],
-  ["assignments", "الواجبات"], ["evaluations", "التقييمات"], ["chat", "المحادثات"],
-  ["attendance", "الحضور والغياب"], ["zoom", "Zoom"],
+  ["overview", "نظرة عامة"],
+  ["sessions", "الحصص"],
+  ["schedule", "الجدول"],
+  ["recordings", "التسجيلات"],
+  ["assignments", "الواجبات"],
+  ["evaluations", "التقييمات"],
+  ["chat", "المحادثات"],
+  ["attendance", "الحضور والغياب"],
+  ["zoom", "Zoom"],
 ] as const;
 
 const errorText = (error: unknown) => {
@@ -41,7 +48,7 @@ const errorText = (error: unknown) => {
 };
 
 const display = (value?: string | null) => value || "—";
-const dateLabel = (value?: string) => value ? new Date(value).toLocaleString("ar-EG-u-ca-gregory") : "—";
+const dateLabel = (value?: string) => (value ? new Date(value).toLocaleString("ar-EG-u-ca-gregory") : "—");
 const classroomGradesLabel = (classroom?: { classroomKind?: string; grade?: IdReference; sharedAcademicTargets?: Array<{ grade: IdReference }> }) => {
   if (classroom?.classroomKind === "shared") {
     const names = (classroom.sharedAcademicTargets || []).map((target) => referenceName(target.grade)).filter(Boolean);
@@ -51,8 +58,23 @@ const classroomGradesLabel = (classroom?: { classroomKind?: string; grade?: IdRe
 };
 
 function QueryState({ loading, error, retry }: { loading: boolean; error?: unknown; retry: () => void }) {
-  if (loading) return <div className="space-y-3"><Skeleton className="h-12" /><Skeleton className="h-12" /></div>;
-  if (error) return <div role="alert" className="grid gap-3 py-8 text-center"><p>{errorText(error)}</p><Button variant="outline" onClick={retry}><RefreshCw className="ml-2 h-4 w-4" />إعادة المحاولة</Button></div>;
+  if (loading)
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-12" />
+        <Skeleton className="h-12" />
+      </div>
+    );
+  if (error)
+    return (
+      <div role="alert" className="grid gap-3 py-8 text-center">
+        <p>{errorText(error)}</p>
+        <Button variant="outline" onClick={retry}>
+          <RefreshCw className="ml-2 h-4 w-4" />
+          إعادة المحاولة
+        </Button>
+      </div>
+    );
   return null;
 }
 
@@ -60,33 +82,55 @@ export default function AdminClassroomHub() {
   const { classroomId = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const activeTab = requestedTab === "messages"
-    ? "chat"
-    : tabs.some(([value]) => value === requestedTab) ? requestedTab! : "overview";
+  const activeTab = requestedTab === "messages" ? "chat" : tabs.some(([value]) => value === requestedTab) ? requestedTab! : "overview";
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
   const [selectedSubmissionId, setSelectedSubmissionId] = useState("");
-  const [assignmentFilters, setAssignmentFilters] = useState({ subject: "", teacher: "", status: "", search: "", from: "", to: "", page: 1 });
-  const [attendanceFilters, setAttendanceFilters] = useState({ search: "", session: "", status: "", from: "", to: "", page: 1 });
+  const [assignmentFilters, setAssignmentFilters] = useState({
+    subject: "",
+    teacher: "",
+    status: "",
+    search: "",
+    from: "",
+    to: "",
+    page: 1,
+  });
+  const [attendanceFilters, setAttendanceFilters] = useState({
+    search: "",
+    session: "",
+    status: "",
+    from: "",
+    to: "",
+    page: 1,
+  });
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [transferStudent, setTransferStudent] = useState<{
+    id: string;
+    fullName: string;
+  } | null>(null);
+  const [transferTargetId, setTransferTargetId] = useState("");
+  const [transferSearch, setTransferSearch] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const queryClient = useQueryClient();
 
   const details = useQuery({
     queryKey: ["admin-classroom-hub", classroomId],
     queryFn: () => classroomZoomApi.getClassroom(classroomId),
-    enabled: Boolean(classroomId), retry: false,
+    enabled: Boolean(classroomId),
+    retry: false,
   });
   const subjects = useQuery({
     queryKey: ["admin-classroom-hub-subjects", classroomId],
     queryFn: () => classroomRecordingsApi.listSubjects(classroomId),
-    enabled: Boolean(classroomId), retry: false,
+    enabled: Boolean(classroomId),
+    retry: false,
   });
   const students = useQuery({
     queryKey: ["admin-classroom-hub-students", classroomId],
     queryFn: () => classroomRecordingsApi.listStudents(classroomId),
-    enabled: Boolean(classroomId), retry: false,
+    enabled: Boolean(classroomId),
+    retry: false,
   });
   const availableStudents = useQuery({
     queryKey: ["admin-classroom-available-students", classroomId, studentSearch],
@@ -100,17 +144,51 @@ export default function AdminClassroomHub() {
       setSelectedStudentId("");
       toast.success("تمت إضافة الطالب إلى الفصل.");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-students", classroomId] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-classroom-available-students", classroomId] }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin-classroom-hub-students", classroomId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin-classroom-available-students", classroomId],
+        }),
       ]);
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "تعذر إضافة الطالب إلى الفصل."),
   });
+  const transferTargets = useQuery({
+    queryKey: ["admin-classroom-transfer-targets", classroomId, transferSearch],
+    queryFn: () => classroomRecordingsApi.listStudentTransferTargets(classroomId, transferSearch),
+    enabled: Boolean(classroomId && transferStudent),
+    retry: false,
+  });
+  const moveStudent = useMutation({
+    mutationFn: () => classroomRecordingsApi.transferStudent(classroomId, transferStudent!.id, transferTargetId),
+    onSuccess: async () => {
+      setTransferStudent(null);
+      setTransferTargetId("");
+      setTransferSearch("");
+      toast.success("تم نقل الطالب إلى الفصل الجديد.");
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["admin-classroom-hub-students", classroomId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin-classroom-transfer-targets", classroomId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin-classroom-available-students", classroomId],
+        }),
+      ]);
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "تعذر نقل الطالب."),
+  });
   const addSubject = useMutation({
     mutationFn: () => classroomRecordingsApi.addSubject(classroomId, selectedSubjectId),
     onSuccess: async () => {
-      setSelectedSubjectId(""); toast.success("تمت إضافة المادة إلى الفصل.");
-      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-subjects", classroomId] });
+      setSelectedSubjectId("");
+      toast.success("تمت إضافة المادة إلى الفصل.");
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-classroom-hub-subjects", classroomId],
+      });
     },
     onError: () => toast.error("تعذر إضافة المادة إلى الفصل."),
   });
@@ -118,57 +196,71 @@ export default function AdminClassroomHub() {
     mutationFn: (classroomSubjectId: string) => classroomRecordingsApi.deleteSubject(classroomId, classroomSubjectId),
     onSuccess: async () => {
       toast.success("تم حذف المادة من الفصل.");
-      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-subjects", classroomId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-classroom-hub-subjects", classroomId],
+      });
     },
     onError: (error) => toast.error(error instanceof ApiError && error.status === 409 ? "لا يمكن حذف المادة لأنها مستخدمة في الجدول. احذف حصصها أولًا." : "تعذر حذف المادة من الفصل."),
   });
   const recordings = useQuery({
     queryKey: ["admin-classroom-hub-recordings", classroomId],
     queryFn: () => classroomRecordingsApi.listRecordings(classroomId),
-    enabled: Boolean(classroomId) && activeTab === "recordings", retry: false,
+    enabled: Boolean(classroomId) && activeTab === "recordings",
+    retry: false,
   });
   const assignmentQuery = useQuery({
     queryKey: ["admin-classroom-hub-assignments", classroomId, assignmentFilters],
-    queryFn: () => adminAssignmentsApi.listAssignments({
-      classroom: classroomId,
-      subject: assignmentFilters.subject || undefined,
-      teacher: assignmentFilters.teacher || undefined,
-      status: (assignmentFilters.status || undefined) as "active" | "finished" | undefined,
-      search: assignmentFilters.search || undefined,
-      from: assignmentFilters.from || undefined,
-      to: assignmentFilters.to || undefined,
-      page: assignmentFilters.page,
-      limit: 20,
-    }),
-    enabled: Boolean(classroomId) && activeTab === "assignments", retry: false,
+    queryFn: () =>
+      adminAssignmentsApi.listAssignments({
+        classroom: classroomId,
+        subject: assignmentFilters.subject || undefined,
+        teacher: assignmentFilters.teacher || undefined,
+        status: (assignmentFilters.status || undefined) as "active" | "finished" | undefined,
+        search: assignmentFilters.search || undefined,
+        from: assignmentFilters.from || undefined,
+        to: assignmentFilters.to || undefined,
+        page: assignmentFilters.page,
+        limit: 20,
+      }),
+    enabled: Boolean(classroomId) && activeTab === "assignments",
+    retry: false,
   });
   const assignmentDetails = useQuery({
     queryKey: ["admin-classroom-hub-assignment", selectedAssignmentId],
     queryFn: () => adminAssignmentsApi.getAssignment(selectedAssignmentId),
-    enabled: Boolean(selectedAssignmentId), retry: false,
+    enabled: Boolean(selectedAssignmentId),
+    retry: false,
   });
   const submissions = useQuery({
     queryKey: ["admin-classroom-hub-assignment-submissions", selectedAssignmentId],
-    queryFn: () => adminAssignmentsApi.listSubmissions(selectedAssignmentId, { page: 1, limit: 20 }),
-    enabled: Boolean(selectedAssignmentId), retry: false,
+    queryFn: () =>
+      adminAssignmentsApi.listSubmissions(selectedAssignmentId, {
+        page: 1,
+        limit: 20,
+      }),
+    enabled: Boolean(selectedAssignmentId),
+    retry: false,
   });
   const submissionDetails = useQuery({
     queryKey: ["admin-classroom-hub-submission", selectedAssignmentId, selectedSubmissionId],
     queryFn: () => adminAssignmentsApi.getSubmission(selectedAssignmentId, selectedSubmissionId),
-    enabled: Boolean(selectedAssignmentId && selectedSubmissionId), retry: false,
+    enabled: Boolean(selectedAssignmentId && selectedSubmissionId),
+    retry: false,
   });
   const attendanceQuery = useQuery({
     queryKey: ["admin-classroom-hub-attendance", classroomId, attendanceFilters],
-    queryFn: () => adminClassroomAttendanceApi.listClassroomAttendance(classroomId, {
-      search: attendanceFilters.search || undefined,
-      session: attendanceFilters.session || undefined,
-      status: (attendanceFilters.status || undefined) as AdminAttendanceStatus | undefined,
-      from: attendanceFilters.from || undefined,
-      to: attendanceFilters.to || undefined,
-      page: attendanceFilters.page,
-      limit: 20,
-    }),
-    enabled: Boolean(classroomId && attendanceFilters.session) && activeTab === "attendance", retry: false,
+    queryFn: () =>
+      adminClassroomAttendanceApi.listClassroomAttendance(classroomId, {
+        search: attendanceFilters.search || undefined,
+        session: attendanceFilters.session || undefined,
+        status: (attendanceFilters.status || undefined) as AdminAttendanceStatus | undefined,
+        from: attendanceFilters.from || undefined,
+        to: attendanceFilters.to || undefined,
+        page: attendanceFilters.page,
+        limit: 20,
+      }),
+    enabled: Boolean(classroomId && attendanceFilters.session) && activeTab === "attendance",
+    retry: false,
   });
   const attendanceSessionsQuery = useQuery({
     queryKey: ["admin-classroom-hub-attendance-sessions", classroomId],
@@ -196,16 +288,19 @@ export default function AdminClassroomHub() {
     const normalizedSearch = attendanceFilters.search.trim().toLocaleLowerCase("ar");
     const matchingStudents = studentItems.filter((student) => !normalizedSearch || student.fullName.toLocaleLowerCase("ar").includes(normalizedSearch));
     const studentsWithRecords = new Set(attendanceItems.map((item) => item.student?.id).filter(Boolean));
-    const missingStudents = attendanceFilters.page === 1
-      ? matchingStudents.filter((student) => !studentsWithRecords.has(student.studentId)).map((student) => ({
-          id: `student-${student.studentId}`,
-          student: { id: student.studentId, name: student.fullName },
-          session: null,
-          status: undefined,
-          joinedAt: null,
-          duration: null,
-        }))
-      : [];
+    const missingStudents =
+      attendanceFilters.page === 1
+        ? matchingStudents
+            .filter((student) => !studentsWithRecords.has(student.studentId))
+            .map((student) => ({
+              id: `student-${student.studentId}`,
+              student: { id: student.studentId, name: student.fullName },
+              session: null,
+              status: undefined,
+              joinedAt: null,
+              duration: null,
+            }))
+        : [];
     return [...attendanceItems, ...missingStudents];
   }, [attendanceFilters.page, attendanceFilters.search, attendanceItems, studentItems]);
   const attendanceSessions = (attendanceSessionsQuery.data?.data || []).flatMap((session) => {
@@ -226,33 +321,744 @@ export default function AdminClassroomHub() {
     setAttendanceFilters((current) => ({ ...current, [key]: value, page: 1 }));
   };
 
-  const assignmentDate = (value?: string | null) => value ? new Date(value).toLocaleDateString("ar-EG-u-ca-gregory") : "—";
-  const assignmentStatusLabel: Record<string, string> = { active: "نشط", finished: "منتهٍ" };
-  const attendanceStatusLabel: Record<string, string> = { present: "حاضر", absent: "غائب", late: "متأخر" };
+  const assignmentDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString("ar-EG-u-ca-gregory") : "—");
+  const assignmentStatusLabel: Record<string, string> = {
+    active: "نشط",
+    finished: "منتهٍ",
+  };
+  const attendanceStatusLabel: Record<string, string> = {
+    present: "حاضر",
+    absent: "غائب",
+    late: "متأخر",
+  };
 
-  if (!classroomId) return <DashboardLayout><div dir="rtl" className="mx-auto max-w-7xl"><Card><CardContent className="py-12 text-center">الفصل غير موجود.</CardContent></Card></div></DashboardLayout>;
-  if (details.isLoading) return <DashboardLayout><div dir="rtl" className="mx-auto max-w-7xl space-y-5"><Skeleton className="h-32" /><Skeleton className="h-64" /></div></DashboardLayout>;
-  if (details.isError || !classroom) return <DashboardLayout><div dir="rtl" className="mx-auto max-w-7xl"><Card><CardContent className="grid gap-3 py-12 text-center"><p>{errorText(details.error)}</p><Button variant="outline" onClick={() => void details.refetch()}><RefreshCw className="ml-2 h-4 w-4" />إعادة المحاولة</Button></CardContent></Card></div></DashboardLayout>;
+  if (!classroomId)
+    return (
+      <DashboardLayout>
+        <div dir="rtl" className="mx-auto max-w-7xl">
+          <Card>
+            <CardContent className="py-12 text-center">الفصل غير موجود.</CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  if (details.isLoading)
+    return (
+      <DashboardLayout>
+        <div dir="rtl" className="mx-auto max-w-7xl space-y-5">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-64" />
+        </div>
+      </DashboardLayout>
+    );
+  if (details.isError || !classroom)
+    return (
+      <DashboardLayout>
+        <div dir="rtl" className="mx-auto max-w-7xl">
+          <Card>
+            <CardContent className="grid gap-3 py-12 text-center">
+              <p>{errorText(details.error)}</p>
+              <Button variant="outline" onClick={() => void details.refetch()}>
+                <RefreshCw className="ml-2 h-4 w-4" />
+                إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
 
   const zoomState = zoomDisplayState(classroom);
-  return <DashboardLayout><div dir="rtl" className="mx-auto max-w-7xl space-y-5">
-    <Breadcrumb dir="rtl"><BreadcrumbList className="min-w-0 flex-nowrap overflow-hidden"><BreadcrumbItem><BreadcrumbLink asChild><Link to="/admin">الرئيسية</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator className="rotate-180" /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/admin/classrooms">الفصول</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator className="rotate-180" /><BreadcrumbItem className="min-w-0"><BreadcrumbPage className="block max-w-[45vw] truncate sm:max-w-md" title={display(classroom.name)}>{display(classroom.name)}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
-    <div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><h1 className="text-2xl font-bold sm:text-3xl">إدارة الفصل</h1><p className="mt-1 truncate text-sm text-muted-foreground" title={display(classroom.name)}>{display(classroom.name)}</p></div><Badge variant={classroom.isActive === false ? "outline" : "default"}>{classroom.isActive === false ? "غير نشط" : "نشط"}</Badge></div>
-    <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4"><div><p className="text-xs text-muted-foreground">المنهج</p><p className="font-semibold">{referenceName(classroom.curriculum) || "—"}</p></div><div><p className="text-xs text-muted-foreground">الصفوف</p><p className="font-semibold">{classroomGradesLabel(classroom)}</p></div><div><p className="text-xs text-muted-foreground">الطلاب</p><p className="font-semibold">{students.isSuccess ? studentItems.length : "—"}</p></div><div><p className="text-xs text-muted-foreground">Zoom</p><p className="font-semibold">{zoomState === "ready" ? "مرتبط" : zoomState === "creating" ? "جارٍ التجهيز" : zoomState === "failed" ? "فشل التجهيز" : "غير مرتبط"}</p></div></CardContent></Card>
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><BookPlus className="h-5 w-5 text-primary"/>إدارة مواد الفصل</CardTitle><p className="text-sm text-muted-foreground">أضف مادة من مواد الصف أو احذف مادة غير مستخدمة في الجدول.</p></CardHeader><CardContent className="space-y-4"><QueryState loading={subjects.isLoading} error={subjects.error} retry={() => void subjects.refetch()}/>{subjects.isSuccess && <><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{subjectItems.map((subject) => <div key={subject.classroomSubjectId || subject.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><div className="min-w-0"><p className="truncate font-medium">المادة: {subject.name || subject.subject?.name || "مادة"}</p><p className="mt-1 truncate text-xs text-muted-foreground">{subject.teacher ? "تم تعيين معلم" : "بدون معلم"}</p></div><Button type="button" size="icon" variant="ghost" className="shrink-0 text-destructive hover:text-destructive" aria-label={`حذف مادة ${subject.name}`} disabled={deleteSubject.isPending} onClick={() => deleteSubject.mutate(subject.classroomSubjectId || subject.id)}>{deleteSubject.isPending && deleteSubject.variables === (subject.classroomSubjectId || subject.id) ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}</Button></div>)}{!subjectItems.length && <p className="text-sm text-muted-foreground">لا توجد مواد مضافة حاليًا.</p>}</div><div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_auto]"><AdminSearchableSelect label="إضافة مادة" value={selectedSubjectId} placeholder="اختر مادة" options={availableSubjectItems.map((subject) => ({ value: subject.id, label: subject.name }))} onChange={(value) => setSelectedSubjectId(value || "")} noOptionsLabel="تمت إضافة كل المواد المتاحة." emptyLabel="لا توجد مادة مطابقة." searchPlaceholder="ابحث باسم المادة"/><Button className="self-end" onClick={() => addSubject.mutate()} disabled={!selectedSubjectId || addSubject.isPending}>{addSubject.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin"/> : <BookPlus className="ml-2 h-4 w-4"/>}إضافة المادة</Button></div></>}</CardContent></Card>
-    <Button className="mb-3" variant="outline" onClick={() => changeTab("sessions")}><CalendarDays className="ml-2 h-4 w-4" />الحصص</Button><Tabs value={activeTab} onValueChange={changeTab} dir="rtl"><div className="overflow-x-auto"><TabsList className="min-w-max">{tabs.map(([value, label]) => <TabsTrigger key={value} value={value}>{label}</TabsTrigger>)}</TabsList></div>
-      <AdminClassroomSessionsTab classroomId={classroomId} active={activeTab === "sessions"} />
-      <AdminClassroomEvaluationsTab classroomId={classroomId} active={activeTab === "evaluations"} />
-      <TabsContent value="overview" className="space-y-5"><div className="grid gap-5 lg:grid-cols-2"><Card><CardHeader><CardTitle className="flex items-center gap-2"><School className="h-5 w-5 text-primary" />المواد والمعلمون</CardTitle></CardHeader><CardContent><QueryState loading={subjects.isLoading} error={subjects.error} retry={() => void subjects.refetch()} />{subjects.isSuccess && (!subjectItems.length ? <p className="text-muted-foreground">لا توجد مواد مرتبطة بهذا الفصل.</p> : <div className="space-y-2"><div className="grid grid-cols-2 gap-3 px-3 text-xs font-semibold text-muted-foreground"><span>المادة</span><span>المعلم</span></div>{subjectItems.map((subject) => <div key={subject.classroomSubjectId || subject.id} className="grid grid-cols-2 gap-3 rounded-lg border p-3"><span className="min-w-0 break-words font-medium">{subject.name || subject.subject?.name || "مادة"}</span><span className="min-w-0 break-words text-sm text-muted-foreground">{subject.teacher?.name || "—"}</span></div>)}</div>)}</CardContent></Card><Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" />الطلاب</CardTitle></CardHeader><CardContent className="space-y-4"><QueryState loading={students.isLoading} error={students.error} retry={() => void students.refetch()} />{students.isSuccess && (!studentItems.length ? <p className="text-muted-foreground">لا يوجد طلاب مرتبطون بهذا الفصل.</p> : <div className="space-y-2">{studentItems.map((student) => <div key={student.studentId} className="rounded-lg border p-3">{student.fullName}</div>)}</div>)}<div className="border-t pt-4"><p className="mb-2 font-semibold">إضافة طالب للفصل</p><p className="mb-3 text-xs text-muted-foreground">يتم عرض الطلاب المطابقين تلقائيًا لمنهج وصف هذا الفصل.</p><div className="grid gap-3 sm:grid-cols-[1fr_auto]"><AdminSearchableSelect label="الطالب" value={selectedStudentId} placeholder="اختر طالبًا" options={availableStudentItems.map((student) => ({ value: student.id, label: student.fullName, searchText: student.email }))} onChange={(value) => setSelectedStudentId(value || "")} onSearch={setStudentSearch} loading={availableStudents.isLoading} error={availableStudents.isError} noOptionsLabel="لا يوجد طلاب مؤهلون لهذا الفصل." emptyLabel="لا توجد نتائج مطابقة." searchPlaceholder="ابحث باسم الطالب أو البريد الإلكتروني" /><Button className="self-end" onClick={() => assignStudent.mutate()} disabled={!selectedStudentId || assignStudent.isPending}>{assignStudent.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <UserPlus className="ml-2 h-4 w-4" />}إضافة الطالب</Button></div></div></CardContent></Card></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Button variant="outline" onClick={() => changeTab("schedule")}><CalendarDays className="ml-2 h-4 w-4" />الجدول</Button><Button variant="outline" onClick={() => changeTab("assignments")}><ClipboardList className="ml-2 h-4 w-4" />الواجبات</Button><Button variant="outline" onClick={() => changeTab("chat")}><MessageSquare className="ml-2 h-4 w-4" />المحادثات</Button></div></TabsContent>
-      <TabsContent value="recordings"><Card><CardHeader><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5 text-primary" />تسجيلات الفصل</CardTitle></CardHeader><CardContent><QueryState loading={recordings.isLoading} error={recordings.error} retry={() => void recordings.refetch()} />{recordings.isSuccess && (!recordingsItems.length ? <p className="py-8 text-center text-muted-foreground">لا توجد تسجيلات جاهزة لهذا الفصل.</p> : <div className="space-y-2">{recordingsItems.map((recording) => { const url = recording.localUrl || recording.shareUrl || recording.recordingLink; return <div key={recording.sessionId || recording.recordingLink} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"><span>{recording.sessionName}</span>{url ? <Button variant="link" className="h-auto p-0" onClick={() => setSelectedRecording({ sessionName: recording.sessionName, recordingLink: url })}><Play className="ml-1 h-4 w-4" />تشغيل التسجيل</Button> : <span className="text-sm text-muted-foreground">التسجيل غير متاح</span>}</div>; })}</div>)}</CardContent></Card><RecordingPlayerModal recording={selectedRecording} onClose={() => setSelectedRecording(null)} /></TabsContent>
-      <TabsContent value="attendance" className="space-y-4"><Card><CardHeader><CardTitle>حضور وغياب الفصل</CardTitle><p className="text-sm text-muted-foreground">اختر الجلسة أولًا، ثم يظهر جدول كل طلبة الفصل وحالة حضورهم فيها.</p></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><div className="space-y-1"><Label>الجلسة</Label><Select value={attendanceFilters.session || undefined} onValueChange={(value) => changeAttendanceFilter("session", value)}><SelectTrigger><SelectValue placeholder="اختر الجلسة" /></SelectTrigger><SelectContent>{attendanceSessions.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label htmlFor="attendance-search">بحث باسم الطالب</Label><Input id="attendance-search" type="search" placeholder="اكتب اسم الطالب" value={attendanceFilters.search} disabled={!attendanceFilters.session} onChange={(event) => changeAttendanceFilter("search", event.target.value)} /></div><div className="space-y-1"><Label>الحالة</Label><Select value={attendanceFilters.status || "all"} disabled={!attendanceFilters.session} onValueChange={(value) => changeAttendanceFilter("status", value === "all" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem>{(["present", "absent", "late"] as const).map((status) => <SelectItem key={status} value={status}>{attendanceStatusLabel[status]}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label htmlFor="attendance-from">من</Label><Input id="attendance-from" type="date" disabled={!attendanceFilters.session} value={attendanceFilters.from} onChange={(event) => changeAttendanceFilter("from", event.target.value)} /></div><div className="space-y-1"><Label htmlFor="attendance-to">إلى</Label><Input id="attendance-to" type="date" disabled={!attendanceFilters.session} value={attendanceFilters.to} onChange={(event) => changeAttendanceFilter("to", event.target.value)} /></div></div><QueryState loading={attendanceSessionsQuery.isLoading || (Boolean(attendanceFilters.session) && (attendanceQuery.isLoading || students.isLoading))} error={attendanceSessionsQuery.error || attendanceQuery.error || students.error} retry={() => void Promise.all([attendanceSessionsQuery.refetch(), attendanceQuery.refetch(), students.refetch()])} />{!attendanceFilters.session && !attendanceSessionsQuery.isLoading ? <div className="rounded-xl border border-dashed bg-muted/20 py-12 text-center text-muted-foreground"><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-50"/><p className="font-medium">اختر جلسة لعرض حضور طلبة الفصل</p></div> : attendanceQuery.isSuccess && students.isSuccess && (!attendanceTableRows.length ? <p className="py-8 text-center text-muted-foreground">لا يوجد طلاب مطابقون للفلاتر الحالية.</p> : <div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[760px] text-sm"><thead className="bg-muted/50"><tr><th className="px-4 py-3 text-start">الطالب</th><th className="px-4 py-3 text-start">الجلسة</th><th className="px-4 py-3 text-start">التاريخ</th><th className="px-4 py-3 text-center">الحالة</th><th className="px-4 py-3 text-center">المدة</th></tr></thead><tbody className="divide-y">{attendanceTableRows.map((record) => <tr key={record.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-semibold">{record.student?.name || "—"}</td><td className="px-4 py-3">{record.session?.name || attendanceSessions.find(([id]) => id === attendanceFilters.session)?.[1] || "—"}</td><td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{record.joinedAt ? dateLabel(record.joinedAt) : "createdAt" in record && record.createdAt ? dateLabel(record.createdAt) : "—"}</td><td className="px-4 py-3 text-center"><Badge variant="outline">{record.status ? attendanceStatusLabel[record.status] || record.status : "لم يسجل"}</Badge></td><td className="px-4 py-3 text-center text-muted-foreground">{record.duration !== null && record.duration !== undefined ? record.duration : "—"}</td></tr>)}</tbody></table></div>)}{attendanceQuery.isSuccess && attendancePagination && attendancePagination.last_page > 1 && <div className="flex items-center justify-between border-t pt-4"><span className="text-sm text-muted-foreground">صفحة {attendancePagination.current_page} من {attendancePagination.last_page} · {attendancePagination.total} سجل حضور</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={attendancePagination.current_page <= 1} onClick={() => setAttendanceFilters((current) => ({ ...current, page: current.page - 1 }))}>السابقة</Button><Button size="sm" variant="outline" disabled={attendancePagination.current_page >= attendancePagination.last_page} onClick={() => setAttendanceFilters((current) => ({ ...current, page: current.page + 1 }))}>التالية</Button></div></div>}</CardContent></Card></TabsContent>
-      <TabsContent value="assignments" className="space-y-4"><Card><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" />واجبات الفصل</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"><div className="space-y-1 xl:col-span-2"><Label htmlFor="hub-assignment-search">بحث</Label><Input id="hub-assignment-search" placeholder="ابحث في الواجبات" value={assignmentFilters.search} onChange={(event) => changeAssignmentFilter("search", event.target.value)} /></div><div className="space-y-1"><Label>المادة</Label><Select value={assignmentFilters.subject || "all"} onValueChange={(value) => changeAssignmentFilter("subject", value === "all" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل المواد</SelectItem>{subjectItems.map((subject) => <SelectItem key={subject.subjectId || subject.classroomSubjectId} value={subject.subjectId}>{subject.name || subject.subject?.name || "مادة"}</SelectItem>)}</SelectContent></Select></div><AdminSearchableSelect label="المعلم" value={assignmentFilters.teacher} placeholder="اختر المعلم" allLabel="كل المعلمين" options={assignmentTeachers.map(([id, name]) => ({ value: id, label: name || id }))} onChange={(value) => changeAssignmentFilter("teacher", value || "")} /><div className="space-y-1"><Label>الحالة</Label><Select value={assignmentFilters.status || "all"} onValueChange={(value) => changeAssignmentFilter("status", value === "all" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem><SelectItem value="active">نشط</SelectItem><SelectItem value="finished">منتهٍ</SelectItem></SelectContent></Select></div><div className="space-y-1"><Label htmlFor="hub-assignment-from">من</Label><Input id="hub-assignment-from" type="date" value={assignmentFilters.from} onChange={(event) => changeAssignmentFilter("from", event.target.value)} /></div><div className="space-y-1"><Label htmlFor="hub-assignment-to">إلى</Label><Input id="hub-assignment-to" type="date" value={assignmentFilters.to} onChange={(event) => changeAssignmentFilter("to", event.target.value)} /></div></div><QueryState loading={assignmentQuery.isLoading} error={assignmentQuery.error} retry={() => void assignmentQuery.refetch()} />{assignmentQuery.isSuccess && (!assignmentItems.length ? <p className="py-8 text-center text-muted-foreground">لا توجد واجبات لهذا الفصل.</p> : <div className="space-y-2">{assignmentItems.map((assignment) => <div key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"><div><p className="font-semibold">{assignment.title || "بدون عنوان"}</p><p className="text-sm text-muted-foreground">{assignment.subject?.name || "—"} · الاستحقاق: {assignmentDate(assignment.dueDate)}</p><div className="mt-2 flex flex-wrap gap-2 text-xs"><Badge variant="outline">{assignment.teacher?.user?.fullName || assignment.teacher?.user?.email || "—"}</Badge><Badge variant={assignment.status === "active" ? "default" : "outline"}>{assignmentStatusLabel[assignment.status || ""] || assignment.status || "—"}</Badge></div></div><Button size="sm" variant="outline" onClick={() => setSelectedAssignmentId(assignment.id)}><Eye className="ml-1 h-4 w-4" />التفاصيل</Button></div>)}</div>)}{assignmentQuery.isSuccess && assignmentPagination && assignmentPagination.last_page > 1 && <div className="flex items-center justify-between border-t pt-4"><span className="text-sm text-muted-foreground">صفحة {assignmentPagination.current_page} من {assignmentPagination.last_page} · {assignmentPagination.total} واجب</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={assignmentPagination.current_page <= 1} onClick={() => setAssignmentFilters((current) => ({ ...current, page: current.page - 1 }))}>السابقة</Button><Button size="sm" variant="outline" disabled={assignmentPagination.current_page >= assignmentPagination.last_page} onClick={() => setAssignmentFilters((current) => ({ ...current, page: current.page + 1 }))}>التالية</Button></div></div>}</CardContent></Card>
-        {selectedAssignmentId && <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><CardTitle>تفاصيل الواجب</CardTitle><Button variant="ghost" onClick={() => { setSelectedAssignmentId(""); setSelectedSubmissionId(""); }}>إغلاق</Button></CardHeader><CardContent><QueryState loading={assignmentDetails.isLoading} error={assignmentDetails.error} retry={() => void assignmentDetails.refetch()} />{assignmentDetails.isSuccess && selectedAssignment && <div className="space-y-5"><div className="grid gap-3 sm:grid-cols-2">{[["العنوان", selectedAssignment.title], ["الوصف", selectedAssignment.description], ["المادة", selectedAssignment.subject?.name], ["المعلم", selectedAssignment.teacher?.user?.fullName || selectedAssignment.teacher?.user?.email], ["الحالة", assignmentStatusLabel[selectedAssignment.status || ""] || selectedAssignment.status], ["الدرجة الكلية", selectedAssignment.totalPoints], ["تاريخ الاستحقاق", assignmentDate(selectedAssignment.dueDate)], ["تاريخ الإنشاء", assignmentDate(selectedAssignment.createdAt)]].map(([label, value]) => value !== undefined && value !== null && value !== "" && <div key={label} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm">{String(value)}</p></div>)}</div>{selectedAssignment.attachment && <a className="text-sm text-primary underline" href={selectedAssignment.attachment} target="_blank" rel="noreferrer">عرض المرفق</a>}<div className="rounded-lg border"><div className="border-b p-3"><h3 className="font-semibold">التسليمات {submissions.data && `(${submissions.data.pagination.total})`}</h3></div><div className="p-3"><QueryState loading={submissions.isLoading} error={submissions.error} retry={() => void submissions.refetch()} />{submissions.isSuccess && (!submissionItems.length ? <p className="py-6 text-center text-sm text-muted-foreground">لا توجد تسليمات لهذا الواجب.</p> : <div className="space-y-2">{submissionItems.map((submission) => <div key={submission.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"><span>{submission.student?.user?.fullName || submission.student?.user?.email || "—"}</span><span className="text-muted-foreground">{submission.status || "—"} · {submission.submittedAt ? assignmentDate(submission.submittedAt) : "—"}</span><Button size="sm" variant="outline" onClick={() => setSelectedSubmissionId(submission.id)}>التفاصيل</Button></div>)}</div>)}</div></div></div>}</CardContent></Card>}
-        {selectedSubmissionId && <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><CardTitle>تفاصيل التسليم</CardTitle><Button variant="ghost" onClick={() => setSelectedSubmissionId("")}>إغلاق</Button></CardHeader><CardContent><QueryState loading={submissionDetails.isLoading} error={submissionDetails.error} retry={() => void submissionDetails.refetch()} />{submissionDetails.isSuccess && submissionDetails.data.data && <div className="grid gap-3 sm:grid-cols-2">{[["الطالب", submissionDetails.data.data.student?.user?.fullName || submissionDetails.data.data.student?.user?.email], ["الحالة", submissionDetails.data.data.status], ["الدرجة", submissionDetails.data.data.score], ["تاريخ التسليم", assignmentDate(submissionDetails.data.data.submittedAt)], ["تاريخ الإنشاء", assignmentDate(submissionDetails.data.data.createdAt)]].map(([label, value]) => value !== undefined && value !== null && value !== "" && <div key={label} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-sm">{String(value)}</p></div>)}</div>}</CardContent></Card>}
-      </TabsContent>
-      <TabsContent value="chat"><AdminClassroomChat classroomId={classroomId} active={activeTab === "chat"} /></TabsContent>
-      <TabsContent value="schedule">{activeTab === "schedule" && <ClassroomScheduleManagement classroomId={classroomId} embedded />}</TabsContent>
-      <TabsContent value="zoom">{activeTab === "zoom" && <ClassroomZoomManagement classroomId={classroomId} embedded />}</TabsContent>
-    </Tabs>
-  </div></DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <div dir="rtl" className="mx-auto max-w-7xl space-y-5">
+        <Breadcrumb dir="rtl">
+          <BreadcrumbList className="min-w-0 flex-nowrap overflow-hidden">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/admin">الرئيسية</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="rotate-180" />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/admin/classrooms">الفصول</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="rotate-180" />
+            <BreadcrumbItem className="min-w-0">
+              <BreadcrumbPage className="block max-w-[45vw] truncate sm:max-w-md" title={display(classroom.name)}>
+                {display(classroom.name)}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-3xl">إدارة الفصل</h1>
+            <p className="mt-1 truncate text-sm text-muted-foreground" title={display(classroom.name)}>
+              {display(classroom.name)}
+            </p>
+          </div>
+          <Badge variant={classroom.isActive === false ? "outline" : "default"}>{classroom.isActive === false ? "غير نشط" : "نشط"}</Badge>
+        </div>
+        <Card>
+          <CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">المنهج</p>
+              <p className="font-semibold">{referenceName(classroom.curriculum) || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">الصفوف</p>
+              <p className="font-semibold">{classroomGradesLabel(classroom)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">الطلاب</p>
+              <p className="font-semibold">{students.isSuccess ? studentItems.length : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Zoom</p>
+              <p className="font-semibold">{zoomState === "ready" ? "مرتبط" : zoomState === "creating" ? "جارٍ التجهيز" : zoomState === "failed" ? "فشل التجهيز" : "غير مرتبط"}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookPlus className="h-5 w-5 text-primary" />
+              إدارة مواد الفصل
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">أضف مادة من مواد الصف أو احذف مادة غير مستخدمة في الجدول.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <QueryState loading={subjects.isLoading} error={subjects.error} retry={() => void subjects.refetch()} />
+            {subjects.isSuccess && (
+              <>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {subjectItems.map((subject) => (
+                    <div key={subject.classroomSubjectId || subject.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">المادة: {subject.name || subject.subject?.name || "مادة"}</p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">{subject.teacher ? "تم تعيين معلم" : "بدون معلم"}</p>
+                      </div>
+                      <Button type="button" size="icon" variant="ghost" className="shrink-0 text-destructive hover:text-destructive" aria-label={`حذف مادة ${subject.name}`} disabled={deleteSubject.isPending} onClick={() => deleteSubject.mutate(subject.classroomSubjectId || subject.id)}>
+                        {deleteSubject.isPending && deleteSubject.variables === (subject.classroomSubjectId || subject.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  ))}
+                  {!subjectItems.length && <p className="text-sm text-muted-foreground">لا توجد مواد مضافة حاليًا.</p>}
+                </div>
+                <div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_auto]">
+                  <AdminSearchableSelect
+                    label="إضافة مادة"
+                    value={selectedSubjectId}
+                    placeholder="اختر مادة"
+                    options={availableSubjectItems.map((subject) => ({
+                      value: subject.id,
+                      label: subject.name,
+                    }))}
+                    onChange={(value) => setSelectedSubjectId(value || "")}
+                    noOptionsLabel="تمت إضافة كل المواد المتاحة."
+                    emptyLabel="لا توجد مادة مطابقة."
+                    searchPlaceholder="ابحث باسم المادة"
+                  />
+                  <Button className="self-end" onClick={() => addSubject.mutate()} disabled={!selectedSubjectId || addSubject.isPending}>
+                    {addSubject.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <BookPlus className="ml-2 h-4 w-4" />}
+                    إضافة المادة
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+        <Button className="mb-3" variant="outline" onClick={() => changeTab("sessions")}>
+          <CalendarDays className="ml-2 h-4 w-4" />
+          الحصص
+        </Button>
+        <Tabs value={activeTab} onValueChange={changeTab} dir="rtl">
+          <div className="overflow-x-auto">
+            <TabsList className="min-w-max">
+              {tabs.map(([value, label]) => (
+                <TabsTrigger key={value} value={value}>
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          <AdminClassroomSessionsTab classroomId={classroomId} active={activeTab === "sessions"} />
+          <AdminClassroomEvaluationsTab classroomId={classroomId} active={activeTab === "evaluations"} />
+          <TabsContent value="overview" className="space-y-5">
+            <div className="grid gap-5 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <School className="h-5 w-5 text-primary" />
+                    المواد والمعلمون
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QueryState loading={subjects.isLoading} error={subjects.error} retry={() => void subjects.refetch()} />
+                  {subjects.isSuccess &&
+                    (!subjectItems.length ? (
+                      <p className="text-muted-foreground">لا توجد مواد مرتبطة بهذا الفصل.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-3 px-3 text-xs font-semibold text-muted-foreground">
+                          <span>المادة</span>
+                          <span>المعلم</span>
+                        </div>
+                        {subjectItems.map((subject) => (
+                          <div key={subject.classroomSubjectId || subject.id} className="grid grid-cols-2 gap-3 rounded-lg border p-3">
+                            <span className="min-w-0 break-words font-medium">{subject.name || subject.subject?.name || "مادة"}</span>
+                            <span className="min-w-0 break-words text-sm text-muted-foreground">{subject.teacher?.name || "—"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    الطلاب
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <QueryState loading={students.isLoading} error={students.error} retry={() => void students.refetch()} />
+                  {students.isSuccess &&
+                    (!studentItems.length ? (
+                      <p className="text-muted-foreground">لا يوجد طلاب مرتبطون بهذا الفصل.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {studentItems.map((student) => (
+                          <div key={student.studentId} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                            <span className="min-w-0 truncate">{student.fullName}</span>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setTransferStudent({ id: student.studentId, fullName: student.fullName });
+                                setTransferTargetId("");
+                                setTransferSearch("");
+                              }}
+                            >
+                              <ArrowRightLeft className="ml-1 h-4 w-4" />
+                              نقل
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  <div className="border-t pt-4">
+                    <p className="mb-2 font-semibold">إضافة طالب للفصل</p>
+                    <p className="mb-3 text-xs text-muted-foreground">يتم عرض الطلاب المطابقين تلقائيًا لمنهج وصف هذا الفصل.</p>
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <AdminSearchableSelect
+                        label="الطالب"
+                        value={selectedStudentId}
+                        placeholder="اختر طالبًا"
+                        options={availableStudentItems.map((student) => ({
+                          value: student.id,
+                          label: student.fullName,
+                          searchText: student.email,
+                        }))}
+                        onChange={(value) => setSelectedStudentId(value || "")}
+                        onSearch={setStudentSearch}
+                        loading={availableStudents.isLoading}
+                        error={availableStudents.isError}
+                        noOptionsLabel="لا يوجد طلاب مؤهلون لهذا الفصل."
+                        emptyLabel="لا توجد نتائج مطابقة."
+                        searchPlaceholder="ابحث باسم الطالب أو البريد الإلكتروني"
+                      />
+                      <Button className="self-end" onClick={() => assignStudent.mutate()} disabled={!selectedStudentId || assignStudent.isPending}>
+                        {assignStudent.isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <UserPlus className="ml-2 h-4 w-4" />}
+                        إضافة الطالب
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Button variant="outline" onClick={() => changeTab("schedule")}>
+                <CalendarDays className="ml-2 h-4 w-4" />
+                الجدول
+              </Button>
+              <Button variant="outline" onClick={() => changeTab("assignments")}>
+                <ClipboardList className="ml-2 h-4 w-4" />
+                الواجبات
+              </Button>
+              <Button variant="outline" onClick={() => changeTab("chat")}>
+                <MessageSquare className="ml-2 h-4 w-4" />
+                المحادثات
+              </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="recordings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Video className="h-5 w-5 text-primary" />
+                  تسجيلات الفصل
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QueryState loading={recordings.isLoading} error={recordings.error} retry={() => void recordings.refetch()} />
+                {recordings.isSuccess &&
+                  (!recordingsItems.length ? (
+                    <p className="py-8 text-center text-muted-foreground">لا توجد تسجيلات جاهزة لهذا الفصل.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {recordingsItems.map((recording) => {
+                        const url = recording.localUrl || recording.shareUrl || recording.recordingLink;
+                        return (
+                          <div key={recording.sessionId || recording.recordingLink} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                            <span>{recording.sessionName}</span>
+                            {url ? (
+                              <Button
+                                variant="link"
+                                className="h-auto p-0"
+                                onClick={() =>
+                                  setSelectedRecording({
+                                    sessionName: recording.sessionName,
+                                    recordingLink: url,
+                                  })
+                                }
+                              >
+                                <Play className="ml-1 h-4 w-4" />
+                                تشغيل التسجيل
+                              </Button>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">التسجيل غير متاح</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+            <RecordingPlayerModal recording={selectedRecording} onClose={() => setSelectedRecording(null)} />
+          </TabsContent>
+          <TabsContent value="attendance" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>حضور وغياب الفصل</CardTitle>
+                <p className="text-sm text-muted-foreground">اختر الجلسة أولًا، ثم يظهر جدول كل طلبة الفصل وحالة حضورهم فيها.</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="space-y-1">
+                    <Label>الجلسة</Label>
+                    <Select value={attendanceFilters.session || undefined} onValueChange={(value) => changeAttendanceFilter("session", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الجلسة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {attendanceSessions.map(([id, name]) => (
+                          <SelectItem key={id} value={id}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="attendance-search">بحث باسم الطالب</Label>
+                    <Input id="attendance-search" type="search" placeholder="اكتب اسم الطالب" value={attendanceFilters.search} disabled={!attendanceFilters.session} onChange={(event) => changeAttendanceFilter("search", event.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>الحالة</Label>
+                    <Select value={attendanceFilters.status || "all"} disabled={!attendanceFilters.session} onValueChange={(value) => changeAttendanceFilter("status", value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الحالات</SelectItem>
+                        {(["present", "absent", "late"] as const).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {attendanceStatusLabel[status]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="attendance-from">من</Label>
+                    <Input id="attendance-from" type="date" disabled={!attendanceFilters.session} value={attendanceFilters.from} onChange={(event) => changeAttendanceFilter("from", event.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="attendance-to">إلى</Label>
+                    <Input id="attendance-to" type="date" disabled={!attendanceFilters.session} value={attendanceFilters.to} onChange={(event) => changeAttendanceFilter("to", event.target.value)} />
+                  </div>
+                </div>
+                <QueryState loading={attendanceSessionsQuery.isLoading || (Boolean(attendanceFilters.session) && (attendanceQuery.isLoading || students.isLoading))} error={attendanceSessionsQuery.error || attendanceQuery.error || students.error} retry={() => void Promise.all([attendanceSessionsQuery.refetch(), attendanceQuery.refetch(), students.refetch()])} />
+                {!attendanceFilters.session && !attendanceSessionsQuery.isLoading ? (
+                  <div className="rounded-xl border border-dashed bg-muted/20 py-12 text-center text-muted-foreground">
+                    <CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-50" />
+                    <p className="font-medium">اختر جلسة لعرض حضور طلبة الفصل</p>
+                  </div>
+                ) : (
+                  attendanceQuery.isSuccess &&
+                  students.isSuccess &&
+                  (!attendanceTableRows.length ? (
+                    <p className="py-8 text-center text-muted-foreground">لا يوجد طلاب مطابقون للفلاتر الحالية.</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border">
+                      <table className="w-full min-w-[760px] text-sm">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="px-4 py-3 text-start">الطالب</th>
+                            <th className="px-4 py-3 text-start">الجلسة</th>
+                            <th className="px-4 py-3 text-start">التاريخ</th>
+                            <th className="px-4 py-3 text-center">الحالة</th>
+                            <th className="px-4 py-3 text-center">المدة</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {attendanceTableRows.map((record) => (
+                            <tr key={record.id} className="hover:bg-muted/20">
+                              <td className="px-4 py-3 font-semibold">{record.student?.name || "—"}</td>
+                              <td className="px-4 py-3">{record.session?.name || attendanceSessions.find(([id]) => id === attendanceFilters.session)?.[1] || "—"}</td>
+                              <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{record.joinedAt ? dateLabel(record.joinedAt) : "createdAt" in record && record.createdAt ? dateLabel(record.createdAt) : "—"}</td>
+                              <td className="px-4 py-3 text-center">
+                                <Badge variant="outline">{record.status ? attendanceStatusLabel[record.status] || record.status : "لم يسجل"}</Badge>
+                              </td>
+                              <td className="px-4 py-3 text-center text-muted-foreground">{record.duration !== null && record.duration !== undefined ? record.duration : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))
+                )}
+                {attendanceQuery.isSuccess && attendancePagination && attendancePagination.last_page > 1 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <span className="text-sm text-muted-foreground">
+                      صفحة {attendancePagination.current_page} من {attendancePagination.last_page} · {attendancePagination.total} سجل حضور
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={attendancePagination.current_page <= 1}
+                        onClick={() =>
+                          setAttendanceFilters((current) => ({
+                            ...current,
+                            page: current.page - 1,
+                          }))
+                        }
+                      >
+                        السابقة
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={attendancePagination.current_page >= attendancePagination.last_page}
+                        onClick={() =>
+                          setAttendanceFilters((current) => ({
+                            ...current,
+                            page: current.page + 1,
+                          }))
+                        }
+                      >
+                        التالية
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="assignments" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  واجبات الفصل
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                  <div className="space-y-1 xl:col-span-2">
+                    <Label htmlFor="hub-assignment-search">بحث</Label>
+                    <Input id="hub-assignment-search" placeholder="ابحث في الواجبات" value={assignmentFilters.search} onChange={(event) => changeAssignmentFilter("search", event.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>المادة</Label>
+                    <Select value={assignmentFilters.subject || "all"} onValueChange={(value) => changeAssignmentFilter("subject", value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل المواد</SelectItem>
+                        {subjectItems.map((subject) => (
+                          <SelectItem key={subject.subjectId || subject.classroomSubjectId} value={subject.subjectId}>
+                            {subject.name || subject.subject?.name || "مادة"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <AdminSearchableSelect
+                    label="المعلم"
+                    value={assignmentFilters.teacher}
+                    placeholder="اختر المعلم"
+                    allLabel="كل المعلمين"
+                    options={assignmentTeachers.map(([id, name]) => ({
+                      value: id,
+                      label: name || id,
+                    }))}
+                    onChange={(value) => changeAssignmentFilter("teacher", value || "")}
+                  />
+                  <div className="space-y-1">
+                    <Label>الحالة</Label>
+                    <Select value={assignmentFilters.status || "all"} onValueChange={(value) => changeAssignmentFilter("status", value === "all" ? "" : value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الحالات</SelectItem>
+                        <SelectItem value="active">نشط</SelectItem>
+                        <SelectItem value="finished">منتهٍ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="hub-assignment-from">من</Label>
+                    <Input id="hub-assignment-from" type="date" value={assignmentFilters.from} onChange={(event) => changeAssignmentFilter("from", event.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="hub-assignment-to">إلى</Label>
+                    <Input id="hub-assignment-to" type="date" value={assignmentFilters.to} onChange={(event) => changeAssignmentFilter("to", event.target.value)} />
+                  </div>
+                </div>
+                <QueryState loading={assignmentQuery.isLoading} error={assignmentQuery.error} retry={() => void assignmentQuery.refetch()} />
+                {assignmentQuery.isSuccess &&
+                  (!assignmentItems.length ? (
+                    <p className="py-8 text-center text-muted-foreground">لا توجد واجبات لهذا الفصل.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {assignmentItems.map((assignment) => (
+                        <div key={assignment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                          <div>
+                            <p className="font-semibold">{assignment.title || "بدون عنوان"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {assignment.subject?.name || "—"} · الاستحقاق: {assignmentDate(assignment.dueDate)}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline">{assignment.teacher?.user?.fullName || assignment.teacher?.user?.email || "—"}</Badge>
+                              <Badge variant={assignment.status === "active" ? "default" : "outline"}>{assignmentStatusLabel[assignment.status || ""] || assignment.status || "—"}</Badge>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => setSelectedAssignmentId(assignment.id)}>
+                            <Eye className="ml-1 h-4 w-4" />
+                            التفاصيل
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                {assignmentQuery.isSuccess && assignmentPagination && assignmentPagination.last_page > 1 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <span className="text-sm text-muted-foreground">
+                      صفحة {assignmentPagination.current_page} من {assignmentPagination.last_page} · {assignmentPagination.total} واجب
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={assignmentPagination.current_page <= 1}
+                        onClick={() =>
+                          setAssignmentFilters((current) => ({
+                            ...current,
+                            page: current.page - 1,
+                          }))
+                        }
+                      >
+                        السابقة
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={assignmentPagination.current_page >= assignmentPagination.last_page}
+                        onClick={() =>
+                          setAssignmentFilters((current) => ({
+                            ...current,
+                            page: current.page + 1,
+                          }))
+                        }
+                      >
+                        التالية
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            {selectedAssignmentId && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
+                  <CardTitle>تفاصيل الواجب</CardTitle>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedAssignmentId("");
+                      setSelectedSubmissionId("");
+                    }}
+                  >
+                    إغلاق
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <QueryState loading={assignmentDetails.isLoading} error={assignmentDetails.error} retry={() => void assignmentDetails.refetch()} />
+                  {assignmentDetails.isSuccess && selectedAssignment && (
+                    <div className="space-y-5">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {[
+                          ["العنوان", selectedAssignment.title],
+                          ["الوصف", selectedAssignment.description],
+                          ["المادة", selectedAssignment.subject?.name],
+                          ["المعلم", selectedAssignment.teacher?.user?.fullName || selectedAssignment.teacher?.user?.email],
+                          ["الحالة", assignmentStatusLabel[selectedAssignment.status || ""] || selectedAssignment.status],
+                          ["الدرجة الكلية", selectedAssignment.totalPoints],
+                          ["تاريخ الاستحقاق", assignmentDate(selectedAssignment.dueDate)],
+                          ["تاريخ الإنشاء", assignmentDate(selectedAssignment.createdAt)],
+                        ].map(
+                          ([label, value]) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== "" && (
+                              <div key={label} className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-xs text-muted-foreground">{label}</p>
+                                <p className="mt-1 break-words text-sm">{String(value)}</p>
+                              </div>
+                            ),
+                        )}
+                      </div>
+                      {selectedAssignment.attachment && (
+                        <a className="text-sm text-primary underline" href={selectedAssignment.attachment} target="_blank" rel="noreferrer">
+                          عرض المرفق
+                        </a>
+                      )}
+                      <div className="rounded-lg border">
+                        <div className="border-b p-3">
+                          <h3 className="font-semibold">التسليمات {submissions.data && `(${submissions.data.pagination.total})`}</h3>
+                        </div>
+                        <div className="p-3">
+                          <QueryState loading={submissions.isLoading} error={submissions.error} retry={() => void submissions.refetch()} />
+                          {submissions.isSuccess &&
+                            (!submissionItems.length ? (
+                              <p className="py-6 text-center text-sm text-muted-foreground">لا توجد تسليمات لهذا الواجب.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {submissionItems.map((submission) => (
+                                  <div key={submission.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
+                                    <span>{submission.student?.user?.fullName || submission.student?.user?.email || "—"}</span>
+                                    <span className="text-muted-foreground">
+                                      {submission.status || "—"} · {submission.submittedAt ? assignmentDate(submission.submittedAt) : "—"}
+                                    </span>
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedSubmissionId(submission.id)}>
+                                      التفاصيل
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            {selectedSubmissionId && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
+                  <CardTitle>تفاصيل التسليم</CardTitle>
+                  <Button variant="ghost" onClick={() => setSelectedSubmissionId("")}>
+                    إغلاق
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <QueryState loading={submissionDetails.isLoading} error={submissionDetails.error} retry={() => void submissionDetails.refetch()} />
+                  {submissionDetails.isSuccess && submissionDetails.data.data && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {[
+                        ["الطالب", submissionDetails.data.data.student?.user?.fullName || submissionDetails.data.data.student?.user?.email],
+                        ["الحالة", submissionDetails.data.data.status],
+                        ["الدرجة", submissionDetails.data.data.score],
+                        ["تاريخ التسليم", assignmentDate(submissionDetails.data.data.submittedAt)],
+                        ["تاريخ الإنشاء", assignmentDate(submissionDetails.data.data.createdAt)],
+                      ].map(
+                        ([label, value]) =>
+                          value !== undefined &&
+                          value !== null &&
+                          value !== "" && (
+                            <div key={label} className="rounded-lg border bg-muted/20 p-3">
+                              <p className="text-xs text-muted-foreground">{label}</p>
+                              <p className="mt-1 text-sm">{String(value)}</p>
+                            </div>
+                          ),
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          <TabsContent value="chat">
+            <AdminClassroomChat classroomId={classroomId} active={activeTab === "chat"} />
+          </TabsContent>
+          <TabsContent value="schedule">{activeTab === "schedule" && <ClassroomScheduleManagement classroomId={classroomId} embedded />}</TabsContent>
+          <TabsContent value="zoom">{activeTab === "zoom" && <ClassroomZoomManagement classroomId={classroomId} embedded />}</TabsContent>
+        </Tabs>
+        <Dialog
+          open={Boolean(transferStudent)}
+          onOpenChange={(open) => {
+            if (!open && !moveStudent.isPending) {
+              setTransferStudent(null);
+              setTransferTargetId("");
+              setTransferSearch("");
+            }
+          }}
+        >
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>نقل الطالب إلى فصل آخر</DialogTitle>
+              <DialogDescription>اختر فصلًا آخر من نفس الصف لنقل {transferStudent?.fullName}. الفصول الناتجة من طلبات المواد لا تظهر هنا.</DialogDescription>
+            </DialogHeader>
+            <AdminSearchableSelect
+              label="الفصل الجديد"
+              value={transferTargetId}
+              placeholder="اختر الفصل"
+              options={(transferTargets.data?.data || []).map((classroom) => ({
+                value: classroom.id,
+                label: classroom.name,
+                searchText: classroom.classroomKind,
+              }))}
+              onChange={(value) => setTransferTargetId(value || "")}
+              onSearch={setTransferSearch}
+              loading={transferTargets.isLoading}
+              error={transferTargets.isError}
+              noOptionsLabel="لا توجد فصول أخرى متاحة في نفس الصف."
+              emptyLabel="لا يوجد فصل مطابق للبحث."
+              searchPlaceholder="ابحث باسم الفصل"
+            />
+            <DialogFooter className="gap-2 sm:justify-start">
+              <Button type="button" onClick={() => moveStudent.mutate()} disabled={!transferTargetId || moveStudent.isPending}>
+                {moveStudent.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                تأكيد النقل
+              </Button>
+              <Button type="button" variant="outline" disabled={moveStudent.isPending} onClick={() => setTransferStudent(null)}>
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DashboardLayout>
+  );
 }

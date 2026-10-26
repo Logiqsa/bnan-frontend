@@ -109,6 +109,7 @@ export default function AdminClassroomHub() {
     id: string;
     fullName: string;
   } | null>(null);
+  const [studentClassroomAction, setStudentClassroomAction] = useState<"transfer" | "add">("transfer");
   const [transferTargetId, setTransferTargetId] = useState("");
   const [transferSearch, setTransferSearch] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
@@ -156,17 +157,20 @@ export default function AdminClassroomHub() {
   });
   const transferTargets = useQuery({
     queryKey: ["admin-classroom-transfer-targets", classroomId, transferSearch],
-    queryFn: () => classroomRecordingsApi.listStudentTransferTargets(classroomId, transferSearch),
+    queryFn: () => classroomRecordingsApi.listStudentTransferTargets(classroomId, transferStudent!.id, transferSearch),
     enabled: Boolean(classroomId && transferStudent),
     retry: false,
   });
   const moveStudent = useMutation({
-    mutationFn: () => classroomRecordingsApi.transferStudent(classroomId, transferStudent!.id, transferTargetId),
+    mutationFn: () =>
+      studentClassroomAction === "add"
+        ? classroomRecordingsApi.addStudentToClassroom(classroomId, transferStudent!.id, transferTargetId)
+        : classroomRecordingsApi.transferStudent(classroomId, transferStudent!.id, transferTargetId),
     onSuccess: async () => {
       setTransferStudent(null);
       setTransferTargetId("");
       setTransferSearch("");
-      toast.success("تم نقل الطالب إلى الفصل الجديد.");
+      toast.success(studentClassroomAction === "add" ? "تمت إضافة الطالب إلى الفصل الآخر مع بقائه هنا." : "تم نقل الطالب إلى الفصل الجديد.");
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["admin-classroom-hub-students", classroomId],
@@ -534,19 +538,36 @@ export default function AdminClassroomHub() {
                         {studentItems.map((student) => (
                           <div key={student.studentId} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                             <span className="min-w-0 truncate">{student.fullName}</span>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setTransferStudent({ id: student.studentId, fullName: student.fullName });
-                                setTransferTargetId("");
-                                setTransferSearch("");
-                              }}
-                            >
-                              <ArrowRightLeft className="ml-1 h-4 w-4" />
-                              نقل
-                            </Button>
+                            <div className="flex shrink-0 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setStudentClassroomAction("add");
+                                  setTransferStudent({ id: student.studentId, fullName: student.fullName });
+                                  setTransferTargetId("");
+                                  setTransferSearch("");
+                                }}
+                              >
+                                <UserPlus className="ml-1 h-4 w-4" />
+                                إضافة إلى فصل
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setStudentClassroomAction("transfer");
+                                  setTransferStudent({ id: student.studentId, fullName: student.fullName });
+                                  setTransferTargetId("");
+                                  setTransferSearch("");
+                                }}
+                              >
+                                <ArrowRightLeft className="ml-1 h-4 w-4" />
+                                نقل
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1027,8 +1048,13 @@ export default function AdminClassroomHub() {
         >
           <DialogContent dir="rtl">
             <DialogHeader>
-              <DialogTitle>نقل الطالب إلى فصل آخر</DialogTitle>
-              <DialogDescription>اختر فصلًا آخر من نفس الصف لنقل {transferStudent?.fullName}. الفصول الناتجة من طلبات المواد لا تظهر هنا.</DialogDescription>
+              <DialogTitle>{studentClassroomAction === "add" ? "إضافة الطالب إلى فصل آخر" : "نقل الطالب إلى فصل آخر"}</DialogTitle>
+              <DialogDescription>
+                {studentClassroomAction === "add"
+                  ? `اختر فصلًا آخر من نفس الصف لإضافة ${transferStudent?.fullName || "الطالب"} إليه مع بقائه في الفصل الحالي.`
+                  : `اختر فصلًا آخر من نفس الصف لنقل ${transferStudent?.fullName || "الطالب"} إليه.`}{" "}
+                الفصول الناتجة من طلبات المواد لا تظهر هنا.
+              </DialogDescription>
             </DialogHeader>
             <AdminSearchableSelect
               label="الفصل الجديد"
@@ -1050,7 +1076,7 @@ export default function AdminClassroomHub() {
             <DialogFooter className="gap-2 sm:justify-start">
               <Button type="button" onClick={() => moveStudent.mutate()} disabled={!transferTargetId || moveStudent.isPending}>
                 {moveStudent.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                تأكيد النقل
+                {studentClassroomAction === "add" ? "تأكيد الإضافة" : "تأكيد النقل"}
               </Button>
               <Button type="button" variant="outline" disabled={moveStudent.isPending} onClick={() => setTransferStudent(null)}>
                 إلغاء

@@ -287,8 +287,9 @@ export const classroomRecordingsApi = {
       body: JSON.stringify({ classroom: classroomId, student: studentId }),
     }),
 
-  listStudentTransferTargets: (classroomId: string, search = "") => {
+  listStudentTransferTargets: (classroomId: string, studentId: string, search = "") => {
     const query = new URLSearchParams();
+    query.set("studentId", studentId);
     if (search.trim()) query.set("search", search.trim());
     return apiRequest<{
       success: true;
@@ -299,6 +300,12 @@ export const classroomRecordingsApi = {
 
   transferStudent: (classroomId: string, studentId: string, targetClassroomId: string) =>
     apiRequest<{ success: true; data: unknown }>(`/classrooms/${encodeURIComponent(classroomId)}/students/${encodeURIComponent(studentId)}/transfer`, {
+      method: "POST",
+      body: JSON.stringify({ classroom: targetClassroomId }),
+    }),
+
+  addStudentToClassroom: (classroomId: string, studentId: string, targetClassroomId: string) =>
+    apiRequest<{ success: true; data: unknown }>(`/classrooms/${encodeURIComponent(classroomId)}/students/${encodeURIComponent(studentId)}/add-to-classroom`, {
       method: "POST",
       body: JSON.stringify({ classroom: targetClassroomId }),
     }),

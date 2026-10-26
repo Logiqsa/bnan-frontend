@@ -59,7 +59,8 @@ export default function ClassroomSessionActions({
   const joinRequestRef = useRef(false);
   const teacherEntryRequestRef = useRef(false);
   const endRequestRef = useRef(false);
-  const usesSessionControls = user?.role === "teacher" || user?.role === "student";
+  const canJoinAsStaff = user?.role === "admin" || user?.role === "supervisor";
+  const usesSessionControls = user?.role === "teacher" || user?.role === "student" || canJoinAsStaff;
   const sessionQueryKey = useMemo(
     () => ["classroom-session-actions", classroomId, user?.role] as const,
     [classroomId, user?.role],
@@ -122,14 +123,17 @@ export default function ClassroomSessionActions({
   };
 
   const joinClassroomLesson = async () => {
-    if (user?.role !== "student" || activeSession?.status !== "live" || activeSession.canJoin !== true || joiningSession || joinRequestRef.current) return;
+    const joinable = user?.role === "student"
+      ? activeSession?.status === "live" && activeSession.canJoin === true
+      : canJoinAsStaff && ["starting", "live"].includes(activeSession?.status || "");
+    if (!joinable || joiningSession || joinRequestRef.current) return;
     joinRequestRef.current = true;
     setJoiningSession(true);
     try {
       const result = activeSession.weeklySlotKey
         ? await joinWeeklySlotEntry(classroomId, activeSession.weeklySlotKey)
         : await joinLesson(classroomId);
-      const meetingUrl = result.data?.meetingLink;
+      const meetingUrl = result.data?.teacherStartUrl || result.data?.meetingLink;
       if (!meetingUrl) throw new Error("MEETING_LINK_MISSING");
       window.open(meetingUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
@@ -233,6 +237,12 @@ export default function ClassroomSessionActions({
         <span className="text-xs text-muted-foreground">انتهت الحصة</span>
       )}
       {user?.role === "student" && activeSession?.status === "live" && activeSession.canJoin === true && (
+        <Button size="sm" disabled={joiningSession} onClick={() => void joinClassroomLesson()}>
+          {joiningSession ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <LogIn className="me-1 h-4 w-4" />}
+          {joiningSession ? "جاري الدخول..." : "دخول الحصة"}
+        </Button>
+      )}
+      {canJoinAsStaff && ["starting", "live"].includes(activeSession?.status || "") && (
         <Button size="sm" disabled={joiningSession} onClick={() => void joinClassroomLesson()}>
           {joiningSession ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <LogIn className="me-1 h-4 w-4" />}
           {joiningSession ? "جاري الدخول..." : "دخول الحصة"}

@@ -310,15 +310,15 @@ export default function TeacherSessionDetails() {
             </Card>
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-[#0d2048] via-[#102a5d] to-[#06152f] text-white shadow-lg">
-                <CardHeader className="border-b border-white/10 bg-white/5"><CardTitle className="flex items-center gap-2 text-white"><span className="grid h-9 w-9 place-items-center rounded-lg bg-sky-300/15 text-sky-200"><Video className="h-5 w-5" /></span>{pick("تسجيل الحصة", "Session recording")}</CardTitle></CardHeader>
+              <Card className="overflow-hidden border-secondary/30 bg-primary text-primary-foreground shadow-lg">
+                <CardHeader className="border-b border-secondary/20 bg-secondary/10"><CardTitle className="flex items-center gap-2 text-primary-foreground"><span className="grid h-9 w-9 place-items-center rounded-lg bg-secondary/20 text-secondary"><Video className="h-5 w-5" /></span>{pick("تسجيل الحصة", "Session recording")}</CardTitle></CardHeader>
                 <CardContent className="pt-5">
                   {session.recording?.localUrl || session.recording?.shareUrl ? (
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="space-y-1">{session.recording?.status && <Badge className="border-0 bg-sky-300 text-[#08204a] hover:bg-sky-200">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-slate-200">{pick("التسجيل جاهز للمشاهدة داخل المنصة.", "The recording is ready to watch in Bnan.")}</p></div><Button className="w-full bg-white text-[#0b2454] hover:bg-sky-100 sm:w-auto" onClick={() => setSelectedRecording({
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="space-y-1">{session.recording?.status && <Badge className="border-0 bg-secondary text-secondary-foreground hover:bg-secondary/90">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-primary-foreground/75">{pick("التسجيل جاهز للمشاهدة داخل المنصة.", "The recording is ready to watch in Bnan.")}</p></div><Button className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 sm:w-auto" onClick={() => setSelectedRecording({
                       sessionName: session.title || session.sessionName || pick("تسجيل الحصة", "Session recording"),
                       recordingLink: session.recording?.localUrl || session.recording?.shareUrl || "",
                     })}><Play className="me-2 h-4 w-4" />{pick("مشاهدة التسجيل", "Watch recording")}</Button></div>
-                  ) : <div className="space-y-2">{session.recording?.status && <Badge className="border-0 bg-sky-300 text-[#08204a] hover:bg-sky-200">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-slate-200">{pick("التسجيل غير متاح حاليًا", "The recording is not currently available")}</p></div>}
+                  ) : <div className="space-y-2">{session.recording?.status && <Badge className="border-0 bg-secondary text-secondary-foreground hover:bg-secondary/90">{processingStatusLabel(session.recording.status)}</Badge>}<p className="text-sm text-primary-foreground/75">{pick("التسجيل غير متاح حاليًا", "The recording is not currently available")}</p></div>}
                 </CardContent>
               </Card>
 

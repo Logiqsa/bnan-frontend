@@ -124,17 +124,17 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
         );
 
     return (
-      <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border border-sky-200 bg-sky-50/60 text-foreground" title={createdAt || undefined}>
+      <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border border-secondary/40 bg-secondary/10 text-foreground" title={createdAt || undefined}>
         <details>
           <summary className="flex min-w-0 cursor-pointer items-center gap-2 px-3 py-2 text-xs">
-            <FileText className="h-4 w-4 shrink-0 text-sky-700" />
-            <span className="shrink-0 font-semibold text-sky-700">
+            <FileText className="h-4 w-4 shrink-0 text-primary" />
+            <span className="shrink-0 font-semibold text-primary">
               {pick("ملخص", "Summary")}
             </span>
             <span className="min-w-0 flex-1 truncate font-medium" title={message.summaryTitle || message.sessionName}>
               {message.summaryTitle || message.sessionName || pick("ملخص الحصة", "Session summary")}
             </span>
-            {hasSummaryDetails && <span className="shrink-0 text-sky-700">{pick("عرض", "View")}</span>}
+            {hasSummaryDetails && <span className="shrink-0 text-primary">{pick("عرض", "View")}</span>}
           </summary>
           <div className="min-w-0 border-t bg-background/80 p-3">
             {hasSummaryDetails ? (
@@ -166,7 +166,7 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
                   )}
                   {nextSteps.length > 0 && (
                     <div className="mt-3 border-t pt-3">
-                      <p className="text-xs font-semibold text-sky-700">{pick("الخطوات التالية", "Next steps")}</p>
+                      <p className="text-xs font-semibold text-primary">{pick("الخطوات التالية", "Next steps")}</p>
                       <ul className="mt-2 list-disc space-y-1 ps-5 text-xs leading-6">
                         {nextSteps.map((step, index) => <li key={`${index}-${step}`} className="break-words">{step}</li>)}
                       </ul>

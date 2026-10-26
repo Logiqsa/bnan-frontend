@@ -113,7 +113,7 @@ export default function Courses() {
                           </Badge>
                         )}
                         <Badge variant="outline">{c.courseType === "general" ? pick("عامة", "General") : pick("أكاديمية", "Academic")}</Badge>
-                        {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
+                        {activeEnrollment && <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/90">{pick("مسجل بالفعل", "Already enrolled")}</Badge>}
                       </span>
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">

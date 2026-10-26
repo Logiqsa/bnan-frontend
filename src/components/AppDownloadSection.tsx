@@ -18,7 +18,7 @@ const AppDownloadSection = React.forwardRef<HTMLElement>((_, ref) => {
         >
           <div className="relative z-10 flex flex-col items-center justify-between gap-10 lg:flex-row">
             <div className="max-w-xl text-center lg:text-start">
-              <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-cairo text-white/80">
+              <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-secondary/10 px-4 py-2 text-sm font-cairo text-white/80">
                 <Smartphone className="h-4 w-4 text-secondary" />
                 {pick("تعلّم من أي مكان", "Learn from anywhere")}
               </span>

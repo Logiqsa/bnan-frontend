@@ -115,11 +115,11 @@ export default function ForgotPassword() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic ? "rtl" : "ltr"}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]" />
-      <Button asChild variant="outline" className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 z-10 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white md:top-6`}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
+      <Button asChild variant="outline" className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 z-10 rounded-full border-secondary/20 bg-secondary/10 text-white hover:bg-secondary/20 hover:text-white md:top-6`}>
         <Link to="/"><Home className="h-4 w-4" />{pick("الصفحة الرئيسية", "Home")}</Link>
       </Button>
-      <LanguageToggle className={`${isArabic ? "left-4 md:left-8" : "right-4 md:right-8"} absolute top-4 z-10 border border-white/20 bg-white/10 text-white hover:bg-white/20 md:top-6`} />
+      <LanguageToggle className={`${isArabic ? "left-4 md:left-8" : "right-4 md:right-8"} absolute top-4 z-10 border border-secondary/20 bg-secondary/10 text-white hover:bg-secondary/20 md:top-6`} />
       <div className="relative z-[1] mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md flex-col items-center justify-center">
         <Link to="/"><img src={logo} alt="BNAN Academy" className="mx-auto h-28 brightness-0 invert md:h-32" /></Link>
         <div className="mb-7 mt-3 text-center text-white">
@@ -128,7 +128,7 @@ export default function ForgotPassword() {
             {step === "email" ? pick("أدخل بريدك لنرسل إليك رمز الاستعادة", "Enter your email to receive a reset code") : step === "otp" ? pick(`أرسلنا رمزًا من 4 أرقام إلى ${email}`, `We sent a 4-digit code to ${email}`) : pick("أنشئ كلمة مرور قوية لحسابك", "Create a strong password for your account")}
           </p>
         </div>
-        <Card className="w-full border-white/10 bg-card/95 shadow-2xl"><CardContent className="p-6 md:p-7">
+        <Card className="w-full border-secondary/10 bg-card/95 shadow-2xl"><CardContent className="p-6 md:p-7">
           {error && <div role="alert" className="mb-5 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
           {notice && <div role="status" className="mb-5 rounded-xl bg-green-100 p-3 text-sm text-green-700">{notice}</div>}
 

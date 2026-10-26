@@ -224,7 +224,7 @@ export default function VoiceMessageRecorder({
           boxShadow: `0 0 ${Math.round(3 + voicePeak * 10)}px rgba(14, 165, 233, ${0.12 + voicePeak * 0.25})`,
         }}
       >
-        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-secondary/10 hover:text-white" onClick={() => stopRecording(true)} aria-label={pick("إلغاء التسجيل", "Cancel recording")}>
           <X className="h-4 w-4" />
         </Button>
         <div dir="ltr" className="flex min-w-0 flex-1 items-center gap-[2px] px-1" aria-label={pick("مستوى الصوت", "Voice level")}>
@@ -234,7 +234,7 @@ export default function VoiceMessageRecorder({
               return (
             <span
               key={index}
-              className={`h-7 w-[3px] shrink-0 rounded-full transition-[height,opacity,background-color] duration-75 ${level ? "bg-sky-300" : "bg-slate-600"}`}
+              className={`h-7 w-[3px] shrink-0 rounded-full transition-[height,opacity,background-color] duration-75 ${level ? "bg-secondary" : "bg-primary/45"}`}
               style={{
                 height: `${reached ? Math.max(4, Math.round(waveformBars[index] * 0.68 * (level ? 0.65 + level * 0.55 : 0.7))) : 0}px`,
                 opacity: reached ? (level ? 0.45 + level * 0.55 : 0.75) : 0,

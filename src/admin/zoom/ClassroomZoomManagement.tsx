@@ -231,7 +231,7 @@ const formatClassroomDate = (value: string | undefined, isArabic: boolean) => {
 function ClassroomStatusBadge({ item }: { item: ClassroomOption }) {
   const { pick } = useLanguage();
   const state = zoomDisplayState(item);
-  if (state === "creating") return <Badge className="border border-sky-200 bg-sky-100 text-primary hover:bg-sky-100"><Loader2 className="me-1.5 h-3 w-3 animate-spin"/>{pick("جاري إنشاء Zoom", "Creating Zoom")}</Badge>;
+  if (state === "creating") return <Badge className="border border-secondary/40 bg-secondary/20 text-primary hover:bg-secondary/20"><Loader2 className="me-1.5 h-3 w-3 animate-spin"/>{pick("جاري إنشاء Zoom", "Creating Zoom")}</Badge>;
   if (state === "failed") return <Badge className="border border-rose-200 bg-rose-100 text-rose-800 hover:bg-rose-100"><AlertCircle className="me-1.5 h-3 w-3"/>{pick("فشل إنشاء Zoom", "Zoom creation failed")}</Badge>;
   if (state === "ready") return <Badge className="border border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100"><CheckCircle2 className="me-1.5 h-3 w-3"/>{pick("مربوط برابط Zoom", "Zoom link connected")}</Badge>;
   return <Badge className="border border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-100"><AlertCircle className="me-1.5 h-3 w-3"/>{pick("لم يتم ربط Zoom", "Zoom not linked")}</Badge>;
@@ -247,8 +247,8 @@ function ClassroomCard({ item, onOpen }: { item: ClassroomOption; onOpen: () => 
   const displayState = zoomDisplayState(item);
   const createdAt = formatClassroomDate(item.createdAt, isArabic);
   const gradeName = referenceName(item.grade);
-  return <Card className={cn("group relative flex h-full flex-col overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-sky", ready ? "border-emerald-200" : displayState === "failed" ? "border-rose-200" : displayState === "creating" ? "border-sky-200" : "border-amber-200 bg-amber-50/20")}>
-    <div className={cn("absolute inset-y-0 start-0 w-1", ready ? "bg-emerald-400" : displayState === "failed" ? "bg-rose-400" : displayState === "creating" ? "bg-sky-400" : "bg-amber-400")}/>
+  return <Card className={cn("group relative flex h-full flex-col overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-sky", ready ? "border-emerald-200" : displayState === "failed" ? "border-rose-200" : displayState === "creating" ? "border-secondary/40" : "border-amber-200 bg-amber-50/20")}>
+    <div className={cn("absolute inset-y-0 start-0 w-1", ready ? "bg-emerald-400" : displayState === "failed" ? "bg-rose-400" : displayState === "creating" ? "bg-secondary" : "bg-amber-400")}/>
     <CardHeader className="space-y-2.5 p-4 pb-2 ps-5">
       <div className="flex flex-wrap items-center justify-between gap-2"><ClassroomStatusBadge item={item}/>{createdAt && <span className="text-xs text-muted-foreground">{createdAt}</span>}</div>
       <div><CardTitle className="break-words text-base leading-6">{item.name}</CardTitle>{gradeName && <p className="mt-0.5 text-xs text-muted-foreground">{gradeName}</p>}</div>

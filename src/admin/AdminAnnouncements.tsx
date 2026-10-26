@@ -13,6 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
 const emptyForm: AnnouncementPayload = { title: "", body: "", type: "normal", targetAudience: ["students", "parents", "teachers"], displayInBanner: true, bannerDismissible: true };
+const BRAND_BANNER_COLORS = ["#0E1C3E", "#7FCEF0"] as const;
+const brandBannerColor = (value?: string | null) => {
+  const normalized = value?.toUpperCase();
+  return BRAND_BANNER_COLORS.includes(normalized as (typeof BRAND_BANNER_COLORS)[number])
+    ? normalized!
+    : BRAND_BANNER_COLORS[0];
+};
 const pad = (value: number) => String(value).padStart(2, "0");
 const dateInput = (value?: string | null) => {
   if (!value) return "";
@@ -27,14 +34,14 @@ export default function AdminAnnouncements() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<AnnouncementPayload>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [bannerColor, setBannerColor] = useState("#0f2348");
+  const [bannerColor, setBannerColor] = useState("#0E1C3E");
   const announcements = useQuery({ queryKey: ["admin-announcements"], queryFn: async () => (await announcementsApi.list()).data });
   const bannerSettings = useQuery({ queryKey: ["announcement-settings"], queryFn: async () => (await announcementsApi.settings()).data });
   const refreshAnnouncementQueries = () => {
     void queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
     void queryClient.invalidateQueries({ queryKey: ["active-announcement-banner"] });
   };
-  useEffect(() => { if (bannerSettings.data?.bannerColor) setBannerColor(bannerSettings.data.bannerColor); }, [bannerSettings.data?.bannerColor]);
+  useEffect(() => { setBannerColor(brandBannerColor(bannerSettings.data?.bannerColor)); }, [bannerSettings.data?.bannerColor]);
   const saveSettings = useMutation({ mutationFn: () => announcementsApi.updateSettings({ bannerColor }), onSuccess: (response) => { setBannerColor(response.data.bannerColor); toast.success(pick("تم حفظ لون الشريط.", "Banner color saved.")); void queryClient.invalidateQueries({ queryKey: ["announcement-settings"] }); void queryClient.invalidateQueries({ queryKey: ["active-announcement-banner"] }); }, onError: () => toast.error(pick("تعذر حفظ لون الشريط.", "Unable to save banner color.")) });
   const save = useMutation({ mutationFn: () => {
     const payload = { ...form, bannerDismissible: true, bannerStartsAt: normalizeDate(form.bannerStartsAt), bannerEndsAt: normalizeDate(form.bannerEndsAt) };
@@ -48,7 +55,7 @@ export default function AdminAnnouncements() {
   const submit = (event: React.FormEvent) => { event.preventDefault(); if (!form.title.trim() || !form.body.trim() || save.isPending) return; void save.mutate(); };
   return <DashboardLayout><main className="mx-auto max-w-6xl space-y-6" dir={isArabic ? "rtl" : "ltr"}>
     <header><h1 className="flex items-center gap-2 text-3xl font-bold"><Megaphone className="h-7 w-7 text-primary" />{pick("عروض الشريط العلوي", "Top banner offers")}</h1><p className="mt-1 text-muted-foreground">{pick("أنشئ عرضًا يظهر أعلى الموقع ويتحرك تلقائيًا.", "Create an offer that appears and moves across the top of the website.")}</p></header>
-    <Card><CardHeader><CardTitle>{pick("إعدادات الشريط", "Banner settings")}</CardTitle></CardHeader><CardContent><div className="flex flex-wrap items-end gap-3"><div className="space-y-2"><Label htmlFor="announcement-color">{pick("لون الشريط العام", "Global banner color")}</Label><div className="flex items-center gap-3"><Input id="announcement-color" type="color" value={bannerColor} onChange={(event) => setBannerColor(event.target.value)} className="h-10 w-16 cursor-pointer p-1" /><Input value={bannerColor} onChange={(event) => setBannerColor(event.target.value)} maxLength={7} dir="ltr" /></div></div><Button type="button" onClick={() => void saveSettings.mutate()} disabled={saveSettings.isPending}>{saveSettings.isPending ? pick("جاري الحفظ...", "Saving...") : pick("حفظ اللون", "Save color")}</Button></div></CardContent></Card>
+    <Card><CardHeader><CardTitle>{pick("إعدادات الشريط", "Banner settings")}</CardTitle></CardHeader><CardContent><div className="flex flex-wrap items-end gap-3"><div className="space-y-2"><Label>{pick("لون الشريط العام", "Global banner color")}</Label><div className="flex items-center gap-2">{BRAND_BANNER_COLORS.map((color) => <button key={color} type="button" onClick={() => setBannerColor(color)} className={`h-10 w-16 rounded-lg border-2 transition ${bannerColor === color ? "border-primary ring-2 ring-secondary" : "border-border"}`} style={{ backgroundColor: color }} aria-label={color === "#0E1C3E" ? pick("كحلي بنان", "BNAN navy") : pick("لبني بنان", "BNAN sky")} aria-pressed={bannerColor === color} />)}</div></div><Button type="button" onClick={() => void saveSettings.mutate()} disabled={saveSettings.isPending}>{saveSettings.isPending ? pick("جاري الحفظ...", "Saving...") : pick("حفظ اللون", "Save color")}</Button></div></CardContent></Card>
     <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><CardTitle>{editing ? pick("تعديل العرض", "Edit offer") : pick("إضافة عرض", "Add offer")}</CardTitle>{editing && <Button type="button" variant="ghost" size="icon" onClick={reset} aria-label={pick("إلغاء التعديل", "Cancel edit")}><X className="h-4 w-4" /></Button>}</CardHeader><CardContent><form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
       <div className="space-y-2 md:col-span-2"><Label htmlFor="announcement-title">{pick("العنوان", "Title")}</Label><Input id="announcement-title" value={form.title} maxLength={200} onChange={(event) => setForm({ ...form, title: event.target.value })} required /></div>
       <div className="space-y-2 md:col-span-2"><Label htmlFor="announcement-body">{pick("نص العرض", "Offer text")}</Label><Textarea id="announcement-body" value={form.body} maxLength={500} rows={3} onChange={(event) => setForm({ ...form, body: event.target.value })} required /></div>

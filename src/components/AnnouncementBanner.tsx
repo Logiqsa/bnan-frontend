@@ -65,11 +65,11 @@ export default function AnnouncementBanner() {
   const contentFor = (announcement: (typeof announcements)[number]) => (
     <span
       dir={isArabic ? "rtl" : "ltr"}
-      className="inline-flex items-center gap-3 whitespace-nowrap border-s border-white/20 px-7 py-2.5 text-sm font-medium first:border-s-0"
+      className="inline-flex items-center gap-3 whitespace-nowrap border-s border-secondary/20 px-7 py-2.5 text-sm font-medium first:border-s-0"
     >
       <Megaphone className="h-4 w-4 shrink-0 opacity-80" />
       {announcement.type === "important" && (
-        <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+        <span className="rounded-full bg-secondary/20 px-2 py-0.5 text-xs font-bold">
           {pick("مهم", "Important")}
         </span>
       )}
@@ -79,7 +79,7 @@ export default function AnnouncementBanner() {
       )}
       {getRemainingSeconds(announcement.bannerEndsAt, now) !== null && (
         <span
-          className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold tabular-nums"
+          className="rounded-full bg-secondary/15 px-2.5 py-1 text-xs font-bold tabular-nums"
           aria-label={pick("الوقت المتبقي لانتهاء العرض", "Time remaining until offer ends")}
         >
           {formatCountdown(getRemainingSeconds(announcement.bannerEndsAt, now) || 0, isArabic)}
@@ -90,7 +90,9 @@ export default function AnnouncementBanner() {
 
   const baseSequence = visibleAnnouncements;
   const sequence = Array.from({ length: sequenceCopies }, () => baseSequence).flat();
-  const bannerColor = query.data?.bannerColor || "#0f2348";
+  const storedBannerColor = query.data?.bannerColor?.toUpperCase();
+  const bannerColor = storedBannerColor === "#7FCEF0" ? "#7FCEF0" : "#0E1C3E";
+  const isSkyBanner = bannerColor === "#7FCEF0";
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -159,7 +161,7 @@ export default function AnnouncementBanner() {
     <aside
       dir={isArabic ? "rtl" : "ltr"}
       style={{ backgroundColor: bannerColor }}
-      className="announcement-banner relative z-40 flex w-full items-center overflow-hidden border-b border-white/20 text-white"
+      className={`announcement-banner relative z-40 flex w-full items-center overflow-hidden border-b ${isSkyBanner ? "border-primary/20 text-primary" : "border-secondary/20 text-white"}`}
       aria-label={pick("إعلانات العروض", "Offer announcements")}
     >
       <div ref={viewportRef} className="announcement-banner-viewport min-w-0 flex-1 overflow-hidden">
@@ -183,7 +185,7 @@ export default function AnnouncementBanner() {
         variant="ghost"
         size="icon"
         onClick={() => setDismissed(true)}
-        className="mx-2 h-7 w-7 shrink-0 rounded-full border border-white/20 bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"
+        className={`mx-2 h-7 w-7 shrink-0 rounded-full border ${isSkyBanner ? "border-primary/20 bg-primary/10 text-primary/80 hover:bg-primary/20 hover:text-primary" : "border-secondary/20 bg-secondary/10 text-white/80 hover:bg-secondary/20 hover:text-white"}`}
         aria-label={pick("إغلاق الإعلان", "Dismiss announcements")}
       >
         <X className="h-4 w-4" />

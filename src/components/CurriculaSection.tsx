@@ -12,7 +12,7 @@ const curricula = [
     icon: "🇸🇦",
     title: "المنهج السعودي",
     subjects: ["رياضيات", "علوم", "لغتي", "إنجليزي", "تربية إسلامية"],
-    color: "from-secondary to-sky-light",
+    color: "from-secondary to-secondary",
   },
   {
     icon: "🌍",

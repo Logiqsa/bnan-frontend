@@ -23,7 +23,7 @@ const HeroSection = () => {
       />
       {/* Keep the paper texture visible on every viewport; this is a tint only,
           not a replacement background. */}
-      <div className="absolute inset-0 bg-white/10 md:bg-white/15" aria-hidden="true" />
+      <div className="absolute inset-0 bg-secondary/10 md:bg-secondary/15" aria-hidden="true" />
 
       {/* Floating education emojis */}
       {[
@@ -57,8 +57,8 @@ const HeroSection = () => {
             className="animate-float rounded-2xl border border-white/90 bg-white/88 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md flex items-center gap-3"
             style={{ animationDelay: bubble.floatDelay }}
           >
-            <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-              <bubble.icon className="w-5 h-5 text-sky-700" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+              <bubble.icon className="h-5 w-5 text-primary" />
             </div>
             <div className="text-right">
               <p className="text-xs font-cairo text-slate-500">{bubble.title}</p>
@@ -78,7 +78,7 @@ const HeroSection = () => {
           >
             <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
-            <span className="text-[hsl(204_66%_48%)]">
+            <span className="text-secondary">
               في مكان واحد
             </span>
           </motion.h1>
@@ -90,7 +90,7 @@ const HeroSection = () => {
             className="mx-auto mb-8 max-w-2xl text-lg font-serif-text font-normal leading-relaxed text-slate-700 md:text-xl"
           >
             مع{" "}
-            <span className="font-bold text-[hsl(204_66%_42%)]">بنان</span>{" "}
+            <span className="font-bold text-secondary">بنان</span>{" "}
             خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 
@@ -136,11 +136,11 @@ const HeroSection = () => {
             {floatingBubbles.map((bubble, i) => (
               <div
                 key={i}
-                className="animate-float flex items-center gap-2 rounded-xl border border-[#c9d9e7]/90 bg-[#eef4fa]/92 px-3 py-2.5 shadow-[0_10px_22px_rgba(16,42,83,0.12)] backdrop-blur-md"
+                className="animate-float flex items-center gap-2 rounded-xl border border-secondary/50 bg-secondary/15 px-3 py-2.5 shadow-[0_10px_22px_rgba(14,28,62,0.12)] backdrop-blur-md"
                 style={{ animationDelay: bubble.floatDelay }}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100">
-                  <bubble.icon className="h-4 w-4 text-sky-700" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/25">
+                  <bubble.icon className="h-4 w-4 text-primary" />
                 </div>
                 <div className="text-right">
                   <p className="font-cairo text-[10px] text-slate-500">{bubble.title}</p>

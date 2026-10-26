@@ -54,16 +54,16 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
         ? "Zoom لم يرسل نص الملخص لهذه الجلسة."
         : "تفاصيل الملخص غير متاحة حاليًا.";
     return (
-      <div className="mx-auto w-full max-w-2xl rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-foreground shadow-sm">
+      <div className="mx-auto w-full max-w-2xl rounded-2xl border border-secondary/40 bg-secondary/10 p-4 text-foreground shadow-sm">
         <div className="flex items-start gap-3">
-          <FileText className="mt-1 h-5 w-5 shrink-0 text-sky-700" />
+          <FileText className="mt-1 h-5 w-5 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-sky-700">ملخص الحصة</p>
+            <p className="text-xs font-semibold text-primary">ملخص الحصة</p>
             <h3 className="mt-1 font-bold">
               {message.summaryTitle || message.sessionName || "ملخص الحصة"}
             </h3>
             <details className="mt-3 rounded-xl border bg-background/80">
-              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-sky-700">
+              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-primary">
                 عرض الملخص
               </summary>
               <div className="border-t p-3">

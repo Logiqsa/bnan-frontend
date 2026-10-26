@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { PlayCircle, X } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 export interface PlayerRecording {
@@ -41,20 +41,20 @@ export default function RecordingPlayerModal({
   if (!recording) return null;
 
   return <div
-    className="fixed inset-0 z-[9999] grid place-items-center bg-black/90 p-0 backdrop-blur-md sm:p-6"
+    className="fixed inset-0 z-[9999] grid place-items-center bg-primary/90 p-3 backdrop-blur-sm sm:p-6"
     role="dialog"
     aria-modal="true"
     aria-label={`${pick("تشغيل", "Play")} ${recording.sessionName}`}
     onMouseDown={onClose}
   >
-    <div dir={isArabic ? "rtl" : "ltr"} className="w-full max-w-6xl overflow-hidden border-white/10 bg-[#090909] shadow-2xl sm:rounded-2xl sm:border" onMouseDown={(event) => event.stopPropagation()}>
-      <header className="flex items-center justify-between gap-4 px-4 py-3 text-white sm:px-5">
-        <h2 className="truncate text-base font-semibold">{recording.sessionName}</h2>
-        <button type="button" onClick={onClose} aria-label={pick("إغلاق المشغل", "Close player")} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+    <div dir={isArabic ? "rtl" : "ltr"} className="w-full max-w-5xl overflow-hidden rounded-2xl border border-secondary/25 bg-primary shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+      <header className="flex items-center justify-between gap-4 border-b border-secondary/10 px-4 py-3.5 text-white sm:px-5">
+        <div className="flex min-w-0 items-center gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary/15 text-secondary"><PlayCircle className="h-5 w-5" /></span><div className="min-w-0"><p className="text-xs text-secondary/70">{pick("مشاهدة التسجيل", "Now playing")}</p><h2 className="truncate text-sm font-semibold sm:text-base">{recording.sessionName}</h2></div></div>
+        <button type="button" onClick={onClose} aria-label={pick("إغلاق المشغل", "Close player")} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/10 transition-colors hover:bg-secondary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">
           <X className="h-5 w-5" />
         </button>
       </header>
-      <div className="aspect-video w-full bg-black">
+      <div className="aspect-video max-h-[calc(100vh-8rem)] w-full bg-black">
         <video
           ref={videoRef}
           src={recording.recordingLink}

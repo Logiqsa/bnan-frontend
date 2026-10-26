@@ -37,9 +37,9 @@ const TeacherCertificateTemplate = forwardRef<HTMLDivElement, Props>(({ data }, 
   } = data;
 
   // Palette
-  const NAVY_DEEP = "#0A1530";
+  const NAVY_DEEP = "#0E1C3E";
   const NAVY = "#0E1C3E";
-  const NAVY_SOFT = "#16264F";
+  const NAVY_SOFT = "#0E1C3E";
   const GOLD = "#F2B739";
   const GOLD_LIGHT = "#FFD86B";
   const GOLD_DEEP = "#B8821F";

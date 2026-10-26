@@ -748,14 +748,14 @@ const SidebarContent = ({
             <img
               src={logo}
               alt="أكاديمية بنان"
-              className={`max-w-full object-contain brightness-0 invert transition-all duration-300 ${collapsed ? "h-10" : "h-20"}`}
+              className={`max-w-full object-contain transition-all duration-300 ${collapsed ? "h-10" : "h-20"}`}
             />
           </Link>
           {onToggle && (
             <button
               type="button"
               onClick={onToggle}
-              className={`grid h-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-accent ${collapsed ? "w-9 min-w-9" : "w-1/5 min-w-0"}`}
+              className={`grid h-10 shrink-0 place-items-center rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground ${collapsed ? "w-9 min-w-9" : "w-1/5 min-w-0"}`}
               aria-label={
                 collapsed
                   ? pick("فتح القائمة الجانبية", "Expand sidebar")
@@ -787,7 +787,7 @@ const SidebarContent = ({
                       : "Student",
               )}
             </p>
-            <LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" />
+            <LanguageToggle className="bg-sidebar-primary/10 text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" />
           </div>
         )}
       </div>
@@ -916,7 +916,7 @@ const SidebarContent = ({
                 title={collapsed ? pick(item.label, item.labelEn) : undefined}
                 aria-label={pick(item.label, item.labelEn)}
                 dir={isArabic ? "rtl" : "ltr"}
-                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`}
+                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-primary"}`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}>{pick(item.label, item.labelEn)}</span>}
@@ -947,14 +947,14 @@ const SidebarContent = ({
           role="status"
           aria-live="polite"
         >
-          <div className="animate-in fade-in zoom-in-95 rounded-2xl border border-[hsl(221_63%_15%/0.12)] bg-white px-10 py-9 text-center shadow-2xl duration-300">
-            <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[hsl(221_63%_15%/0.08)] ring-1 ring-[hsl(221_63%_15%/0.12)]">
-              <Loader2 className="h-10 w-10 animate-spin text-[hsl(221_63%_15%)]" />
+          <div className="animate-in fade-in zoom-in-95 rounded-2xl border border-primary/15 bg-white px-10 py-9 text-center shadow-2xl duration-300">
+            <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-primary/10 ring-1 ring-primary/15">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </span>
-            <h2 className="mt-5 text-xl font-bold text-[hsl(221_63%_15%)]">
+            <h2 className="mt-5 text-xl font-bold text-primary">
               {pick("جاري تبديل الحساب", "Switching account")}
             </h2>
-            <p className="mt-2 text-sm font-medium text-[hsl(221_63%_15%/0.7)]">
+            <p className="mt-2 text-sm font-medium text-primary/70">
               {switchingName}
             </p>
           </div>
@@ -1010,7 +1010,7 @@ const DashboardSidebar = () => {
           />
         </Link>
         <div className="flex items-center gap-1">
-          <LanguageToggle className="h-9 bg-white/10 px-2 text-xs text-sidebar-foreground hover:bg-white/20" />
+          <LanguageToggle className="h-9 bg-sidebar-primary/10 px-2 text-xs text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" />
           <Button
             variant="ghost"
             size="sm"

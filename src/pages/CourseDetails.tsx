@@ -119,7 +119,7 @@ export default function CourseDetails() {
                             مجانية
                           </Badge>
                         )}
-                        {activeEnrollment && <Badge className="bg-sky-600 hover:bg-sky-600">مسجل بالفعل</Badge>}
+                        {activeEnrollment && <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary/90">مسجل بالفعل</Badge>}
                         <Badge variant="outline">{course.courseType === "general" ? "عامة" : "أكاديمية"}</Badge>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">

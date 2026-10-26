@@ -145,9 +145,9 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
               <p className="leading-6">© 2026 {pick("جميع الحقوق محفوظة لشركة BNAN", "All rights reserved to BNAN")}</p>
               <nav aria-label={pick("الروابط القانونية", "Legal links")} className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 md:mt-0 md:inline-flex">
                 <span className="hidden md:inline" aria-hidden="true">•</span>
-                <Link to="/privacy-policy" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-white/10 hover:text-secondary">{pick("سياسة الخصوصية", "Privacy Policy")}</Link>
+                <Link to="/privacy-policy" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-secondary/10 hover:text-secondary">{pick("سياسة الخصوصية", "Privacy Policy")}</Link>
                 <span className="text-primary-foreground/35" aria-hidden="true">•</span>
-                <Link to="/terms-and-conditions" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-white/10 hover:text-secondary">{pick("الشروط والأحكام", "Terms & Conditions")}</Link>
+                <Link to="/terms-and-conditions" className="rounded-md px-2 py-1 font-medium text-primary-foreground/80 transition-colors hover:bg-secondary/10 hover:text-secondary">{pick("الشروط والأحكام", "Terms & Conditions")}</Link>
               </nav>
             </div>
 

@@ -127,7 +127,7 @@ export default function VoiceMessagePlayer({ src, label }: VoiceMessagePlayerPro
       />
       <button
         type="button"
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-slate-950 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-secondary-foreground transition hover:bg-secondary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
         onClick={() => void toggle()}
         aria-label={playing ? pick("إيقاف الصوت", "Pause voice message") : pick("تشغيل الصوت", "Play voice message")}
       >
@@ -137,14 +137,14 @@ export default function VoiceMessagePlayer({ src, label }: VoiceMessagePlayerPro
         <button
           ref={waveformRef}
           type="button"
-          className="flex h-7 w-full items-center gap-[2px] overflow-hidden rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          className="flex h-7 w-full items-center gap-[2px] overflow-hidden rounded-md px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
           onClick={(event) => seek(event.clientX)}
           aria-label={pick("تقدم الرسالة الصوتية", "Voice message progress")}
         >
           {bars.map((height, index) => (
             <span
               key={index}
-              className={`min-w-[2px] flex-1 rounded-full transition-colors ${index / bars.length <= progress ? "bg-sky-300" : "bg-slate-600"}`}
+              className={`min-w-[2px] flex-1 rounded-full transition-colors ${index / bars.length <= progress ? "bg-secondary" : "bg-primary/45"}`}
               style={{ height: `${Math.max(4, height)}px` }}
             />
           ))}

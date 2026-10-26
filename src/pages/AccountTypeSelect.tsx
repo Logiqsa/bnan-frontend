@@ -18,11 +18,11 @@ const AccountTypeSelect = () => {
   ];
   return (
     <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic ? "rtl" : "ltr"}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
 
       <Link
         to="/"
-        className="absolute right-4 top-4 md:right-8 md:top-6 z-10 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20 transition-colors"
+        className="absolute right-4 top-4 md:right-8 md:top-6 z-10 inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2 text-sm text-white hover:bg-secondary/20 transition-colors"
       >
         <Home className="w-4 h-4" />
         {pick("الصفحة الرئيسية", "Home")}
@@ -30,7 +30,7 @@ const AccountTypeSelect = () => {
       <button
         type="button"
         onClick={toggleLanguage}
-        className="fixed left-4 top-4 z-20 inline-flex items-center gap-[6px] rounded-full bg-white/10 px-3 py-1.5 font-cairo text-sm text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+        className="fixed left-4 top-4 z-20 inline-flex items-center gap-[6px] rounded-full bg-secondary/10 px-3 py-1.5 font-cairo text-sm text-white/70 transition-colors hover:bg-secondary/20 hover:text-white"
         aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
       >
         <Globe className="h-4 w-4" aria-hidden="true" />
@@ -50,7 +50,7 @@ const AccountTypeSelect = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full">
           {options.map((option) => (
             <Link key={option.id} to={option.to}>
-              <Card className="h-full border-white/10 bg-card/95 shadow-2xl hover:shadow-sky hover:-translate-y-1 transition-all">
+              <Card className="h-full border-secondary/10 bg-card/95 shadow-2xl hover:shadow-sky hover:-translate-y-1 transition-all">
                 <CardContent className="p-8 text-center flex flex-col items-center">
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
                     <option.icon className="w-8 h-8 text-primary" />

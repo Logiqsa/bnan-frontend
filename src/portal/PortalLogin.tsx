@@ -111,11 +111,11 @@ export default function PortalLogin() {
       className="relative min-h-screen overflow-x-hidden bg-hero-gradient px-4 py-16"
       dir={isArabic ? "rtl" : "ltr"}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(221_50%_22%/.38),transparent_48%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
       <Button
         asChild
         variant="outline"
-        className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 md:top-6 z-10 rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white`}
+        className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 md:top-6 z-10 rounded-full border-secondary/20 bg-secondary/10 text-white hover:bg-secondary/20 hover:text-white`}
       >
         <Link to="/">
           <Home className="h-4 w-4" />
@@ -123,7 +123,7 @@ export default function PortalLogin() {
         </Link>
       </Button>
       <LanguageToggle
-        className={`${isArabic ? "left-4 md:left-8" : "right-4 md:right-8"} absolute top-4 md:top-6 z-10 border border-white/20 bg-white/10 text-white hover:bg-white/20`}
+        className={`${isArabic ? "left-4 md:left-8" : "right-4 md:right-8"} absolute top-4 md:top-6 z-10 border border-secondary/20 bg-secondary/10 text-white hover:bg-secondary/20`}
       />
 
       <div className="relative z-[1] mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-md flex-col items-center justify-center">
@@ -148,7 +148,7 @@ export default function PortalLogin() {
         </div>
 
         {rememberedAccounts.length > 0 && (
-          <div className="mb-4 w-full rounded-xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
+          <div className="mb-4 w-full rounded-xl border border-secondary/10 bg-secondary/10 p-3 text-white backdrop-blur">
             <p className="mb-2 text-xs text-white/60">
               {pick("تبديل سريع للحساب", "Quick account switch")}
             </p>
@@ -156,7 +156,7 @@ export default function PortalLogin() {
               {rememberedAccounts.map((account) => (
                 <div
                   key={account.user.id}
-                  className="flex items-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                  className="flex items-center rounded-lg bg-secondary/10 transition-colors hover:bg-secondary/20"
                 >
                   <button
                     type="button"
@@ -166,7 +166,7 @@ export default function PortalLogin() {
                     }}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-2.5 text-start"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary/15">
                       <UserRound className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">
@@ -198,7 +198,7 @@ export default function PortalLogin() {
             </div>
           </div>
         )}
-        <Card className="w-full border-white/10 bg-card/95 shadow-2xl">
+        <Card className="w-full border-secondary/10 bg-card/95 shadow-2xl">
           <CardContent className="p-6 md:p-7">
             <form onSubmit={submit} className="space-y-5">
               {error && (

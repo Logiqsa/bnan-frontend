@@ -19,7 +19,7 @@ const FILTERS: Array<{ value: UsageFilter; label: string }> = [
 
 const meetingLabels = {
   ready: { label: "Zoom جاهز", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-  creating: { label: "جاري الإنشاء", className: "border-sky-200 bg-sky-50 text-sky-700" },
+  creating: { label: "جاري الإنشاء", className: "border-secondary/40 bg-secondary/15 text-primary" },
   failed: { label: "فشل الإنشاء", className: "border-red-200 bg-red-50 text-red-700" },
   not_ready: { label: "غير جاهز", className: "text-muted-foreground" },
 };

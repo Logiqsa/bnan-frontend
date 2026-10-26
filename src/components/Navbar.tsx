@@ -136,14 +136,14 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="-mx-4 rounded-b-2xl border-t border-white/10 bg-primary px-4 pb-5 pt-4 text-white shadow-xl lg:hidden"
+            className="-mx-4 rounded-b-2xl border-t border-secondary/10 bg-primary px-4 pb-5 pt-4 text-white shadow-xl lg:hidden"
           >
             <div className="flex flex-col gap-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={toggleLanguage}
-                className="w-full gap-[6px] border-white/20 bg-white/10 font-cairo text-white hover:bg-white/20 hover:text-white"
+                className="w-full gap-[6px] border-secondary/20 bg-secondary/10 font-cairo text-white hover:bg-secondary/20 hover:text-white"
                 aria-label={pick("التبديل إلى الإنجليزية", "التبديل إلى العربية")}
               >
                 <Globe className="h-4 w-4" aria-hidden="true" />
@@ -154,7 +154,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
                   key={link.label}
                   href={link.href}
                   onClick={(event) => handleLinkClick(event, link.href)}
-                  className="rounded-lg px-3 py-2 text-sm font-cairo font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-lg px-3 py-2 text-sm font-cairo font-medium text-white/85 transition-colors hover:bg-secondary/10 hover:text-white"
                 >
                   {link.label}
                 </a>
@@ -164,7 +164,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full gap-2 border-white/20 bg-white/10 font-cairo text-white hover:bg-white/20 hover:text-white"
+                    className="w-full gap-2 border-secondary/20 bg-secondary/10 font-cairo text-white hover:bg-secondary/20 hover:text-white"
                     onClick={() => { navigate(dashboardPathFor(user.role)); handleLinkClick(); }}
                   >
                     <User className="w-4 h-4" />
@@ -173,7 +173,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full gap-2 font-cairo text-red-300 hover:bg-white/10 hover:text-red-200"
+                    className="w-full gap-2 font-cairo text-red-300 hover:bg-secondary/10 hover:text-red-200"
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4" />
@@ -182,7 +182,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
                 </>
               ) : (
                 <>
-                  <a href="/portal/login"><Button variant="ghost" size="sm" className="w-full font-cairo text-white hover:bg-white/10 hover:text-white">{pick("تسجيل الدخول", "Log in")}</Button></a>
+                  <a href="/portal/login"><Button variant="ghost" size="sm" className="w-full font-cairo text-white hover:bg-secondary/10 hover:text-white">{pick("تسجيل الدخول", "Log in")}</Button></a>
                   <a href="/register">
                     <Button size="sm" className="font-cairo bg-secondary text-secondary-foreground w-full mt-2">
                    {pick("إنشاء حساب", "Create account")}

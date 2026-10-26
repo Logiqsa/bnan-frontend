@@ -8,6 +8,18 @@ import { homeStatisticsApi, type HomeStatisticKey } from "@/api/homeStatisticsAp
 const icons: Record<HomeStatisticKey, typeof Users> = { courses: BookOpen, teachers: Video, satisfaction: ThumbsUp, students: Users };
 const positions = ["top-[18%] right-[2%]", "bottom-[22%] left-[1%]", "bottom-[8%] right-[2%]", "top-[15%] left-[1%]"];
 
+const BrandDoubleUnderline = ({ className = "" }: { className?: string }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 200 18"
+    preserveAspectRatio="none"
+    className={`pointer-events-none absolute -bottom-1 left-0 h-3 w-full overflow-visible text-secondary ${className}`}
+  >
+    <path d="M4 6 C52 2, 145 1, 196 6" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+    <path d="M12 14 C62 10, 143 10, 188 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
+  </svg>
+);
+
 const HeroSection = () => {
   const { settings } = useContactSettings();
   const statistics = useQuery({ queryKey: ["home-statistics"], queryFn: homeStatisticsApi.public, staleTime: 5 * 60_000 });
@@ -78,8 +90,9 @@ const HeroSection = () => {
           >
             <span className="md:whitespace-nowrap">كل ما تحتاجه لرحلتك التعليمية</span>
             <br />
-            <span className="text-secondary">
+            <span className="relative inline-block pb-2 text-secondary">
               في مكان واحد
+              <BrandDoubleUnderline />
             </span>
           </motion.h1>
 
@@ -90,7 +103,10 @@ const HeroSection = () => {
             className="mx-auto mb-8 max-w-2xl text-lg font-serif-text font-normal leading-relaxed text-slate-700 md:text-xl"
           >
             مع{" "}
-            <span className="font-bold text-secondary">بنان</span>{" "}
+            <span className="relative inline-block pb-1 font-bold text-secondary">
+              بنان
+              <BrandDoubleUnderline className="-bottom-1 h-2.5" />
+            </span>{" "}
             خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
 

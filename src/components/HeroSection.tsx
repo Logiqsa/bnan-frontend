@@ -28,7 +28,12 @@ const HeroSection = () => {
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
     <section className="relative flex min-h-[calc(100svh-5rem)] items-start overflow-hidden bg-[#f4f5f6] md:min-h-screen md:items-center">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(244,245,246,0.72)_48%,rgba(239,241,243,0.9))]" aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-55"
+        style={{ backgroundImage: "url('/hero.jpg')" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.42),rgba(244,245,246,0.3)_48%,rgba(239,241,243,0.48))]" aria-hidden="true" />
 
       {/* Floating education emojis */}
       {[

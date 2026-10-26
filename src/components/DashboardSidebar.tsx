@@ -49,7 +49,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
-import logo from "@/assets/logo-bnan.png";
+import logo from "@/assets/logo-bnan-no-tagline.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
@@ -747,8 +747,8 @@ const SidebarContent = ({
           >
             <img
               src={logo}
-              alt="أكاديمية بنان"
-              className={`max-w-full object-contain brightness-0 invert transition-all duration-300 ${collapsed ? "h-10" : "h-20"}`}
+              alt="BNAN"
+              className={`max-w-full object-contain brightness-0 invert transition-all duration-300 ${collapsed ? "h-9" : "h-16"}`}
             />
           </Link>
           {onToggle && (
@@ -1005,8 +1005,8 @@ const DashboardSidebar = () => {
         <Link to="/" aria-label="العودة إلى الصفحة الرئيسية">
           <img
             src={logo}
-            alt="أكاديمية بنان"
-            className="h-10 w-auto object-contain brightness-0 invert"
+            alt="BNAN"
+            className="h-9 w-auto object-contain brightness-0 invert"
           />
         </Link>
         <div className="flex items-center gap-1">

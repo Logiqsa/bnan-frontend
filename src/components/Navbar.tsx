@@ -56,7 +56,7 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
         <div className="relative flex h-20 items-center justify-between gap-4">
           {/* Logo */}
           <a href="/" className="flex items-center">
-            <img src={logoImg} alt="BNAN" className="h-[4.5rem] w-auto object-contain" />
+            <img src={logoImg} alt="BNAN" className="h-16 w-auto object-contain" />
           </a>
 
           {/* Desktop Links */}

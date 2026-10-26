@@ -748,14 +748,14 @@ const SidebarContent = ({
             <img
               src={logo}
               alt="أكاديمية بنان"
-              className={`max-w-full object-contain transition-all duration-300 ${collapsed ? "h-10" : "h-20"}`}
+              className={`max-w-full object-contain brightness-0 invert transition-all duration-300 ${collapsed ? "h-10" : "h-20"}`}
             />
           </Link>
           {onToggle && (
             <button
               type="button"
               onClick={onToggle}
-              className={`grid h-10 shrink-0 place-items-center rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10 text-sidebar-foreground transition-all duration-300 hover:bg-sidebar-primary hover:text-sidebar-primary-foreground ${collapsed ? "w-9 min-w-9" : "w-1/5 min-w-0"}`}
+              className={`grid h-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-sidebar-foreground transition-all duration-300 hover:bg-white/10 ${collapsed ? "w-9 min-w-9" : "w-1/5 min-w-0"}`}
               aria-label={
                 collapsed
                   ? pick("فتح القائمة الجانبية", "Expand sidebar")
@@ -787,7 +787,7 @@ const SidebarContent = ({
                       : "Student",
               )}
             </p>
-            <LanguageToggle className="bg-sidebar-primary/10 text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" />
+            <LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" />
           </div>
         )}
       </div>
@@ -916,7 +916,7 @@ const SidebarContent = ({
                 title={collapsed ? pick(item.label, item.labelEn) : undefined}
                 aria-label={pick(item.label, item.labelEn)}
                 dir={isArabic ? "rtl" : "ltr"}
-                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/20 hover:text-sidebar-primary"}`}
+                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-white/10 text-white" : "text-sidebar-foreground/70 hover:bg-white/5 hover:text-sidebar-foreground"}`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}>{pick(item.label, item.labelEn)}</span>}
@@ -1010,7 +1010,7 @@ const DashboardSidebar = () => {
           />
         </Link>
         <div className="flex items-center gap-1">
-          <LanguageToggle className="h-9 bg-sidebar-primary/10 px-2 text-xs text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground" />
+          <LanguageToggle className="h-9 bg-white/10 px-2 text-xs text-sidebar-foreground hover:bg-white/20" />
           <Button
             variant="ghost"
             size="sm"

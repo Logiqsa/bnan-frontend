@@ -18,8 +18,6 @@ const AccountTypeSelect = () => {
   ];
   return (
     <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic ? "rtl" : "ltr"}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
-
       <Link
         to="/"
         className="absolute right-4 top-4 md:right-8 md:top-6 z-10 inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-4 py-2 text-sm text-white hover:bg-secondary/20 transition-colors"

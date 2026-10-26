@@ -115,7 +115,6 @@ export default function ForgotPassword() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-hero-gradient px-4 py-16" dir={isArabic ? "rtl" : "ltr"}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
       <Button asChild variant="outline" className={`${isArabic ? "right-4 md:right-8" : "left-4 md:left-8"} absolute top-4 z-10 rounded-full border-secondary/20 bg-secondary/10 text-white hover:bg-secondary/20 hover:text-white md:top-6`}>
         <Link to="/"><Home className="h-4 w-4" />{pick("الصفحة الرئيسية", "Home")}</Link>
       </Button>

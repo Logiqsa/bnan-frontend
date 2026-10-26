@@ -6,9 +6,7 @@ import { ArrowLeft } from "lucide-react";
 
 const CTASection = React.forwardRef<HTMLElement>((_, ref) => {
   return (
-    <section ref={ref} className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 bg-hero-gradient" />
-      <div className="absolute top-10 right-10 w-80 h-80 rounded-full bg-secondary/10 blur-3xl" />
+    <section ref={ref} className="relative overflow-hidden bg-hero-gradient py-24">
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

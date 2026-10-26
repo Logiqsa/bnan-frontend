@@ -111,7 +111,6 @@ export default function PortalLogin() {
       className="relative min-h-screen overflow-x-hidden bg-hero-gradient px-4 py-16"
       dir={isArabic ? "rtl" : "ltr"}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,hsl(var(--secondary)/.18),transparent_48%)]" />
       <Button
         asChild
         variant="outline"

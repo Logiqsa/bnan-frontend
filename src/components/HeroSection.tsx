@@ -23,14 +23,18 @@ const BrandDoubleUnderline = ({ className = "", emphasis = "soft" }: { className
 const HeroSection = () => {
   const { settings } = useContactSettings();
   const statistics = useQuery({ queryKey: ["home-statistics"], queryFn: homeStatisticsApi.public, staleTime: 5 * 60_000 });
-  const floatingBubbles = (statistics.data?.statistics || []).map((item, index) => ({ icon: icons[item.key], title: item.label, value: `${item.value.toLocaleString("ar-EG", { minimumFractionDigits: item.decimals, maximumFractionDigits: item.decimals })}${item.suffix}`, position: positions[index], delay: 0.6 + index * 0.2, floatDelay: `${index * 0.5}s` }));
+  const floatingBubbles = (statistics.data?.statistics || []).map((item, index) => ({ key: item.key, icon: icons[item.key], title: item.label, value: `${item.value.toLocaleString("ar-EG", { minimumFractionDigits: item.decimals, maximumFractionDigits: item.decimals })}${item.suffix}`, position: positions[index], delay: 0.6 + index * 0.2, floatDelay: `${index * 0.5}s` }));
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
     <section className="relative flex min-h-[calc(100svh-5rem)] items-start overflow-hidden bg-muted/20 md:min-h-screen md:items-center">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 mix-blend-multiply"
-        style={{ backgroundImage: "url('/hero.jpg')" }}
+        style={{
+          backgroundImage: "url('/hero.jpg')",
+          maskImage: "linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%)",
+        }}
         aria-hidden="true"
       />
 
@@ -63,15 +67,15 @@ const HeroSection = () => {
           className={`absolute ${bubble.position} z-20 hidden md:block`}
         >
           <div
-            className="animate-float rounded-2xl border border-white/90 bg-white/88 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md flex items-center gap-3"
+            className={`animate-float flex items-center gap-2 rounded-xl border bg-secondary/15 px-3 py-2.5 shadow-[0_10px_22px_rgba(14,28,62,0.12)] backdrop-blur-md ${bubble.key === "courses" || bubble.key === "teachers" ? "border-primary/35" : "border-secondary/50"}`}
             style={{ animationDelay: bubble.floatDelay }}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/20">
-              <bubble.icon className="h-5 w-5 text-primary" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/25">
+              <bubble.icon className="h-4 w-4 text-primary" />
             </div>
             <div className="text-right">
-              <p className="text-xs font-cairo text-slate-500">{bubble.title}</p>
-              <p className="text-sm font-cairo font-bold text-primary">{bubble.value}</p>
+              <p className="font-cairo text-[10px] text-slate-500">{bubble.title}</p>
+              <p className="font-cairo text-xs font-bold text-primary">{bubble.value}</p>
             </div>
           </div>
         </motion.div>
@@ -149,7 +153,7 @@ const HeroSection = () => {
             {floatingBubbles.map((bubble, i) => (
               <div
                 key={i}
-                className="animate-float flex items-center gap-2 rounded-xl border border-secondary/50 bg-secondary/15 px-3 py-2.5 shadow-[0_10px_22px_rgba(14,28,62,0.12)] backdrop-blur-md"
+                className={`animate-float flex items-center gap-2 rounded-xl border bg-secondary/15 px-3 py-2.5 shadow-[0_10px_22px_rgba(14,28,62,0.12)] backdrop-blur-md ${bubble.key === "courses" || bubble.key === "teachers" ? "border-primary/35" : "border-secondary/50"}`}
                 style={{ animationDelay: bubble.floatDelay }}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/25">

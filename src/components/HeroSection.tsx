@@ -13,10 +13,10 @@ const BrandDoubleUnderline = ({ className = "", emphasis = "soft" }: { className
     aria-hidden="true"
     viewBox="0 0 200 18"
     preserveAspectRatio="none"
-    className={`pointer-events-none absolute -bottom-1 left-0 h-3 w-full overflow-visible text-secondary ${emphasis === "strong" ? "-rotate-2" : "-rotate-[0.25deg]"} ${className}`}
+    className={`pointer-events-none absolute -bottom-1 left-0 h-3 w-full overflow-visible text-secondary ${className}`}
   >
-    <path d="M4 6 C52 2, 145 1, 196 6" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-    <path d="M12 14 C62 10, 143 10, 188 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
+    <path d={emphasis === "strong" ? "M4 13 C58 5, 142 5, 196 13" : "M4 9 C60 5, 140 5, 196 9"} fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+    <path d={emphasis === "strong" ? "M10 17 C64 11, 136 11, 190 17" : "M12 15 C68 12, 132 12, 188 15"} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
   </svg>
 );
 

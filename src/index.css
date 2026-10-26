@@ -128,7 +128,7 @@
     scrollbar-gutter: stable;
     background-color: hsl(var(--primary));
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   html body[data-scroll-locked] {
@@ -145,7 +145,7 @@
     @apply bg-background text-foreground font-serif-text antialiased;
     min-width: 0;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   :is(

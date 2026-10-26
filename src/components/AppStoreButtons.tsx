@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-import appleIcon from "@/assets/apple-icon.png";
+import appleIcon from "@/assets/apple-icon-navy.png";
 
 const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.bnanacademy.app&pcampaignid=web_share";
 

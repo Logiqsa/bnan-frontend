@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   getById: vi.fn(),
   issueDrafts: vi.fn(),
+  issueGeneralTeacher: vi.fn(),
   deleteDraft: vi.fn(),
   getFile: vi.fn(),
   preview: vi.fn(),
@@ -16,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   revokeObjectURL: vi.fn(),
   open: vi.fn(),
 }));
-vi.mock("@/api/adminCertificatesApi", () => ({ adminCertificatesApi: { list: mocks.list, getById: mocks.getById, issueDrafts: mocks.issueDrafts, deleteDraft: mocks.deleteDraft } }));
+vi.mock("@/api/adminCertificatesApi", () => ({ adminCertificatesApi: { list: mocks.list, getById: mocks.getById, issueDrafts: mocks.issueDrafts, issueGeneralTeacher: mocks.issueGeneralTeacher, deleteDraft: mocks.deleteDraft } }));
 vi.mock("@/api/certificateFilesApi", () => ({ certificateFilesApi: { getCertificateFile: mocks.getFile } }));
 vi.mock("@/hooks/useProtectedCertificateFile", () => ({ useProtectedCertificateFile: mocks.preview }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
@@ -37,6 +38,7 @@ describe("AdminCertificates", () => {
     mocks.list.mockReset();
     mocks.getById.mockReset();
     mocks.issueDrafts.mockReset();
+    mocks.issueGeneralTeacher.mockReset();
     mocks.deleteDraft.mockReset();
     mocks.getFile.mockReset().mockResolvedValue(new Blob(["certificate"], { type: "application/pdf" }));
     mocks.preview.mockReset().mockImplementation((_id: string, _type: "pdf" | "preview", enabled = true) => ({ url: enabled ? "blob:admin-preview" : null, isLoading: false, error: null, retry: vi.fn() }));
@@ -45,6 +47,19 @@ describe("AdminCertificates", () => {
     mocks.open.mockReset().mockReturnValue({ location: { href: "about:blank" }, closed: false, close: vi.fn() });
     vi.stubGlobal("URL", { createObjectURL: mocks.createObjectURL, revokeObjectURL: mocks.revokeObjectURL });
     vi.stubGlobal("open", mocks.open);
+  });
+
+  it("lets the admin send a general teacher draft", async () => {
+    mocks.list.mockResolvedValue({
+      ...response,
+      data: [{ id: "teacher-draft", recipientName: "Mr. Samarr", certificateType: "general_teacher", status: "draft" }],
+    });
+    mocks.issueGeneralTeacher.mockResolvedValue({ success: true, data: { certificate: {} } });
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    render(<QueryClientProvider client={client()}><MemoryRouter><AdminCertificates /></MemoryRouter></QueryClientProvider>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "إرسال الشهادة" }));
+    await waitFor(() => expect(mocks.issueGeneralTeacher).toHaveBeenCalledWith("teacher-draft"));
   });
 
   it("renders list, filters, pagination, and draft-only deletion", async () => {

@@ -22,6 +22,10 @@ describe("adminCertificatesApi", () => {
     await adminCertificatesApi.issueDrafts();
     expect(apiRequest).toHaveBeenCalledWith("/certificates/student-monthly/issue", { method: "POST" });
 
+    vi.mocked(apiRequest).mockResolvedValueOnce({ success: true, data: { certificate: { id: "teacher-certificate-1" } } });
+    await adminCertificatesApi.issueGeneralTeacher("teacher-certificate-1");
+    expect(apiRequest).toHaveBeenCalledWith("/certificates/teacher-certificate-1/general-teacher/issue", { method: "POST" });
+
     vi.mocked(apiRequest).mockResolvedValueOnce(undefined);
     await adminCertificatesApi.deleteDraft("certificate-1");
     expect(apiRequest).toHaveBeenCalledWith("/certificates/certificate-1", { method: "DELETE" });

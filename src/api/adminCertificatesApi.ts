@@ -108,6 +108,11 @@ export const adminCertificatesApi = {
       "/certificates/student-monthly/issue",
       { method: "POST" },
     ),
+  issueGeneralTeacher: (id: string) =>
+    apiRequest<{ success: true; data: { certificate: AdminCertificateDetail } }>(
+      `/certificates/${encodeURIComponent(id)}/general-teacher/issue`,
+      { method: "POST" },
+    ),
   deleteDraft: (id: string) =>
     apiRequest<void>(`/certificates/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };

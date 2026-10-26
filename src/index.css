@@ -70,9 +70,9 @@
     --sidebar-foreground: 210 20% 92%;
     --sidebar-primary: 198.1 79% 72%;
     --sidebar-primary-foreground: 222.5 63.2% 14.9%;
-    --sidebar-accent: 198.1 79% 72%;
-    --sidebar-accent-foreground: 222.5 63.2% 14.9%;
-    --sidebar-border: 198.1 79% 72%;
+    --sidebar-accent: 222.5 45% 23%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222.5 40% 26%;
     --sidebar-ring: 198.1 79% 72%;
 
     /* Custom tokens */
@@ -110,8 +110,8 @@
     --sidebar-foreground: 210 20% 85%;
     --sidebar-primary: 198.1 79% 72%;
     --sidebar-primary-foreground: 222.5 63.2% 14.9%;
-    --sidebar-accent: 198.1 79% 72%;
-    --sidebar-accent-foreground: 222.5 63.2% 14.9%;
+    --sidebar-accent: 222.5 45% 14%;
+    --sidebar-accent-foreground: 210 20% 85%;
     --sidebar-border: 231 32% 16%;
     --sidebar-ring: 198.1 79% 72%;
   }
@@ -228,7 +228,7 @@
 
   .sidebar-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--sidebar-primary) / 0.8) transparent;
+    scrollbar-color: rgb(255 255 255 / 0.9) transparent;
   }
 
   .sidebar-scrollbar::-webkit-scrollbar {
@@ -243,11 +243,11 @@
   .sidebar-scrollbar::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: 9999px;
-    background: hsl(var(--sidebar-primary) / 0.8) content-box;
+    background: rgb(255 255 255 / 0.9) content-box;
   }
 
   .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--sidebar-primary)) content-box;
+    background: rgb(255 255 255) content-box;
   }
 
   .dashboard-scrollbar {

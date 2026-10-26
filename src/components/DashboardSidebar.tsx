@@ -916,7 +916,7 @@ const SidebarContent = ({
                 title={collapsed ? pick(item.label, item.labelEn) : undefined}
                 aria-label={pick(item.label, item.labelEn)}
                 dir={isArabic ? "rtl" : "ltr"}
-                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
+                className={`relative w-full flex items-center rounded-lg text-sm font-cairo transition-all duration-300 ${collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"} ${active ? "bg-sidebar-primary text-white" : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"}`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className={`flex-1 whitespace-nowrap ${isArabic ? "text-right" : "text-left"}`}>{pick(item.label, item.labelEn)}</span>}

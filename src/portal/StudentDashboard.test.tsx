@@ -52,12 +52,27 @@ describe("StudentDashboard", () => {
     expect(screen.getByText("مواد الباقة (2)")).toBeInTheDocument();
     expect(screen.getByText("الرياضيات")).toBeInTheDocument();
     expect(screen.getByText("80%")).toBeInTheDocument();
+    expect(screen.getByText("5 ساعة")).toBeInTheDocument();
+    expect(screen.getByText("15 ساعة")).toBeInTheDocument();
     expect(screen.queryByText("التقييم الأسبوعي")).not.toBeInTheDocument();
     expect(screen.queryByText("عدد التقييمات")).not.toBeInTheDocument();
     expect(screen.queryByText("الشهادات")).not.toBeInTheDocument();
     expect(await screen.findByText("لا توجد واجبات بانتظار التسليم حاليًا")).toBeInTheDocument();
     expect(await screen.findByText("لا توجد دورات مفعلة حاليًا")).toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("converts decimal subscription hours into hours and rounded minutes", async () => {
+    mocks.get.mockResolvedValue({
+      ...data,
+      subscription: { ...data.subscription, summary: { ...data.subscription.summary, usedHours: 0.068, remainingHours: 19.932 } },
+    });
+    renderDashboard();
+
+    expect(await screen.findByText("4 دقيقة")).toBeInTheDocument();
+    expect(screen.getByText("19 ساعة و56 دقيقة")).toBeInTheDocument();
+    expect(screen.queryByText("0.068")).not.toBeInTheDocument();
+    expect(screen.queryByText("19.932")).not.toBeInTheDocument();
   });
 
   it("shows pending assignments and active courses with their existing destinations", async () => {

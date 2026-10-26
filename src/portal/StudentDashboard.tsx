@@ -14,6 +14,15 @@ import { Link } from "react-router-dom";
 
 const number = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(value);
 
+const hourDuration = (decimalHours: number) => {
+  const totalMinutes = Math.max(0, Math.round(decimalHours * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours && minutes) return `${hours} ساعة و${minutes} دقيقة`;
+  if (hours) return `${hours} ساعة`;
+  return `${minutes} دقيقة`;
+};
+
 const StudentDashboardSkeleton = () => (
   <DashboardLayout>
     <div className="mx-auto max-w-7xl space-y-3" aria-label="جاري تحميل لوحة الطالب">
@@ -34,6 +43,13 @@ const Metric = ({ label, value }: { label: string; value?: number | null }) => (
   <div className="min-w-0 rounded-xl bg-muted/50 p-2.5 text-center">
     <p className="text-xs text-muted-foreground">{label}</p>
     <p className="mt-0.5 text-base font-bold tabular-nums">{typeof value === "number" ? number(value) : "—"}</p>
+  </div>
+);
+
+const DurationMetric = ({ label, value }: { label: string; value?: number | null }) => (
+  <div className="min-w-0 rounded-xl bg-muted/50 p-2.5 text-center">
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className="mt-0.5 text-base font-bold tabular-nums">{typeof value === "number" ? hourDuration(value) : "—"}</p>
   </div>
 );
 
@@ -66,8 +82,8 @@ const SubscriptionCard = ({ summary, latest }: { summary: StudentHomeSubscriptio
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-3">
         {typeof summary.totalHours === "number" && <Metric label="إجمالي الساعات" value={summary.totalHours} />}
-        {typeof summary.usedHours === "number" && <Metric label="المستخدمة" value={summary.usedHours} />}
-        {typeof summary.remainingHours === "number" && <Metric label="المتبقية" value={summary.remainingHours} />}
+        {typeof summary.usedHours === "number" && <DurationMetric label="المستخدمة" value={summary.usedHours} />}
+        {typeof summary.remainingHours === "number" && <DurationMetric label="المتبقية" value={summary.remainingHours} />}
         {typeof summary.purchasedMonths === "number" && <Metric label="الأشهر المشتراة" value={summary.purchasedMonths} />}
       </div>
     </div>

@@ -31,8 +31,8 @@ describe("StudentSubscriptions", () => {
     expect(await screen.findByText("باقة العلوم")).toBeInTheDocument();
     expect(screen.getByText("العلوم")).toBeInTheDocument();
     expect(screen.getByText("إجمالي الساعات")).toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("8 ساعة")).toBeInTheDocument();
+    expect(screen.getByText("12 ساعة")).toBeInTheDocument();
     expect(screen.getByText("40%")).toBeInTheDocument();
     expect(screen.getByText("هذا الاشتراك متاح للتجديد.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "تجديد الاشتراك" })).toBeInTheDocument();

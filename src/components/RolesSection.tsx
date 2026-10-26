@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { UserCheck, GraduationCap, Users, ShieldCheck, Calculator, Settings } from "lucide-react";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const roles = [
   { icon: GraduationCap, title: "الطالب", description: "حضور الحصص، حل الواجبات، مشاهدة التسجيلات، متابعة الدرجات" },
@@ -24,7 +25,7 @@ const RolesSection = () => {
             أنواع الحسابات
           </span>
           <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-            نظام صلاحيات <span className="text-gradient-sky">متقدم</span>
+            نظام صلاحيات <SectionTitleAccent>متقدم</SectionTitleAccent>
           </h2>
         </motion.div>
 

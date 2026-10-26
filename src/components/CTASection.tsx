@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const CTASection = React.forwardRef<HTMLElement>((_, ref) => {
   return (
@@ -16,7 +17,7 @@ const CTASection = React.forwardRef<HTMLElement>((_, ref) => {
           className="text-center max-w-2xl mx-auto"
         >
           <h2 className="text-3xl md:text-5xl font-cairo font-bold mb-6 text-primary-foreground">
-            ابدأ رحلة التعلم <span className="text-gradient-sky">اليوم</span>
+            ابدأ رحلة التعلم <SectionTitleAccent>اليوم</SectionTitleAccent>
           </h2>
           <p className="text-lg font-tajawal mb-8 text-primary-foreground/70">
             انضم إلى آلاف الطلاب الذين يثقون في BNAN Academy لتحقيق التفوق الدراسي

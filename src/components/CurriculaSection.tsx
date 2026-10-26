@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { BookOpen, Calculator, FlaskConical, Languages, Palette } from "lucide-react";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const curricula = [
   {
@@ -38,7 +39,7 @@ const CurriculaSection = () => {
             المناهج المتاحة
           </span>
           <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-            مناهج متنوعة <span className="text-gradient-sky">لكل الاحتياجات</span>
+            مناهج متنوعة <SectionTitleAccent>لكل الاحتياجات</SectionTitleAccent>
           </h2>
         </motion.div>
 

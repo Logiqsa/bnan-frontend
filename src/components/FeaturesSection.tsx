@@ -4,6 +4,7 @@ import {
   Video, FileText, Award,
   BarChart3, CreditCard, Brain, Globe,
 } from "lucide-react";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const features = [
   { icon: Video, title: "حصص مباشرة عبر Zoom", description: "حصص تفاعلية مباشرة يتم تسجيلها لإمكانية مشاهدتها لاحقًا" },
@@ -31,7 +32,7 @@ const FeaturesSection = React.forwardRef<HTMLElement>((_, ref) => {
             المميزات
           </span>
           <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-            كل ما تحتاجه في <span className="text-gradient-sky">منصة واحدة</span>
+            كل ما تحتاجه في <SectionTitleAccent>منصة واحدة</SectionTitleAccent>
           </h2>
           <p className="text-muted-foreground font-tajawal max-w-xl mx-auto">
             نظام متكامل يربط بين الطالب والمعلم وولي الأمر والإدارة بسلاسة تامة

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { MOCK_TESTIMONIALS } from "@/data/testimonialRatings";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 import t2 from "@/assets/testimonials/testimonial-2.png";
 import t3 from "@/assets/testimonials/testimonial-3.png";
@@ -341,7 +342,7 @@ const TestimonialsSection = () => {
             آراء عملائنا
           </span>
           <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-            ماذا يقول <span className="text-gradient-sky">أولياء الأمور</span>
+            ماذا يقول <SectionTitleAccent>أولياء الأمور</SectionTitleAccent>
           </h2>
           <p className="text-muted-foreground font-tajawal max-w-2xl mx-auto">
             نفخر بثقة أولياء الأمور في أكاديمية بنان ونسعى دائماً لتقديم أفضل تجربة تعليمية.

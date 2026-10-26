@@ -4,6 +4,7 @@ import { ArrowRight, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { catalogApi, type PackageOption } from "@/api/catalogApi";
 import { ApiError } from "@/api/client";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 interface PackagesSectionProps {
   curriculumLabel: string;
@@ -42,7 +43,7 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
         className="text-center mb-10"
       >
         <h3 className="text-2xl md:text-3xl font-cairo font-bold text-foreground">
-          باقات <span className="text-gradient-sky">{curriculumLabel}</span>
+          باقات <SectionTitleAccent>{curriculumLabel}</SectionTitleAccent>
         </h3>
         <p className="text-muted-foreground font-tajawal mt-2">اختر الباقة الأنسب لك واشترك مباشرة.</p>
       </motion.div>

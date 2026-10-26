@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const plans = [
   {
@@ -63,7 +64,7 @@ const PricingSection = () => {
             الباقات والأسعار
           </span>
           <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-            اختر الباقة <span className="text-gradient-sky">المناسبة لك</span>
+            اختر الباقة <SectionTitleAccent>المناسبة لك</SectionTitleAccent>
           </h2>
           <p className="text-muted-foreground font-tajawal max-w-2xl mx-auto">
             نقدّم باقات متنوعة تناسب جميع الاحتياجات التعليمية، مع إمكانية تخصيص الباقة حسب عدد المواد والحصص.

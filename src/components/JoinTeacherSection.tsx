@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, Users, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const perks = [
   { icon: Users, text: "طلاب من مختلف الدول العربية" },
@@ -27,7 +28,7 @@ const JoinTeacherSection = React.forwardRef<HTMLElement>((_, ref) => {
               فرصة للمعلمين
             </span>
             <h2 className="text-3xl md:text-5xl font-cairo font-bold mb-4">
-              انضم لفريق <span className="text-gradient-sky">أكاديمية بنان</span>
+              انضم لفريق <SectionTitleAccent>أكاديمية بنان</SectionTitleAccent>
             </h2>
             <p className="font-tajawal text-primary-foreground/70 max-w-2xl mx-auto mb-10">
               إذا كنت معلماً متميزاً وتبحث عن فرصة للتدريس أونلاين، انضم لفريقنا وساهم في بناء مستقبل أفضل للطلاب.

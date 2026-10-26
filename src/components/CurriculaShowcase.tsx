@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { catalogApi, type CurriculumOption } from "@/api/catalogApi";
 import { ApiError } from "@/api/client";
 import PackagesSection from "@/components/PackagesSection";
+import SectionTitleAccent from "@/components/SectionTitleAccent";
 
 const CurriculaShowcase = () => {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ const CurriculaShowcase = () => {
                 المناهج المتاحة
               </span>
               <h2 className="text-3xl md:text-5xl font-cairo font-bold text-foreground mb-4">
-                مناهج دراسية <span className="text-gradient-sky">متكاملة</span>
+                مناهج دراسية <SectionTitleAccent>متكاملة</SectionTitleAccent>
               </h2>
               <p className="text-muted-foreground font-tajawal max-w-2xl mx-auto">
                 في أكاديمية بنان نقدم مناهج دراسية متكاملة تغطي المراحل المختلفة في أكثر من دولة عربية، مع متابعة دقيقة وتفاعل مباشر بين المعلم والطالب.

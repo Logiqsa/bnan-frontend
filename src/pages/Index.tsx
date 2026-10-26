@@ -32,8 +32,9 @@ const Index = () => {
           },
         }}
       />
+      <Navbar />
+      <div className="h-20" aria-hidden="true" />
       <AnnouncementBanner />
-      <Navbar inFlow />
       <HeroSection />
       <VisionMissionValues />
       <StatsCounter />

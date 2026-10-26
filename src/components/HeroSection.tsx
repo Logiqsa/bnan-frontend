@@ -8,15 +8,15 @@ import { homeStatisticsApi, type HomeStatisticKey } from "@/api/homeStatisticsAp
 const icons: Record<HomeStatisticKey, typeof Users> = { courses: BookOpen, teachers: Video, satisfaction: ThumbsUp, students: Users };
 const positions = ["top-[18%] right-[2%]", "bottom-[22%] left-[1%]", "bottom-[8%] right-[2%]", "top-[15%] left-[1%]"];
 
-const BrandDoubleUnderline = ({ className = "" }: { className?: string }) => (
+const BrandDoubleUnderline = ({ className = "", emphasis = "soft" }: { className?: string; emphasis?: "soft" | "strong" }) => (
   <svg
     aria-hidden="true"
     viewBox="0 0 200 18"
     preserveAspectRatio="none"
     className={`pointer-events-none absolute -bottom-1 left-0 h-3 w-full overflow-visible text-secondary ${className}`}
   >
-    <path d="M4 6 C52 2, 145 1, 196 6" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-    <path d="M12 14 C62 10, 143 10, 188 14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
+    <path d={emphasis === "strong" ? "M4 12 C52 7, 145 2, 196 3" : "M4 8 C52 4, 145 3, 196 6"} fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+    <path d={emphasis === "strong" ? "M12 17 C62 12, 143 7, 188 8" : "M12 15 C62 11, 143 10, 188 13"} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
   </svg>
 );
 
@@ -27,15 +27,8 @@ const HeroSection = () => {
   const whatsapp = settings.phones.find((phone) => phone.isWhatsapp && phone.isPrimary)
     || settings.phones.find((phone) => phone.isWhatsapp);
   return (
-    <section className="relative flex min-h-[calc(100svh-4rem)] items-start overflow-hidden bg-[#f7f8fa] md:min-h-screen md:items-center">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/hero.jpg')" }}
-        aria-hidden="true"
-      />
-      {/* Keep the paper texture visible on every viewport; this is a tint only,
-          not a replacement background. */}
-      <div className="absolute inset-0 bg-secondary/10 md:bg-secondary/15" aria-hidden="true" />
+    <section className="relative flex min-h-[calc(100svh-5rem)] items-start overflow-hidden bg-[#f4f5f6] md:min-h-screen md:items-center">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(244,245,246,0.72)_48%,rgba(239,241,243,0.9))]" aria-hidden="true" />
 
       {/* Floating education emojis */}
       {[
@@ -92,7 +85,7 @@ const HeroSection = () => {
             <br />
             <span className="relative inline-block pb-2 text-secondary">
               في مكان واحد
-              <BrandDoubleUnderline />
+              <BrandDoubleUnderline emphasis="strong" />
             </span>
           </motion.h1>
 
@@ -105,7 +98,7 @@ const HeroSection = () => {
             مع{" "}
             <span className="relative inline-block pb-1 font-bold text-secondary">
               بنان
-              <BrandDoubleUnderline className="-bottom-1 h-2.5" />
+              <BrandDoubleUnderline className="-bottom-1 h-2.5" emphasis="soft" />
             </span>{" "}
             خُض تجربة تعليمية تفاعلية متكاملة ترافق رحلتك نحو القمة خطوة بخطوة.
           </motion.p>
@@ -137,9 +130,9 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.45 }}
-            className="mx-auto mt-8 w-full max-w-md"
+            className="mx-auto mt-6 w-full max-w-xs sm:mt-7 sm:max-w-sm"
           >
-            <AppStoreButtons heroStyle className="max-w-md grid-cols-1 sm:grid-cols-2" />
+            <AppStoreButtons heroStyle className="grid-cols-2" />
           </motion.div>
 
           {/* Mobile Bubbles - in-flow grid below stats */}

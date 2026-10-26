@@ -20,14 +20,14 @@ const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false,
   const surface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground hover:border-secondary/60 hover:bg-primary-foreground/5"
     : heroStyle
-    ? "border-primary bg-primary text-white shadow-[0_12px_24px_rgba(25,31,63,0.22)] hover:border-navy-light hover:bg-navy-light"
+    ? "border-primary/55 bg-white/75 text-primary shadow-[0_5px_14px_rgba(25,31,63,0.1)] backdrop-blur-sm hover:border-primary hover:bg-white"
     : onDark
     ? "border-secondary/25 bg-transparent text-white hover:border-secondary/45 hover:bg-secondary/5"
     : "border-border bg-card text-foreground hover:border-primary/30";
   const iosSurface = footerStyle
     ? "border-primary-foreground/25 bg-transparent text-primary-foreground"
     : heroStyle
-    ? "border-primary bg-primary text-white shadow-[0_12px_24px_rgba(25,31,63,0.22)]"
+    ? "border-primary/55 bg-white/75 text-primary shadow-[0_5px_14px_rgba(25,31,63,0.1)] backdrop-blur-sm"
     : onDark
     ? "border-secondary/20 bg-secondary/10 text-white"
     : "border-border bg-muted/50 text-foreground";
@@ -36,21 +36,21 @@ const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false,
     <div className={`grid w-full grid-cols-1 gap-3 ${compact ? "max-w-sm" : "max-w-md md:grid-cols-2"} ${className}`}>
       <a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer"
         aria-label={pick("تحميل التطبيق من Google Play", "Download from Google Play")}
-        className={`group grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-2xl border shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${footerStyle ? "min-h-[58px] gap-2.5 px-3.5 py-2" : heroStyle ? "min-h-[82px] gap-3 px-5 py-3" : "min-h-[76px] gap-3 px-5 py-3"} ${surface}`}>
-        <GooglePlayMark small={footerStyle} />
-        <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-55 ${footerStyle ? "text-[9px]" : "text-[10px]"}`}>GET IT ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : "text-lg"}`}>Google Play</span></span>
-        <Download className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-50" />
+        className={`group grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${footerStyle ? "min-h-[58px] gap-2.5 rounded-2xl px-3.5 py-2" : heroStyle ? "min-h-[46px] gap-1.5 rounded-full px-2.5 py-1.5 sm:min-h-[52px] sm:gap-2 sm:px-3.5" : "min-h-[76px] gap-3 rounded-2xl px-5 py-3"} ${surface}`}>
+        <GooglePlayMark small={footerStyle || heroStyle} />
+        <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-55 ${footerStyle || heroStyle ? "text-[7px] sm:text-[8px]" : "text-[10px]"}`}>GET IT ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : heroStyle ? "text-xs sm:text-sm" : "text-lg"}`}>Google Play</span></span>
+        <Download className={`h-4 w-4 opacity-0 transition-opacity group-hover:opacity-50 ${heroStyle ? "hidden sm:block" : ""}`} />
       </a>
       <div aria-label={pick("تطبيق iOS قريبًا", "iOS app coming soon")}
-        className={`grid min-w-0 cursor-not-allowed grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-2xl border ${footerStyle ? "min-h-[58px] gap-2 px-3 py-2" : heroStyle ? "min-h-[82px] gap-3 px-5 py-3" : "min-h-[76px] gap-3 px-4 py-3"} ${iosSurface}`}>
+        className={`grid min-w-0 cursor-not-allowed grid-cols-[auto_minmax(0,1fr)_auto] items-center border ${footerStyle ? "min-h-[58px] gap-2 rounded-2xl px-3 py-2" : heroStyle ? "min-h-[46px] gap-1.5 rounded-full px-2.5 py-1.5 sm:min-h-[52px] sm:gap-2 sm:px-3.5" : "min-h-[76px] gap-3 rounded-2xl px-4 py-3"} ${iosSurface}`}>
         <img
           src={appleIcon}
           alt=""
           aria-hidden="true"
-          className={`${footerStyle ? "h-7 w-7" : "h-9 w-9"} shrink-0 object-contain`}
+          className={`${footerStyle || heroStyle ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9"} shrink-0 object-contain`}
         />
-        <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-50 ${footerStyle ? "text-[8px]" : "text-[10px]"}`}>COMING SOON ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : "text-lg"}`}>App Store</span></span>
-        <span className={`shrink-0 whitespace-nowrap rounded-full bg-secondary font-bold text-secondary-foreground ${footerStyle ? "px-1.5 py-px text-[7px]" : "px-2 py-0.5 text-[9px]"}`}>{pick("قريبًا", "Soon")}</span>
+        <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-50 ${footerStyle || heroStyle ? "text-[6px] sm:text-[7px]" : "text-[10px]"}`}>COMING SOON ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : heroStyle ? "text-xs sm:text-sm" : "text-lg"}`}>App Store</span></span>
+        <span className={`shrink-0 whitespace-nowrap rounded-full bg-secondary font-bold text-secondary-foreground ${footerStyle ? "px-1.5 py-px text-[7px]" : heroStyle ? "hidden px-1.5 py-px text-[7px] sm:inline" : "px-2 py-0.5 text-[9px]"}`}>{pick("قريبًا", "Soon")}</span>
       </div>
     </div>
   );

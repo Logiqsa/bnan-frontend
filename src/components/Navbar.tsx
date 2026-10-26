@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLocation, useNavigate } from "react-router-dom";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
-import logoImg from "@/assets/logo-bnan.png";
+import logoImg from "@/assets/logo-bnan-no-tagline.png";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { scrollToSection } from "@/lib/hash-scroll";
 
@@ -53,10 +53,10 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
   return (
     <nav className={`${inFlow ? "sticky top-0" : "fixed top-0 right-0 left-0"} z-50 bg-card/90 backdrop-blur-xl border-b border-border/30 shadow-elegant`}>
       <div className="container mx-auto px-4">
-        <div className="relative flex h-18 items-center justify-between gap-4">
+        <div className="relative flex h-20 items-center justify-between gap-4">
           {/* Logo */}
           <a href="/" className="flex items-center">
-            <img src={logoImg} alt="BNAN Online Academy" className="h-16 w-auto object-contain" />
+            <img src={logoImg} alt="BNAN" className="h-[4.5rem] w-auto object-contain" />
           </a>
 
           {/* Desktop Links */}

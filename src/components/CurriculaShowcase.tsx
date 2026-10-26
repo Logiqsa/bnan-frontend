@@ -8,6 +8,12 @@ import { ApiError } from "@/api/client";
 import PackagesSection from "@/components/PackagesSection";
 import SectionTitleAccent from "@/components/SectionTitleAccent";
 
+const curriculumPriority = (name: string) => {
+  if (name.includes("سعود")) return 0;
+  if (name.includes("مصر")) return 1;
+  return 2;
+};
+
 const CurriculaShowcase = () => {
   const navigate = useNavigate();
 
@@ -37,6 +43,11 @@ const CurriculaShowcase = () => {
   };
 
   const selectedCurriculumLabel = curriculums.find((c) => c.id === selectedCurriculum)?.name ?? "";
+  const featuredCurriculums = curriculums
+    .map((curriculum, index) => ({ curriculum, index }))
+    .sort((a, b) => curriculumPriority(a.curriculum.name) - curriculumPriority(b.curriculum.name) || a.index - b.index)
+    .slice(0, 3)
+    .map(({ curriculum }) => curriculum);
 
   return (
     <section id="curricula" className="py-16 md:py-24 bg-background">
@@ -71,7 +82,7 @@ const CurriculaShowcase = () => {
               <p className="text-center text-muted-foreground py-12">لا توجد مناهج متاحة حاليًا</p>
             ) : (
               <div className="mx-auto flex max-w-4xl flex-wrap justify-center gap-6">
-                {curriculums.map((c, index) => (
+                {featuredCurriculums.map((c, index) => (
                   <motion.div
                     key={c.id}
                     initial={{ opacity: 0, y: 30 }}

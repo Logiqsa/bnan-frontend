@@ -67,15 +67,15 @@ const HeroSection = () => {
           className={`absolute ${bubble.position} z-20 hidden md:block`}
         >
           <div
-            className={`animate-float flex items-center gap-2 rounded-xl border bg-secondary/15 px-3 py-2.5 shadow-[0_10px_22px_rgba(14,28,62,0.12)] backdrop-blur-md ${bubble.key === "courses" || bubble.key === "teachers" ? "border-primary/35" : "border-secondary/50"}`}
+            className={`animate-float flex items-center gap-3 rounded-2xl border bg-white/88 px-5 py-3 shadow-[0_16px_35px_rgba(16,42,83,0.16)] backdrop-blur-md ${bubble.key === "courses" || bubble.key === "teachers" ? "border-primary/35" : "border-white/90"}`}
             style={{ animationDelay: bubble.floatDelay }}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/25">
-              <bubble.icon className="h-4 w-4 text-primary" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/20">
+              <bubble.icon className="h-5 w-5 text-primary" />
             </div>
             <div className="text-right">
-              <p className="font-cairo text-[10px] text-slate-500">{bubble.title}</p>
-              <p className="font-cairo text-xs font-bold text-primary">{bubble.value}</p>
+              <p className="font-cairo text-xs text-slate-500">{bubble.title}</p>
+              <p className="font-cairo text-sm font-bold text-primary">{bubble.value}</p>
             </div>
           </div>
         </motion.div>

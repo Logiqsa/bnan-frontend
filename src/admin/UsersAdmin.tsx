@@ -183,6 +183,7 @@ export default function UsersAdmin({
     useState<EgyptianRegistrationRequest | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -331,6 +332,7 @@ export default function UsersAdmin({
     setTeacherDetailsMissing(false);
     setStudentRegistration(null);
     setPaymentReceipt(null);
+    setPaymentAmount("");
     setDetailLoading(true);
     try {
       if (item.role === "teacher") {
@@ -374,13 +376,18 @@ export default function UsersAdmin({
       );
       return;
     }
+    const normalizedAmount = Number(paymentAmount);
+    if (!paymentAlreadyConfirmed && (!paymentAmount.trim() || !Number.isFinite(normalizedAmount) || normalizedAmount <= 0)) {
+      toast.error(pick("أدخل المبلغ المدفوع بشكل صحيح", "Enter a valid paid amount"));
+      return;
+    }
     setApprovalLoading(true);
     try {
       if (!paymentAlreadyConfirmed && paymentReceipt) {
         const confirmation =
           await egyptianRegistrationRequestsApi.confirmPayment(
             studentRegistration.studentId,
-            paymentReceipt,
+            { receipt: paymentReceipt, amount: normalizedAmount },
           );
         setStudentRegistration((current) =>
           current
@@ -1383,7 +1390,7 @@ export default function UsersAdmin({
                   {studentRegistration.registrationStatus === "pending" && (
                     <div className="space-y-3">
                       {studentRegistration.payment?.status !== "confirmed" && (
-                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10">
+                        <><div className="space-y-2"><Label htmlFor="student-payment-amount">{pick("المبلغ المدفوع", "Paid amount")} *</Label><Input id="student-payment-amount" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} placeholder={pick("أدخل المبلغ الفعلي المدفوع", "Enter the actual paid amount")} /></div><label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10">
                           <ImagePlus className="h-5 w-5" />
                           <span>
                             {paymentReceipt
@@ -1396,13 +1403,13 @@ export default function UsersAdmin({
                             accept="image/png,image/jpeg,image/webp"
                             onChange={(event) => choosePaymentReceipt(event.target.files?.[0])}
                           />
-                        </label>
+                        </label></>
                       )}
                       <Button
                         className="w-full gap-2"
                         disabled={
                           approvalLoading ||
-                          (!paymentReceipt && studentRegistration.payment?.status !== "confirmed")
+                          ((!paymentReceipt || !paymentAmount.trim() || Number(paymentAmount) <= 0) && studentRegistration.payment?.status !== "confirmed")
                         }
                         onClick={() => void approveStudentPayment()}
                       >

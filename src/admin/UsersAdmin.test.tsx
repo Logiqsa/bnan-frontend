@@ -288,6 +288,7 @@ describe("UsersAdmin verification OTP", () => {
     fireEvent.change(await screen.findByLabelText("Choose transfer receipt"), {
       target: { files: [receipt] },
     });
+    fireEvent.change(screen.getByLabelText("Paid amount *"), { target: { value: "500" } });
     fireEvent.click(
       screen.getByRole("button", {
         name: "Upload receipt and approve student",
@@ -295,7 +296,7 @@ describe("UsersAdmin verification OTP", () => {
     );
 
     await waitFor(() =>
-      expect(mocks.confirmPayment).toHaveBeenCalledWith("student-profile-1", receipt),
+      expect(mocks.confirmPayment).toHaveBeenCalledWith("student-profile-1", { receipt, amount: 500 }),
     );
     await waitFor(() =>
       expect(mocks.approveRegistration).toHaveBeenCalledWith(

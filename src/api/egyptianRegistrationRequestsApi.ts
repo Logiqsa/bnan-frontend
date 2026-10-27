@@ -61,10 +61,11 @@ export const egyptianRegistrationRequestsApi = {
       ) || (result.data.length === 1 ? result.data[0] : null)
     );
   },
-  confirmPayment: (studentId: string, receipt?: File) => {
-    const body = receipt ? new FormData() : undefined;
+  confirmPayment: (studentId: string, input: { receipt: File; amount: number }) => {
+    const body = new FormData();
     if (body) {
-      body.append("receiptImage", receipt);
+      body.append("receiptImage", input.receipt);
+      body.append("amount", String(input.amount));
       body.append("method", "bank_transfer");
     }
     return apiRequest<{
@@ -72,7 +73,7 @@ export const egyptianRegistrationRequestsApi = {
       data: { payment: EgyptianRegistrationPayment };
     }>(`/admin/egyptian-registration-requests/${studentId}/payment`, {
       method: "PATCH",
-      ...(body ? { body } : { body: JSON.stringify({}) }),
+      body,
     });
   },
   approve: (studentId: string) =>

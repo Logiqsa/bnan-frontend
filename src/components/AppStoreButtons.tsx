@@ -47,7 +47,7 @@ const AppStoreButtons = ({ onDark = false, compact = false, footerStyle = false,
           src={appleIcon}
           alt=""
           aria-hidden="true"
-          className={`${footerStyle || heroStyle ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9"} shrink-0 object-contain`}
+          className={`${footerStyle || heroStyle ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9"} ${footerStyle || onDark ? "brightness-0 invert" : ""} shrink-0 object-contain`}
         />
         <span className="min-w-0 text-start" dir="ltr"><span className={`block whitespace-nowrap opacity-50 ${footerStyle || heroStyle ? "text-[6px] sm:text-[7px]" : "text-[10px]"}`}>COMING SOON ON</span><span className={`block whitespace-nowrap font-semibold ${footerStyle ? "text-base" : heroStyle ? "text-xs sm:text-sm" : "text-lg"}`}>App Store</span></span>
         <span className={`shrink-0 whitespace-nowrap rounded-full bg-secondary font-bold text-secondary-foreground ${footerStyle ? "px-1.5 py-px text-[7px]" : heroStyle ? "hidden px-1.5 py-px text-[7px] sm:inline" : "px-2 py-0.5 text-[9px]"}`}>{pick("قريبًا", "Soon")}</span>

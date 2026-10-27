@@ -52,10 +52,14 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
               navigate(link);
             }
           }} className={`min-w-0 cursor-pointer p-3.5 transition hover:bg-muted/50 ${!notification.isRead ? "bg-primary/5" : ""}`}>
-            {notification.image && <img src={notification.image} alt="" loading="lazy" className="mb-2 h-16 w-24 rounded-lg border object-cover" />}
-            <div className="flex min-w-0 items-start justify-between gap-2"><p dir="auto" className="min-w-0 break-words font-cairo text-sm font-medium leading-6">{notification.title || pick("إشعار جديد", "New notification")}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
-            {notification.body && <p dir="auto" className="mt-1 break-words whitespace-normal text-xs leading-5 text-muted-foreground">{notification.body}</p>}
-            <p dir="auto" className="mt-1 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: isArabic ? ar : enUS })}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-start justify-between gap-2"><p dir="auto" className="min-w-0 break-words font-cairo text-sm font-medium leading-6">{notification.title || pick("إشعار جديد", "New notification")}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
+                {notification.body && <p dir="auto" className="mt-1 break-words whitespace-normal text-xs leading-5 text-muted-foreground">{notification.body}</p>}
+                <p dir="auto" className="mt-1 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: isArabic ? ar : enUS })}</p>
+              </div>
+              {notification.image && <img src={notification.image} alt="" loading="lazy" className="h-16 w-20 shrink-0 rounded-lg border object-cover" />}
+            </div>
           </li>)}</ul>}
       </ScrollArea>
     </PopoverContent>

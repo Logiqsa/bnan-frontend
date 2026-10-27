@@ -21,7 +21,8 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <main data-scroll-container className="dashboard-scrollbar min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 pt-16 md:p-6 md:pt-6" dir="ltr">
         <div dir={isArabic ? "rtl" : "ltr"}>
           {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student" || user?.role === "supervisor") && (
-            <div className="mb-3 flex justify-end gap-2">
+            <div className="mb-3 flex justify-start gap-2" dir="ltr">
+              <NotificationsBell role={user.role} />
               {user.role === "admin" && (
                 <Button asChild variant="outline" size="icon" className="bg-background shadow-sm">
                   <Link to="/admin/client-errors" aria-label={isArabic ? "فتح سجل أخطاء التطبيقات" : "Open client error logs"} title={isArabic ? "سجل أخطاء التطبيقات" : "Client error logs"}>
@@ -29,7 +30,6 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   </Link>
                 </Button>
               )}
-              <NotificationsBell role={user.role} />
             </div>
           )}
           {children}

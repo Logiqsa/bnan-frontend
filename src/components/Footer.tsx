@@ -1,6 +1,6 @@
 import React from "react";
 import { Mail, Phone, MapPin } from "lucide-react";
-import logoImg from "@/assets/logo-bnan.png";
+import logoImg from "@/assets/logo-bnan-no-tagline.png";
 import saudiBusinessCenter from "@/assets/partners/saudi-business-center.png";
 import ministryCommerce from "@/assets/partners/ministry-commerce.png";
 import maroof from "@/assets/partners/maroof.png";
@@ -24,7 +24,7 @@ const partners = [
 const paymentMethods = [
   { src: visaImg, alt: "Visa" },
   { src: mastercardImg, alt: "Mastercard" },
-  { src: applePayImg, alt: "Apple Pay" },
+  { src: applePayImg, alt: "Apple Pay", className: "h-20 -mx-3" },
   { src: madaImg, alt: "مدى" },
   { src: tamaraImg, alt: "Tamara" },
 ];
@@ -38,12 +38,13 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
         <div className="grid grid-cols-1 gap-12 mb-12 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <img src={logoImg} alt="BNAN Academy" className="h-10 w-auto object-contain brightness-0 invert" />
-              <span className="text-xl font-cairo font-bold text-primary-foreground">
-                BNAN Academy
-              </span>
-            </div>
+            <Link to="/" aria-label={pick("العودة للرئيسية", "Back to home")} className="mb-4 inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">
+              <img
+                src={logoImg}
+                alt="BNAN Academy"
+                className="h-20 w-auto object-contain brightness-0 invert sm:h-24"
+              />
+            </Link>
             <p className="text-sm font-tajawal leading-relaxed text-primary-foreground/60">
               {pick("منصة تعليم إلكتروني متكاملة تخدم الطلاب في جميع أنحاء العالم العربي", "An integrated online learning platform serving students across the Arab world")}
             </p>
@@ -159,7 +160,7 @@ const Footer = React.forwardRef<HTMLElement>((_, ref) => {
                   src={method.src}
                   alt={method.alt}
                   loading="lazy"
-                  className="h-14 w-auto object-contain"
+                  className={`w-auto object-contain ${method.className || "h-14"}`}
                 />
               ))}
             </div>

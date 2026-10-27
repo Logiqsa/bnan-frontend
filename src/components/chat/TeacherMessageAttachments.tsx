@@ -72,7 +72,7 @@ const TeacherMessageAttachments = ({
               <video
                 src={attachment.fileUrl}
                 controls
-                preload="metadata"
+                preload="none"
                 className="max-h-72 w-full rounded-lg bg-black"
               >
                 {pick(

@@ -20,9 +20,11 @@ export function ContactSettingsProvider({ children }: { children: ReactNode }) {
     try {
       const result = await contactSettingsApi.public();
       setSettings({
-        phones: result.phones || [],
-        emails: result.emails || [],
-        socialLinks: result.socialLinks || defaultContactSettings.socialLinks,
+        phones: Array.isArray(result.phones) ? result.phones : [],
+        emails: Array.isArray(result.emails) ? result.emails : [],
+        socialLinks: Array.isArray(result.socialLinks)
+          ? result.socialLinks
+          : defaultContactSettings.socialLinks,
       });
     } catch {
       setSettings(defaultContactSettings);

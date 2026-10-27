@@ -221,11 +221,13 @@ const ApprovedTestimonialsList = () => {
       contentApi.getLegacyVisibility().catch(() => ({ data: DEFAULT_LEGACY_VISIBILITY })),
     ])
       .then(([result, visibilityResult]) => {
-        const legacy = visibilityResult.data.testimonialRatings ? legacyApproved : [];
+        const legacy = visibilityResult.data?.testimonialRatings !== false ? legacyApproved : [];
         const legacyKeys = new Set(legacy.map((item) => `${item.full_name.trim()}|${item.message.trim()}`));
-        const added = result.data.filter((item) => !legacyKeys.has(`${item.full_name.trim()}|${item.message.trim()}`));
+        const remoteTestimonials = Array.isArray(result.data) ? result.data : [];
+        const added = remoteTestimonials.filter((item) => !legacyKeys.has(`${item.full_name.trim()}|${item.message.trim()}`));
         setApproved([...legacy, ...added]);
-      });
+      })
+      .catch(() => setApproved(legacyApproved));
   }, [legacyApproved]);
 
   useLayoutEffect(() => {

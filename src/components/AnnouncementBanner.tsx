@@ -45,7 +45,7 @@ export default function AnnouncementBanner() {
     refetchInterval: 30 * 1000,
     refetchOnMount: "always",
   });
-  const announcements = query.data?.data || [];
+  const announcements = Array.isArray(query.data?.data) ? query.data.data : [];
   const announcementsKey = announcements
     .map(({ id, title, body, type, bannerLink, bannerEndsAt }) => `${id}:${title}:${body}:${type}:${bannerLink || ""}:${bannerEndsAt || ""}`)
     .join("|");

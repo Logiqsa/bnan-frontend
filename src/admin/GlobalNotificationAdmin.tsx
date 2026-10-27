@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 // Exported for the audience-contract test kept alongside this screen.
@@ -40,8 +39,8 @@ const formatFileSize = (bytes: number, locale: string) => new Intl.NumberFormat(
 
 export default function GlobalNotificationAdmin() {
   const { isArabic, pick } = useLanguage();
-  const [curriculumId, setCurriculumId] = useState("");
-  const [audience, setAudience] = useState<GlobalNotificationAudience>("all");
+  const [curriculumIds, setCurriculumIds] = useState<string[]>(["all"]);
+  const [audiences, setAudiences] = useState<GlobalNotificationAudience[]>(["all"]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<File | null>(null);
@@ -54,17 +53,24 @@ export default function GlobalNotificationAdmin() {
   const fileInput = useRef<HTMLInputElement>(null);
   const trimmedTitle = title.trim();
   const titleValid = trimmedTitle.length > 0 && trimmedTitle.length <= 200;
-  const formValid = Boolean(curriculumId) && titleValid && content.length <= 5000 && !imageError;
-  const audienceInfo = audienceDetails[audience];
+  const formValid = curriculumIds.length > 0 && audiences.length > 0 && titleValid && content.length <= 5000 && !imageError;
   const curricula = useQuery({
     queryKey: ["global-notification-curricula"],
     queryFn: async () => (await catalogApi.curriculums()).data,
     staleTime: 5 * 60_000,
   });
-  const selectedCurriculum = curricula.data?.find((item) => item.id === curriculumId);
-  const selectedCurriculumName = curriculumId === "all"
+  const selectedCurriculumName = curriculumIds.includes("all")
     ? pick("كل المناهج", "All curricula")
-    : selectedCurriculum?.name;
+    : (curricula.data || []).filter((item) => curriculumIds.includes(item.id)).map((item) => item.name).join("، ");
+  const selectedAudienceName = audiences.includes("all")
+    ? pick("الجميع", "Everyone")
+    : audiences.map((value) => pick(audienceDetails[value].ar, audienceDetails[value].en)).join("، ");
+
+  const toggleSelection = <T extends string>(values: T[], value: T, allValue: T, setValues: (next: T[]) => void) => {
+    if (value === allValue) return setValues([allValue]);
+    const withoutAll = values.filter((item) => item !== allValue);
+    setValues(withoutAll.includes(value) ? withoutAll.filter((item) => item !== value) : [...withoutAll, value]);
+  };
 
   useEffect(() => {
     if (!image) {
@@ -77,7 +83,7 @@ export default function GlobalNotificationAdmin() {
   }, [image]);
 
   const clearForm = () => {
-    setCurriculumId(""); setAudience("all"); setTitle(""); setContent(""); setImage(null); setImageError("");
+    setCurriculumIds(["all"]); setAudiences(["all"]); setTitle(""); setContent(""); setImage(null); setImageError("");
     if (fileInput.current) fileInput.current.value = "";
   };
 
@@ -115,8 +121,8 @@ export default function GlobalNotificationAdmin() {
     setSubmitting(true);
     const payload: SendGlobalNotificationPayload = {
       title: trimmedTitle,
-      audience,
-      curriculumId,
+      audiences,
+      curriculumIds,
       ...(content.trim() ? { content: content.trim() } : {}),
     };
     try {
@@ -168,21 +174,19 @@ export default function GlobalNotificationAdmin() {
             <form onSubmit={requestConfirmation} className="space-y-5" noValidate>
               <fieldset disabled={submitting} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="notification-curriculum">{pick("المنهج", "Curriculum")} <span className="text-destructive">*</span></Label>
-                  <Select value={curriculumId} onValueChange={(value) => { setCurriculumId(value); setAudience("all"); }} disabled={curricula.isLoading || curricula.isError}>
-                    <SelectTrigger id="notification-curriculum"><SelectValue placeholder={pick("اختر المنهج أولًا", "Select a curriculum first")} /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{(curricula.data || []).map((curriculum) => <SelectItem key={curriculum.id} value={curriculum.id}>{curriculum.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Label>{pick("المنهج", "Curriculum")} <span className="text-destructive">*</span></Label>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label={pick("اختيار المناهج", "Select curricula")}>
+                    {[{ id: "all", name: pick("كل المناهج", "All curricula") }, ...(curricula.data || [])].map((curriculum) => { const selected = curriculumIds.includes(curriculum.id); return <button key={curriculum.id} type="button" aria-pressed={selected} disabled={curricula.isLoading || curricula.isError} onClick={() => toggleSelection(curriculumIds, curriculum.id, "all", setCurriculumIds)} className={`rounded-full border px-4 py-2 text-sm transition ${selected ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background hover:border-primary/50 hover:bg-primary/5"}`}>{curriculum.name}</button>; })}
+                  </div>
                   {curricula.isError && <div className="flex items-center justify-between gap-2"><p className="text-xs text-destructive">{pick("تعذر تحميل المناهج.", "Unable to load curricula.")}</p><Button type="button" size="sm" variant="outline" onClick={() => void curricula.refetch()}>{pick("إعادة", "Retry")}</Button></div>}
-                  <p className="text-xs text-muted-foreground">{curriculumId === "all" ? pick("سيشمل الإرسال الجمهور المختار في كل المناهج.", "The selected audience will be included across all curricula.") : pick("كل المستلمين سيكونون من هذا المنهج فقط.", "Every recipient will be limited to this curriculum.")}</p>
+                  <p className="text-xs text-muted-foreground">{curriculumIds.includes("all") ? pick("سيشمل الإرسال الجمهور المختار في كل المناهج.", "The selected audience will be included across all curricula.") : pick("سيقتصر المستلمون على المناهج المحددة.", "Recipients will be limited to the selected curricula.")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="notification-audience">{pick("الجمهور", "Audience")}</Label>
-                  <Select value={audience} onValueChange={(value) => setAudience(value as GlobalNotificationAudience)} disabled={!curriculumId}>
-                    <SelectTrigger id="notification-audience"><SelectValue /></SelectTrigger>
-                    <SelectContent>{(Object.keys(audienceDetails) as GlobalNotificationAudience[]).map((value) => <SelectItem key={value} value={value}>{pick(audienceDetails[value].ar, audienceDetails[value].en)}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{pick(audienceInfo.hintAr, audienceInfo.hintEn)}</p>
+                  <Label>{pick("الجمهور", "Audience")}</Label>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label={pick("اختيار الجمهور", "Select audience")}>
+                    {(Object.keys(audienceDetails) as GlobalNotificationAudience[]).map((value) => { const selected = audiences.includes(value); return <button key={value} type="button" aria-pressed={selected} onClick={() => toggleSelection(audiences, value, "all", setAudiences)} className={`rounded-full border px-4 py-2 text-sm transition ${selected ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background hover:border-primary/50 hover:bg-primary/5"}`}>{pick(audienceDetails[value].ar, audienceDetails[value].en)}</button>; })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{audiences.includes("all") ? pick(audienceDetails.all.hintAr, audienceDetails.all.hintEn) : pick("سيتم الإرسال إلى فئات الجمهور المحددة فقط.", "The notification will be sent only to the selected audience groups.")}</p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2"><Label htmlFor="notification-title">{pick("عنوان الإشعار", "Notification title")} <span className="text-destructive">*</span></Label><span className="text-xs text-muted-foreground" dir="ltr">{title.length} / 200</span></div>
@@ -220,7 +224,7 @@ export default function GlobalNotificationAdmin() {
 
     <AlertDialog open={confirming} onOpenChange={(open) => !submitting && setConfirming(open)}>
       <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
-        <AlertDialogHeader><AlertDialogTitle>{pick("إرسال الإشعار؟", "Send notification?")}</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-3">{imagePreview && <img src={imagePreview} alt={pick("صورة الإشعار", "Notification image")} className="max-h-40 w-full rounded-lg object-cover" />}<p>{pick("المنهج:", "Curriculum:")} <strong className="text-foreground">{selectedCurriculumName || "—"}</strong></p><p>{pick("سيتم إرسال هذا الإشعار إلى:", "This notification will be sent to:")} <strong className="text-foreground">{pick(audienceInfo.ar, audienceInfo.en)}</strong></p><p>{pick("العنوان:", "Title:")} <strong className="text-foreground">“{trimmedTitle}”</strong></p>{content.trim() && <p className="whitespace-pre-wrap text-foreground">{content.trim()}</p>}<p>{pick(audienceInfo.hintAr, audienceInfo.hintEn)}</p><p>{pick("هل تريد المتابعة؟", "Do you want to continue?")}</p></div></AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogHeader><AlertDialogTitle>{pick("إرسال الإشعار؟", "Send notification?")}</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-3">{imagePreview && <img src={imagePreview} alt={pick("صورة الإشعار", "Notification image")} className="max-h-40 w-full rounded-lg object-cover" />}<p>{pick("المناهج:", "Curricula:")} <strong className="text-foreground">{selectedCurriculumName || "—"}</strong></p><p>{pick("سيتم إرسال هذا الإشعار إلى:", "This notification will be sent to:")} <strong className="text-foreground">{selectedAudienceName}</strong></p><p>{pick("العنوان:", "Title:")} <strong className="text-foreground">“{trimmedTitle}”</strong></p>{content.trim() && <p className="whitespace-pre-wrap text-foreground">{content.trim()}</p>}<p>{pick("هل تريد المتابعة؟", "Do you want to continue?")}</p></div></AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter><AlertDialogCancel disabled={submitting}>{pick("إلغاء", "Cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void sendNotification(); }} disabled={submitting} className="gap-2">{submitting && <Loader2 className="h-4 w-4 animate-spin" />}{submitting ? pick("جاري الإرسال...", "Sending...") : pick("إرسال", "Send")}</AlertDialogAction></AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

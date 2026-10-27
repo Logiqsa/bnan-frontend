@@ -23,10 +23,9 @@ const image = () => screen.getByLabelText(/صورة الإشعار/, { selector:
 const makeFile = (type = "image/png", size = 20, name = "banner.png") => new File([new Uint8Array(size)], name, { type });
 const choose = (value: File) => fireEvent.change(image(), { target: { files: [value] } });
 const chooseCurriculum = async () => {
-  const trigger = await screen.findByRole("combobox", { name: /المنهج/ });
-  await waitFor(() => expect(trigger).not.toBeDisabled());
-  fireEvent.click(trigger);
-  fireEvent.click(await screen.findByRole("option", { name: "المنهج المصري" }));
+  const button = await screen.findByRole("button", { name: "المنهج المصري" });
+  await waitFor(() => expect(button).not.toBeDisabled());
+  fireEvent.click(button);
 };
 const openConfirm = async (value = "إعلان مهم") => { await chooseCurriculum(); fireEvent.change(title(), { target: { value } }); fireEvent.click(screen.getByRole("button", { name: /إرسال الإشعار/ })); };
 const confirm = () => fireEvent.click(screen.getByRole("button", { name: "إرسال" }));
@@ -48,7 +47,7 @@ describe("GlobalNotificationAdmin", () => {
   it("renders the Admin form, defaults to all, and defines all four audience mappings", () => {
     renderPage();
     expect(screen.getByRole("heading", { name: /إرسال إشعار جديد/ })).toBeInTheDocument();
-    expect(screen.getByText("الجميع", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "الجميع" })).toHaveAttribute("aria-pressed", "true");
     expect(Object.fromEntries(Object.entries(audienceDetails).map(([key, value]) => [value.ar, key]))).toEqual({ "الجميع": "all", "الطلاب": "student", "المعلمين": "teacher", "أولياء الأمور": "parent" });
   });
 
@@ -94,16 +93,16 @@ describe("GlobalNotificationAdmin", () => {
 
   it("sends title-only and title-content payloads without a file", async () => {
     const first = renderPage(); await openConfirm("  مرحباً  "); confirm();
-    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "مرحباً", audience: "all", curriculumId: "curriculum-1" }, undefined));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "مرحباً", audiences: ["all"], curriculumIds: ["curriculum-1"] }, undefined));
     first.unmount(); mocks.send.mockClear(); renderPage(); fireEvent.change(content(), { target: { value: "  تفاصيل  " } }); await openConfirm(); confirm();
-    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audience: "all", curriculumId: "curriculum-1", content: "تفاصيل" }, undefined));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audiences: ["all"], curriculumIds: ["curriculum-1"], content: "تفاصيل" }, undefined));
   });
 
   it("sends title-image and full payloads with the selected File", async () => {
     const selected = makeFile("image/webp", 20, "notice.webp"); const first = renderPage(); choose(selected); await openConfirm(); confirm();
-    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audience: "all", curriculumId: "curriculum-1" }, selected));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audiences: ["all"], curriculumIds: ["curriculum-1"] }, selected));
     first.unmount(); mocks.send.mockClear(); renderPage(); const full = makeFile("image/jpeg", 20, "full.jpg"); choose(full); fireEvent.change(content(), { target: { value: "تفاصيل" } }); await openConfirm(); confirm();
-    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audience: "all", curriculumId: "curriculum-1", content: "تفاصيل" }, full));
+    await waitFor(() => expect(mocks.send).toHaveBeenCalledWith({ title: "إعلان مهم", audiences: ["all"], curriculumIds: ["curriculum-1"], content: "تفاصيل" }, full));
   });
 
   it("prevents duplicate submissions while loading", async () => {

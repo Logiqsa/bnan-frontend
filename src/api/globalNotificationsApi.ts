@@ -5,11 +5,13 @@ export type GlobalNotificationAudience = "all" | "student" | "teacher" | "parent
 export interface SendGlobalNotificationPayload {
   title: string;
   audience: GlobalNotificationAudience;
+  curriculumId: string;
   content?: string;
 }
 
 export interface GlobalNotificationResult {
   audience: GlobalNotificationAudience;
+  curriculumId: string | null;
   title: string;
   content?: string;
   image?: string;
@@ -27,6 +29,7 @@ export const globalNotificationsApi = {
       const formData = new FormData();
       formData.append("title", payload.title);
       formData.append("audience", payload.audience);
+      formData.append("curriculumId", payload.curriculumId);
       if (payload.content) formData.append("content", payload.content);
       formData.append("image", image);
       return apiRequest<{ success: true; data: GlobalNotificationResult }>("/notifications/global", {

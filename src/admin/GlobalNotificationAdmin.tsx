@@ -1,7 +1,9 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { Bell, CheckCircle2, Loader2, RefreshCw, Send, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "@/api/client";
+import { catalogApi } from "@/api/catalogApi";
 import {
   globalNotificationsApi,
   type GlobalNotificationAudience,
@@ -38,6 +40,7 @@ const formatFileSize = (bytes: number, locale: string) => new Intl.NumberFormat(
 
 export default function GlobalNotificationAdmin() {
   const { isArabic, pick } = useLanguage();
+  const [curriculumId, setCurriculumId] = useState("");
   const [audience, setAudience] = useState<GlobalNotificationAudience>("all");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -51,8 +54,17 @@ export default function GlobalNotificationAdmin() {
   const fileInput = useRef<HTMLInputElement>(null);
   const trimmedTitle = title.trim();
   const titleValid = trimmedTitle.length > 0 && trimmedTitle.length <= 200;
-  const formValid = titleValid && content.length <= 5000 && !imageError;
+  const formValid = Boolean(curriculumId) && titleValid && content.length <= 5000 && !imageError;
   const audienceInfo = audienceDetails[audience];
+  const curricula = useQuery({
+    queryKey: ["global-notification-curricula"],
+    queryFn: async () => (await catalogApi.curriculums()).data,
+    staleTime: 5 * 60_000,
+  });
+  const selectedCurriculum = curricula.data?.find((item) => item.id === curriculumId);
+  const selectedCurriculumName = curriculumId === "all"
+    ? pick("كل المناهج", "All curricula")
+    : selectedCurriculum?.name;
 
   useEffect(() => {
     if (!image) {
@@ -65,7 +77,7 @@ export default function GlobalNotificationAdmin() {
   }, [image]);
 
   const clearForm = () => {
-    setAudience("all"); setTitle(""); setContent(""); setImage(null); setImageError("");
+    setCurriculumId(""); setAudience("all"); setTitle(""); setContent(""); setImage(null); setImageError("");
     if (fileInput.current) fileInput.current.value = "";
   };
 
@@ -104,11 +116,14 @@ export default function GlobalNotificationAdmin() {
     const payload: SendGlobalNotificationPayload = {
       title: trimmedTitle,
       audience,
+      curriculumId,
       ...(content.trim() ? { content: content.trim() } : {}),
     };
     try {
       const response = await globalNotificationsApi.sendGlobalNotification(payload, image || undefined);
       setResult(response.data);
+      if (response.data.status === "partial") toast.warning(pick("تم الإرسال جزئيًا", "Notification partially delivered"));
+      else toast.success(pick("تم إرسال الإشعار", "Notification sent"));
       setConfirming(false);
       clearForm();
     } catch (error) {
@@ -140,7 +155,7 @@ export default function GlobalNotificationAdmin() {
 
       {result && <Alert className="relative border-emerald-300 bg-emerald-50/80 pe-12 text-emerald-900">
         <CheckCircle2 className="h-4 w-4 text-emerald-700" />
-        <AlertTitle>{pick("تم إرسال الإشعار بنجاح", "Notification sent successfully")}</AlertTitle>
+        <AlertTitle>{result.status === "partial" ? pick("تم الإرسال جزئيًا", "Notification partially delivered") : pick("تم إرسال الإشعار", "Notification sent")}</AlertTitle>
         <Button type="button" variant="ghost" size="icon" className="absolute end-2 top-2 h-8 w-8 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900" onClick={() => setResult(null)} aria-label={pick("إخفاء الرسالة", "Dismiss message")}>
           <X className="h-4 w-4" />
         </Button>
@@ -153,8 +168,17 @@ export default function GlobalNotificationAdmin() {
             <form onSubmit={requestConfirmation} className="space-y-5" noValidate>
               <fieldset disabled={submitting} className="space-y-5">
                 <div className="space-y-2">
+                  <Label htmlFor="notification-curriculum">{pick("المنهج", "Curriculum")} <span className="text-destructive">*</span></Label>
+                  <Select value={curriculumId} onValueChange={(value) => { setCurriculumId(value); setAudience("all"); }} disabled={curricula.isLoading || curricula.isError}>
+                    <SelectTrigger id="notification-curriculum"><SelectValue placeholder={pick("اختر المنهج أولًا", "Select a curriculum first")} /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">{pick("كل المناهج", "All curricula")}</SelectItem>{(curricula.data || []).map((curriculum) => <SelectItem key={curriculum.id} value={curriculum.id}>{curriculum.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  {curricula.isError && <div className="flex items-center justify-between gap-2"><p className="text-xs text-destructive">{pick("تعذر تحميل المناهج.", "Unable to load curricula.")}</p><Button type="button" size="sm" variant="outline" onClick={() => void curricula.refetch()}>{pick("إعادة", "Retry")}</Button></div>}
+                  <p className="text-xs text-muted-foreground">{curriculumId === "all" ? pick("سيشمل الإرسال الجمهور المختار في كل المناهج.", "The selected audience will be included across all curricula.") : pick("كل المستلمين سيكونون من هذا المنهج فقط.", "Every recipient will be limited to this curriculum.")}</p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="notification-audience">{pick("الجمهور", "Audience")}</Label>
-                  <Select value={audience} onValueChange={(value) => setAudience(value as GlobalNotificationAudience)}>
+                  <Select value={audience} onValueChange={(value) => setAudience(value as GlobalNotificationAudience)} disabled={!curriculumId}>
                     <SelectTrigger id="notification-audience"><SelectValue /></SelectTrigger>
                     <SelectContent>{(Object.keys(audienceDetails) as GlobalNotificationAudience[]).map((value) => <SelectItem key={value} value={value}>{pick(audienceDetails[value].ar, audienceDetails[value].en)}</SelectItem>)}</SelectContent>
                   </Select>
@@ -196,7 +220,7 @@ export default function GlobalNotificationAdmin() {
 
     <AlertDialog open={confirming} onOpenChange={(open) => !submitting && setConfirming(open)}>
       <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
-        <AlertDialogHeader><AlertDialogTitle>{pick("إرسال الإشعار؟", "Send notification?")}</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-3">{imagePreview && <img src={imagePreview} alt={pick("صورة الإشعار", "Notification image")} className="max-h-40 w-full rounded-lg object-cover" />}<p>{pick("سيتم إرسال هذا الإشعار إلى:", "This notification will be sent to:")} <strong className="text-foreground">{pick(audienceInfo.ar, audienceInfo.en)}</strong></p><p>{pick("العنوان:", "Title:")} <strong className="text-foreground">“{trimmedTitle}”</strong></p>{content.trim() && <p className="whitespace-pre-wrap text-foreground">{content.trim()}</p>}<p>{pick(audienceInfo.hintAr, audienceInfo.hintEn)}</p><p>{pick("هل تريد المتابعة؟", "Do you want to continue?")}</p></div></AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogHeader><AlertDialogTitle>{pick("إرسال الإشعار؟", "Send notification?")}</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-3">{imagePreview && <img src={imagePreview} alt={pick("صورة الإشعار", "Notification image")} className="max-h-40 w-full rounded-lg object-cover" />}<p>{pick("المنهج:", "Curriculum:")} <strong className="text-foreground">{selectedCurriculumName || "—"}</strong></p><p>{pick("سيتم إرسال هذا الإشعار إلى:", "This notification will be sent to:")} <strong className="text-foreground">{pick(audienceInfo.ar, audienceInfo.en)}</strong></p><p>{pick("العنوان:", "Title:")} <strong className="text-foreground">“{trimmedTitle}”</strong></p>{content.trim() && <p className="whitespace-pre-wrap text-foreground">{content.trim()}</p>}<p>{pick(audienceInfo.hintAr, audienceInfo.hintEn)}</p><p>{pick("هل تريد المتابعة؟", "Do you want to continue?")}</p></div></AlertDialogDescription></AlertDialogHeader>
         <AlertDialogFooter><AlertDialogCancel disabled={submitting}>{pick("إلغاء", "Cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); void sendNotification(); }} disabled={submitting} className="gap-2">{submitting && <Loader2 className="h-4 w-4 animate-spin" />}{submitting ? pick("جاري الإرسال...", "Sending...") : pick("إرسال", "Send")}</AlertDialogAction></AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

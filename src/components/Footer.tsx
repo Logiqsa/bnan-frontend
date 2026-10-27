@@ -24,7 +24,7 @@ const partners = [
 const paymentMethods = [
   { src: visaImg, alt: "Visa" },
   { src: mastercardImg, alt: "Mastercard" },
-  { src: applePayImg, alt: "Apple Pay", className: "h-20 -mx-3" },
+  { src: applePayImg, alt: "Apple Pay" },
   { src: madaImg, alt: "مدى" },
   { src: tamaraImg, alt: "Tamara" },
 ];

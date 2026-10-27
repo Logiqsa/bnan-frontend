@@ -18,6 +18,8 @@ import { courseError } from "@/lib/courseUi";
 import { getSocket } from "@/lib/socket";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import ClassroomSessionActions from "@/components/ClassroomSessionActions";
+import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
+import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import TeacherMessageAttachments from "@/components/chat/TeacherMessageAttachments";
 import ZoomLinkifiedText from "@/components/chat/ZoomLinkifiedText";
 import VoiceMessageRecorder from "@/components/chat/VoiceMessageRecorder";
@@ -41,6 +43,8 @@ const messageDate = (value?: string) =>
   value ? new Date(value).toLocaleString("ar-EG") : "";
 
 function SessionSystemMessage({ message }: { message: ChatMessage }) {
+  const [documentPreview, setDocumentPreview] = useState<MediaPreview | null>(null);
+  const [recordingPreview, setRecordingPreview] = useState<PlayerRecording | null>(null);
   const footer = message.createdAt && (
     <p className="mt-3 border-t pt-2 text-[10px] text-muted-foreground">
       {messageDate(message.createdAt)}
@@ -54,6 +58,7 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
         ? "Zoom لم يرسل نص الملخص لهذه الجلسة."
         : "تفاصيل الملخص غير متاحة حاليًا.";
     return (
+      <>
       <div className="mx-auto w-full max-w-2xl rounded-2xl border border-secondary/40 bg-secondary/10 p-4 text-foreground shadow-sm">
         <div className="flex items-start gap-3">
           <FileText className="mt-1 h-5 w-5 shrink-0 text-primary" />
@@ -73,15 +78,19 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
                   </div>
                 )}
                 {message.summaryDocUrl && (
-                  <Button asChild size="sm" variant="outline" className="mt-3">
-                    <a
-                      href={message.summaryDocUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLink className="me-2 h-4 w-4" />
-                      فتح مستند الملخص
-                    </a>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => setDocumentPreview({
+                      title: "مستند ملخص الحصة",
+                      url: message.summaryDocUrl!,
+                      kind: "document",
+                    })}
+                  >
+                    <ExternalLink className="me-2 h-4 w-4" />
+                    فتح مستند الملخص
                   </Button>
                 )}
                 {!message.summaryContent && !message.summaryDocUrl && (
@@ -93,6 +102,8 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
           </div>
         </div>
       </div>
+      <MediaPreviewDialog preview={documentPreview} onClose={() => setDocumentPreview(null)} />
+      </>
     );
   }
 
@@ -126,6 +137,7 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
   }
 
   return (
+    <>
     <div className="mx-auto w-full max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-foreground shadow-sm">
       <div className="flex items-center gap-3">
         <Video className="h-5 w-5 shrink-0 text-emerald-700" />
@@ -135,11 +147,17 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
             {message.sessionName || "تسجيل الحصة"}
           </h3>
           {message.recordLink ? (
-            <Button asChild size="sm" className="mt-3">
-              <a href={message.recordLink} target="_blank" rel="noreferrer">
-                <Video className="me-2 h-4 w-4" />
-                مشاهدة التسجيل
-              </a>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3"
+              onClick={() => setRecordingPreview({
+                sessionName: message.sessionName || "تسجيل الحصة",
+                recordingLink: message.recordLink!,
+              })}
+            >
+              <Video className="me-2 h-4 w-4" />
+              مشاهدة التسجيل
             </Button>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
@@ -150,6 +168,8 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
         </div>
       </div>
     </div>
+    <RecordingPlayerModal recording={recordingPreview} onClose={() => setRecordingPreview(null)} />
+    </>
   );
 }
 

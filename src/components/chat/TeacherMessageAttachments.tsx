@@ -1,6 +1,8 @@
 import { ExternalLink, File } from "lucide-react";
+import { useState } from "react";
 import type { ChatMessage } from "@/api/chatApi";
 import { useLanguage } from "@/i18n/LanguageContext";
+import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import VoiceMessagePlayer from "@/components/chat/VoiceMessagePlayer";
 
 interface TeacherMessageAttachmentsProps {
@@ -21,6 +23,7 @@ const TeacherMessageAttachments = ({
   attachments,
 }: TeacherMessageAttachmentsProps) => {
   const { pick } = useLanguage();
+  const [preview, setPreview] = useState<MediaPreview | null>(null);
   if (!attachments?.length) return null;
 
   const seen = new Set<string>();
@@ -34,20 +37,20 @@ const TeacherMessageAttachments = ({
   if (!validAttachments.length) return null;
 
   return (
-    <div className="mt-3 grid min-w-0 gap-2">
-      {validAttachments.map((attachment) => {
+    <>
+      <div className="mt-3 grid min-w-0 gap-2">
+        {validAttachments.map((attachment) => {
         const mimeType = attachment.mimeType?.trim().toLowerCase() || "";
         const label = attachment.fileName || pick("ملف مرفق", "Attached file");
         const key = attachment.fileUrl;
 
         if (mimeType.startsWith("image/")) {
           return (
-            <a
+            <button
+              type="button"
               key={key}
-              href={attachment.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="block min-w-0 overflow-hidden rounded-xl border bg-background/80"
+              onClick={() => setPreview({ title: label, url: attachment.fileUrl, kind: "image" })}
+              className="block min-w-0 overflow-hidden rounded-xl border bg-background/80 text-start"
               aria-label={pick(`فتح ${label}`, `Open ${label}`)}
             >
               <img
@@ -59,7 +62,7 @@ const TeacherMessageAttachments = ({
               <span className="block break-words px-3 py-2 text-xs text-foreground">
                 {label}
               </span>
-            </a>
+            </button>
           );
         }
 
@@ -80,15 +83,14 @@ const TeacherMessageAttachments = ({
                   "Your browser does not support video playback.",
                 )}
               </video>
-              <a
-                href={attachment.fileUrl}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setPreview({ title: label, url: attachment.fileUrl, kind: "video" })}
                 className="mt-2 flex min-w-0 items-center gap-2 text-xs font-medium text-primary hover:underline"
               >
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                 <span className="break-words">{label}</span>
-              </a>
+              </button>
             </div>
           );
         }
@@ -105,11 +107,10 @@ const TeacherMessageAttachments = ({
         }
 
         return (
-          <a
+          <button
+            type="button"
             key={key}
-            href={attachment.fileUrl}
-            target="_blank"
-            rel="noreferrer"
+            onClick={() => setPreview({ title: label, url: attachment.fileUrl, kind: "document" })}
             className="flex min-w-0 items-center gap-3 rounded-xl border bg-background/80 p-3 text-foreground transition-colors hover:bg-background"
           >
             <File className="h-5 w-5 shrink-0 text-primary" />
@@ -117,10 +118,12 @@ const TeacherMessageAttachments = ({
               {label}
             </span>
             <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </a>
+          </button>
         );
-      })}
-    </div>
+        })}
+      </div>
+      <MediaPreviewDialog preview={preview} onClose={() => setPreview(null)} />
+    </>
   );
 };
 

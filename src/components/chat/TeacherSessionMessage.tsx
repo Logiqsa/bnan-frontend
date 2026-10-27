@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BarChart3, Clock3, ExternalLink, FileText, Users, Video } from "lucide-react";
 import type { ChatMessage } from "@/api/chatApi";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
+import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -60,6 +61,7 @@ const TeacherSessionReport = ({ message }: TeacherSessionMessageProps) => {
 const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
   const { language, pick } = useLanguage();
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<MediaPreview | null>(null);
   const locale = language === "ar" ? "ar-EG" : "en-US";
   const createdAt = messageDate(message.createdAt, locale);
 
@@ -124,6 +126,7 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
         );
 
     return (
+      <>
       <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border border-secondary/40 bg-secondary/10 text-foreground" title={createdAt || undefined}>
         <details>
           <summary className="flex min-w-0 cursor-pointer items-center gap-2 px-3 py-2 text-xs">
@@ -146,22 +149,20 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
                   )}
                   {message.summaryDocUrl && (
                     <Button
-                      asChild
+                      type="button"
                       size="sm"
                       variant="outline"
                       className="mt-2 h-8 max-w-full text-xs"
+                      onClick={() => setDocumentPreview({
+                        title: pick("مستند ملخص الحصة", "Session summary document"),
+                        url: message.summaryDocUrl!,
+                        kind: "document",
+                      })}
                     >
-                      <a
-                        href={message.summaryDocUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4 shrink-0" />
-                        <span className="break-words">
-                          {pick("فتح مستند الملخص", "Open summary document")}
-                        </span>
-                      </a>
+                      <ExternalLink className="me-2 h-4 w-4 shrink-0" />
+                      <span className="break-words">
+                        {pick("فتح مستند الملخص", "Open summary document")}
+                      </span>
                     </Button>
                   )}
                   {nextSteps.length > 0 && (
@@ -180,6 +181,8 @@ const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
           </div>
         </details>
       </div>
+      <MediaPreviewDialog preview={documentPreview} onClose={() => setDocumentPreview(null)} />
+      </>
     );
   }
 

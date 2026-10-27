@@ -81,8 +81,8 @@ describe("useNotifications", () => {
     ["parents", "/admin/parents"],
     ["users", "/admin?tab=all-users"],
     ["classroom_change_requests", "/admin/classroom-change-requests"],
-    ["global_notification_details", "/admin/notifications"],
-    ["admin_payments", "/admin"],
+    ["global_notification_details", "/admin/notifications/history"],
+    ["admin_payments", "/admin/payments"],
   ])("maps backend target %s to an existing admin route", (target, route) => {
     expect(adminNotificationLink({
       ...stored,
@@ -110,6 +110,20 @@ describe("useNotifications", () => {
         params: { courseId: "course/1", enrollmentId: "enrollment-1" },
       },
     })).toBe("/admin/courses/course%2F1");
+  });
+
+  it.each([
+    ["admin", "/admin/notifications/broadcast%2F1"],
+    ["teacher", "/portal/teacher/notifications/broadcast%2F1"],
+    ["student", "/portal/student/notifications/broadcast%2F1"],
+    ["supervisor", "/portal/supervisor/notifications/broadcast%2F1"],
+  ] as const)("opens the global notification details page for %s", (role, route) => {
+    expect(notificationLink({
+      ...stored,
+      key: "GLOBAL_NOTIFICATION",
+      resource: { id: "broadcast/1", model: "GlobalNotification" },
+      navigation: { target: "global_notification_details", params: { broadcastId: "broadcast/1" } },
+    }, role)).toBe(route);
   });
 
   it.each([
@@ -271,12 +285,12 @@ describe("useNotifications", () => {
     expect(notificationLink({ ...stored, navigation: { target } }, "student")).toBe(route);
   });
 
-  it.each(["subscription", "certificates"])(
-    "does not navigate Student target %s before its page exists",
-    (target) => {
-      expect(notificationLink({ ...stored, navigation: { target } }, "student")).toBeUndefined();
-    },
-  );
+  it.each([
+    ["subscription", "/portal/student/subscriptions"],
+    ["certificates", "/portal/student/certificates"],
+  ])("routes Student target %s to its existing page", (target, route) => {
+    expect(notificationLink({ ...stored, navigation: { target } }, "student")).toBe(route);
+  });
 
   it("routes homework notifications to the matching student assignment", () => {
     expect(notificationLink({ ...stored, key: "HOMEWORK_CREATED", navigation: { target: "assignment_details", params: { assignmentId: "assignment-1" } } }, "student")).toBe("/portal/student/assignments?assignmentId=assignment-1");
@@ -299,6 +313,20 @@ describe("useNotifications", () => {
       key: "RECORDING_READY",
       navigation: { target: "classroom_details", params: { classroomId } },
     }, "teacher")).toBe(`/portal/teacher/classrooms/${classroomId}?tab=recordings`);
+  });
+
+  it.each([
+    ["admin", "Payment", "/admin/payments/resource-1"],
+    ["teacher", "Assignment", "/portal/teacher/assignments/resource-1"],
+    ["student", "CourseEnrollment", "/portal/student/courses/resource-1"],
+    ["supervisor", "Classroom", "/portal/supervisor/classrooms/resource-1"],
+  ] as const)("falls back to the concrete %s resource route", (role, model, route) => {
+    expect(notificationLink({
+      ...stored,
+      key: "UNKNOWN_LEGACY_NOTIFICATION",
+      resource: { id: "resource-1", model },
+      navigation: null,
+    }, role)).toBe(route);
   });
 
   it("removes every realtime listener on unmount", async () => {

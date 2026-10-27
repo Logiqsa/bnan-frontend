@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, ChevronLeft, ChevronRight, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { adminNotificationHistoryApi, type AdminNotificationAudience, type AdminNotificationHistoryFilters, type AdminNotificationStatus } from "@/api/adminNotificationHistoryApi";
@@ -55,6 +56,7 @@ const stat = (label: string, value: number) => (
 );
 
 export default function AdminNotificationHistory() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<AdminNotificationHistoryFilters>({ page: 1, limit: 20 });
   const query = useQuery({
     queryKey: ["admin-notification-history", filters],
@@ -126,7 +128,7 @@ export default function AdminNotificationHistory() {
                 : !query.data?.data.length ? <p className="p-10 text-center text-muted-foreground">{filters.audience || filters.status || filters.from || filters.to ? "لا توجد نتائج تطابق الفلاتر المحددة." : "لا توجد إشعارات مرسلة."}</p>
                   : <div className="overflow-x-auto"><Table><TableHeader><TableRow>
                     <TableHead>الإشعار</TableHead><TableHead>الجمهور</TableHead><TableHead>الحالة</TableHead><TableHead>الإحصاءات</TableHead><TableHead>تاريخ الإنشاء</TableHead><TableHead>آخر تحديث</TableHead>
-                  </TableRow></TableHeader><TableBody>{query.data.data.map((notification) => <TableRow key={notification.broadcastId}>
+                  </TableRow></TableHeader><TableBody>{query.data.data.map((notification) => <TableRow key={notification.broadcastId} className="cursor-pointer" tabIndex={0} onClick={() => navigate(`/admin/notifications/${encodeURIComponent(notification.broadcastId)}`)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(`/admin/notifications/${encodeURIComponent(notification.broadcastId)}`); }}>
                     <TableCell className="min-w-64"><div className="flex items-start gap-3">{notification.image ? <img src={notification.image} alt="" className="h-14 w-14 shrink-0 rounded-md border object-cover" /> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-md border bg-muted/30"><ImageIcon className="h-5 w-5 text-muted-foreground" /></span>}<div className="min-w-0"><p className="font-semibold">{notification.title || "—"}</p><p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{notification.content || "—"}</p></div></div></TableCell>
                     <TableCell><Badge variant="outline">{audienceLabel(notification.audience)}</Badge></TableCell>
                     <TableCell><Badge variant={notification.status === "completed" ? "default" : "outline"}>{statusLabel(notification.status)}</Badge></TableCell>

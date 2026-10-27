@@ -35,11 +35,15 @@ const adminNotificationRoutes: Record<string, string> = {
   classroom_change_requests: "/admin/classrooms",
   course_enrollment_requests: "/admin/courses",
   classroom_details: "/admin/classrooms",
-  global_notification_details: "/admin/notifications",
-  admin_payments: "/admin",
-  admin_subscriptions: "/admin",
-  salary_approvals: "/admin",
-  system_health: "/admin",
+  global_notification_details: "/admin/notifications/history",
+  admin_payments: "/admin/payments",
+  admin_subscriptions: "/admin/subscriptions",
+  salary_approvals: "/admin/payroll",
+  system_health: "/admin/client-errors",
+  announcements: "/admin/announcements",
+  courses: "/admin/courses",
+  teachers: "/admin/teachers",
+  schedule: "/admin/schedule",
   chat_room: "/admin/messages",
 };
 
@@ -55,10 +59,22 @@ const teacherNotificationRoutes: Record<string, string> = {
   teacher_students: "/portal/teacher/courses",
   classroom_details: "/portal/teacher/courses",
   courses: "/portal/teacher/courses",
+  teacher_salary: "/portal/teacher/payroll",
+  teacher_assignments: "/portal/teacher/classrooms",
+  weekly_plan: "/portal/teacher/classrooms",
 };
 
 const supervisorNotificationRoutes: Record<string, string> = {
   supervisor_classrooms: "/portal/supervisor/classrooms",
+  supervisor_sessions: "/portal/supervisor/schedule",
+  attendance_sheet: "/portal/supervisor/schedule",
+  schedule_conflicts: "/portal/supervisor/schedule",
+  schedule: "/portal/supervisor/schedule",
+  classroom_evaluations: "/portal/supervisor/evaluations",
+  student_profile: "/portal/supervisor/classrooms",
+  supervisor_students: "/portal/supervisor/classrooms",
+  complaints: "/portal/supervisor/classrooms",
+  chat_room: "/portal/supervisor/messages",
 };
 
 const studentNotificationRoutes: Record<string, string> = {
@@ -70,6 +86,15 @@ const studentNotificationRoutes: Record<string, string> = {
   chat_room: "/portal/student/messages",
   student_evaluations: "/portal/student/evaluations",
   subscription: "/portal/student/subscriptions",
+  subscription_usage: "/portal/student/subscriptions",
+  packages: "/portal/student/subscriptions",
+  certificates: "/portal/student/certificates",
+  parent_child_certificates: "/portal/student/certificates",
+  performance: "/portal/student/evaluations",
+  ideal_student: "/portal/student/evaluations",
+  weekly_evaluation: "/portal/student/evaluations",
+  weekly_report: "/portal/student/evaluations",
+  courses: "/portal/student/courses",
 };
 
 const notificationParam = (
@@ -80,6 +105,55 @@ const notificationParam = (
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
   return normalized || undefined;
+};
+
+const firstParam = (notification: Notification, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = notificationParam(notification, key)
+      || (typeof notification.data?.[key] === "string" ? notification.data[key] as string : undefined);
+    if (value) return value;
+  }
+  return undefined;
+};
+
+const globalNotificationLink = (notification: Notification, role: PortalRole) => {
+  const broadcastId = firstParam(notification, "broadcastId")
+    || (notification.resource?.model === "GlobalNotification" ? notification.resource.id || undefined : undefined);
+  if (!broadcastId) return role === "admin" ? "/admin/notifications/history" : role === "supervisor" ? "/portal/supervisor/classrooms" : `/portal/${role}/notifications`;
+  const prefix = role === "admin" ? "/admin/notifications" : `/portal/${role}/notifications`;
+  return `${prefix}/${encodeURIComponent(broadcastId)}`;
+};
+
+const resourceNotificationLink = (notification: Notification, role: PortalRole) => {
+  const model = notification.resource?.model?.toLowerCase();
+  const resourceId = notification.resource?.id || undefined;
+  if (!model || !resourceId) return undefined;
+  const id = encodeURIComponent(resourceId);
+  if (role === "admin") {
+    const routes: Record<string, string> = {
+      assignment: `/admin/assignments/${id}`,
+      certificate: `/admin/certificates/${id}`,
+      classroom: `/admin/classrooms/${id}`,
+      parent: `/admin/parents/${id}`,
+      payment: `/admin/payments/${id}`,
+      student: `/admin/students/${id}`,
+      subscription: `/admin/subscriptions/${id}`,
+    };
+    return routes[model];
+  }
+  if (role === "teacher") {
+    if (model === "assignment") return `/portal/teacher/assignments/${id}`;
+    if (model === "classroom") return `/portal/teacher/classrooms/${id}`;
+  }
+  if (role === "student") {
+    if (model === "assignment") return `/portal/student/assignments?assignmentId=${id}`;
+    if (model === "classroom") return `/portal/student/classrooms/${id}`;
+    if (model === "courseenrollment") return `/portal/student/courses/${id}`;
+    if (model === "certificate") return "/portal/student/certificates";
+    if (model === "subscription" || model === "payment" || model === "package") return "/portal/student/subscriptions";
+  }
+  if (role === "supervisor" && model === "classroom") return `/portal/supervisor/classrooms/${id}`;
+  return undefined;
 };
 
 const assignmentNotificationLink = (notification: Notification) => {
@@ -156,6 +230,9 @@ export const notificationLink = (
   role: PortalRole,
 ): string | undefined => {
   const target = notification.navigation?.target || notification.navigation?.screen;
+  if (notification.key === "GLOBAL_NOTIFICATION" || target === "global_notification_details") {
+    return globalNotificationLink(notification, role);
+  }
   if (role === "admin") {
     if (notification.type === "chat_room" || target === "chat_room") {
       const roomId = notificationParam(notification, "roomId");
@@ -181,7 +258,23 @@ export const notificationLink = (
         ? `/admin/courses/${encodeURIComponent(courseId)}`
         : adminNotificationRoutes.course_enrollment_requests;
     }
-    return typeof target === "string" ? adminNotificationRoutes[target] : undefined;
+    const studentId = firstParam(notification, "studentId");
+    if ((target === "students" || target === "registration_requests" || target === "student_profile") && studentId) return `/admin/students/${encodeURIComponent(studentId)}`;
+    const parentId = firstParam(notification, "parentId");
+    if (target === "parents" && parentId) return `/admin/parents/${encodeURIComponent(parentId)}`;
+    const classroomId = firstParam(notification, "classroomId");
+    if (target === "classroom_details" && classroomId) return `/admin/classrooms/${encodeURIComponent(classroomId)}`;
+    const paymentId = firstParam(notification, "paymentId");
+    if ((target === "admin_payments" || notification.resource?.model === "Payment") && paymentId) return `/admin/payments/${encodeURIComponent(paymentId)}`;
+    const subscriptionId = firstParam(notification, "subscriptionId");
+    if ((target === "admin_subscriptions" || notification.resource?.model === "Subscription") && subscriptionId) return `/admin/subscriptions/${encodeURIComponent(subscriptionId)}`;
+    const certificateId = firstParam(notification, "certificateId");
+    if (target === "certificates" && certificateId) return `/admin/certificates/${encodeURIComponent(certificateId)}`;
+    const assignmentId = firstParam(notification, "assignmentId");
+    const submissionId = firstParam(notification, "submissionId");
+    if (assignmentId && (target === "assignment_details" || target === "assignment_submissions")) return submissionId ? `/admin/assignments/${encodeURIComponent(assignmentId)}/submissions/${encodeURIComponent(submissionId)}` : `/admin/assignments/${encodeURIComponent(assignmentId)}`;
+    return (typeof target === "string" ? adminNotificationRoutes[target] : undefined)
+      || resourceNotificationLink(notification, role);
   }
   if (role === "teacher") {
     if (target === "teacher_classrooms") {
@@ -191,14 +284,21 @@ export const notificationLink = (
     return teacherNotificationLink(
       notification,
       typeof target === "string" ? target : undefined,
-    );
+    ) || resourceNotificationLink(notification, role);
   }
   if (role === "supervisor") {
     if (target === "supervisor_classrooms") {
       const classroomId = notificationParam(notification, "classroomId");
       return classroomId ? `/portal/supervisor/classrooms/${encodeURIComponent(classroomId)}` : supervisorNotificationRoutes.supervisor_classrooms;
     }
-    return typeof target === "string" ? supervisorNotificationRoutes[target] : undefined;
+    if (target === "chat_room" || notification.type === "chat_room") {
+      const roomId = firstParam(notification, "roomId", "chatId");
+      return roomId ? `/portal/supervisor/messages?${new URLSearchParams({ roomId }).toString()}` : supervisorNotificationRoutes.chat_room;
+    }
+    const classroomId = firstParam(notification, "classroomId");
+    if (target === "classroom_details" && classroomId) return `/portal/supervisor/classrooms/${encodeURIComponent(classroomId)}`;
+    return (typeof target === "string" ? supervisorNotificationRoutes[target] : undefined)
+      || resourceNotificationLink(notification, role);
   }
   if (role === "student") {
     if (notification.key === "RECORDING_READY") {
@@ -222,7 +322,8 @@ export const notificationLink = (
         ? `/portal/student/messages?${new URLSearchParams({ roomId }).toString()}`
         : studentNotificationRoutes.chat_room;
     }
-    return typeof target === "string" ? studentNotificationRoutes[target] : undefined;
+    return (typeof target === "string" ? studentNotificationRoutes[target] : undefined)
+      || resourceNotificationLink(notification, role);
   }
   return undefined;
 };

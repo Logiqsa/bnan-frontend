@@ -55,6 +55,7 @@ interface MarkReadResponse {
 
 export const notificationsApi = {
   list: async (limit = 50) => normalizeList(await apiRequest<RawNotificationListResponse>(`/notifications?page=1&limit=${limit}`)),
+  getGlobal: (broadcastId: string) => apiRequest<{ success: true; data: ApiNotification }>(`/notifications/global/${encodeURIComponent(broadcastId)}`),
   markRead: (notificationIds: string[]) => apiRequest<MarkReadResponse>("/notifications/read", {
     method: "PATCH",
     body: JSON.stringify({ notificationIds }),

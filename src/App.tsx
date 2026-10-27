@@ -39,6 +39,7 @@ import StudentCertificates from "@/portal/StudentCertificates";
 import StudentDashboard from "@/portal/StudentDashboard";
 import StudentNotifications from "@/portal/StudentNotifications";
 import TeacherNotifications from "@/portal/TeacherNotifications";
+import GlobalNotificationDetails from "@/portal/GlobalNotificationDetails";
 import StudentNotificationPreferences from "@/portal/StudentNotificationPreferences";
 import StudentMessages from "@/portal/StudentMessages";
 import StudentSubscriptions from "@/portal/StudentSubscriptions";
@@ -244,6 +245,7 @@ export default function App() {
                       path="/portal/teacher/notifications"
                       element={<PortalGuard role="teacher"><TeacherNotifications /></PortalGuard>}
                     />
+                    <Route path="/portal/teacher/notifications/:broadcastId" element={<PortalGuard role="teacher"><GlobalNotificationDetails role="teacher" /></PortalGuard>} />
                     <Route
                       path="/portal/teacher/payroll"
                       element={<PortalGuard role="teacher"><TeacherPayroll /></PortalGuard>}
@@ -306,6 +308,7 @@ export default function App() {
                       path="/portal/student/notifications"
                       element={<PortalGuard role="student"><StudentNotifications /></PortalGuard>}
                     />
+                    <Route path="/portal/student/notifications/:broadcastId" element={<PortalGuard role="student"><GlobalNotificationDetails role="student" /></PortalGuard>} />
                     <Route
                       path="/portal/student/settings/notifications"
                       element={
@@ -488,6 +491,7 @@ export default function App() {
                         </AdminGuard>
                       }
                     />
+                    <Route path="/admin/notifications/:broadcastId" element={<AdminGuard><GlobalNotificationDetails role="admin" /></AdminGuard>} />
                     <Route path="/admin/announcements" element={<AdminGuard><AdminAnnouncements /></AdminGuard>} />
                     <Route
                       path="/admin/notifications/history"
@@ -597,6 +601,7 @@ export default function App() {
                         </ManualZoomGuard>
                       }
                     />
+                    <Route path="/portal/supervisor/notifications/:broadcastId" element={<PortalGuard role="supervisor"><GlobalNotificationDetails role="supervisor" /></PortalGuard>} />
                     <Route
                       path="/portal/supervisor/classrooms/:classroomId/schedule"
                       element={

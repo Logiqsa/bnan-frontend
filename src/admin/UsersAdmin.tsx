@@ -716,7 +716,7 @@ export default function UsersAdmin({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 lg:flex-row lg:items-end">
         {roles.length > 1 ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">
@@ -740,7 +740,7 @@ export default function UsersAdmin({
             {pick(roleLabels[roles[0]].ar, roleLabels[roles[0]].en)}
           </span>
         )}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="relative min-w-0 sm:w-72">
             <Search
               className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground ${isArabic ? "right-3" : "left-3"}`}
@@ -753,8 +753,8 @@ export default function UsersAdmin({
             />
           </div>
           {showDateFilter && <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto">
-            <label className="space-y-1 text-sm"><span className="block text-muted-foreground">{pick("من تاريخ", "From date")}</span><Input aria-label={pick("المعلمون من تاريخ", "Teachers from date")} type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} /></label>
-            <label className="space-y-1 text-sm"><span className="block text-muted-foreground">{pick("إلى تاريخ", "To date")}</span><Input aria-label={pick("المعلمون إلى تاريخ", "Teachers to date")} type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} /></label>
+            <label className="min-w-40 flex-1 space-y-1 text-start text-sm sm:flex-none"><span className="block text-muted-foreground">{pick("من تاريخ", "From date")}</span><Input aria-label={pick("المعلمون من تاريخ", "Teachers from date")} type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} /></label>
+            <label className="min-w-40 flex-1 space-y-1 text-start text-sm sm:flex-none"><span className="block text-muted-foreground">{pick("إلى تاريخ", "To date")}</span><Input aria-label={pick("المعلمون إلى تاريخ", "Teachers to date")} type="date" min={dateFrom || undefined} value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} /></label>
             {(dateFrom || dateTo) && <Button type="button" variant="ghost" size="sm" onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}><X className="me-1 h-4 w-4" />{pick("مسح التاريخ", "Clear dates")}</Button>}
           </div>}
           <label

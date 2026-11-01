@@ -25,6 +25,7 @@ import ZoomLinkifiedText from "@/components/chat/ZoomLinkifiedText";
 import VoiceMessageRecorder from "@/components/chat/VoiceMessageRecorder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useTimeZone, type SupportedTimeZone } from "@/contexts/TimeZoneContext";
 
 interface MessagesResult {
   success: true;
@@ -39,15 +40,19 @@ const normalizeSocketMessage = (
   id: value.id || value._id || "",
 });
 
-const messageDate = (value?: string) =>
-  value ? new Date(value).toLocaleString("ar-EG") : "";
+const messageDate = (value: string | undefined, timeZone: SupportedTimeZone) =>
+  value ? new Intl.DateTimeFormat("ar-EG", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(value)) : "";
 
-function SessionSystemMessage({ message }: { message: ChatMessage }) {
+function SessionSystemMessage({ message, timeZone }: { message: ChatMessage; timeZone: SupportedTimeZone }) {
   const [documentPreview, setDocumentPreview] = useState<MediaPreview | null>(null);
   const [recordingPreview, setRecordingPreview] = useState<PlayerRecording | null>(null);
   const footer = message.createdAt && (
     <p className="mt-3 border-t pt-2 text-[10px] text-muted-foreground">
-      {messageDate(message.createdAt)}
+      {messageDate(message.createdAt, timeZone)}
     </p>
   );
 
@@ -128,7 +133,7 @@ function SessionSystemMessage({ message }: { message: ChatMessage }) {
             الحضور: {report?.uniqueParticipants ?? 0}
           </div>
           <div className="rounded-xl bg-background/80 p-3">
-            بدأت: {messageDate(report?.startedAt) || "—"}
+            بدأت: {messageDate(report?.startedAt, timeZone) || "—"}
           </div>
         </div>
         {footer}
@@ -179,6 +184,7 @@ export default function CourseClassroomChat({
   classroomId: string;
 }) {
   const { user } = usePortalAuth();
+  const { timeZone, formatDateTime } = useTimeZone();
   const cache = useQueryClient();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -387,7 +393,7 @@ export default function CourseClassroomChat({
             ].includes(message.messageType || "");
             if (systemMessage) {
               return (
-                <SessionSystemMessage key={message.id} message={message} />
+                <SessionSystemMessage key={message.id} message={message} timeZone={timeZone} />
               );
             }
             const mine =
@@ -411,7 +417,7 @@ export default function CourseClassroomChat({
                   <TeacherMessageAttachments attachments={message.attachments} />
                   {message.createdAt && (
                     <p className="mt-1 text-[10px] opacity-60">
-                      {new Date(message.createdAt).toLocaleString("ar-EG")}
+                      {formatDateTime(message.createdAt, "ar-EG", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   )}
                 </div>

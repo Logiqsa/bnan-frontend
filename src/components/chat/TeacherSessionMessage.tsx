@@ -5,26 +5,22 @@ import RecordingPlayerModal, { type PlayerRecording } from "@/components/Recordi
 import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 interface TeacherSessionMessageProps {
   message: ChatMessage;
 }
-
-const messageDate = (value: string | undefined, locale: string) => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString(locale);
-};
 
 const validNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
 const TeacherSessionReport = ({ message }: TeacherSessionMessageProps) => {
   const { language, pick } = useLanguage();
+  const { formatDateTime } = useTimeZone();
   const locale = language === "ar" ? "ar-EG" : "en-US";
   const report = message.reportSummary;
-  const startedAt = messageDate(report?.startedAt, locale);
-  const endedAt = messageDate(report?.endedAt, locale);
+  const startedAt = report?.startedAt ? formatDateTime(report.startedAt, locale, { dateStyle: "short", timeStyle: "short" }) : null;
+  const endedAt = report?.endedAt ? formatDateTime(report.endedAt, locale, { dateStyle: "short", timeStyle: "short" }) : null;
   const hasSummary = Boolean(
     startedAt || endedAt || validNumber(report?.durationMinutes) ||
       validNumber(report?.uniqueParticipants),
@@ -60,10 +56,11 @@ const TeacherSessionReport = ({ message }: TeacherSessionMessageProps) => {
 
 const TeacherSessionMessage = ({ message }: TeacherSessionMessageProps) => {
   const { language, pick } = useLanguage();
+  const { formatDateTime } = useTimeZone();
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [documentPreview, setDocumentPreview] = useState<MediaPreview | null>(null);
   const locale = language === "ar" ? "ar-EG" : "en-US";
-  const createdAt = messageDate(message.createdAt, locale);
+  const createdAt = message.createdAt ? formatDateTime(message.createdAt, locale, { dateStyle: "short", timeStyle: "short" }) : null;
 
   if (message.messageType === "session_record") {
     const recordingLink = message.recordLink?.trim();

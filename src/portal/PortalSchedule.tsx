@@ -33,6 +33,7 @@ import ClassroomSessionActions from "@/components/ClassroomSessionActions";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "./PortalAuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
@@ -121,6 +122,7 @@ export default function PortalSchedule({
   const queryClient = useQueryClient();
   const { user } = usePortalAuth();
   const { isArabic, pick } = useLanguage();
+  const { timeZone } = useTimeZone();
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
   const localizedDayNames = isArabic
     ? dayNames
@@ -426,7 +428,7 @@ export default function PortalSchedule({
           ? new Date(timestamp).toLocaleTimeString("ar-EG-u-ca-gregory", {
               hour: "numeric",
               minute: "2-digit",
-              timeZone: "Africa/Cairo",
+              timeZone,
             })
           : "";
       const messages: Record<string, string> = {

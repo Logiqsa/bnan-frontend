@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 const recordingsFrom = (
   data:
@@ -56,6 +57,7 @@ const statusLabels: Record<EnrollmentStatus, string> = {
 const hours = (minutes: number) => Number((minutes / 60).toFixed(2));
 
 export default function CourseEnrollmentDetail() {
+  const { formatDateTime } = useTimeZone();
   const { enrollmentId = "" } = useParams();
   const [selectedRecording, setSelectedRecording] =
     useState<PlayerRecording | null>(null);
@@ -233,7 +235,7 @@ export default function CourseEnrollmentDetail() {
                 <CardContent>
                   {activeSessionQuery.isLoading ? <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />جاري التحقق من الجلسة...</div>
                     : activeSessionQuery.error ? <div className="space-y-3"><p className="text-sm text-destructive">{courseError(activeSessionQuery.error)}</p><Button size="sm" variant="outline" onClick={() => void activeSessionQuery.refetch()}><RefreshCw className="me-2 h-4 w-4" />إعادة المحاولة</Button></div>
-                    : activeSessionQuery.data ? <div className="flex flex-wrap items-center justify-between gap-4"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><Badge variant={activeSessionQuery.data.canJoin ? "default" : "outline"}>{activeSessionQuery.data.status}</Badge>{activeSessionQuery.data.canJoin && <Badge className="bg-emerald-600">مباشرة الآن</Badge>}</div>{activeSessionQuery.data.title && <p className="break-words font-semibold">{activeSessionQuery.data.title}</p>}{activeSessionQuery.data.teacher?.fullName && <p className="text-sm text-muted-foreground">المعلم: {activeSessionQuery.data.teacher.fullName}</p>}{activeSessionQuery.data.startAt && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="h-4 w-4" />{new Date(activeSessionQuery.data.startAt).toLocaleString("ar-EG")}</p>}</div>{activeSessionQuery.data.canJoin && <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={joining} onClick={() => void joinActiveSession()}>{joining ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Video className="me-2 h-4 w-4" />}دخول الحصة الآن</Button>}</div>
+                    : activeSessionQuery.data ? <div className="flex flex-wrap items-center justify-between gap-4"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><Badge variant={activeSessionQuery.data.canJoin ? "default" : "outline"}>{activeSessionQuery.data.status}</Badge>{activeSessionQuery.data.canJoin && <Badge className="bg-emerald-600">مباشرة الآن</Badge>}</div>{activeSessionQuery.data.title && <p className="break-words font-semibold">{activeSessionQuery.data.title}</p>}{activeSessionQuery.data.teacher?.fullName && <p className="text-sm text-muted-foreground">المعلم: {activeSessionQuery.data.teacher.fullName}</p>}{activeSessionQuery.data.startAt && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock3 className="h-4 w-4" />{formatDateTime(activeSessionQuery.data.startAt, "ar-EG", { dateStyle: "short", timeStyle: "short" })}</p>}</div>{activeSessionQuery.data.canJoin && <Button className="bg-emerald-600 hover:bg-emerald-700" disabled={joining} onClick={() => void joinActiveSession()}>{joining ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Video className="me-2 h-4 w-4" />}دخول الحصة الآن</Button>}</div>
                       : <p className="text-muted-foreground">لا توجد جلسة مباشرة الآن.</p>}
                   {joinError && <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{joinError}</p>}
                 </CardContent>

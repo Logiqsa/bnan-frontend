@@ -4,6 +4,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { CurrencyProvider } from "@/hooks/useCurrency";
+import { TimeZoneProvider } from "@/contexts/TimeZoneContext";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import Index from "@/pages/Index";
@@ -129,8 +130,9 @@ export default function App() {
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
-          <CurrencyProvider>
-            <TooltipProvider>
+          <TimeZoneProvider>
+            <CurrencyProvider>
+              <TooltipProvider>
               <Sonner />
               <BrowserRouter>
                 <ContactSettingsProvider><PortalAuthProvider>
@@ -696,8 +698,9 @@ export default function App() {
                   </Routes>
                 </PortalAuthProvider></ContactSettingsProvider>
               </BrowserRouter>
-            </TooltipProvider>
-          </CurrencyProvider>
+              </TooltipProvider>
+            </CurrencyProvider>
+          </TimeZoneProvider>
         </LanguageProvider>
       </QueryClientProvider>
     </HelmetProvider>

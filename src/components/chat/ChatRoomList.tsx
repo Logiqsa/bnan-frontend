@@ -2,6 +2,7 @@ import { MessageCircle } from "lucide-react";
 import type { ChatRoomSummary } from "@/api/chatApi";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Badge } from "@/components/ui/badge";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 interface ChatRoomListProps {
   rooms: ChatRoomSummary[];
@@ -17,6 +18,7 @@ const ChatRoomList = ({
   showPreview = false,
 }: ChatRoomListProps) => {
   const { language, pick } = useLanguage();
+  const { formatDateTime } = useTimeZone();
 
   return (
     <ul className="divide-y" aria-label={pick("قائمة المحادثات", "Conversation list")}>
@@ -51,7 +53,10 @@ const ChatRoomList = ({
                 )}
                 {showPreview && room.lastMessageAt && (
                   <span className="mt-1 block text-[10px] text-muted-foreground/80">
-                    {new Date(room.lastMessageAt).toLocaleString(language === "ar" ? "ar-EG" : "en-US")}
+                    {formatDateTime(room.lastMessageAt, language === "ar" ? "ar-EG" : "en-US", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
                   </span>
                 )}
               </span>

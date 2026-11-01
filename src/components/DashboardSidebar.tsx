@@ -51,6 +51,7 @@ import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
 import logo from "@/assets/logo-bnan-no-tagline.png";
 import LanguageToggle from "@/components/LanguageToggle";
+import TimeZoneSelect from "@/components/TimeZoneSelect";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTeacherUpcomingSessions } from "@/hooks/useTeacherUpcomingSessions";
 
@@ -787,7 +788,10 @@ const SidebarContent = ({
                       : "Student",
               )}
             </p>
-            <LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" />
+            <div className="flex items-center gap-1.5">
+              <TimeZoneSelect className="w-28 border-white/10 bg-white/10 text-xs text-sidebar-foreground hover:bg-white/20" />
+              <LanguageToggle className="bg-white/10 text-sidebar-foreground hover:bg-white/20" />
+            </div>
           </div>
         )}
       </div>
@@ -1010,6 +1014,7 @@ const DashboardSidebar = () => {
           />
         </Link>
         <div className="flex items-center gap-1">
+          <TimeZoneSelect className="w-24 border-white/10 bg-white/10 px-2 text-xs text-sidebar-foreground hover:bg-white/20" />
           <LanguageToggle className="h-9 bg-white/10 px-2 text-xs text-sidebar-foreground hover:bg-white/20" />
           <Button
             variant="ghost"

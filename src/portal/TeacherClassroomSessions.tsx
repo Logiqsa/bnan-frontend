@@ -54,6 +54,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 const sessionsFrom = (
   data:
@@ -117,6 +118,7 @@ export default function TeacherClassroomSessions() {
   const [searchParams] = useSearchParams();
   const navigate = useRouterNavigate();
   const { language } = useLanguage();
+  const { timeZone } = useTimeZone();
   const queryClient = useQueryClient();
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(
@@ -223,6 +225,7 @@ export default function TeacherClassroomSessions() {
           year: "numeric",
           hour: "numeric",
           minute: "2-digit",
+          timeZone,
         }).format(date);
   };
   const assignmentSubject = (assignment: TeacherClassroomAssignment) =>

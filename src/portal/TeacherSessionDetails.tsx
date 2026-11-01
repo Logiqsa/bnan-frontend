@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TeacherSessionAttendance from "./TeacherSessionAttendance";
 import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
@@ -67,6 +68,7 @@ export default function TeacherSessionDetails() {
     sessionId: string;
   }>();
   const { language, pick } = useLanguage();
+  const { timeZone } = useTimeZone();
   const isAdmin = useLocation().pathname.startsWith("/admin/");
   const [reportPage, setReportPage] = useState(1);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
@@ -121,7 +123,7 @@ export default function TeacherSessionDetails() {
     const date = new Date(value);
     return Number.isNaN(date.getTime())
       ? null
-      : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
+      : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(date);
   };
   const formatDuration = (seconds?: number | null) => {
     if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return null;

@@ -136,6 +136,8 @@ export interface PortalLesson {
   date: string | null;
   startTime: string;
   endTime?: string;
+  sourceStartTime?: string;
+  sourceEndTime?: string;
   scheduledAt: string | null;
   activeSession: ActiveSession | null;
   scheduleKind?: "classroom" | "course";

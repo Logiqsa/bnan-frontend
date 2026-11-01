@@ -146,6 +146,9 @@ export const authApi = {
   updateName: (fullName: string) => apiRequest<{ success: true; data?: { fullName?: string } }>("/users/me/name", {
     method: "PATCH", body: JSON.stringify({ fullName }),
   }),
+  updateTimeZone: (timeZone: string) => apiRequest<{ success: true; data?: { timeZone?: string } }>("/users/me/time-zone", {
+    method: "PATCH", body: JSON.stringify({ timeZone }),
+  }),
   updatePhone: (phone: string) => apiRequest<{ success: true; data?: { phone?: string } }>("/users/me/phone", {
     method: "PATCH", body: JSON.stringify({ phone }),
   }),

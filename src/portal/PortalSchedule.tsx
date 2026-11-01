@@ -127,29 +127,9 @@ export default function PortalSchedule({
   const queryClient = useQueryClient();
   const { user } = usePortalAuth();
   const { isArabic, pick } = useLanguage();
-  const { timeZone, formatDateTime } = useTimeZone();
+  const { timeZone } = useTimeZone();
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
-  const lessonDateKey = useCallback((lesson: PortalLesson) => {
-    if (!lesson.scheduledAt) return lesson.date;
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(new Date(lesson.scheduledAt));
-    const part = (type: Intl.DateTimeFormatPartTypes) =>
-      parts.find((item) => item.type === type)?.value || "";
-    return `${part("year")}-${part("month")}-${part("day")}`;
-  }, [timeZone]);
-  const lessonTime = useCallback((lesson: PortalLesson) =>
-    lesson.scheduledAt
-      ? formatDateTime(lesson.scheduledAt, locale, {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
-      : formatScheduleTime(lesson.startTime, isArabic),
-  [formatDateTime, isArabic, locale]);
+  const lessonTime = (lesson: PortalLesson) => formatScheduleTime(lesson.startTime, isArabic);
   const localizedDayNames = isArabic
     ? dayNames
     : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -164,10 +144,7 @@ export default function PortalSchedule({
         thursday: "Thursday",
         friday: "Friday",
       };
-  const lessonDay = (lesson: PortalLesson) =>
-    lesson.scheduledAt
-      ? formatDateTime(lesson.scheduledAt, locale, { weekday: "long" })
-      : localizedDays[lesson.day];
+  const lessonDay = (lesson: PortalLesson) => localizedDays[lesson.day];
   const statusText = (lesson: PortalLesson, student: boolean) => {
     const status = lesson.activeSession?.status;
     if (status === "live" || (status === "starting" && !student))
@@ -304,8 +281,8 @@ export default function PortalSchedule({
     );
   }, [lessons]);
   useEffect(() => {
-    setScheduleStartTime(selected?.startTime || "");
-    setScheduleEndTime(selected?.endTime || "");
+    setScheduleStartTime(selected?.sourceStartTime || selected?.startTime || "");
+    setScheduleEndTime(selected?.sourceEndTime || selected?.endTime || "");
     setRescheduling(false);
   }, [selected]);
   useEffect(() => {
@@ -328,14 +305,13 @@ export default function PortalSchedule({
   const byDate = useMemo(() => {
     const result = new Map<string, PortalLesson[]>();
     visible.forEach((lesson) => {
-      const displayedDate = lessonDateKey(lesson);
-      if (!displayedDate) return;
-      const list = result.get(displayedDate) || [];
+      if (!lesson.date) return;
+      const list = result.get(lesson.date) || [];
       list.push(lesson);
-      result.set(displayedDate, list);
+      result.set(lesson.date, list);
     });
     return result;
-  }, [lessonDateKey, visible]);
+  }, [visible]);
   const selectedLessons = byDate.get(selectedDate) || [];
   const selectedObject = parseDate(selectedDate);
   const changeMonth = (amount: number) => {
@@ -415,7 +391,7 @@ export default function PortalSchedule({
               courseId: selected.courseId,
               groupId: selected.courseGroupId,
               occurrenceDate: selected.date || today,
-              scheduledStartTime: selected.startTime,
+              scheduledStartTime: selected.sourceStartTime || selected.startTime,
             })
           : null;
       const regularSession = courseSession ? null : await startLesson(selected);
@@ -515,8 +491,8 @@ export default function PortalSchedule({
         ...(selected.scheduleEntryId ? { entryId: selected.scheduleEntryId } : {}),
         day: selected.day,
         classroomSubjectId: selected.classroomSubjectId,
-        startTime: scheduleStartTime || selected.startTime,
-        endTime: scheduleEndTime || selected.endTime || "",
+        startTime: scheduleStartTime || selected.sourceStartTime || selected.startTime,
+        endTime: scheduleEndTime || selected.sourceEndTime || selected.endTime || "",
       });
       await load();
       setSelected(null);

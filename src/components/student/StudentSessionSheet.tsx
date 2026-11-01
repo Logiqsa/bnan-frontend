@@ -10,7 +10,6 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { useLanguage } from "@/i18n/LanguageContext";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
-import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 interface StudentSessionSheetProps {
   lesson: PortalLesson | null;
@@ -33,7 +32,6 @@ export default function StudentSessionSheet({
   joinError,
 }: StudentSessionSheetProps) {
   const { isArabic, pick } = useLanguage();
-  const { formatDateTime } = useTimeZone();
   const [reportRequested, setReportRequested] = useState(false);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const sessionId = sessionIdOf(lesson);
@@ -53,9 +51,7 @@ export default function StudentSessionSheet({
 
   const report = reportQuery.data?.data;
   const summary = report?.summary;
-  const displayedStartTime = lesson.scheduledAt
-    ? formatDateTime(lesson.scheduledAt, locale, { hour: "numeric", minute: "2-digit", hour12: true })
-    : formatScheduleTime(lesson.startTime, isArabic);
+  const displayedStartTime = formatScheduleTime(lesson.startTime, isArabic);
   const dateLabel = lesson.date
     ? new Date(`${lesson.date}T12:00:00`).toLocaleDateString(locale, {
         day: "numeric",

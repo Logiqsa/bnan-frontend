@@ -1200,7 +1200,7 @@ export default function UsersAdmin({
                 </div>
               </section>
               <TeacherApplicationDetails application={teacherDetails} />
-              <TeachingProfileEditor teacherId={teacherDetails.id} title={pick("أهلية التدريس", "Teaching eligibility")} />
+              <TeachingProfileEditor teacherId={teacherDetails.id} title={pick("بيانات التدريس", "Teaching profile")} />
             </>
           ) : (
             <>

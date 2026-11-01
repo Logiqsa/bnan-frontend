@@ -33,7 +33,10 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
               >
                 <Clock3 className="h-4 w-4 shrink-0 text-primary" />
                 <span className="truncate">
-                  {pick("الأوقات حسب توقيت", "Times in")} {isArabic ? selectedTimeZone?.ar : selectedTimeZone?.en}
+                  {pick("الأوقات حسب توقيت", "Times in")} {" "}
+                  <strong className="font-bold text-foreground">
+                    {isArabic ? selectedTimeZone?.ar : selectedTimeZone?.en}
+                  </strong>
                 </span>
               </div>
               {user.role === "admin" && (

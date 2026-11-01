@@ -8,7 +8,6 @@ import { usePortalAuth } from "@/portal/PortalAuthContext";
 import logoImg from "@/assets/logo-bnan-no-tagline.png";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { scrollToSection } from "@/lib/hash-scroll";
-import TimeZoneSelect from "@/components/TimeZoneSelect";
 
 const dashboardPathFor = (role: string) =>
   role === "admin"
@@ -76,7 +75,6 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
 
           {/* CTA */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3">
-            <TimeZoneSelect className="w-28 rounded-full border-primary/20 bg-background text-xs" />
             <button
               type="button"
               onClick={toggleLanguage}
@@ -141,7 +139,6 @@ const Navbar = ({ inFlow = false }: { inFlow?: boolean }) => {
             className="-mx-4 rounded-b-2xl border-t border-secondary/10 bg-primary px-4 pb-5 pt-4 text-white shadow-xl lg:hidden"
           >
             <div className="flex flex-col gap-3">
-              <TimeZoneSelect className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20" />
               <Button
                 variant="outline"
                 size="sm"

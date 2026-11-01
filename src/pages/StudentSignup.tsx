@@ -32,7 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
-import TimeZoneSelect from "@/components/TimeZoneSelect";
 import { useLanguage } from "@/i18n/LanguageContext";
 import AccountVerification from "@/components/AccountVerification";
 import {
@@ -819,7 +818,6 @@ export default function StudentSignup({
               <img src={logo} alt="أكاديمية بنان" className="h-10 w-auto" />
             </Link>
             <div className="flex items-center gap-1 sm:gap-2">
-              <TimeZoneSelect className="w-24 border bg-muted/50 px-2 text-xs" />
               <LanguageToggle className="h-9 border bg-muted/50 px-2.5 text-foreground hover:bg-muted" />
               <Link
                 to="/"

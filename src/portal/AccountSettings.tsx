@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, Eye, EyeOff, Loader2, LockKeyhole, Save, UserRound } from "lucide-react";
+import { ChevronDown, Clock3, Eye, EyeOff, Loader2, LockKeyhole, Save, UserRound } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { ApiError, tokenStore } from "@/api/client";
 import { studentSettingsApi } from "@/api/studentSettingsApi";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "./PortalAuthContext";
 import { TeacherPayoutProfileSettings, TeacherPhoneSettings } from "./TeacherSettingsSections";
+import TimeZoneSelect from "@/components/TimeZoneSelect";
 
 type VerificationAction = "name" | "password";
 
@@ -136,6 +137,7 @@ export default function AccountSettings() {
 
   return <DashboardLayout><div dir="rtl" className="mx-auto max-w-3xl space-y-6"><header><h1 className="text-3xl font-bold">إعدادات الحساب</h1><p className="mt-1 text-muted-foreground">إدارة بيانات حسابك وكلمة المرور.</p></header>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary"/>البيانات الأساسية</CardTitle></CardHeader><CardContent className="space-y-5"><div className="space-y-2"><Label htmlFor="settings-name">الاسم الكامل</Label><Input id="settings-name" value={fullName} onChange={(event) => setFullName(event.target.value)}/></div><div className="space-y-2"><Label htmlFor="settings-email">البريد الإلكتروني</Label><Input id="settings-email" value={user?.email || ""} readOnly dir="ltr" className="bg-muted/50 text-left"/><p className="text-xs text-muted-foreground">لا يمكن تغيير البريد الإلكتروني حاليًا.</p></div>{studentNeedsParent && <div className="space-y-2"><Label htmlFor="settings-parent-email">بريد ولي الأمر</Label><Input id="settings-parent-email" value={parentEmail} readOnly dir="ltr" className="bg-muted/50 text-left"/></div>}{nameError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{nameError}</p>}{nameMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{nameMessage}</p>}<Button onClick={() => void saveName()} disabled={nameBusy} className="gap-2">{nameBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الاسم</Button></CardContent></Card>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary"/>المنطقة الزمنية</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm leading-6 text-muted-foreground">يتم تحديد المنطقة تلقائيًا في أول زيارة، ويمكنك تغييرها ليظهر وقت الحصص والإشعارات حسب موقعك.</p><TimeZoneSelect className="w-full sm:max-w-xs" /></CardContent></Card>
     {user?.role === "teacher" && <TeacherPhoneSettings />}
     {user?.role === "teacher" && <TeacherPayoutProfileSettings />}
     <Card className="overflow-hidden"><button type="button" onClick={() => setPasswordOpen((current) => !current)} className="flex w-full cursor-pointer items-center justify-between gap-3 p-6 text-start transition-colors hover:bg-muted/40" aria-expanded={passwordOpen}><span className="flex items-center gap-2 text-lg font-semibold"><LockKeyhole className="h-5 w-5 text-primary"/>تغيير كلمة المرور</span><ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${passwordOpen ? "rotate-180" : ""}`}/></button>{passwordOpen && <CardContent className="animate-in slide-in-from-top-2 space-y-5 border-t pt-6 duration-300">{!isStudent && <PasswordInput id="current-password" label="كلمة المرور الحالية" value={currentPassword} onChange={setCurrentPassword}/>}<PasswordInput id="new-password" label="كلمة المرور الجديدة" value={updatedPassword} onChange={setUpdatedPassword}/><PasswordInput id="confirm-password" label="تأكيد كلمة المرور الجديدة" value={confirmPassword} onChange={setConfirmPassword}/>{passwordError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{passwordError}</p>}{passwordMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{passwordMessage}</p>}<Button onClick={() => void savePassword()} disabled={passwordBusy} className="gap-2">{passwordBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <LockKeyhole className="h-4 w-4"/>}تغيير كلمة المرور</Button></CardContent>}</Card>

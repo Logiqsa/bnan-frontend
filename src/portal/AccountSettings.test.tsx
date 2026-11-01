@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authApi } from "@/api/authApi";
 import { studentSettingsApi } from "@/api/studentSettingsApi";
 import AccountSettings from "./AccountSettings";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const updateCurrentUser = vi.fn();
 const student = { id: "student-1", fullName: "Old Name", email: "student@example.com", role: "student" as const, status: "active" };
@@ -29,6 +30,8 @@ vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children
 vi.mock("./PortalAuthContext", () => ({ usePortalAuth: () => ({ user: student, updateCurrentUser, loading: false }) }));
 vi.mock("./TeacherSettingsSections", () => ({ TeacherPhoneSettings: () => null, TeacherPayoutProfileSettings: () => null }));
 
+const renderSettings = () => render(<LanguageProvider><AccountSettings /></LanguageProvider>);
+
 describe("AccountSettings student verification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,7 +42,7 @@ describe("AccountSettings student verification", () => {
   });
 
   it("verifies the parent before changing the student name without persisting secrets", async () => {
-    render(<AccountSettings />);
+    renderSettings();
     expect(await screen.findByDisplayValue("parent@example.com")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("الاسم الكامل"), { target: { value: "New Name" } });
     fireEvent.click(screen.getByRole("button", { name: "حفظ الاسم" }));
@@ -52,7 +55,7 @@ describe("AccountSettings student verification", () => {
   });
 
   it("uses parent verification and returned tokens for a student password change", async () => {
-    render(<AccountSettings />);
+    renderSettings();
     fireEvent.click(screen.getByRole("button", { name: "تغيير كلمة المرور" }));
     fireEvent.change(screen.getByLabelText("كلمة المرور الجديدة"), { target: { value: "new-password" } });
     fireEvent.change(screen.getByLabelText("تأكيد كلمة المرور الجديدة"), { target: { value: "new-password" } });

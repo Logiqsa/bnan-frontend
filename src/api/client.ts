@@ -112,6 +112,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         ...(isForm ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         lang: apiLanguage(),
+        ...(localStorage.getItem("bnan_time_zone")
+          ? { "X-Time-Zone": localStorage.getItem("bnan_time_zone")! }
+          : {}),
         ...requestOptions.headers,
       },
     });

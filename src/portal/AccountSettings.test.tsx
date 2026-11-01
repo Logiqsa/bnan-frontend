@@ -13,6 +13,7 @@ vi.mock("@/api/authApi", () => ({
     profile: vi.fn(),
     updateName: vi.fn(),
     updatePassword: vi.fn(),
+    updateTimeZone: vi.fn(),
   },
 }));
 vi.mock("@/api/studentSettingsApi", () => ({
@@ -29,6 +30,11 @@ vi.mock("@/api/client", () => ({
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("./PortalAuthContext", () => ({ usePortalAuth: () => ({ user: student, updateCurrentUser, loading: false }) }));
 vi.mock("./TeacherSettingsSections", () => ({ TeacherPhoneSettings: () => null, TeacherPayoutProfileSettings: () => null }));
+vi.mock("@/components/TimeZoneSelect", () => ({
+  default: ({ value, onValueChange }: { value: string; onValueChange: (value: string) => void }) => (
+    <button type="button" aria-label="اختيار مصر" onClick={() => onValueChange("Africa/Cairo")}>{value}</button>
+  ),
+}));
 
 const renderSettings = () => render(<LanguageProvider><AccountSettings /></LanguageProvider>);
 
@@ -64,5 +70,14 @@ describe("AccountSettings student verification", () => {
     fireEvent.click(screen.getByRole("button", { name: "متابعة" }));
     await waitFor(() => expect(studentSettingsApi.updatePassword).toHaveBeenCalledWith("new-password", "proof"));
     expect(authApi.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("does not overwrite a timezone selection with a late profile response", async () => {
+    let resolveProfile!: (value: { success: true; data: { timeZone: "Asia/Riyadh" } }) => void;
+    vi.mocked(authApi.profile).mockReturnValue(new Promise((resolve) => { resolveProfile = resolve; }));
+    renderSettings();
+    fireEvent.click(screen.getByRole("button", { name: "اختيار مصر" }));
+    resolveProfile({ success: true, data: { timeZone: "Asia/Riyadh" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "اختيار مصر" })).toHaveTextContent("Africa/Cairo"));
   });
 });

@@ -14,10 +14,34 @@ export const TIME_ZONE_OPTIONS = [
 export type SupportedTimeZone = (typeof TIME_ZONE_OPTIONS)[number]["value"];
 
 const supported = new Set<string>(TIME_ZONE_OPTIONS.map((item) => item.value));
+
+const localeRegionTimeZones: Record<string, SupportedTimeZone> = {
+  SA: "Asia/Riyadh",
+  EG: "Africa/Cairo",
+  QA: "Asia/Qatar",
+  BH: "Asia/Bahrain",
+  AE: "Asia/Dubai",
+};
+
+export const detectTimeZone = (
+  browserTimeZone?: string,
+  browserLocale?: string,
+): SupportedTimeZone => {
+  if (browserTimeZone && supported.has(browserTimeZone)) {
+    return browserTimeZone as SupportedTimeZone;
+  }
+  const region = browserLocale?.match(/[-_]([A-Za-z]{2})(?:$|[-_])/)?.[1]?.toUpperCase();
+  return (region && localeRegionTimeZones[region]) || DEFAULT_TIME_ZONE;
+};
+
 const initialTimeZone = (): SupportedTimeZone => {
   if (typeof window === "undefined") return DEFAULT_TIME_ZONE;
   const stored = window.localStorage.getItem(TIME_ZONE_STORAGE_KEY);
-  return supported.has(stored || "") ? stored as SupportedTimeZone : DEFAULT_TIME_ZONE;
+  if (supported.has(stored || "")) return stored as SupportedTimeZone;
+  return detectTimeZone(
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    window.navigator.language,
+  );
 };
 
 interface TimeZoneContextValue {

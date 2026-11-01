@@ -12,6 +12,7 @@ describe("shared classroom grade ordering", () => {
   it("recognizes school stages including Arabic hamza variants", () => {
     expect(schoolStageForGrade("أولى ابتدائي - عربي")).toBe("primary");
     expect(schoolStageForGrade("ثالث إعدادي - لغات")).toBe("preparatory");
+    expect(schoolStageForGrade("الثاني المتوسط - سعودي")).toBe("preparatory");
     expect(schoolStageForGrade("ثانية ثانوي علمي - عربي")).toBe("secondary");
   });
 

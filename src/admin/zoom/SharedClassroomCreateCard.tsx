@@ -25,7 +25,7 @@ const normalizeArabic = (value: string) => value.normalize("NFKD").replace(/[\u0
 export const schoolStageForGrade = (value: string): SchoolStage | null => {
   const normalized = normalizeArabic(value);
   if (/ابتدا/.test(normalized)) return "primary";
-  if (/اعداد/.test(normalized)) return "preparatory";
+  if (/(?:اعداد|متوسط)/.test(normalized)) return "preparatory";
   if (/ثانو/.test(normalized)) return "secondary";
   return null;
 };

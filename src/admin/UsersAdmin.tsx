@@ -80,6 +80,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import MediaPreviewDialog, { type MediaPreview } from "@/components/MediaPreviewDialog";
 import { useLanguage } from "@/i18n/LanguageContext";
+import TeachingProfileEditor from "@/components/TeachingProfileEditor";
 
 const roleLabels: Record<AdminUserRole, { ar: string; en: string }> = {
   student: { ar: "طالب", en: "Student" },
@@ -1199,6 +1200,7 @@ export default function UsersAdmin({
                 </div>
               </section>
               <TeacherApplicationDetails application={teacherDetails} />
+              <TeachingProfileEditor teacherId={teacherDetails.id} title={pick("أهلية التدريس", "Teaching eligibility")} />
             </>
           ) : (
             <>

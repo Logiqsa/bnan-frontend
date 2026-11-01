@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { useLanguage } from "@/i18n/LanguageContext";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
+import { useTimeZone } from "@/contexts/TimeZoneContext";
 
 interface StudentSessionSheetProps {
   lesson: PortalLesson | null;
@@ -32,6 +33,7 @@ export default function StudentSessionSheet({
   joinError,
 }: StudentSessionSheetProps) {
   const { isArabic, pick } = useLanguage();
+  const { formatDateTime } = useTimeZone();
   const [reportRequested, setReportRequested] = useState(false);
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const sessionId = sessionIdOf(lesson);
@@ -51,6 +53,9 @@ export default function StudentSessionSheet({
 
   const report = reportQuery.data?.data;
   const summary = report?.summary;
+  const displayedStartTime = lesson.scheduledAt
+    ? formatDateTime(lesson.scheduledAt, locale, { hour: "numeric", minute: "2-digit", hour12: true })
+    : formatScheduleTime(lesson.startTime, isArabic);
   const dateLabel = lesson.date
     ? new Date(`${lesson.date}T12:00:00`).toLocaleDateString(locale, {
         day: "numeric",
@@ -76,7 +81,7 @@ export default function StudentSessionSheet({
             <h3 className="font-semibold">{pick("معلومات الحصة", "Session information")}</h3>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               {dateLabel && <div><dt className="text-muted-foreground">{pick("التاريخ", "Date")}</dt><dd className="mt-1 font-medium">{dateLabel}</dd></div>}
-              <div><dt className="text-muted-foreground">{pick("الوقت", "Time")}</dt><dd className="mt-1 font-medium" dir="ltr">{formatScheduleTime(lesson.startTime, isArabic)}{lesson.endTime ? ` – ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}</dd></div>
+              <div><dt className="text-muted-foreground">{pick("الوقت", "Time")}</dt><dd className="mt-1 font-medium" dir="ltr">{displayedStartTime}</dd></div>
               {lesson.teacher && <div><dt className="text-muted-foreground">{pick("المعلم", "Teacher")}</dt><dd className="mt-1 break-words font-medium">{lesson.teacher.name || lesson.teacher.fullName}</dd></div>}
               {lesson.activeSession?.status && <div><dt className="text-muted-foreground">{pick("الحالة", "Status")}</dt><dd className="mt-1"><Badge variant={lesson.activeSession.canJoin ? "default" : "outline"}>{lesson.activeSession.status}</Badge></dd></div>}
             </dl>

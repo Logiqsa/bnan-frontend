@@ -101,10 +101,15 @@ const courseLessonPhase = (lesson: PortalLesson) => {
   )
     return "live" as const;
   if (!lesson.date) return "upcoming" as const;
-  const start = new Date(`${lesson.date}T${lesson.startTime}:00`);
-  const end = lesson.endTime
-    ? new Date(`${lesson.date}T${lesson.endTime}:00`)
-    : new Date(start.getTime() + 60 * 60 * 1000);
+  const start = lesson.scheduledAt
+    ? new Date(lesson.scheduledAt)
+    : new Date(`${lesson.date}T${lesson.startTime}:00`);
+  const [startHour, startMinute] = lesson.startTime.split(":").map(Number);
+  const [endHour, endMinute] = (lesson.endTime || "").split(":").map(Number);
+  const durationMinutes = lesson.endTime
+    ? (((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) + 1440) % 1440
+    : 60;
+  const end = new Date(start.getTime() + (durationMinutes || 60) * 60 * 1000);
   const now = new Date();
   return now < start
     ? ("upcoming" as const)
@@ -122,8 +127,29 @@ export default function PortalSchedule({
   const queryClient = useQueryClient();
   const { user } = usePortalAuth();
   const { isArabic, pick } = useLanguage();
-  const { timeZone } = useTimeZone();
+  const { timeZone, formatDateTime } = useTimeZone();
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
+  const lessonDateKey = useCallback((lesson: PortalLesson) => {
+    if (!lesson.scheduledAt) return lesson.date;
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(lesson.scheduledAt));
+    const part = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((item) => item.type === type)?.value || "";
+    return `${part("year")}-${part("month")}-${part("day")}`;
+  }, [timeZone]);
+  const lessonTime = useCallback((lesson: PortalLesson) =>
+    lesson.scheduledAt
+      ? formatDateTime(lesson.scheduledAt, locale, {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : formatScheduleTime(lesson.startTime, isArabic),
+  [formatDateTime, isArabic, locale]);
   const localizedDayNames = isArabic
     ? dayNames
     : ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -138,6 +164,10 @@ export default function PortalSchedule({
         thursday: "Thursday",
         friday: "Friday",
       };
+  const lessonDay = (lesson: PortalLesson) =>
+    lesson.scheduledAt
+      ? formatDateTime(lesson.scheduledAt, locale, { weekday: "long" })
+      : localizedDays[lesson.day];
   const statusText = (lesson: PortalLesson, student: boolean) => {
     const status = lesson.activeSession?.status;
     if (status === "live" || (status === "starting" && !student))
@@ -298,13 +328,14 @@ export default function PortalSchedule({
   const byDate = useMemo(() => {
     const result = new Map<string, PortalLesson[]>();
     visible.forEach((lesson) => {
-      if (!lesson.date) return;
-      const list = result.get(lesson.date) || [];
+      const displayedDate = lessonDateKey(lesson);
+      if (!displayedDate) return;
+      const list = result.get(displayedDate) || [];
       list.push(lesson);
-      result.set(lesson.date, list);
+      result.set(displayedDate, list);
     });
     return result;
-  }, [visible]);
+  }, [lessonDateKey, visible]);
   const selectedLessons = byDate.get(selectedDate) || [];
   const selectedObject = parseDate(selectedDate);
   const changeMonth = (amount: number) => {
@@ -714,7 +745,7 @@ export default function PortalSchedule({
                                 dir="ltr"
                                 className="font-semibold text-primary"
                               >
-                                {formatScheduleTime(lesson.startTime, isArabic)}
+                                {lessonTime(lesson)}
                               </span>
                             </div>
                             {role !== "teacher" &&
@@ -778,8 +809,8 @@ export default function PortalSchedule({
             </DialogTitle>
             <DialogDescription>
               {selected?.subject.name} — {selected?.classroom.name} —{" "}
-              {selected && localizedDays[selected.day]}، {pick("الساعة", "at")}{" "}
-              <span dir="ltr">{selected && formatScheduleTime(selected.startTime, isArabic)}</span>
+              {selected && lessonDay(selected)}، {pick("الساعة", "at")}{" "}
+              <span dir="ltr">{selected && lessonTime(selected)}</span>
             </DialogDescription>
           </DialogHeader>
           {canManageGulfEntry && (

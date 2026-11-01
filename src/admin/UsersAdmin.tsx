@@ -851,7 +851,17 @@ export default function UsersAdmin({
                     <TableRow key={item.id}>
                       <TableCell className="text-center font-semibold">
                         <div className="flex flex-wrap items-center justify-center gap-2">
-                          <span>{item.fullName || pick("بدون اسم", "Unnamed")}</span>
+                          {item.role === "teacher" ? (
+                            <button
+                              type="button"
+                              className="text-primary underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={() => openDetails(item)}
+                            >
+                              {item.fullName || pick("بدون اسم", "Unnamed")}
+                            </button>
+                          ) : (
+                            <span>{item.fullName || pick("بدون اسم", "Unnamed")}</span>
+                          )}
                           {(item.registrationStatus === "pending" ||
                             (item.role === "student" && item.status === "inactive")) && (
                             <Badge variant="secondary" className="whitespace-nowrap">

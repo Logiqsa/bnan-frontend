@@ -8,7 +8,6 @@ import { teacherTeachingProfileApi, type TeachingProfile } from "@/api/teacherTe
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -48,7 +47,7 @@ export default function TeachingProfileEditor({ teacherId, title }: { teacherId?
     } else setCurriculums((current) => [...current, id]);
   };
 
-  if (profile.isLoading) return <div className="space-y-3"><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /></div>;
+  if (profile.isLoading) return <section className="space-y-4"><h2 className="flex items-center gap-2 text-lg font-bold"><BookOpen className="h-5 w-5 text-primary" />{title || pick("بيانات التدريس", "Teaching profile")}</h2><Card><CardContent className="grid min-h-36 place-items-center gap-3 p-8 text-center text-muted-foreground"><Loader2 className="h-7 w-7 animate-spin text-primary" /><p>{pick("جاري تحميل بيانات التدريس...", "Loading teaching profile...")}</p></CardContent></Card></section>;
   if (profile.isError || !profile.data) return <Card><CardContent className="p-8 text-center text-destructive">{pick("تعذر تحميل بيانات التدريس.", "Unable to load teaching details.")}</CardContent></Card>;
 
   return <section className="space-y-4">

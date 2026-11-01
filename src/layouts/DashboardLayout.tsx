@@ -4,16 +4,19 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import NotificationsBell from "@/components/NotificationsBell";
 import { Link } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NotificationsProvider from "@/contexts/NotificationsProvider";
+import { TIME_ZONE_OPTIONS, useTimeZone } from "@/contexts/TimeZoneContext";
 
 const NotificationsEnabledContent = ({ children }: { children: ReactNode }) => (
   <NotificationsProvider>{children}</NotificationsProvider>
 );
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
-  const { isArabic } = useLanguage();
+  const { isArabic, pick } = useLanguage();
+  const { timeZone } = useTimeZone();
+  const selectedTimeZone = TIME_ZONE_OPTIONS.find((option) => option.value === timeZone);
   const { user } = usePortalAuth();
   const content = (
     <div data-dashboard-layout className="flex h-dvh overflow-hidden bg-background" dir={isArabic ? "rtl" : "ltr"}>
@@ -23,6 +26,16 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
           {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student" || user?.role === "supervisor") && (
             <div className="mb-3 flex justify-start gap-2" dir="ltr">
               <NotificationsBell role={user.role} />
+              <div
+                dir={isArabic ? "rtl" : "ltr"}
+                className="inline-flex h-10 max-w-[min(70vw,18rem)] items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs text-muted-foreground shadow-sm sm:px-3"
+                title={pick("تُعرض جميع المواعيد حسب المنطقة الزمنية المختارة", "All times use your selected time zone")}
+              >
+                <Clock3 className="h-4 w-4 shrink-0 text-primary" />
+                <span className="truncate">
+                  {pick("الأوقات حسب توقيت", "Times in")} {isArabic ? selectedTimeZone?.ar : selectedTimeZone?.en}
+                </span>
+              </div>
               {user.role === "admin" && (
                 <Button asChild variant="outline" size="icon" className="bg-background shadow-sm">
                   <Link to="/admin/client-errors" aria-label={isArabic ? "فتح سجل أخطاء التطبيقات" : "Open client error logs"} title={isArabic ? "سجل أخطاء التطبيقات" : "Client error logs"}>

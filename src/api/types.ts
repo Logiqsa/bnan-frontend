@@ -131,7 +131,7 @@ export interface PortalLesson {
   classroom: { id: string; name: string };
   classroomSubjectId: string;
   subject: { id: string; name: string };
-  teacher?: { name?: string; fullName?: string };
+  teacher?: { id?: string; userId?: string; name?: string; fullName?: string };
   day: string;
   date: string | null;
   startTime: string;

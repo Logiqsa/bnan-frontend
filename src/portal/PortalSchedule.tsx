@@ -39,6 +39,8 @@ import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
 import { apiErrorCode } from "@/lib/courseUi";
 import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
+import { teacherApplicationsApi } from "@/api/teacherApplicationsApi";
+import { TeacherApplicationDetails } from "@/admin/TeacherApplicationDetails";
 
 const dayNames = [
   "السبت",
@@ -172,6 +174,12 @@ export default function PortalSchedule({
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | RegistrationMode>("all");
   const [selected, setSelected] = useState<PortalLesson | null>(null);
+  const [teacherUserId, setTeacherUserId] = useState("");
+  const teacherDetails = useQuery({
+    queryKey: ["schedule-teacher-details", teacherUserId],
+    queryFn: () => teacherApplicationsApi.getByUserId(teacherUserId),
+    enabled: Boolean(teacherUserId),
+  });
   const [selectedRecording, setSelectedRecording] = useState<PlayerRecording | null>(null);
   const [attendanceContext, setAttendanceContext] = useState<{
     sessionId: string;
@@ -648,9 +656,9 @@ export default function PortalSchedule({
               </div>
               <aside
                 dir={isArabic ? "rtl" : "ltr"}
-                className="portal-lessons-panel p-5 md:p-8 bg-card"
+                className="portal-lessons-panel flex max-h-[70vh] min-h-0 flex-col bg-card p-5 md:max-h-[calc(100vh-12rem)] md:min-h-[590px] md:p-8"
               >
-                <div className="flex items-center justify-between border-b pb-4 mb-5">
+                <div className="mb-5 flex shrink-0 items-center justify-between border-b pb-4">
                   <div>
                     <h2 className="font-bold">
                       {pick("حصص", "Lessons for")}{" "}
@@ -670,6 +678,7 @@ export default function PortalSchedule({
                     {selectedLessons.length} {pick("حصة", "lessons")}
                   </span>
                 </div>
+                <div className="min-h-0 flex-1 overflow-y-auto pe-2">
                 {loading ? (
                   <div
                     className="h-80 grid place-items-center text-center text-muted-foreground"
@@ -703,9 +712,12 @@ export default function PortalSchedule({
                           (lesson.activeSession?.status === "awaiting_zoom_end" ||
                             (awaitingEnd?.sessionId && awaitingEnd.sessionId === (lesson.activeSession?.id || lesson.activeSession?.sessionId)));
                         return (
-                          <button
+                          <article
                             key={lesson.key}
+                            role="button"
+                            tabIndex={0}
                             onClick={() => setSelected(lesson)}
+                            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(lesson); } }}
                             className={`w-full ${isArabic ? "text-right" : "text-left"} rounded-xl border p-4 transition-all ${ended ? "bg-muted/50 hover:border-secondary hover:shadow-sky" : "hover:border-secondary hover:shadow-sky"}`}
                           >
                             <div className="flex justify-between gap-3">
@@ -713,9 +725,7 @@ export default function PortalSchedule({
                                 <h3 className="font-bold">
                                   {lesson.subject.name}
                                 </h3>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {lesson.classroom.name}
-                                </p>
+                                {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && role !== "student" ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}/groups#${lesson.courseGroupId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
                               </div>
                               <span
                                 dir="ltr"
@@ -726,9 +736,9 @@ export default function PortalSchedule({
                             </div>
                             {role !== "teacher" &&
                               lesson.scheduleKind !== "course" && (
-                                <p className="text-sm mt-2">
+                                <p className="mt-2 text-sm">
                                   {pick("المعلم:", "Teacher:")}{" "}
-                                  {lesson.teacher?.name ||
+                                  {role === "admin" && lesson.teacher?.userId ? <button type="button" className="font-semibold text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); setTeacherUserId(lesson.teacher!.userId!); }}>{lesson.teacher.name || lesson.teacher.fullName}</button> : lesson.teacher?.name ||
                                     lesson.teacher?.fullName ||
                                     pick("غير متاح", "Unavailable")}
                                 </p>
@@ -747,11 +757,12 @@ export default function PortalSchedule({
                                     : pick("خليجي", "Gulf")}
                               </span>
                             </div>
-                          </button>
+                          </article>
                         );
                       })}
                   </div>
                 )}
+                </div>
               </aside>
             </div>
           </CardContent>
@@ -953,6 +964,12 @@ export default function PortalSchedule({
               {pick("الحضور", "Attendance")}
             </Button>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(teacherUserId)} onOpenChange={(open) => !open && setTeacherUserId("")}>
+        <DialogContent dir={isArabic ? "rtl" : "ltr"} className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader><DialogTitle>{pick("تفاصيل المعلم", "Teacher details")}</DialogTitle><DialogDescription>{pick("بيانات المعلم المسؤول عن الحصة.", "Details of the teacher responsible for this lesson.")}</DialogDescription></DialogHeader>
+          {teacherDetails.isLoading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-7 w-7 animate-spin" /></div> : teacherDetails.error ? <div className="py-10 text-center text-destructive"><p>{pick("تعذر تحميل تفاصيل المعلم.", "Unable to load teacher details.")}</p><Button className="mt-3" variant="outline" onClick={() => void teacherDetails.refetch()}>{pick("إعادة المحاولة", "Retry")}</Button></div> : teacherDetails.data?.data ? <TeacherApplicationDetails application={teacherDetails.data.data} /> : <p className="py-10 text-center text-muted-foreground">{pick("لا توجد تفاصيل إضافية متاحة لهذا المعلم.", "No additional teacher details are available.")}</p>}
         </DialogContent>
       </Dialog>
       {role === "teacher" && attendanceContext && (

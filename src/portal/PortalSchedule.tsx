@@ -725,7 +725,7 @@ export default function PortalSchedule({
                                 <h3 className="font-bold">
                                   {lesson.subject.name}
                                 </h3>
-                                {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && role !== "student" ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}/groups#${lesson.courseGroupId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
+                                {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && role !== "student" ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
                               </div>
                               <span
                                 dir="ltr"

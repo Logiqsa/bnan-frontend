@@ -491,7 +491,7 @@ export const coursesApi = {
     ).data,
   updateSchedule: async (
     classroomId: string,
-    body: Pick<CourseSchedule, "timezone" | "slots">,
+    body: Pick<CourseSchedule, "timezone" | "slots"> & { changeTimezone?: boolean },
   ) =>
     (
       await apiRequest<Envelope<CourseSchedule>>(

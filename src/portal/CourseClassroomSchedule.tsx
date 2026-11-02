@@ -26,6 +26,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { TIME_ZONE_OPTIONS } from "@/contexts/TimeZoneContext";
 const days: CourseScheduleSlot["day"][] = [
   "saturday",
   "sunday",
@@ -78,7 +79,7 @@ export default function CourseClassroomSchedule() {
     setBusy(true);
     setConflictNotice("");
     try {
-      await coursesApi.updateSchedule(classroomId, { timezone, slots: serializeCourseScheduleSlots(slots) });
+      await coursesApi.updateSchedule(classroomId, { timezone, changeTimezone: true, slots: serializeCourseScheduleSlots(slots) });
       const latest = await coursesApi.getSchedule(classroomId);
       if (editRevision.current === revision && latest) {
         setTimezone(latest.timezone || "Africa/Cairo");
@@ -131,13 +132,12 @@ export default function CourseClassroomSchedule() {
               <p className="text-destructive">{courseError(q.error)}</p>
             ) : (
               <>
-                <label className="block space-y-2">
-                  <span>المنطقة الزمنية</span>
-                  <Input
-                    value={timezone}
-                    onChange={(e) => { editRevision.current += 1; setDirty(true); setTimezone(e.target.value); }}
-                    disabled={!editable || legacy || busy}
-                  />
+                <label className="block space-y-2 rounded-lg bg-primary/5 px-3 py-2 text-sm font-semibold text-primary">
+                  <span>توقيت إدخال وتحرير المواعيد</span>
+                  <Select value={timezone} disabled={!editable || legacy || busy} onValueChange={(value) => { editRevision.current += 1; setDirty(true); setTimezone(value); }}>
+                    <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent>{TIME_ZONE_OPTIONS.map((item) => <SelectItem key={item.value} value={item.value}>{item.ar}</SelectItem>)}</SelectContent>
+                  </Select>
                 </label>
                 <div className="space-y-3">
                   {slots.map((s, i) => (

@@ -20,6 +20,7 @@ import {
   CLASSROOM_DAY_NAMES,
   formatScheduleTime,
 } from "@/admin/zoom/classroomManagement";
+import ScheduleRangeText from "@/components/ScheduleRangeText";
 
 interface SupervisorLesson {
   key: string;
@@ -349,13 +350,7 @@ export default function SupervisorSchedule() {
                                 {lesson.classroomName}
                               </p>
                             </div>
-                            <span
-                              dir="ltr"
-                              className="font-semibold text-primary"
-                            >
-                              {lesson.startTime}
-                              {lesson.endTime ? ` - ${lesson.endTime}` : ""}
-                            </span>
+                            <ScheduleRangeText className="font-semibold text-primary" startTime={lesson.startTime} endTime={lesson.endTime}/>
                           </div>
                           <p className="mt-2 text-sm">
                             {lesson.gradeName} · {lesson.curriculumName}

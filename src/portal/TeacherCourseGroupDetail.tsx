@@ -15,7 +15,7 @@ import {
   type SessionRecording,
 } from "@/api/classroomRecordingsApi";
 import { courseError } from "@/lib/courseUi";
-import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import WeeklyScheduleSlotText from "@/components/WeeklyScheduleSlotText";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import RecordingPlayerModal, { type PlayerRecording } from "@/components/RecordingPlayerModal";
@@ -177,13 +177,7 @@ export default function TeacherCourseGroupDetail() {
                         key={`${slot.day}-${slot.startTime}-${index}`}
                         className="rounded-xl border bg-card p-4"
                       >
-                        <p className="font-bold">
-                          {dayNames[slot.day] || slot.day}
-                        </p>
-                        <p className="mt-2 text-muted-foreground" dir="ltr">
-                          {formatScheduleTime(slot.startTime)}
-                          {slot.endTime ? ` - ${formatScheduleTime(slot.endTime)}` : ""}
-                        </p>
+                        <WeeklyScheduleSlotText slot={slot} sourceTimeZone={group.schedule?.timezone} dayNames={dayNames}/>
                       </div>
                     ))}
                   </div>

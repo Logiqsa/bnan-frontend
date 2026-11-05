@@ -19,7 +19,8 @@ import {
 import { ApiError } from "@/api/client";
 import { apiErrorCode, courseError } from "@/lib/courseUi";
 import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
-import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import WeeklyScheduleSlotText from "@/components/WeeklyScheduleSlotText";
+import { weeklySlotOccurrence } from "@/lib/weeklyScheduleTime";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import CourseClassroomChat from "@/components/CourseClassroomChat";
 import { Badge } from "@/components/ui/badge";
@@ -44,22 +45,6 @@ const dayNames: Record<string, string> = {
   thursday: "الخميس",
   friday: "الجمعة",
 };
-const currentDay = (): CourseScheduleSlot["day"] =>
-  (
-    [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ] as CourseScheduleSlot["day"][]
-  )[new Date().getDay()];
-const localDate = () => {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-};
 const classroomIdOf = (value: unknown) =>
   typeof value === "string"
     ? value
@@ -70,20 +55,6 @@ const classroomIdOf = (value: unknown) =>
             "",
         )
       : "";
-const todaySlotPhase = (slot: CourseScheduleSlot) => {
-  if (slot.day !== currentDay()) return "other" as const;
-  const date = localDate();
-  const start = new Date(`${date}T${slot.startTime}:00`);
-  const end = slot.endTime
-    ? new Date(`${date}T${slot.endTime}:00`)
-    : new Date(start.getTime() + 60 * 60 * 1000);
-  const now = new Date();
-  return now < start
-    ? ("upcoming" as const)
-    : now > end
-      ? ("ended" as const)
-      : ("ready" as const);
-};
 const sessionsFrom = (
   data:
     | ClassroomSession[]
@@ -93,14 +64,16 @@ const hasEndedSession = (
   sessions: ClassroomSession[],
   slot: CourseScheduleSlot,
   groupId: string,
+  sourceTimeZone: string,
 ) => {
-  const scheduled = new Date(`${localDate()}T${slot.startTime}:00`).getTime();
+  const occurrence = weeklySlotOccurrence(slot, sourceTimeZone);
+  const scheduled = occurrence.start.getTime();
   return sessions.some((session) => {
     if (!["ended", "completed"].includes(session.status || "")) return false;
     const sessionGroupId = classroomIdOf(session.courseGroup);
     if (sessionGroupId && sessionGroupId !== groupId) return false;
     if (
-      session.occurrenceKey?.includes(`:${localDate()}:`) &&
+      session.occurrenceKey?.includes(`:${occurrence.date}:`) &&
       session.occurrenceKey.endsWith(`:${slot.startTime}`)
     )
       return true;
@@ -108,7 +81,7 @@ const hasEndedSession = (
     if (!sessionTime) return false;
     const started = new Date(sessionTime);
     return (
-      localDate() === started.toLocaleDateString("en-CA") &&
+      occurrence.date === started.toLocaleDateString("en-CA", { timeZone: sourceTimeZone }) &&
       Math.abs(started.getTime() - scheduled) <= 2 * 60 * 60 * 1000
     );
   });
@@ -164,6 +137,7 @@ export default function TeacherCourseDetail() {
     groupId: string,
     classroomId: string,
     slot: CourseScheduleSlot,
+    sourceTimeZone: string,
   ) => {
     const key = `${groupId}-${slot.day}-${slot.startTime}`;
     const zoomWindow = reserveZoomWindow();
@@ -173,7 +147,7 @@ export default function TeacherCourseDetail() {
       const session = await coursesApi.startCourseSession(classroomId, {
         courseId,
         groupId,
-        occurrenceDate: localDate(),
+        occurrenceDate: weeklySlotOccurrence(slot, sourceTimeZone).date,
         scheduledStartTime: slot.startTime,
       });
       const url = session.teacherStartUrl || session.meetingLink;
@@ -339,31 +313,22 @@ export default function TeacherCourseDetail() {
                             <div className="grid gap-3 sm:grid-cols-2">
                               {group.schedule.slots.map((slot, index) => {
                                 const key = `${group.id}-${slot.day}-${slot.startTime}`;
+                                const sourceTimeZone = group.schedule?.timezone || "Africa/Cairo";
                                 const phase = hasEndedSession(
                                   sessionQueries[groupIndex]?.data || [],
                                   slot,
                                   group.id,
+                                  sourceTimeZone,
                                 )
                                   ? "ended"
-                                  : todaySlotPhase(slot);
+                                  : weeklySlotOccurrence(slot, sourceTimeZone).phase;
                                 return (
                                   <div
                                     key={`${slot.day}-${slot.startTime}-${index}`}
                                     className="flex items-center justify-between gap-3 rounded-xl border p-3"
                                   >
                                     <div>
-                                      <p className="font-semibold">
-                                        {dayNames[slot.day]}
-                                      </p>
-                                      <p
-                                        dir="ltr"
-                                        className="text-sm text-muted-foreground"
-                                      >
-                                        {formatScheduleTime(slot.startTime)}
-                                        {slot.endTime
-                                          ? ` - ${formatScheduleTime(slot.endTime)}`
-                                          : ""}
-                                      </p>
+                                      <WeeklyScheduleSlotText slot={slot} sourceTimeZone={group.schedule?.timezone} dayNames={dayNames}/>
                                       {phase === "upcoming" && (
                                         <p className="mt-1 text-xs text-muted-foreground">
                                           لم يحن الموعد بعد
@@ -381,6 +346,7 @@ export default function TeacherCourseDetail() {
                                             group.id,
                                             classroomId,
                                             slot,
+                                            sourceTimeZone,
                                           )
                                         }
                                       >

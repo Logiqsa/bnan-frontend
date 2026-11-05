@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LanguageProvider } from "@/i18n/LanguageContext";
+import { TimeZoneProvider } from "@/contexts/TimeZoneContext";
 import CourseEnrollmentDetail from "./CourseEnrollmentDetail";
 
 const mocks = vi.hoisted(() => ({
@@ -48,15 +50,21 @@ const renderPage = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/portal/student/courses/enrollment-1"]}>
-        <Routes><Route path="/portal/student/courses/:enrollmentId" element={<CourseEnrollmentDetail />} /></Routes>
-      </MemoryRouter>
+      <LanguageProvider>
+        <TimeZoneProvider>
+          <MemoryRouter initialEntries={["/portal/student/courses/enrollment-1"]}>
+            <Routes><Route path="/portal/student/courses/:enrollmentId" element={<CourseEnrollmentDetail />} /></Routes>
+          </MemoryRouter>
+        </TimeZoneProvider>
+      </LanguageProvider>
     </QueryClientProvider>,
   );
 };
 
 describe("CourseEnrollmentDetail", () => {
   beforeEach(() => {
+    localStorage.setItem("bnan_time_zone", "Africa/Cairo");
+    localStorage.setItem("bnan_time_zone_source", "explicit");
     Object.values(mocks).forEach((mock) => mock.mockReset());
     mocks.enrollment.mockResolvedValue(activeEnrollment);
     mocks.progress.mockResolvedValue({ requiredMinutes: 120, completedMinutes: 90, completedHours: 1.5, totalHours: 2, percentage: 75, status: "active" });
@@ -93,7 +101,7 @@ describe("CourseEnrollmentDetail", () => {
     expect(await screen.findByRole("heading", { name: "جدول الدورة الأسبوعي" })).toBeInTheDocument();
     expect(screen.getByText("مواعيد أسبوعية متكررة وليست جلسات بتاريخ محدد.")).toBeInTheDocument();
     expect(screen.getByText("السبت")).toBeInTheDocument();
-    expect(screen.getByText("10:00 صباحا - 11:00 صباحا")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "من10:00صباحاإلى11:00صباحا")).toBeInTheDocument();
     expect(screen.queryByText(/2026-09-23/)).not.toBeInTheDocument();
   });
 

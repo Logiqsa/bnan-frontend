@@ -16,6 +16,53 @@ export type SupportedTimeZone = (typeof TIME_ZONE_OPTIONS)[number]["value"];
 
 const supported = new Set<string>(TIME_ZONE_OPTIONS.map((item) => item.value));
 
+export const selectedTimeZone = (): SupportedTimeZone => {
+  if (typeof window === "undefined") return DEFAULT_TIME_ZONE;
+  const stored = window.localStorage.getItem(TIME_ZONE_STORAGE_KEY);
+  return supported.has(stored || "") ? stored as SupportedTimeZone : DEFAULT_TIME_ZONE;
+};
+
+const NativeDateTimeFormat = Intl.DateTimeFormat;
+const nativeToLocaleString = Date.prototype.toLocaleString;
+const nativeToLocaleDateString = Date.prototype.toLocaleDateString;
+const nativeToLocaleTimeString = Date.prototype.toLocaleTimeString;
+let userTimeZoneFormattingInstalled = false;
+
+export const installUserTimeZoneFormatting = () => {
+  if (userTimeZoneFormattingInstalled || typeof window === "undefined") return;
+  userTimeZoneFormattingInstalled = true;
+
+  const options = (value?: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions => ({
+    ...value,
+    timeZone: value?.timeZone || selectedTimeZone(),
+  });
+  const UserDateTimeFormat = function (locales?: Intl.LocalesArgument, value?: Intl.DateTimeFormatOptions) {
+    return new NativeDateTimeFormat(locales, options(value));
+  } as unknown as typeof Intl.DateTimeFormat;
+  UserDateTimeFormat.prototype = NativeDateTimeFormat.prototype;
+  UserDateTimeFormat.supportedLocalesOf = NativeDateTimeFormat.supportedLocalesOf.bind(NativeDateTimeFormat);
+  Intl.DateTimeFormat = UserDateTimeFormat;
+
+  Date.prototype.toLocaleString = function (locales?: Intl.LocalesArgument, value?: Intl.DateTimeFormatOptions) {
+    return nativeToLocaleString.call(this, locales, options(value));
+  };
+  Date.prototype.toLocaleDateString = function (locales?: Intl.LocalesArgument, value?: Intl.DateTimeFormatOptions) {
+    return nativeToLocaleDateString.call(this, locales, options(value));
+  };
+  Date.prototype.toLocaleTimeString = function (locales?: Intl.LocalesArgument, value?: Intl.DateTimeFormatOptions) {
+    return nativeToLocaleTimeString.call(this, locales, options(value));
+  };
+};
+
+export const restoreNativeTimeZoneFormatting = () => {
+  if (!userTimeZoneFormattingInstalled) return;
+  Intl.DateTimeFormat = NativeDateTimeFormat;
+  Date.prototype.toLocaleString = nativeToLocaleString;
+  Date.prototype.toLocaleDateString = nativeToLocaleDateString;
+  Date.prototype.toLocaleTimeString = nativeToLocaleTimeString;
+  userTimeZoneFormattingInstalled = false;
+};
+
 const localeRegionTimeZones: Record<string, SupportedTimeZone> = {
   SA: "Asia/Riyadh",
   EG: "Africa/Cairo",

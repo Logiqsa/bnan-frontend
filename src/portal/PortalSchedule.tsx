@@ -41,6 +41,7 @@ import { apiErrorCode } from "@/lib/courseUi";
 import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow } from "@/lib/zoomWindow";
 import { teacherApplicationsApi } from "@/api/teacherApplicationsApi";
 import { TeacherApplicationDetails } from "@/admin/TeacherApplicationDetails";
+import ScheduleRangeText from "@/components/ScheduleRangeText";
 
 const dayNames = [
   "السبت",
@@ -727,12 +728,7 @@ export default function PortalSchedule({
                                 </h3>
                                 {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && role !== "student" ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
                               </div>
-                              <span
-                                dir="ltr"
-                                className="font-semibold text-primary"
-                              >
-                                {lessonTime(lesson)}
-                              </span>
+                              <ScheduleRangeText className="font-semibold text-primary" startTime={lesson.startTime} endTime={lesson.endTime}/>
                             </div>
                             {role !== "teacher" &&
                               lesson.scheduleKind !== "course" && (

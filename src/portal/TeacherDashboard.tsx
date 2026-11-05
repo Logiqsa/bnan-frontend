@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { teacherPayoutProfileApi } from "@/api/teacherPayoutProfileApi";
 import { useNotificationsContext } from "@/contexts/notifications-context";
 import { notificationLink } from "@/hooks/useNotifications";
-import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import ScheduleRangeText from "@/components/ScheduleRangeText";
 
 const TeacherDashboardContent = () => {
   const { user } = usePortalAuth();
@@ -607,13 +607,7 @@ const TeacherDashboardContent = () => {
                             month: "short",
                           })}
                         </p>
-                        <p
-                          dir="ltr"
-                          className="mt-1 text-muted-foreground sm:text-end"
-                        >
-                          {formatScheduleTime(lesson.startTime, isArabic)}
-                          {lesson.endTime ? ` - ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}
-                        </p>
+                        <p className="mt-1 text-muted-foreground sm:text-end"><ScheduleRangeText startTime={lesson.startTime} endTime={lesson.endTime}/></p>
                       </div>
                     </Link>
                   );

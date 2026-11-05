@@ -1,23 +1,71 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, Eye, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { adminPaymentsApi, type AdminPaymentFilters } from "@/api/adminPaymentsApi";
+import {
+  adminPaymentsApi,
+  type AdminPaymentFilters,
+} from "@/api/adminPaymentsApi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { ApiError } from "@/api/client";
-import { dateLabel, display, entityName, financialStatusLabels, modelLabels, moneyLabel, providerLabels, purposeLabels } from "@/admin/adminFinancialUi";
+import {
+  dateLabel,
+  display,
+  entityName,
+  financialStatusLabels,
+  modelLabels,
+  moneyLabel,
+  providerLabels,
+  purposeLabels,
+} from "@/admin/adminFinancialUi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const errorText = (error: unknown) => error instanceof ApiError ? error.message : "تعذر تحميل المدفوعات.";
-const statuses = ["pending", "authorized", "captured", "completed", "failed", "rejected", "cancelled", "expired", "refunded"];
-const purposes = ["registration", "renewal", "subject_request", "course_enrollment"];
+const errorText = (error: unknown) =>
+  error instanceof ApiError ? error.message : "تعذر تحميل المدفوعات.";
+const statuses = [
+  "pending",
+  "authorized",
+  "captured",
+  "completed",
+  "failed",
+  "rejected",
+  "cancelled",
+  "expired",
+  "refunded",
+];
+const purposes = [
+  "registration",
+  "renewal",
+  "subject_request",
+  "course_enrollment",
+];
 
 export default function AdminPayments() {
   const navigate = useNavigate();
@@ -26,33 +74,549 @@ export default function AdminPayments() {
     page: 1,
     limit: 20,
     status: searchParams.get("status") || "completed,failed",
-    paymentModel: searchParams.get("paymentModel") === "egyptian" || searchParams.get("paymentModel") === "gulf"
-      ? searchParams.get("paymentModel") as AdminPaymentFilters["paymentModel"]
-      : undefined,
+    paymentModel:
+      searchParams.get("paymentModel") === "egyptian" ||
+      searchParams.get("paymentModel") === "gulf"
+        ? (searchParams.get(
+            "paymentModel",
+          ) as AdminPaymentFilters["paymentModel"])
+        : undefined,
   }));
-  const query = useQuery({ queryKey: ["admin-payments", filters], queryFn: () => adminPaymentsApi.list(filters), retry: 1 });
-  const change = (key: keyof AdminPaymentFilters, value?: string | number) => setFilters((current) => ({ ...current, [key]: key === "status" && value === "all" ? "completed,failed" : value || undefined, page: key === "page" ? Number(value) : 1 }));
+  const query = useQuery({
+    queryKey: ["admin-payments", filters],
+    queryFn: () => adminPaymentsApi.list(filters),
+    retry: 1,
+  });
+  const change = (key: keyof AdminPaymentFilters, value?: string | number) =>
+    setFilters((current) => ({
+      ...current,
+      [key]:
+        key === "status" && value === "all"
+          ? "completed,failed"
+          : value || undefined,
+      page: key === "page" ? Number(value) : 1,
+    }));
   const page = query.data?.pagination.current_page || filters.page || 1;
   const lastPage = query.data?.pagination.last_page || 1;
 
-  return <DashboardLayout><div className="mx-auto max-w-7xl space-y-5" dir="rtl"><div><h1 className="text-3xl font-bold">المدفوعات</h1><p className="mt-1 text-muted-foreground">عرض سجلات المدفوعات وحالتها للمتابعة الإدارية فقط.</p></div><Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6"><div className="space-y-1"><Label>نوع الدفع</Label><Select value={filters.paymentModel || "all"} onValueChange={(value) => change("paymentModel", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">الكل</SelectItem><SelectItem value="egyptian">مصري</SelectItem><SelectItem value="gulf">خليجي</SelectItem></SelectContent></Select></div><div className="space-y-1"><Label>المزود</Label><Select value={filters.provider || "all"} onValueChange={(value) => change("provider", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل المزودين</SelectItem><SelectItem value="egyptian">مصري</SelectItem><SelectItem value="tamara">تمارا</SelectItem><SelectItem value="paymob">باي موب</SelectItem></SelectContent></Select></div><div className="space-y-1"><Label>الحالة</Label><Select value={filters.status === "completed,failed" ? "all" : filters.status || "all"} onValueChange={(value) => change("status", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem>{statuses.map((value) => <SelectItem key={value} value={value}>{financialStatusLabels[value] || value}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label>الغرض</Label><Select value={filters.purpose || "all"} onValueChange={(value) => change("purpose", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الأغراض</SelectItem>{purposes.map((value) => <SelectItem key={value} value={value}>{purposeLabels[value] || value}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label htmlFor="payment-from">من</Label><Input id="payment-from" type="date" value={filters.from || ""} onChange={(event) => change("from", event.target.value)} /></div><div className="space-y-1"><Label htmlFor="payment-to">إلى</Label><Input id="payment-to" type="date" value={filters.to || ""} onChange={(event) => change("to", event.target.value)} /></div></CardContent></Card><Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>قائمة المدفوعات {query.data && <span className="text-sm font-normal text-muted-foreground">({query.data.pagination.total})</span>}</CardTitle><Button aria-label="تحديث" variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={query.isFetching ? "animate-spin" : ""} /></Button></CardHeader><CardContent className="p-0">{query.isLoading ? <div className="space-y-3 p-5">{[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-12" />)}</div> : query.isError ? <div role="alert" className="grid gap-3 p-10 text-center"><p>{errorText(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></div> : !query.data?.data.length ? <p className="p-10 text-center text-muted-foreground">لا توجد مدفوعات.</p> : <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>الطالب</TableHead><TableHead>ولي الأمر</TableHead><TableHead>المبلغ</TableHead><TableHead>المزود</TableHead><TableHead>الحالة</TableHead><TableHead>الغرض</TableHead><TableHead>النوع</TableHead><TableHead>المرجع</TableHead><TableHead>التاريخ</TableHead><TableHead /></TableRow></TableHeader><TableBody>{query.data.data.map((payment) => <TableRow key={`${payment.paymentModel}-${payment.id}`}><TableCell>{entityName(payment.student?.user)}</TableCell><TableCell>{entityName(payment.parent?.user)}</TableCell><TableCell>{moneyLabel(payment.amount, payment.currency)}</TableCell><TableCell>{providerLabels[payment.provider || ""] || display(payment.provider)}</TableCell><TableCell><Badge variant={payment.status === "completed" ? "default" : "outline"}>{financialStatusLabels[payment.status || ""] || display(payment.status)}</Badge></TableCell><TableCell>{purposeLabels[payment.purpose || ""] || display(payment.purpose)}</TableCell><TableCell>{modelLabels[payment.paymentModel || ""] || display(payment.paymentModel)}</TableCell><TableCell className="font-mono text-xs">{display(payment.referenceNumber || payment.providerOrderId || payment.providerPaymentId)}</TableCell><TableCell className="whitespace-nowrap text-xs">{dateLabel(payment.createdAt)}</TableCell><TableCell><Button size="sm" variant="outline" onClick={() => navigate(`/admin/payments/${payment.id}?paymentModel=${payment.paymentModel === "EgyptianPayment" ? "egyptian" : "gulf"}`)}><Eye className="ml-1 h-4 w-4" />التفاصيل</Button></TableCell></TableRow>)}</TableBody></Table></div>} {!query.isLoading && !query.isError && <div className="flex items-center justify-between border-t p-4"><Select value={String(filters.limit || 20)} onValueChange={(value) => change("limit", Number(value))}><SelectTrigger aria-label="عدد النتائج" className="w-24"><SelectValue /></SelectTrigger><SelectContent>{[20, 50, 100].map((value) => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select><span className="text-sm">صفحة {page} من {lastPage}</span><div className="flex gap-2"><Button aria-label="الصفحة السابقة" size="icon" variant="outline" disabled={page <= 1} onClick={() => change("page", page - 1)}><ChevronRight /></Button><Button aria-label="الصفحة التالية" size="icon" variant="outline" disabled={page >= lastPage} onClick={() => change("page", page + 1)}><ChevronLeft /></Button></div></div>}</CardContent></Card></div></DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <div className="mx-auto max-w-7xl space-y-5" dir="rtl">
+        <div>
+          <h1 className="text-3xl font-bold">المدفوعات</h1>
+          <p className="mt-1 text-muted-foreground">
+            عرض سجلات المدفوعات وحالتها للمتابعة الإدارية فقط.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <div className="space-y-1">
+              <Label>نوع الدفع</Label>
+              <Select
+                value={filters.paymentModel || "all"}
+                onValueChange={(value) =>
+                  change("paymentModel", value === "all" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="egyptian">مصري</SelectItem>
+                  <SelectItem value="gulf">خليجي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>المزود</Label>
+              <Select
+                value={filters.provider || "all"}
+                onValueChange={(value) =>
+                  change("provider", value === "all" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل المزودين</SelectItem>
+                  <SelectItem value="egyptian">مصري</SelectItem>
+                  <SelectItem value="tamara">تمارا</SelectItem>
+                  <SelectItem value="paymob">باي موب</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الحالة</Label>
+              <Select
+                value={
+                  filters.status === "completed,failed"
+                    ? "all"
+                    : filters.status || "all"
+                }
+                onValueChange={(value) =>
+                  change("status", value === "all" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الحالات</SelectItem>
+                  {statuses.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {financialStatusLabels[value] || value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>الغرض</Label>
+              <Select
+                value={filters.purpose || "all"}
+                onValueChange={(value) =>
+                  change("purpose", value === "all" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأغراض</SelectItem>
+                  {purposes.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {purposeLabels[value] || value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="payment-from">من</Label>
+              <Input
+                id="payment-from"
+                type="date"
+                value={filters.from || ""}
+                onChange={(event) => change("from", event.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="payment-to">إلى</Label>
+              <Input
+                id="payment-to"
+                type="date"
+                value={filters.to || ""}
+                onChange={(event) => change("to", event.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              قائمة المدفوعات{" "}
+              {query.data && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({query.data.pagination.total})
+                </span>
+              )}
+            </CardTitle>
+            <Button
+              aria-label="تحديث"
+              variant="outline"
+              size="sm"
+              onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+            >
+              <RefreshCw className={query.isFetching ? "animate-spin" : ""} />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {query.isLoading ? (
+              <div className="space-y-3 p-5">
+                {[1, 2, 3, 4].map((item) => (
+                  <Skeleton key={item} className="h-12" />
+                ))}
+              </div>
+            ) : query.isError ? (
+              <div role="alert" className="grid gap-3 p-10 text-center">
+                <p>{errorText(query.error)}</p>
+                <Button variant="outline" onClick={() => void query.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : !query.data?.data.length ? (
+              <p className="p-10 text-center text-muted-foreground">
+                لا توجد مدفوعات.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>الطالب</TableHead>
+                      <TableHead>ولي الأمر</TableHead>
+                      <TableHead>المبلغ</TableHead>
+                      <TableHead>المزود</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>الغرض</TableHead>
+                      <TableHead>النوع</TableHead>
+                      <TableHead>المرجع</TableHead>
+                      <TableHead>التاريخ</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {query.data.data.map((payment) => (
+                      <TableRow key={`${payment.paymentModel}-${payment.id}`}>
+                        <TableCell>
+                          {entityName(payment.student?.user)}
+                        </TableCell>
+                        <TableCell>
+                          {entityName(payment.parent?.user)}
+                        </TableCell>
+                        <TableCell>
+                          {moneyLabel(payment.amount, payment.currency)}
+                        </TableCell>
+                        <TableCell>
+                          {providerLabels[payment.provider || ""] ||
+                            display(payment.provider)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              payment.status === "completed"
+                                ? "default"
+                                : "outline"
+                            }
+                          >
+                            {financialStatusLabels[payment.status || ""] ||
+                              display(payment.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {purposeLabels[payment.purpose || ""] ||
+                            display(payment.purpose)}
+                        </TableCell>
+                        <TableCell>
+                          {modelLabels[payment.paymentModel || ""] ||
+                            display(payment.paymentModel)}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {display(
+                            payment.referenceNumber ||
+                              payment.providerOrderId ||
+                              payment.providerPaymentId,
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {dateLabel(payment.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(
+                                `/admin/payments/${payment.id}?paymentModel=${payment.paymentModel === "EgyptianPayment" ? "egyptian" : "gulf"}`,
+                              )
+                            }
+                          >
+                            <Eye className="ml-1 h-4 w-4" />
+                            التفاصيل
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}{" "}
+            {!query.isLoading && !query.isError && (
+              <div className="flex items-center justify-between border-t p-4">
+                <Select
+                  value={String(filters.limit || 20)}
+                  onValueChange={(value) => change("limit", Number(value))}
+                >
+                  <SelectTrigger aria-label="عدد النتائج" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[20, 50, 100].map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm">
+                  صفحة {page} من {lastPage}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    aria-label="الصفحة السابقة"
+                    size="icon"
+                    variant="outline"
+                    disabled={page <= 1}
+                    onClick={() => change("page", page - 1)}
+                  >
+                    <ChevronRight />
+                  </Button>
+                  <Button
+                    aria-label="الصفحة التالية"
+                    size="icon"
+                    variant="outline"
+                    disabled={page >= lastPage}
+                    onClick={() => change("page", page + 1)}
+                  >
+                    <ChevronLeft />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
 }
 
 export function AdminPaymentDetail() {
   const navigate = useNavigate();
   const { id: pathId = "" } = useParams();
   const [params] = useSearchParams();
-  const paymentModel = params.get("paymentModel") === "egyptian" || params.get("paymentModel") === "gulf" ? params.get("paymentModel") as "egyptian" | "gulf" : undefined;
-  const query = useQuery({ queryKey: ["admin-payment", pathId, paymentModel], queryFn: () => adminPaymentsApi.getById(pathId, paymentModel), enabled: Boolean(pathId), retry: false });
+  const paymentModel =
+    params.get("paymentModel") === "egyptian" ||
+    params.get("paymentModel") === "gulf"
+      ? (params.get("paymentModel") as "egyptian" | "gulf")
+      : undefined;
+  const query = useQuery({
+    queryKey: ["admin-payment", pathId, paymentModel],
+    queryFn: () => adminPaymentsApi.getById(pathId, paymentModel),
+    enabled: Boolean(pathId),
+    retry: false,
+  });
   const payment = query.data;
-  const field = (label: string, value: unknown) => <div key={label} className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{display(value)}</p></div>;
+  const field = (label: string, value: unknown) => (
+    <div key={label} className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium">{display(value)}</p>
+    </div>
+  );
   const isTamara = payment?.provider === "tamara";
-  const providerFields: Array<[string, unknown]> = payment?.provider === "egyptian" ? [] : [
-    [`الحالة لدى ${isTamara ? "تمارا" : "Paymob"}`, payment?.providerStatus],
-    [isTamara ? "Tamara Order ID" : "Paymob Intention ID", payment?.providerOrderId],
-    [isTamara ? "Tamara Checkout ID" : "Paymob Intention Order ID", payment?.providerCheckoutId],
-    [isTamara ? "Tamara Payment ID" : "Paymob Transaction ID", payment?.providerPaymentId],
-    ...(isTamara ? [["وقت طلب Authorise", payment?.authorisationRequestedAt], ["وقت طلب Capture", payment?.captureRequestedAt]] as Array<[string, unknown]> : []),
-  ].filter(([, value]) => value != null && value !== "");
-  return <DashboardLayout><div className="mx-auto max-w-5xl space-y-5" dir="rtl"><Button variant="ghost" onClick={() => navigate("/admin/payments")}><ArrowLeft className="ml-1 h-4 w-4" />العودة للمدفوعات</Button><Card><CardHeader><CardTitle>تفاصيل الدفع</CardTitle></CardHeader><CardContent>{query.isLoading ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-14" />)}</div> : query.isError ? <div role="alert" className="grid gap-3 py-10 text-center"><p>{errorText(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></div> : payment ? <div className="space-y-5"><div className="grid gap-3 sm:grid-cols-2">{field("معرف الدفع", payment.id)}{payment.student?.user && field("الطالب", entityName(payment.student.user))}{payment.parent?.user && field("ولي الأمر", entityName(payment.parent.user))}{field("المبلغ", moneyLabel(payment.amount, payment.currency))}{field("المزود", providerLabels[payment.provider || ""] || payment.provider)}{field("الحالة", financialStatusLabels[payment.status || ""] || payment.status)}{payment.paymentStatus && field("حالة التحصيل", payment.paymentStatus)}{field("الغرض", purposeLabels[payment.purpose || ""] || payment.purpose)}{field("نوع الدفع", modelLabels[payment.paymentModel || ""] || payment.paymentModel)}{payment.referenceNumber && field("رقم المرجع", payment.referenceNumber)}{providerFields.map(([label, value]) => field(label, String(label).startsWith("وقت") ? dateLabel(value as string) : value))}{payment.package && field("الباقة", entityName(payment.package))}{payment.subject && field("المادة", entityName(payment.subject))}{payment.course && field("الدورة", entityName(payment.course))}{field("تاريخ الإنشاء", dateLabel(payment.createdAt))}{field("آخر تحديث", dateLabel(payment.updatedAt))}{payment.confirmedAt && field("تاريخ التأكيد", dateLabel(payment.confirmedAt))}{payment.completedAt && field("تاريخ الإكمال", dateLabel(payment.completedAt))}{payment.paidAt && field("تاريخ الدفع", dateLabel(payment.paidAt))}</div>{payment.receiptImage && <div className="rounded-lg border p-4"><p className="mb-2 text-sm font-semibold">إثبات الدفع</p><a className="text-primary underline" href={payment.receiptImage} target="_blank" rel="noreferrer">عرض الإيصال</a></div>}{payment.items?.length ? <div><h2 className="mb-2 font-semibold">بنود الدفع</h2><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>البند</TableHead><TableHead>الباقة</TableHead><TableHead>المادة</TableHead><TableHead>المبلغ</TableHead><TableHead>الحالة</TableHead></TableRow></TableHeader><TableBody>{payment.items.map((item) => <TableRow key={item.id}><TableCell>{display(item.lineKey)}</TableCell><TableCell>{entityName(item.package)}</TableCell><TableCell>{entityName(item.subject)}</TableCell><TableCell>{moneyLabel(item.finalAmount ?? item.price, item.currency)}</TableCell><TableCell>{financialStatusLabels[item.status || ""] || display(item.status)}</TableCell></TableRow>)}</TableBody></Table></div></div> : null}</div> : <p className="py-10 text-center">الدفع غير موجود.</p>}</CardContent></Card></div></DashboardLayout>;
+  const providerFields: Array<[string, unknown]> =
+    payment?.provider === "egyptian"
+      ? []
+      : [
+          [
+            `الحالة لدى ${isTamara ? "تمارا" : "Paymob"}`,
+            payment?.providerStatus,
+          ],
+          [
+            isTamara ? "Tamara Order ID" : "Paymob Intention ID",
+            payment?.providerOrderId,
+          ],
+          [
+            isTamara ? "Tamara Checkout ID" : "Paymob Intention Order ID",
+            payment?.providerCheckoutId,
+          ],
+          [
+            isTamara ? "Tamara Payment ID" : "Paymob Transaction ID",
+            payment?.providerPaymentId,
+          ],
+          ...(isTamara
+            ? ([
+                ["وقت طلب Authorise", payment?.authorisationRequestedAt],
+                ["وقت طلب Capture", payment?.captureRequestedAt],
+              ] as Array<[string, unknown]>)
+            : []),
+        ].filter(([, value]) => value != null && value !== "");
+  const providerPortal =
+    payment?.provider === "paymob"
+      ? {
+          href: "https://accept.paymob.com/portal/en/transactions",
+          label: "فتح معاملات Paymob",
+          hint: payment.providerPaymentId
+            ? `ابحث برقم العملية: ${payment.providerPaymentId}`
+            : "ابحث بمعرف العملية الظاهر أدناه",
+        }
+      : payment?.provider === "tamara"
+        ? {
+            href: "https://partners.tamara.co",
+            label: "فتح طلبات Tamara",
+            hint: payment.providerOrderId
+              ? `ابحث برقم الطلب: ${payment.providerOrderId}`
+              : "ابحث بمعرف الطلب الظاهر أدناه",
+          }
+        : null;
+  return (
+    <DashboardLayout>
+      <div className="mx-auto max-w-5xl space-y-5" dir="rtl">
+        <Button variant="ghost" onClick={() => navigate("/admin/payments")}>
+          <ArrowLeft className="ml-1 h-4 w-4" />
+          العودة للمدفوعات
+        </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>تفاصيل الدفع</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {query.isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((item) => (
+                  <Skeleton key={item} className="h-14" />
+                ))}
+              </div>
+            ) : query.isError ? (
+              <div role="alert" className="grid gap-3 py-10 text-center">
+                <p>{errorText(query.error)}</p>
+                <Button variant="outline" onClick={() => void query.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : payment ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {field("معرف الدفع", payment.id)}
+                  {payment.student?.user &&
+                    field("الطالب", entityName(payment.student.user))}
+                  {payment.parent?.user &&
+                    field("ولي الأمر", entityName(payment.parent.user))}
+                  {field(
+                    "المبلغ",
+                    moneyLabel(payment.amount, payment.currency),
+                  )}
+                  {field(
+                    "المزود",
+                    providerLabels[payment.provider || ""] || payment.provider,
+                  )}
+                  {field(
+                    "الحالة",
+                    financialStatusLabels[payment.status || ""] ||
+                      payment.status,
+                  )}
+                  {payment.paymentStatus &&
+                    field("حالة التحصيل", payment.paymentStatus)}
+                  {field(
+                    "الغرض",
+                    purposeLabels[payment.purpose || ""] || payment.purpose,
+                  )}
+                  {field(
+                    "نوع الدفع",
+                    modelLabels[payment.paymentModel || ""] ||
+                      payment.paymentModel,
+                  )}
+                  {payment.referenceNumber &&
+                    field("رقم المرجع", payment.referenceNumber)}
+                  {payment.package &&
+                    field("الباقة", entityName(payment.package))}
+                  {payment.subject &&
+                    field("المادة", entityName(payment.subject))}
+                  {payment.course &&
+                    field("الدورة", entityName(payment.course))}
+                  {field("تاريخ الإنشاء", dateLabel(payment.createdAt))}
+                  {field("آخر تحديث", dateLabel(payment.updatedAt))}
+                  {payment.confirmedAt &&
+                    field("تاريخ التأكيد", dateLabel(payment.confirmedAt))}
+                  {payment.completedAt &&
+                    field("تاريخ الإكمال", dateLabel(payment.completedAt))}
+                  {payment.paidAt &&
+                    field("تاريخ الدفع", dateLabel(payment.paidAt))}
+                </div>
+                {providerFields.length > 0 && (
+                  <section className="space-y-3 rounded-xl border border-primary/20 bg-primary/[0.02] p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-bold">تفاصيل مزود الدفع</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          بيانات الربط المسجلة لدى {isTamara ? "Tamara" : "Paymob"}.
+                        </p>
+                      </div>
+                      {providerPortal && (
+                        <div className="space-y-1 sm:text-end">
+                          <Button variant="outline" asChild>
+                            <a href={providerPortal.href} target="_blank" rel="noreferrer">
+                              {providerPortal.label}
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                            </a>
+                          </Button>
+                          <p className="text-xs text-muted-foreground" dir="auto">
+                            {providerPortal.hint}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {providerFields.map(([label, value]) =>
+                        field(
+                          label,
+                          String(label).startsWith("وقت")
+                            ? dateLabel(value as string)
+                            : value,
+                        ),
+                      )}
+                    </div>
+                  </section>
+                )}
+                {payment.receiptImage && (
+                  <div className="rounded-lg border p-4">
+                    <p className="mb-2 text-sm font-semibold">إثبات الدفع</p>
+                    <a
+                      className="text-primary underline"
+                      href={payment.receiptImage}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      عرض الإيصال
+                    </a>
+                  </div>
+                )}
+                {payment.items?.length ? (
+                  <div>
+                    <h2 className="mb-2 font-semibold">بنود الدفع</h2>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>البند</TableHead>
+                            <TableHead>الباقة</TableHead>
+                            <TableHead>المادة</TableHead>
+                            <TableHead>المبلغ</TableHead>
+                            <TableHead>الحالة</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {payment.items.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>{display(item.lineKey)}</TableCell>
+                              <TableCell>{entityName(item.package)}</TableCell>
+                              <TableCell>{entityName(item.subject)}</TableCell>
+                              <TableCell>
+                                {moneyLabel(
+                                  item.finalAmount ?? item.price,
+                                  item.currency,
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {financialStatusLabels[item.status || ""] ||
+                                  display(item.status)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="py-10 text-center">الدفع غير موجود.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
 }

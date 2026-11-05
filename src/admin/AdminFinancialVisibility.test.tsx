@@ -31,9 +31,11 @@ describe("Admin financial visibility screens", () => {
 
   it("renders payment list and payment detail without mutation controls", async () => {
     mocks.listPayments.mockResolvedValue(paymentResponse);
-    mocks.getPayment.mockResolvedValue(paymentResponse.data[0]);
+    mocks.getPayment.mockResolvedValue({ ...paymentResponse.data[0], provider: "paymob", providerStatus: "success", providerPaymentId: "12028259" });
     render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/payments/payment-1?paymentModel=gulf"]}><Routes><Route path="/admin/payments" element={<AdminPayments />} /><Route path="/admin/payments/:id" element={<AdminPaymentDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText("٢٥٠ SAR")).toBeInTheDocument();
+    expect(screen.getByText("تفاصيل مزود الدفع")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /فتح معاملات Paymob/ })).toHaveAttribute("href", "https://accept.paymob.com/portal/en/transactions");
     expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
   });
 

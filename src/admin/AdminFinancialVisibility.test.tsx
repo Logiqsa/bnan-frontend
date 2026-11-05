@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import AdminSubscriptions, { AdminSubscriptionDetail } from "./AdminSubscriptions";
@@ -24,6 +24,9 @@ describe("Admin financial visibility screens", () => {
     expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "الصفحة التالية" }));
     expect(mocks.listSubscriptions).toHaveBeenCalledWith(expect.objectContaining({ page: 3, limit: 20 }));
+    fireEvent.change(screen.getByLabelText("بحث"), { target: { value: "tamara-order" } });
+    fireEvent.click(screen.getByRole("button", { name: "بحث" }));
+    await waitFor(() => expect(mocks.listSubscriptions).toHaveBeenCalledWith(expect.objectContaining({ search: "tamara-order", page: 1 })));
   });
 
   it("renders payment list and payment detail without mutation controls", async () => {
@@ -35,9 +38,11 @@ describe("Admin financial visibility screens", () => {
   });
 
   it("loads a subscription detail route", async () => {
-    mocks.getSubscription.mockResolvedValue({ ...subscriptionResponse.data[0], createdAt: "2026-01-01T00:00:00.000Z" });
+    mocks.getSubscription.mockResolvedValue({ ...subscriptionResponse.data[0], createdAt: "2026-01-01T00:00:00.000Z", payment: { id: "payment-1", provider: "tamara", providerOrderId: "tamara-order-1", providerCheckoutId: "tamara-checkout-1", providerStatus: "fully_captured", paymentStatus: "paid", status: "completed" } });
     render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/subscriptions/sub-1"]}><Routes><Route path="/admin/subscriptions/:id" element={<AdminSubscriptionDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText("تفاصيل الاشتراك")).toBeInTheDocument();
     expect(screen.getByText("sub-1")).toBeInTheDocument();
+    expect(screen.getByText("tamara-order-1")).toBeInTheDocument();
+    expect(screen.getByText("fully_captured")).toBeInTheDocument();
   });
 });

@@ -1,62 +1,563 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Eye, RefreshCw, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Eye,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { adminSubscriptionsApi, type AdminSubscriptionFilters } from "@/api/adminSubscriptionsApi";
+import {
+  adminSubscriptionsApi,
+  type AdminSubscriptionFilters,
+} from "@/api/adminSubscriptionsApi";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { ApiError } from "@/api/client";
-import { dateLabel, display, entityName, financialStatusLabels, moneyLabel, providerLabels } from "@/admin/adminFinancialUi";
+import {
+  dateLabel,
+  display,
+  entityName,
+  financialStatusLabels,
+  moneyLabel,
+  providerLabels,
+} from "@/admin/adminFinancialUi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import FinancialSectionNav from "@/admin/FinancialSectionNav";
 
-const errorText = (error: unknown) => error instanceof ApiError ? error.message : "تعذر تحميل الاشتراكات.";
-const statusOptions = [["active", "نشط"], ["grace_period", "فترة سماح"], ["suspended", "موقوف"], ["expired", "منتهي"], ["cancelled", "ملغي"]];
+const errorText = (error: unknown) =>
+  error instanceof ApiError ? error.message : "تعذر تحميل الاشتراكات.";
+const statusOptions = [
+  ["active", "نشط"],
+  ["grace_period", "فترة سماح"],
+  ["suspended", "موقوف"],
+  ["expired", "منتهي"],
+  ["cancelled", "ملغي"],
+];
+const packageTypeLabels: Record<string, string> = {
+  hours: "بالساعات",
+  monthly: "شهري",
+};
+const accessScopeLabels: Record<string, string> = {
+  all_subjects: "كل المواد",
+  shared_subjects: "مواد مشتركة",
+  single_subject: "مادة واحدة",
+};
 
 export default function AdminSubscriptions() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<AdminSubscriptionFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminSubscriptionFilters>({
+    page: 1,
+    limit: 20,
+  });
   const [searchText, setSearchText] = useState("");
-  const query = useQuery({ queryKey: ["admin-subscriptions", filters], queryFn: () => adminSubscriptionsApi.list(filters), retry: 1 });
-  const change = (key: keyof AdminSubscriptionFilters, value?: string | number) => setFilters((current) => ({ ...current, [key]: value || undefined, page: key === "page" ? Number(value) : 1 }));
+  const query = useQuery({
+    queryKey: ["admin-subscriptions", filters],
+    queryFn: () => adminSubscriptionsApi.list(filters),
+    retry: 1,
+  });
+  const change = (
+    key: keyof AdminSubscriptionFilters,
+    value?: string | number,
+  ) =>
+    setFilters((current) => ({
+      ...current,
+      [key]: value || undefined,
+      page: key === "page" ? Number(value) : 1,
+    }));
   const page = query.data?.pagination.current_page || filters.page || 1;
   const lastPage = query.data?.pagination.last_page || 1;
 
-  return <DashboardLayout><div className="mx-auto max-w-7xl space-y-5" dir="rtl">
-    <div><h1 className="text-3xl font-bold">اشتراكات الطلاب</h1><p className="mt-1 text-muted-foreground">هنا تتابع الخدمة المفعلة للطالب: الباقة والمواد والساعات المتبقية ومدة الصلاحية.</p></div>
-    <FinancialSectionNav />
-    <Card><CardContent className="p-4"><form className="flex flex-col gap-2 sm:flex-row sm:items-end" onSubmit={(event) => { event.preventDefault(); change("search", searchText.trim()); }}><div className="min-w-0 flex-1"><Label htmlFor="subscription-search">بحث</Label><div className="relative mt-1"><Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input id="subscription-search" className="pr-9" placeholder="الطالب، ولي الأمر، معرف الاشتراك أو مرجع الدفع" value={searchText} onChange={(event) => setSearchText(event.target.value)} /></div></div><Button type="submit">بحث</Button></form></CardContent></Card>
-    <Card><CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4"><div className="space-y-1"><Label>الحالة</Label><Select value={filters.status || "all"} onValueChange={(value) => change("status", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1"><Label>النظام (مصري/خليجي)</Label><Select value={filters.registrationMode || "all"} onValueChange={(value) => change("registrationMode", value === "all" ? undefined : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">كل الأنظمة</SelectItem><SelectItem value="egyptian">مصري</SelectItem><SelectItem value="gulf">خليجي</SelectItem></SelectContent></Select></div><div className="space-y-1"><Label htmlFor="subscription-from">من</Label><Input id="subscription-from" type="date" value={filters.from || ""} onChange={(event) => change("from", event.target.value)} /></div><div className="space-y-1"><Label htmlFor="subscription-to">إلى</Label><Input id="subscription-to" type="date" value={filters.to || ""} onChange={(event) => change("to", event.target.value)} /></div></CardContent></Card>
-    <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>قائمة الاشتراكات {query.data && <span className="text-sm font-normal text-muted-foreground">({query.data.pagination.total})</span>}</CardTitle><Button aria-label="تحديث" variant="outline" size="sm" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshCw className={query.isFetching ? "animate-spin" : ""} /></Button></CardHeader><CardContent className="p-0">{query.isLoading ? <div className="space-y-3 p-5">{[1, 2, 3, 4].map((item) => <Skeleton key={item} className="h-12" />)}</div> : query.isError ? <div role="alert" className="grid gap-3 p-10 text-center"><p>{errorText(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></div> : !query.data?.data.length ? <p className="p-10 text-center text-muted-foreground">لا توجد اشتراكات.</p> : <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>الطالب</TableHead><TableHead>ولي الأمر</TableHead><TableHead>المنهج</TableHead><TableHead>الباقة</TableHead><TableHead>المادة</TableHead><TableHead>النطاق/النوع</TableHead><TableHead>الحالة</TableHead><TableHead>البداية</TableHead><TableHead>الانتهاء</TableHead><TableHead>السعر</TableHead><TableHead /></TableRow></TableHeader><TableBody>{query.data.data.map((subscription) => <TableRow key={subscription.id}><TableCell>{entityName(subscription.student?.user)}</TableCell><TableCell>{entityName(subscription.parent?.user)}</TableCell><TableCell>{entityName(subscription.curriculum || subscription.student?.curriculum)}</TableCell><TableCell>{entityName(subscription.package)}</TableCell><TableCell>{subscription.subject ? entityName(subscription.subject) : subscription.coveredSubjects?.map((subject) => subject.name).join("، ") || (subscription.accessScope === "shared_subjects" ? "مواد مشتركة" : "—")}</TableCell><TableCell>{display(subscription.accessScope)} / {display(subscription.packageType)}</TableCell><TableCell><Badge variant={subscription.status === "active" ? "default" : "outline"}>{financialStatusLabels[subscription.status || ""] || display(subscription.status)}</Badge></TableCell><TableCell className="whitespace-nowrap text-xs">{dateLabel(subscription.startDate)}</TableCell><TableCell className="whitespace-nowrap text-xs">{subscription.endDate ? dateLabel(subscription.endDate) : "مفتوح حسب الرصيد"}</TableCell><TableCell>{moneyLabel(subscription.paidPrice, subscription.package?.currency)}</TableCell><TableCell><Button size="sm" variant="outline" onClick={() => navigate(`/admin/subscriptions/${subscription.id}`)}><Eye className="ml-1 h-4 w-4" />التفاصيل</Button></TableCell></TableRow>)}</TableBody></Table></div>} {!query.isLoading && !query.isError && <div className="flex items-center justify-between border-t p-4"><Select value={String(filters.limit || 20)} onValueChange={(value) => change("limit", Number(value))}><SelectTrigger aria-label="عدد النتائج" className="w-24"><SelectValue /></SelectTrigger><SelectContent>{[20, 50, 100].map((value) => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select><span className="text-sm">صفحة {page} من {lastPage}</span><div className="flex gap-2"><Button aria-label="الصفحة السابقة" size="icon" variant="outline" disabled={page <= 1} onClick={() => change("page", page - 1)}><ChevronRight /></Button><Button aria-label="الصفحة التالية" size="icon" variant="outline" disabled={page >= lastPage} onClick={() => change("page", page + 1)}><ChevronLeft /></Button></div></div>}</CardContent></Card>
-  </div></DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <div className="mx-auto max-w-7xl space-y-5" dir="rtl">
+        <div>
+          <h1 className="text-3xl font-bold">اشتراكات الطلاب</h1>
+          <p className="mt-1 text-muted-foreground">
+            هنا تتابع الخدمة المفعلة للطالب: الباقة والمواد والساعات المتبقية
+            ومدة الصلاحية.
+          </p>
+        </div>
+        <FinancialSectionNav />
+        <Card>
+          <CardContent className="p-4">
+            <form
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
+              onSubmit={(event) => {
+                event.preventDefault();
+                change("search", searchText.trim());
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <Label htmlFor="subscription-search">بحث</Label>
+                <div className="relative mt-1">
+                  <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="subscription-search"
+                    className="pr-9"
+                    placeholder="الطالب، ولي الأمر، معرف الاشتراك أو مرجع الدفع"
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                  />
+                </div>
+              </div>
+              <Button type="submit">بحث</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1">
+              <Label>الحالة</Label>
+              <Select
+                value={filters.status || "all"}
+                onValueChange={(value) =>
+                  change("status", value === "all" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الحالات</SelectItem>
+                  {statusOptions.map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>النظام (مصري/خليجي)</Label>
+              <Select
+                value={filters.registrationMode || "all"}
+                onValueChange={(value) =>
+                  change(
+                    "registrationMode",
+                    value === "all" ? undefined : value,
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأنظمة</SelectItem>
+                  <SelectItem value="egyptian">مصري</SelectItem>
+                  <SelectItem value="gulf">خليجي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="subscription-from">من</Label>
+              <Input
+                id="subscription-from"
+                type="date"
+                value={filters.from || ""}
+                onChange={(event) => change("from", event.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="subscription-to">إلى</Label>
+              <Input
+                id="subscription-to"
+                type="date"
+                value={filters.to || ""}
+                onChange={(event) => change("to", event.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              قائمة الاشتراكات{" "}
+              {query.data && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({query.data.pagination.total})
+                </span>
+              )}
+            </CardTitle>
+            <Button
+              aria-label="تحديث"
+              variant="outline"
+              size="sm"
+              onClick={() => void query.refetch()}
+              disabled={query.isFetching}
+            >
+              <RefreshCw className={query.isFetching ? "animate-spin" : ""} />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {query.isLoading ? (
+              <div className="space-y-3 p-5">
+                {[1, 2, 3, 4].map((item) => (
+                  <Skeleton key={item} className="h-12" />
+                ))}
+              </div>
+            ) : query.isError ? (
+              <div role="alert" className="grid gap-3 p-10 text-center">
+                <p>{errorText(query.error)}</p>
+                <Button variant="outline" onClick={() => void query.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : !query.data?.data.length ? (
+              <p className="p-10 text-center text-muted-foreground">
+                لا توجد اشتراكات.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>الطالب</TableHead>
+                      <TableHead>ولي الأمر</TableHead>
+                      <TableHead>المنهج</TableHead>
+                      <TableHead>الباقة</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>المتبقي</TableHead>
+                      <TableHead>البداية</TableHead>
+                      <TableHead>الانتهاء</TableHead>
+                      <TableHead>السعر</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {query.data.data.map((subscription) => (
+                      <TableRow key={subscription.id}>
+                        <TableCell>
+                          {entityName(subscription.student?.user)}
+                        </TableCell>
+                        <TableCell>
+                          {entityName(subscription.parent?.user)}
+                        </TableCell>
+                        <TableCell>
+                          {entityName(
+                            subscription.curriculum ||
+                              subscription.student?.curriculum,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {entityName(subscription.package)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              subscription.status === "active"
+                                ? "default"
+                                : "outline"
+                            }
+                          >
+                            {financialStatusLabels[subscription.status || ""] ||
+                              display(subscription.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {subscription.packageType === "hours" &&
+                          subscription.remainingHours != null
+                            ? `${subscription.remainingHours} ساعة`
+                            : packageTypeLabels[
+                                subscription.packageType || ""
+                              ] || "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {dateLabel(subscription.startDate)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {subscription.endDate
+                            ? dateLabel(subscription.endDate)
+                            : "مفتوح حسب الرصيد"}
+                        </TableCell>
+                        <TableCell>
+                          {moneyLabel(
+                            subscription.paidPrice,
+                            subscription.package?.currency,
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(
+                                `/admin/subscriptions/${subscription.id}`,
+                              )
+                            }
+                          >
+                            <Eye className="ml-1 h-4 w-4" />
+                            التفاصيل
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}{" "}
+            {!query.isLoading && !query.isError && (
+              <div className="flex items-center justify-between border-t p-4">
+                <Select
+                  value={String(filters.limit || 20)}
+                  onValueChange={(value) => change("limit", Number(value))}
+                >
+                  <SelectTrigger aria-label="عدد النتائج" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[20, 50, 100].map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm">
+                  صفحة {page} من {lastPage}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    aria-label="الصفحة السابقة"
+                    size="icon"
+                    variant="outline"
+                    disabled={page <= 1}
+                    onClick={() => change("page", page - 1)}
+                  >
+                    <ChevronRight />
+                  </Button>
+                  <Button
+                    aria-label="الصفحة التالية"
+                    size="icon"
+                    variant="outline"
+                    disabled={page >= lastPage}
+                    onClick={() => change("page", page + 1)}
+                  >
+                    <ChevronLeft />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
 }
 
 export function AdminSubscriptionDetail() {
   const navigate = useNavigate();
   const { id = "" } = useParams();
-  const query = useQuery({ queryKey: ["admin-subscription", id], queryFn: () => adminSubscriptionsApi.getById(id), enabled: Boolean(id), retry: false });
+  const query = useQuery({
+    queryKey: ["admin-subscription", id],
+    queryFn: () => adminSubscriptionsApi.getById(id),
+    enabled: Boolean(id),
+    retry: false,
+  });
   const subscription = query.data;
-  const paymentField = (label: string, value: unknown) => <div key={label} className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-all text-sm font-medium" dir="auto">{display(value)}</p></div>;
-  const field = (label: string, value: unknown) => <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{display(value)}</p></div>;
+  const paymentField = (label: string, value: unknown) => (
+    <div
+      key={label}
+      className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3"
+    >
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 break-all text-sm font-medium" dir="auto">
+        {display(value)}
+      </p>
+    </div>
+  );
+  const field = (label: string, value: unknown) => (
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium">{display(value)}</p>
+    </div>
+  );
   const payment = subscription?.payment;
   const isTamara = payment?.provider === "tamara";
-  const paymentDetails: Array<[string, unknown]> = payment ? [
-    ["مزود الدفع", providerLabels[payment.provider || ""] || payment.provider],
-    ["حالة الدفع الداخلية", payment.status],
-    ["حالة التحصيل", payment.paymentStatus],
-    [`الحالة لدى ${isTamara ? "تمارا" : "Paymob"}`, payment.providerStatus],
-    [isTamara ? "Tamara Order ID" : "Paymob Intention ID", payment.providerOrderId],
-    [isTamara ? "Tamara Checkout ID" : "Paymob Intention Order ID", payment.providerCheckoutId],
-    [isTamara ? "Tamara Payment ID" : "Paymob Transaction ID", payment.providerPaymentId],
-    ...(isTamara ? [["وقت طلب Authorise", payment.authorisationRequestedAt], ["وقت طلب Capture", payment.captureRequestedAt]] : []),
-    ["وقت الدفع", payment.paidAt],
-    ["وقت اكتمال العملية", payment.completedAt],
-  ].filter(([, value]) => value != null && value !== "") : [];
-  return <DashboardLayout><div className="mx-auto max-w-5xl space-y-5" dir="rtl"><Button variant="ghost" onClick={() => navigate("/admin/subscriptions")}><ArrowLeft className="ml-1 h-4 w-4" />العودة للاشتراكات</Button><Card><CardHeader><CardTitle>تفاصيل الاشتراك</CardTitle></CardHeader><CardContent>{query.isLoading ? <div className="space-y-3">{[1, 2, 3].map((item) => <Skeleton key={item} className="h-14" />)}</div> : query.isError ? <div role="alert" className="grid gap-3 py-10 text-center"><p>{errorText(query.error)}</p><Button variant="outline" onClick={() => void query.refetch()}>إعادة المحاولة</Button></div> : subscription ? <div className="grid gap-3 sm:grid-cols-2">{field("معرف الاشتراك", subscription.id)}{field("الطالب", entityName(subscription.student?.user))}{field("ولي الأمر", entityName(subscription.parent?.user))}{field("المنهج", entityName(subscription.curriculum || subscription.student?.curriculum))}{field("الصف", entityName(subscription.grade || subscription.student?.grade))}{field("الباقة", entityName(subscription.package))}{field("المواد", subscription.subject ? entityName(subscription.subject) : subscription.coveredSubjects?.map((subject) => subject.name).join("، ") || "مواد مشتركة")}{field("النوع", subscription.packageType)}{field("نطاق الوصول", subscription.accessScope)}{field("الحالة", financialStatusLabels[subscription.status || ""] || subscription.status)}{subscription.purchasedHours != null && field("الساعات المشتراة", subscription.purchasedHours)}{subscription.remainingHours != null && field("الساعات المتبقية", subscription.remainingHours)}{field("السعر المدفوع", moneyLabel(subscription.paidPrice, subscription.package?.currency))}{field("تاريخ البداية", dateLabel(subscription.startDate))}{subscription.endDate && field("تاريخ الانتهاء", dateLabel(subscription.endDate))}{subscription.gracePeriodEndsAt && field("نهاية فترة السماح", dateLabel(subscription.gracePeriodEndsAt))}{subscription.renewedFrom?.id && field("مرجع التجديد", subscription.renewedFrom.id)}{field("تاريخ الإنشاء", dateLabel(subscription.createdAt))}{field("آخر تحديث", dateLabel(subscription.updatedAt))}{payment && <><div className="mt-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-2"><div><h2 className="text-lg font-bold">تفاصيل عملية الدفع</h2><p className="text-sm text-muted-foreground">بيانات {isTamara ? "تمارا" : "Paymob"} المسجلة لهذه العملية.</p></div><Button variant="outline" onClick={() => navigate(`/admin/payments/${payment.id}?paymentModel=gulf`)}>فتح تفاصيل الدفع<ExternalLink className="mr-2 h-4 w-4" /></Button></div>{paymentDetails.map(([label, value]) => paymentField(String(label), String(label).startsWith("وقت") ? dateLabel(value as string) : value))}</>}</div> : <p className="py-10 text-center">الاشتراك غير موجود.</p>}</CardContent></Card></div></DashboardLayout>;
+  const paymentDetails: Array<[string, unknown]> = payment
+    ? [
+        [
+          "مزود الدفع",
+          providerLabels[payment.provider || ""] || payment.provider,
+        ],
+        ["حالة الدفع الداخلية", payment.status],
+        ["حالة التحصيل", payment.paymentStatus],
+        [`الحالة لدى ${isTamara ? "تمارا" : "Paymob"}`, payment.providerStatus],
+        [
+          isTamara ? "Tamara Order ID" : "Paymob Intention ID",
+          payment.providerOrderId,
+        ],
+        [
+          isTamara ? "Tamara Checkout ID" : "Paymob Intention Order ID",
+          payment.providerCheckoutId,
+        ],
+        [
+          isTamara ? "Tamara Payment ID" : "Paymob Transaction ID",
+          payment.providerPaymentId,
+        ],
+        ...(isTamara
+          ? [
+              ["وقت طلب Authorise", payment.authorisationRequestedAt],
+              ["وقت طلب Capture", payment.captureRequestedAt],
+            ]
+          : []),
+        ["وقت الدفع", payment.paidAt],
+        ["وقت اكتمال العملية", payment.completedAt],
+      ].filter(([, value]) => value != null && value !== "")
+    : [];
+  return (
+    <DashboardLayout>
+      <div className="mx-auto max-w-5xl space-y-5" dir="rtl">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/admin/subscriptions")}
+        >
+          <ArrowLeft className="ml-1 h-4 w-4" />
+          العودة للاشتراكات
+        </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>تفاصيل الاشتراك</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {query.isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((item) => (
+                  <Skeleton key={item} className="h-14" />
+                ))}
+              </div>
+            ) : query.isError ? (
+              <div role="alert" className="grid gap-3 py-10 text-center">
+                <p>{errorText(query.error)}</p>
+                <Button variant="outline" onClick={() => void query.refetch()}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : subscription ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {field("معرف الاشتراك", subscription.id)}
+                {field("الطالب", entityName(subscription.student?.user))}
+                {field("ولي الأمر", entityName(subscription.parent?.user))}
+                {field(
+                  "المنهج",
+                  entityName(
+                    subscription.curriculum || subscription.student?.curriculum,
+                  ),
+                )}
+                {field(
+                  "الصف",
+                  entityName(subscription.grade || subscription.student?.grade),
+                )}
+                {field("الباقة", entityName(subscription.package))}
+                {field(
+                  "المواد",
+                  subscription.subject
+                    ? entityName(subscription.subject)
+                    : subscription.coveredSubjects
+                        ?.map((subject) => subject.name)
+                        .join("، ") || "مواد مشتركة",
+                )}
+                {field(
+                  "نوع الاشتراك",
+                  packageTypeLabels[subscription.packageType || ""] ||
+                    display(subscription.packageType),
+                )}
+                {field(
+                  "نطاق المواد",
+                  accessScopeLabels[subscription.accessScope || ""] ||
+                    display(subscription.accessScope),
+                )}
+                {field(
+                  "الحالة",
+                  financialStatusLabels[subscription.status || ""] ||
+                    subscription.status,
+                )}
+                {subscription.purchasedHours != null &&
+                  field("الساعات المشتراة", subscription.purchasedHours)}
+                {subscription.remainingHours != null &&
+                  field("الساعات المتبقية", subscription.remainingHours)}
+                {field(
+                  "السعر المدفوع",
+                  moneyLabel(
+                    subscription.paidPrice,
+                    subscription.package?.currency,
+                  ),
+                )}
+                {field("تاريخ البداية", dateLabel(subscription.startDate))}
+                {subscription.endDate &&
+                  field("تاريخ الانتهاء", dateLabel(subscription.endDate))}
+                {subscription.gracePeriodEndsAt &&
+                  field(
+                    "نهاية فترة السماح",
+                    dateLabel(subscription.gracePeriodEndsAt),
+                  )}
+                {subscription.renewedFrom?.id &&
+                  field("مرجع التجديد", subscription.renewedFrom.id)}
+                {field("تاريخ الإنشاء", dateLabel(subscription.createdAt))}
+                {field("آخر تحديث", dateLabel(subscription.updatedAt))}
+                {payment && (
+                  <>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
+                      <div>
+                        <h2 className="text-lg font-bold">
+                          تفاصيل عملية الدفع
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          بيانات {isTamara ? "تمارا" : "Paymob"} المسجلة لهذه
+                          العملية.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          navigate(
+                            `/admin/payments/${payment.id}?paymentModel=gulf`,
+                          )
+                        }
+                      >
+                        فتح تفاصيل الدفع
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                    {paymentDetails.map(([label, value]) =>
+                      paymentField(
+                        String(label),
+                        String(label).startsWith("وقت")
+                          ? dateLabel(value as string)
+                          : value,
+                      ),
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="py-10 text-center">الاشتراك غير موجود.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
 }

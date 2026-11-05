@@ -3,48 +3,178 @@ import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import AdminSubscriptions, { AdminSubscriptionDetail } from "./AdminSubscriptions";
+import AdminSubscriptions, {
+  AdminSubscriptionDetail,
+} from "./AdminSubscriptions";
 import AdminPayments, { AdminPaymentDetail } from "./AdminPayments";
 
-const mocks = vi.hoisted(() => ({ listSubscriptions: vi.fn(), getSubscription: vi.fn(), listPayments: vi.fn(), getPayment: vi.fn() }));
-vi.mock("@/api/adminSubscriptionsApi", () => ({ adminSubscriptionsApi: { list: mocks.listSubscriptions, getById: mocks.getSubscription } }));
-vi.mock("@/api/adminPaymentsApi", () => ({ adminPaymentsApi: { list: mocks.listPayments, getById: mocks.getPayment } }));
-vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
+const mocks = vi.hoisted(() => ({
+  listSubscriptions: vi.fn(),
+  getSubscription: vi.fn(),
+  listPayments: vi.fn(),
+  getPayment: vi.fn(),
+}));
+vi.mock("@/api/adminSubscriptionsApi", () => ({
+  adminSubscriptionsApi: {
+    list: mocks.listSubscriptions,
+    getById: mocks.getSubscription,
+  },
+}));
+vi.mock("@/api/adminPaymentsApi", () => ({
+  adminPaymentsApi: { list: mocks.listPayments, getById: mocks.getPayment },
+}));
+vi.mock("@/layouts/DashboardLayout", () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
 
-const subscriptionResponse = { success: true, results: 1, data: [{ id: "sub-1", status: "active", student: { user: { fullName: "طالب" } }, package: { name: "باقة" }, paidPrice: 100, packageType: "hours" }], pagination: { current_page: 2, last_page: 3, per_page: 20, total: 41 } };
-const paymentResponse = { success: true, results: 1, data: [{ id: "payment-1", paymentModel: "Payment", status: "completed", amount: 250, currency: "SAR", provider: "tamara", purpose: "renewal", student: { user: { fullName: "طالب" } } }], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 1 } };
-const client = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const subscriptionResponse = {
+  success: true,
+  results: 1,
+  data: [
+    {
+      id: "sub-1",
+      status: "active",
+      student: { user: { fullName: "طالب" } },
+      package: { name: "باقة" },
+      paidPrice: 100,
+      packageType: "hours",
+      accessScope: "shared_subjects",
+      remainingHours: 8,
+      coveredSubjects: [{ id: "subject-1", name: "لغتي" }],
+    },
+  ],
+  pagination: { current_page: 2, last_page: 3, per_page: 20, total: 41 },
+};
+const paymentResponse = {
+  success: true,
+  results: 1,
+  data: [
+    {
+      id: "payment-1",
+      paymentModel: "Payment",
+      status: "completed",
+      amount: 250,
+      currency: "SAR",
+      provider: "tamara",
+      purpose: "renewal",
+      student: { user: { fullName: "طالب" } },
+    },
+  ],
+  pagination: { current_page: 1, last_page: 1, per_page: 20, total: 1 },
+};
+const client = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 describe("Admin financial visibility screens", () => {
   it("renders subscriptions using backend pagination and has no mutation actions", async () => {
     mocks.listSubscriptions.mockResolvedValue(subscriptionResponse);
-    render(<QueryClientProvider client={client()}><MemoryRouter><AdminSubscriptions /></MemoryRouter></QueryClientProvider>);
+    render(
+      <QueryClientProvider client={client()}>
+        <MemoryRouter>
+          <AdminSubscriptions />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
     expect(await screen.findByText("طالب")).toBeInTheDocument();
+    expect(screen.getByText("8 ساعة")).toBeInTheDocument();
+    expect(screen.queryByText("لغتي")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("shared_subjects / hours"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("صفحة 2 من 3")).toBeInTheDocument();
-    expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/استرداد|إلغاء|حذف|تعديل/),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "الصفحة التالية" }));
-    expect(mocks.listSubscriptions).toHaveBeenCalledWith(expect.objectContaining({ page: 3, limit: 20 }));
-    fireEvent.change(screen.getByLabelText("بحث"), { target: { value: "tamara-order" } });
+    expect(mocks.listSubscriptions).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 3, limit: 20 }),
+    );
+    fireEvent.change(screen.getByLabelText("بحث"), {
+      target: { value: "tamara-order" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "بحث" }));
-    await waitFor(() => expect(mocks.listSubscriptions).toHaveBeenCalledWith(expect.objectContaining({ search: "tamara-order", page: 1 })));
+    await waitFor(() =>
+      expect(mocks.listSubscriptions).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "tamara-order", page: 1 }),
+      ),
+    );
   });
 
   it("renders payment list and payment detail without mutation controls", async () => {
     mocks.listPayments.mockResolvedValue(paymentResponse);
-    mocks.getPayment.mockResolvedValue({ ...paymentResponse.data[0], provider: "paymob", providerStatus: "success", providerPaymentId: "12028259", subscription: { id: "sub-1", coveredSubjects: [{ id: "subject-1", name: "لغتي" }, { id: "subject-2", name: "رياضيات" }] } });
-    render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/payments/payment-1?paymentModel=gulf"]}><Routes><Route path="/admin/payments" element={<AdminPayments />} /><Route path="/admin/payments/:id" element={<AdminPaymentDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
+    mocks.getPayment.mockResolvedValue({
+      ...paymentResponse.data[0],
+      provider: "paymob",
+      providerStatus: "success",
+      providerPaymentId: "12028259",
+      subscription: {
+        id: "sub-1",
+        coveredSubjects: [
+          { id: "subject-1", name: "لغتي" },
+          { id: "subject-2", name: "رياضيات" },
+        ],
+      },
+    });
+    render(
+      <QueryClientProvider client={client()}>
+        <MemoryRouter
+          initialEntries={["/admin/payments/payment-1?paymentModel=gulf"]}
+        >
+          <Routes>
+            <Route path="/admin/payments" element={<AdminPayments />} />
+            <Route
+              path="/admin/payments/:id"
+              element={<AdminPaymentDetail />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
     expect(await screen.findByText("٢٥٠ SAR")).toBeInTheDocument();
     expect(screen.getByText("تفاصيل مزود الدفع")).toBeInTheDocument();
     expect(screen.getByText("لغتي، رياضيات")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /فتح العملية على Paymob/ })).toHaveAttribute("href", "https://ksa.dashboard.paymob.com/transactions/12028259/");
-    expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /فتح العملية على Paymob/ }),
+    ).toHaveAttribute(
+      "href",
+      "https://ksa.dashboard.paymob.com/transactions/12028259/",
+    );
+    expect(
+      screen.queryByText(/استرداد|إلغاء|حذف|تعديل/),
+    ).not.toBeInTheDocument();
   });
 
   it("loads a subscription detail route", async () => {
-    mocks.getSubscription.mockResolvedValue({ ...subscriptionResponse.data[0], createdAt: "2026-01-01T00:00:00.000Z", payment: { id: "payment-1", provider: "tamara", providerOrderId: "tamara-order-1", providerCheckoutId: "tamara-checkout-1", providerStatus: "fully_captured", paymentStatus: "paid", status: "completed" } });
-    render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/subscriptions/sub-1"]}><Routes><Route path="/admin/subscriptions/:id" element={<AdminSubscriptionDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
+    mocks.getSubscription.mockResolvedValue({
+      ...subscriptionResponse.data[0],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      payment: {
+        id: "payment-1",
+        provider: "tamara",
+        providerOrderId: "tamara-order-1",
+        providerCheckoutId: "tamara-checkout-1",
+        providerStatus: "fully_captured",
+        paymentStatus: "paid",
+        status: "completed",
+      },
+    });
+    render(
+      <QueryClientProvider client={client()}>
+        <MemoryRouter initialEntries={["/admin/subscriptions/sub-1"]}>
+          <Routes>
+            <Route
+              path="/admin/subscriptions/:id"
+              element={<AdminSubscriptionDetail />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
     expect(await screen.findByText("تفاصيل الاشتراك")).toBeInTheDocument();
     expect(screen.getByText("sub-1")).toBeInTheDocument();
+    expect(screen.getByText("بالساعات")).toBeInTheDocument();
+    expect(screen.getByText("مواد مشتركة")).toBeInTheDocument();
+    expect(screen.getByText("لغتي")).toBeInTheDocument();
     expect(screen.getByText("tamara-order-1")).toBeInTheDocument();
     expect(screen.getByText("fully_captured")).toBeInTheDocument();
   });

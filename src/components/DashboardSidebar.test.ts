@@ -19,7 +19,6 @@ describe("Admin sidebar classroom navigation", () => {
     expect(adminPaths()).toEqual(expect.arrayContaining([
       "/admin/messages",
       "/admin/payroll",
-      "/admin/payments",
       "/admin/subscriptions",
       "/admin/subject-requests",
       "/admin/classroom-change-requests",

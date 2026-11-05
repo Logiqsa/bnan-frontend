@@ -46,6 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import FinancialSectionNav from "@/admin/FinancialSectionNav";
 
 const errorText = (error: unknown) =>
   error instanceof ApiError ? error.message : "تعذر تحميل المدفوعات.";
@@ -103,11 +104,12 @@ export default function AdminPayments() {
     <DashboardLayout>
       <div className="mx-auto max-w-7xl space-y-5" dir="rtl">
         <div>
-          <h1 className="text-3xl font-bold">المدفوعات</h1>
+          <h1 className="text-3xl font-bold">عمليات الدفع</h1>
           <p className="mt-1 text-muted-foreground">
-            عرض سجلات المدفوعات وحالتها للمتابعة الإدارية فقط.
+            هنا تراجع المعاملة المالية نفسها: المبلغ، مزود الدفع، حالتها ومراجعها لدى المزود.
           </p>
         </div>
+        <FinancialSectionNav />
         <Card>
           <CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             <div className="space-y-1">

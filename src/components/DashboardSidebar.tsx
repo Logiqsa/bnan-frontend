@@ -90,12 +90,6 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/admin/subscriptions",
     },
     {
-      label: "المدفوعات",
-      labelEn: "Payments",
-      icon: Banknote,
-      path: "/admin/payments",
-    },
-    {
       label: "طلبات المواد",
       labelEn: "Subject requests",
       icon: ClipboardList,
@@ -470,7 +464,6 @@ const adminNavOrder = [
   "/admin/courses",
   "/admin/catalog/curriculums",
   "/admin/subscriptions",
-  "/admin/payments",
   "/admin/payroll",
   "/admin?tab=zoom-accounts",
   "/admin/classroom-recordings",

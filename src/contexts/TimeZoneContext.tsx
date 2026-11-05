@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export const TIME_ZONE_STORAGE_KEY = "bnan_time_zone";
 export const TIME_ZONE_SOURCE_STORAGE_KEY = "bnan_time_zone_source";
+export const TIME_ZONE_CHANGE_EVENT = "bnan:time-zone-change";
 export const DEFAULT_TIME_ZONE = "Asia/Riyadh";
 
 export const TIME_ZONE_OPTIONS = [
@@ -122,6 +123,7 @@ export function TimeZoneProvider({ children }: { children: ReactNode }) {
       setTimeZoneState(next);
       window.localStorage.setItem(TIME_ZONE_STORAGE_KEY, next);
       window.localStorage.setItem(TIME_ZONE_SOURCE_STORAGE_KEY, "explicit");
+      window.dispatchEvent(new CustomEvent(TIME_ZONE_CHANGE_EVENT, { detail: next }));
     },
     formatDateTime: (input, locale, options = {}) => {
       const date = input instanceof Date ? input : new Date(input);

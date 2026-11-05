@@ -261,7 +261,6 @@ export default function AdminPayments() {
                       <TableHead>المبلغ</TableHead>
                       <TableHead>المزود</TableHead>
                       <TableHead>الحالة</TableHead>
-                      <TableHead>الغرض</TableHead>
                       <TableHead>النوع</TableHead>
                       <TableHead>المرجع</TableHead>
                       <TableHead>التاريخ</TableHead>
@@ -295,10 +294,6 @@ export default function AdminPayments() {
                             {financialStatusLabels[payment.status || ""] ||
                               display(payment.status)}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {purposeLabels[payment.purpose || ""] ||
-                            display(payment.purpose)}
                         </TableCell>
                         <TableCell>
                           {modelLabels[payment.paymentModel || ""] ||
@@ -455,8 +450,12 @@ export function AdminPaymentDetail() {
               : "ابحث بمعرف الطلب الظاهر أدناه",
           }
         : null;
-  const paymentSubject = payment?.subject
-    ? entityName(payment.subject)
+  const paymentSubject = payment?.subscription?.coveredSubjects?.length
+    ? payment.subscription.coveredSubjects.map((subject) => subject.name).filter(Boolean).join("، ")
+    : payment?.subscription?.subject
+      ? entityName(payment.subscription.subject)
+      : payment?.subject
+        ? entityName(payment.subject)
     : [...new Set(payment?.items?.map((item) => item.subject?.name).filter(Boolean) || [])].join("، ")
       || (payment?.package?.accessScope === "all_subjects"
         ? "كل المواد"

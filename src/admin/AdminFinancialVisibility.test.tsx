@@ -31,10 +31,11 @@ describe("Admin financial visibility screens", () => {
 
   it("renders payment list and payment detail without mutation controls", async () => {
     mocks.listPayments.mockResolvedValue(paymentResponse);
-    mocks.getPayment.mockResolvedValue({ ...paymentResponse.data[0], provider: "paymob", providerStatus: "success", providerPaymentId: "12028259" });
+    mocks.getPayment.mockResolvedValue({ ...paymentResponse.data[0], provider: "paymob", providerStatus: "success", providerPaymentId: "12028259", subscription: { id: "sub-1", coveredSubjects: [{ id: "subject-1", name: "لغتي" }, { id: "subject-2", name: "رياضيات" }] } });
     render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/payments/payment-1?paymentModel=gulf"]}><Routes><Route path="/admin/payments" element={<AdminPayments />} /><Route path="/admin/payments/:id" element={<AdminPaymentDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText("٢٥٠ SAR")).toBeInTheDocument();
     expect(screen.getByText("تفاصيل مزود الدفع")).toBeInTheDocument();
+    expect(screen.getByText("لغتي، رياضيات")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /فتح العملية على Paymob/ })).toHaveAttribute("href", "https://ksa.dashboard.paymob.com/transactions/12028259/");
     expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
   });

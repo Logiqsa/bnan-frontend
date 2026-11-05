@@ -436,10 +436,14 @@ export function AdminPaymentDetail() {
   const providerPortal =
     payment?.provider === "paymob"
       ? {
-          href: "https://accept.paymob.com/portal/en/transactions",
-          label: "فتح معاملات Paymob",
+          href: payment.providerPaymentId
+            ? `https://ksa.dashboard.paymob.com/transactions/${encodeURIComponent(payment.providerPaymentId)}/`
+            : "https://ksa.dashboard.paymob.com/transactions",
+          label: payment.providerPaymentId
+            ? "فتح العملية على Paymob"
+            : "فتح معاملات Paymob",
           hint: payment.providerPaymentId
-            ? `ابحث برقم العملية: ${payment.providerPaymentId}`
+            ? `رقم العملية: ${payment.providerPaymentId}`
             : "ابحث بمعرف العملية الظاهر أدناه",
         }
       : payment?.provider === "tamara"
@@ -451,6 +455,16 @@ export function AdminPaymentDetail() {
               : "ابحث بمعرف الطلب الظاهر أدناه",
           }
         : null;
+  const paymentSubject = payment?.subject
+    ? entityName(payment.subject)
+    : [...new Set(payment?.items?.map((item) => item.subject?.name).filter(Boolean) || [])].join("، ")
+      || (payment?.package?.accessScope === "all_subjects"
+        ? "كل المواد"
+        : payment?.package?.accessScope === "shared_subjects"
+          ? "المواد المشتركة"
+          : payment?.package?.accessScope === "single_subject"
+            ? "مادة محددة"
+            : null);
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-5xl space-y-5" dir="rtl">
@@ -512,8 +526,7 @@ export function AdminPaymentDetail() {
                     field("رقم المرجع", payment.referenceNumber)}
                   {payment.package &&
                     field("الباقة", entityName(payment.package))}
-                  {payment.subject &&
-                    field("المادة", entityName(payment.subject))}
+                  {paymentSubject && field("المادة / النطاق", paymentSubject)}
                   {payment.course &&
                     field("الدورة", entityName(payment.course))}
                   {field("تاريخ الإنشاء", dateLabel(payment.createdAt))}

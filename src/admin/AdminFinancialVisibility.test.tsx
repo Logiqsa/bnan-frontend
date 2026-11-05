@@ -35,7 +35,7 @@ describe("Admin financial visibility screens", () => {
     render(<QueryClientProvider client={client()}><MemoryRouter initialEntries={["/admin/payments/payment-1?paymentModel=gulf"]}><Routes><Route path="/admin/payments" element={<AdminPayments />} /><Route path="/admin/payments/:id" element={<AdminPaymentDetail />} /></Routes></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByText("٢٥٠ SAR")).toBeInTheDocument();
     expect(screen.getByText("تفاصيل مزود الدفع")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /فتح معاملات Paymob/ })).toHaveAttribute("href", "https://accept.paymob.com/portal/en/transactions");
+    expect(screen.getByRole("link", { name: /فتح العملية على Paymob/ })).toHaveAttribute("href", "https://ksa.dashboard.paymob.com/transactions/12028259/");
     expect(screen.queryByText(/استرداد|إلغاء|حذف|تعديل/)).not.toBeInTheDocument();
   });
 

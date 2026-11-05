@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Eye,
   RefreshCw,
   Search,
@@ -22,7 +21,6 @@ import {
   entityName,
   financialStatusLabels,
   moneyLabel,
-  providerLabels,
 } from "@/admin/adminFinancialUi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -377,17 +375,6 @@ export function AdminSubscriptionDetail() {
     retry: false,
   });
   const subscription = query.data;
-  const paymentField = (label: string, value: unknown) => (
-    <div
-      key={label}
-      className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3"
-    >
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 break-all text-sm font-medium" dir="auto">
-        {display(value)}
-      </p>
-    </div>
-  );
   const field = (label: string, value: unknown) => (
     <div className="rounded-lg border bg-muted/20 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -395,38 +382,6 @@ export function AdminSubscriptionDetail() {
     </div>
   );
   const payment = subscription?.payment;
-  const isTamara = payment?.provider === "tamara";
-  const paymentDetails: Array<[string, unknown]> = payment
-    ? [
-        [
-          "مزود الدفع",
-          providerLabels[payment.provider || ""] || payment.provider,
-        ],
-        ["حالة الدفع الداخلية", payment.status],
-        ["حالة التحصيل", payment.paymentStatus],
-        [`الحالة لدى ${isTamara ? "تمارا" : "Paymob"}`, payment.providerStatus],
-        [
-          isTamara ? "Tamara Order ID" : "Paymob Intention ID",
-          payment.providerOrderId,
-        ],
-        [
-          isTamara ? "Tamara Checkout ID" : "Paymob Intention Order ID",
-          payment.providerCheckoutId,
-        ],
-        [
-          isTamara ? "Tamara Payment ID" : "Paymob Transaction ID",
-          payment.providerPaymentId,
-        ],
-        ...(isTamara
-          ? [
-              ["وقت طلب Authorise", payment.authorisationRequestedAt],
-              ["وقت طلب Capture", payment.captureRequestedAt],
-            ]
-          : []),
-        ["وقت الدفع", payment.paidAt],
-        ["وقت اكتمال العملية", payment.completedAt],
-      ].filter(([, value]) => value != null && value !== "")
-    : [];
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-5xl space-y-5" dir="rtl">
@@ -518,38 +473,24 @@ export function AdminSubscriptionDetail() {
                 {field("تاريخ الإنشاء", dateLabel(subscription.createdAt))}
                 {field("آخر تحديث", dateLabel(subscription.updatedAt))}
                 {payment && (
-                  <>
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
-                      <div>
-                        <h2 className="text-lg font-bold">
-                          تفاصيل عملية الدفع
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          بيانات {isTamara ? "تمارا" : "Paymob"} المسجلة لهذه
-                          العملية.
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          navigate(
-                            `/admin/payments/${payment.id}?paymentModel=gulf`,
-                          )
-                        }
-                      >
-                        فتح تفاصيل الدفع
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                      </Button>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/20 p-4 sm:col-span-2">
+                    <div>
+                      <h2 className="font-bold">بيانات الدفع</h2>
+                      <p className="text-sm text-muted-foreground">
+                        تفاصيل المزود والمعاملة موجودة في صفحة الدفع.
+                      </p>
                     </div>
-                    {paymentDetails.map(([label, value]) =>
-                      paymentField(
-                        String(label),
-                        String(label).startsWith("وقت")
-                          ? dateLabel(value as string)
-                          : value,
-                      ),
-                    )}
-                  </>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        navigate(
+                          `/admin/payments/${payment.id}?paymentModel=gulf`,
+                        )
+                      }
+                    >
+                      فتح تفاصيل الدفع
+                    </Button>
+                  </div>
                 )}
               </div>
             ) : (

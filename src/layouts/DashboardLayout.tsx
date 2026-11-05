@@ -28,7 +28,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
     try {
       await authApi.updateTimeZone(next);
       setTimeZone(next);
-      window.location.reload();
+      setChangingTimeZone(false);
     } catch {
       toast.error(pick("تعذر تغيير المنطقة الزمنية.", "Unable to change the time zone."));
       setChangingTimeZone(false);

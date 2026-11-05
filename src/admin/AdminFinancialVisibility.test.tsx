@@ -175,7 +175,10 @@ describe("Admin financial visibility screens", () => {
     expect(screen.getByText("بالساعات")).toBeInTheDocument();
     expect(screen.getByText("مواد مشتركة")).toBeInTheDocument();
     expect(screen.getByText("لغتي")).toBeInTheDocument();
-    expect(screen.getByText("tamara-order-1")).toBeInTheDocument();
-    expect(screen.getByText("fully_captured")).toBeInTheDocument();
+    expect(screen.queryByText("tamara-order-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("fully_captured")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "فتح تفاصيل الدفع" }),
+    ).toBeInTheDocument();
   });
 });

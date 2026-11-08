@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Printer } from "lucide-react";
 import academyLogo from "@/assets/logo-bnan.png";
-import type { PayrollStatementTeacher } from "@/api/adminPayrollApi";
+import type { AttendanceDeductionIncident, AttendanceDeductionInput, PayrollStatementTeacher } from "@/api/adminPayrollApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,7 +171,11 @@ export default function TeacherPayrollStatement({
   onRatesChange,
   onGradeRatesChange,
   onDeductionChange,
+  onDeductionReasonChange,
+  attendanceIncidents = [],
+  onAttendanceDeductionsChange,
   initialDeduction,
+  initialDeductionReason = "",
   initialCourseRates = {},
   initialGradeRates = {},
   actionLabel = "إرسال للمعلم",
@@ -191,7 +195,11 @@ export default function TeacherPayrollStatement({
   onRatesChange?: (rates: Record<string, string>) => void;
   onGradeRatesChange?: (rates: Record<string, string>) => void;
   onDeductionChange?: (deduction: number) => void;
+  onDeductionReasonChange?: (reason: string) => void;
+  attendanceIncidents?: AttendanceDeductionIncident[];
+  onAttendanceDeductionsChange?: (items: AttendanceDeductionInput[]) => void;
   initialDeduction?: number;
+  initialDeductionReason?: string;
   initialCourseRates?: Record<string, string>;
   initialGradeRates?: Record<string, string>;
   actionLabel?: string;
@@ -203,6 +211,23 @@ export default function TeacherPayrollStatement({
   const [deductionValue, setDeductionValue] = useState(
     String(initialDeduction ?? statement.payroll?.deduction ?? 0),
   );
+  const [deductionReason, setDeductionReason] = useState(initialDeductionReason);
+  const [attendanceAmounts, setAttendanceAmounts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(attendanceIncidents.filter((item) => Number(item.amount) > 0).map((item) => [item.incidentId, String(item.amount)])),
+  );
+  useEffect(() => {
+    setAttendanceAmounts((current) => {
+      const next = { ...current };
+      let changed = false;
+      for (const incident of attendanceIncidents) {
+        if (next[incident.incidentId] === undefined && Number(incident.amount) > 0) {
+          next[incident.incidentId] = String(incident.amount);
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [attendanceIncidents]);
   useEffect(() => {
     onRatesChange?.(rates);
   }, [onRatesChange, rates]);
@@ -212,6 +237,9 @@ export default function TeacherPayrollStatement({
   useEffect(() => {
     onDeductionChange?.(Number(deductionValue) || 0);
   }, [deductionValue, onDeductionChange]);
+  useEffect(() => {
+    onDeductionReasonChange?.(deductionReason);
+  }, [deductionReason, onDeductionReasonChange]);
   const hasAcademicSessions = Boolean(
     statement.general.gradeGroups?.length ||
     statement.general.sessions?.length ||
@@ -229,6 +257,16 @@ export default function TeacherPayrollStatement({
     statement.payroll?.currency ||
     "EGP";
   const currency = academicCurrency;
+  const attendanceDeductions = useMemo<AttendanceDeductionInput[]>(() =>
+    attendanceIncidents.flatMap((incident) => {
+      const amount = Number(attendanceAmounts[incident.incidentId]);
+      return Number.isFinite(amount) && amount > 0
+        ? [{ incidentId: incident.incidentId, amount, currency }]
+        : [];
+    }), [attendanceAmounts, attendanceIncidents, currency]);
+  useEffect(() => {
+    onAttendanceDeductionsChange?.(attendanceDeductions);
+  }, [attendanceDeductions, onAttendanceDeductionsChange]);
   const academicCurrencySelected =
     !hasAcademicSessions ||
     (!onAcademicCurrencyChange && !onCurrencyChange) ||
@@ -289,7 +327,9 @@ export default function TeacherPayrollStatement({
     ? pricedGradeGroups.reduce((sum, group) => sum + group.totalAmount, 0)
     : statement.payroll?.generalAmount || 0;
   const bonus = statement.payroll?.bonus || 0;
-  const deduction = Number(deductionValue) || 0;
+  const manualDeduction = Number(deductionValue) || 0;
+  const attendanceDeduction = attendanceDeductions.reduce((sum, item) => sum + item.amount, 0);
+  const deduction = manualDeduction + attendanceDeduction;
   const finalTotal = generalTotal + courseTotal + bonus - deduction;
   const printCourses = statement.courses.map((course) => {
     const rate = Number(rates[course.courseId]) || 0;
@@ -527,10 +567,19 @@ export default function TeacherPayrollStatement({
                   </p>
                 )}
             </section>
+            {onAttendanceDeductionsChange && (
+              <section className="rounded-xl border bg-muted/10 p-4">
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold">خصومات مخالفات التأخير</h3>
+                  <p className="text-xs text-muted-foreground">المخالفات المعتمدة فقط. أدخل قيمة أكبر من صفر لإضافتها للكشف، أو اتركها صفرًا لاستبعادها من هذه المسودة. العملة هي عملة الكشف.</p>
+                </div>
+                {attendanceIncidents.length ? <div className="space-y-3">{attendanceIncidents.map((incident) => <div key={incident.incidentId} className="grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[1fr_12rem] sm:items-center"><div><p className="font-medium">{incident.classroomName || "حصة"} — تأخير {incident.minutesLate} دقيقة</p><p className="text-xs text-muted-foreground">{dateOnly(incident.scheduledStartAt)}</p></div><div className="flex items-center gap-2"><Input type="number" min="0" step="0.01" aria-label={`خصم مخالفة ${incident.classroomName || incident.incidentId}`} value={attendanceAmounts[incident.incidentId] || ""} placeholder="0" onChange={(event) => setAttendanceAmounts((current) => ({ ...current, [incident.incidentId]: event.target.value }))} /><span className="shrink-0 text-sm font-medium">{currencySelected ? payrollStatementCurrencySymbol(currency) : "—"}</span></div></div>)}</div> : <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">لا توجد مخالفات تأخير معتمدة لهذا المعلم في هذه الفترة والمنهج.</p>}
+              </section>
+            )}
             {onDeductionChange && (
               <section className="rounded-xl border bg-muted/10 p-4">
                 <label className="mb-1 block text-sm" htmlFor="teacher-deduction">
-                  خصم المعلم
+                  خصم إضافي
                 </label>
                 <Input
                   id="teacher-deduction"
@@ -541,8 +590,15 @@ export default function TeacherPayrollStatement({
                   value={deductionValue}
                   onChange={(event) => setDeductionValue(event.target.value)}
                 />
+                <Input
+                  className="mt-2"
+                  aria-label="سبب الخصم الإضافي"
+                  placeholder="سبب الخصم الإضافي"
+                  value={deductionReason}
+                  onChange={(event) => setDeductionReason(event.target.value)}
+                />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  يخصم هذا المبلغ من صافي مستحقات المعلم ويحفظ مع الكشف.
+                  خصم يدوي إضافي بخلاف مخالفات التأخير، وبعملة الكشف نفسها.
                 </p>
               </section>
             )}

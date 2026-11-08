@@ -102,4 +102,13 @@ describe("adminPayrollApi", () => {
 
     expect(apiRequest).toHaveBeenCalledWith("/admin/payrolls/statements/statement-1/send", { method: "POST" });
   });
+
+  it("sends all draft statements for one curriculum and period", async () => {
+    vi.mocked(apiRequest).mockResolvedValue({ success: true, data: {} });
+    const body = { curriculumId: "curriculum-1", from: "2026-11-01", to: "2026-11-30" };
+
+    await adminPayrollApi.sendStatementsBulk(body);
+
+    expect(apiRequest).toHaveBeenCalledWith("/admin/payrolls/statements/send-bulk", { method: "POST", body: JSON.stringify(body) });
+  });
 });

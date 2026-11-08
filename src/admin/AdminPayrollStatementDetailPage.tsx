@@ -5,10 +5,12 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   adminPayrollApi,
+  type AttendanceDeductionInput,
   type PayrollStatementTeacher,
 } from "@/api/adminPayrollApi";
 import PayrollReceiptButton from "@/components/PayrollReceiptButton";
 import PayrollStatementBreakdown from "@/components/PayrollStatementBreakdown";
+import PayrollDeductionBreakdown from "@/components/PayrollDeductionBreakdown";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +49,32 @@ export default function AdminPayrollStatementDetailPage() {
   const [courseRates, setCourseRates] = useState<Record<string, string>>({});
   const [gradeRates, setGradeRates] = useState<Record<string, string>>({});
   const [statementDeduction, setStatementDeduction] = useState<number | null>(null);
+  const [statementDeductionReason, setStatementDeductionReason] = useState("");
+  const [attendanceDeductions, setAttendanceDeductions] = useState<AttendanceDeductionInput[]>([]);
+  const deductionIncidentsQuery = useQuery({
+    queryKey: ["admin-payroll-deduction-incidents", statement?.teacher.id, statement?.curriculum.id, statement?.period.from, statement?.period.to],
+    queryFn: () => adminPayrollApi.listDeductionIncidents(statement!.teacher.id, statement!.curriculum.id, statement!.period.from, statement!.period.to),
+    enabled: Boolean(statement?.teacher.id && statement?.curriculum.id && statement?.period.from && statement?.period.to),
+    retry: 1,
+  });
+  const attendanceIncidents = useMemo(() => {
+    const savedItems = (statement?.deductionItems || []).filter((item) => item.source === "automatic_late" && item.incident);
+    const saved = new Map(savedItems.map((item) => [String(item.incident), item]));
+    const available = new Map((deductionIncidentsQuery.data || []).map((incident) => [incident.incidentId, { ...incident, amount: saved.get(incident.incidentId)?.amount }]));
+    for (const item of savedItems) {
+      const incidentId = String(item.incident);
+      if (!available.has(incidentId)) available.set(incidentId, {
+        incidentId,
+        scheduledStartAt: item.occurredAt || statement?.period.from || "",
+        actualStartedAt: null,
+        minutesLate: item.minutesLate || 0,
+        classroomName: item.classroomName || null,
+        curriculumName: item.curriculumName || null,
+        amount: item.amount,
+      });
+    }
+    return [...available.values()];
+  }, [deductionIncidentsQuery.data, statement?.deductionItems]);
   const savedCourseRates = useMemo(
     () =>
       Object.fromEntries(
@@ -122,7 +150,9 @@ export default function AdminPayrollStatementDetailPage() {
           hourlyRate: Number(courseRates[course.course] ?? course.hourlyRate),
         })),
         bonuses: statement?.bonuses,
-        deductions: statementDeduction ?? statement?.deductions,
+        manualDeductions: statementDeduction ?? statement?.manualDeductions ?? statement?.deductions,
+        deductionReason: statementDeductionReason,
+        attendanceDeductions,
       }),
     onSuccess: async (data) => {
       queryClient.setQueryData(["admin-payroll-statement", statementId], data);
@@ -185,7 +215,11 @@ export default function AdminPayrollStatementDetailPage() {
             onRatesChange={setCourseRates}
             onGradeRatesChange={setGradeRates}
             onDeductionChange={setStatementDeduction}
-            initialDeduction={statement.deductions}
+            onDeductionReasonChange={setStatementDeductionReason}
+            attendanceIncidents={attendanceIncidents}
+            onAttendanceDeductionsChange={setAttendanceDeductions}
+            initialDeduction={statement.manualDeductions ?? statement.deductions}
+            initialDeductionReason={statement.deductionItems?.find((item) => item.source === "manual")?.reason || ""}
             onSend={() => update.mutate()}
             sending={update.isPending}
             actionLabel="حفظ التعديلات"
@@ -233,6 +267,7 @@ export default function AdminPayrollStatementDetailPage() {
               courses={statement.courses}
               currency={statement.currency}
             />
+            <PayrollDeductionBreakdown statement={statement} />
             <Card>
               <CardHeader>
                 <CardTitle>الدفع</CardTitle>

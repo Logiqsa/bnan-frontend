@@ -40,6 +40,17 @@ export interface TeacherPayrollStatement {
     sessions?: StatementSession[];
   }>;
   bonuses: number;
+  manualDeductions?: number;
+  deductionItems?: Array<{
+    source: "automatic_late" | "manual";
+    incident?: string;
+    reason: string;
+    amount: number;
+    occurredAt?: string;
+    minutesLate?: number;
+    classroomName?: string;
+    curriculumName?: string;
+  }>;
   deductions: number;
   finalAmount: number;
   currency: string;

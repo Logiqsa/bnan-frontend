@@ -6,13 +6,14 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { ArrowRight, Loader2, Plus, RefreshCw } from "lucide-react";
+import { ArrowRight, Clock, Loader2, Plus, RefreshCw, Send } from "lucide-react";
 import { toast } from "sonner";
 import {
   adminPayrollApi,
   type AdminPayroll,
   type PayrollDraftInput,
   type PayrollTeacherPreview,
+  type AttendanceDeductionInput,
 } from "@/api/adminPayrollApi";
 import { catalogApi } from "@/api/catalogApi";
 import { API_BASE_URL } from "@/api/client";
@@ -451,6 +452,7 @@ export default function AdminPayroll() {
   const [paidAt, setPaidAt] = useState("");
   const [reference, setReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [bulkSendOpen, setBulkSendOpen] = useState(false);
   const submitLock = useRef(false);
 
   const list = useQuery({
@@ -504,6 +506,17 @@ export default function AdminPayroll() {
       Boolean(from && to && from <= to),
     staleTime: 0,
     retry: 1,
+  });
+  const bulkSendStatements = useMutation({
+    mutationFn: () => adminPayrollApi.sendStatementsBulk({ curriculumId, from, to }),
+    onSuccess: async (result) => {
+      setBulkSendOpen(false);
+      await client.invalidateQueries({ queryKey: ["admin-payroll-statements"] });
+      if (!result.matched) toast.info("لا توجد مسودات مطابقة لإرسالها.");
+      else if (result.failed) toast.warning(`تم إرسال ${result.sent} كشف، وتعذر إرسال ${result.failed}.`);
+      else toast.success(`تم إرسال ${result.sent} كشف للمعلمين.`);
+    },
+    onError: (error) => toast.error(courseError(error)),
   });
   const refresh = async (id?: string) => {
     await client.invalidateQueries({ queryKey: ["admin-payrolls"] });
@@ -603,15 +616,18 @@ export default function AdminPayroll() {
               </Link>
             </Button>
           ) : (
-            <Button
-              onClick={() => {
-                setActiveView("manage");
-                setShowCreate(activeView === "sent" ? true : (value) => !value);
-              }}
-            >
-              <Plus className="me-2 h-4 w-4" />
-              {pick("كشف جديد", "New payroll")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline"><Link to="/admin/teacher-attendance"><Clock className="me-2 h-4 w-4" />{pick("التأخير والغياب", "Attendance incidents")}</Link></Button>
+              <Button
+                onClick={() => {
+                  setActiveView("manage");
+                  setShowCreate(activeView === "sent" ? true : (value) => !value);
+                }}
+              >
+                <Plus className="me-2 h-4 w-4" />
+                {pick("كشف جديد", "New payroll")}
+              </Button>
+            </div>
           )}
         </header>
         {!payrollId && (
@@ -844,8 +860,17 @@ export default function AdminPayroll() {
                   </div>
                   {curriculumId !== "all" && (
                     <Card>
-                      <CardHeader>
+                      <CardHeader className="flex flex-row items-center justify-between gap-3">
                         <CardTitle>كشف مستحقات المعلمين حسب المنهج</CardTitle>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!from || !to || from > to || bulkSendStatements.isPending}
+                          onClick={() => setBulkSendOpen(true)}
+                        >
+                          {bulkSendStatements.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Send className="me-2 h-4 w-4" />}
+                          إرسال كل المسودات
+                        </Button>
                       </CardHeader>
                       <CardContent>
                         {statementPreview.isLoading ? (
@@ -1219,6 +1244,23 @@ export default function AdminPayroll() {
             )}
           </>
         )}
+        <AlertDialog open={bulkSendOpen} onOpenChange={(open) => { if (!bulkSendStatements.isPending) setBulkSendOpen(open); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>إرسال كل كشوف الرواتب المسودة؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم إرسال المسودات الخاصة بالمنهج والفترة المحددين فقط، ولن تتأثر الكشوف المرسلة أو المدفوعة.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={bulkSendStatements.isPending}>إلغاء</AlertDialogCancel>
+              <AlertDialogAction disabled={bulkSendStatements.isPending} onClick={(event) => { event.preventDefault(); bulkSendStatements.mutate(); }}>
+                {bulkSendStatements.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                تأكيد الإرسال
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <AlertDialog
           open={payOpen}
           onOpenChange={(open) => {
@@ -1335,6 +1377,8 @@ export function AdminTeacherPayrollStatementPage() {
     PayrollStatementCurrency | ""
   >("");
   const [statementDeduction, setStatementDeduction] = useState(0);
+  const [statementDeductionReason, setStatementDeductionReason] = useState("");
+  const [attendanceDeductions, setAttendanceDeductions] = useState<AttendanceDeductionInput[]>([]);
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
   const statement = useQuery({
     queryKey: ["admin-payroll-statement", curriculumId, from, to],
@@ -1346,6 +1390,18 @@ export function AdminTeacherPayrollStatementPage() {
   const teacher = statement.data?.teachers.find(
     (item) => item.teacherId === teacherId,
   );
+  const deductionIncidents = useQuery({
+    queryKey: ["admin-payroll-deduction-incidents", teacherId, curriculumId, from, to],
+    queryFn: () => adminPayrollApi.listDeductionIncidents(teacherId, curriculumId, from, to),
+    enabled: Boolean(teacherId && curriculumId && from && to),
+    retry: 1,
+  });
+  useEffect(() => {
+    if (!teacher || !statement.data?.curriculum.registrationMode) return;
+    const defaultCurrency = statement.data.curriculum.registrationMode === "egyptian" ? "EGP" : "SAR";
+    if ((teacher.general.gradeGroups?.length || teacher.general.minutes) && !academicCurrency) setAcademicCurrency(defaultCurrency);
+    if (teacher.courses.length && !courseCurrency) setCourseCurrency(defaultCurrency);
+  }, [academicCurrency, courseCurrency, statement.data?.curriculum.registrationMode, teacher]);
   const sendStatement = useMutation({
     mutationFn: () => {
       if (!academicCurrency && !courseCurrency)
@@ -1366,7 +1422,9 @@ export function AdminTeacherPayrollStatementPage() {
         courseCurrency: courseCurrency || undefined,
         generalAmount: teacher?.payroll?.generalAmount || 0,
         bonuses: teacher?.payroll?.bonus || 0,
-        deductions: statementDeduction,
+        manualDeductions: statementDeduction,
+        deductionReason: statementDeductionReason,
+        attendanceDeductions,
         gradeRates:
           teacher?.general.gradeGroups?.map((group) => ({
             gradeId: group.gradeId,
@@ -1445,6 +1503,9 @@ export function AdminTeacherPayrollStatementPage() {
             onRatesChange={setCourseRates}
             onGradeRatesChange={setGradeRates}
             onDeductionChange={setStatementDeduction}
+            onDeductionReasonChange={setStatementDeductionReason}
+            attendanceIncidents={deductionIncidents.data || []}
+            onAttendanceDeductionsChange={setAttendanceDeductions}
             initialDeduction={teacher.payroll?.deduction || 0}
             onSend={() => setSendConfirmOpen(true)}
             sending={sendStatement.isPending}

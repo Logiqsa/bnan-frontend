@@ -95,6 +95,7 @@ import ClassroomChangeRequestsAdmin from "@/admin/ClassroomChangeRequestsAdmin";
 import AdminMessages from "@/admin/AdminMessages";
 import AdminPayroll, { AdminTeacherPayrollStatementPage } from "@/admin/AdminPayroll";
 import AdminPayrollStatementDetailPage from "@/admin/AdminPayrollStatementDetailPage";
+import AdminTeacherAttendance from "@/admin/AdminTeacherAttendance";
 import AdminSubscriptions, { AdminSubscriptionDetail } from "@/admin/AdminSubscriptions";
 import AdminCertificates, { AdminCertificateDetail } from "@/admin/AdminCertificates";
 import AdminPayments, { AdminPaymentDetail } from "@/admin/AdminPayments";
@@ -415,6 +416,8 @@ export default function App() {
                       path="/admin/payroll/:payrollId"
                       element={<AdminGuard><AdminPayroll /></AdminGuard>}
                     />
+                    <Route path="/admin/teacher-attendance" element={<AdminGuard><AdminTeacherAttendance /></AdminGuard>} />
+                    <Route path="/admin/teacher-attendance/:incidentId" element={<AdminGuard><AdminTeacherAttendance /></AdminGuard>} />
                     <Route path="/admin/subscriptions" element={<AdminGuard><AdminSubscriptions /></AdminGuard>} />
                     <Route path="/admin/subscriptions/:id" element={<AdminGuard><AdminSubscriptionDetail /></AdminGuard>} />
                     <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
@@ -604,6 +607,8 @@ export default function App() {
                       }
                     />
                     <Route path="/portal/supervisor/notifications/:broadcastId" element={<PortalGuard role="supervisor"><GlobalNotificationDetails role="supervisor" /></PortalGuard>} />
+                    <Route path="/portal/supervisor/teacher-attendance" element={<PortalGuard role="supervisor"><AdminTeacherAttendance /></PortalGuard>} />
+                    <Route path="/portal/supervisor/teacher-attendance/:incidentId" element={<PortalGuard role="supervisor"><AdminTeacherAttendance /></PortalGuard>} />
                     <Route
                       path="/portal/supervisor/classrooms/:classroomId/schedule"
                       element={

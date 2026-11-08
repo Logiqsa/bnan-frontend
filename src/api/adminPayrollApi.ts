@@ -110,9 +110,25 @@ export interface PayrollStatementTeacher {
 }
 
 export interface PayrollStatementPreview {
-  curriculum: { id: string; name: string };
+  curriculum: { id: string; name: string; registrationMode: "egyptian" | "gulf" };
   period: { from: string; to: string };
   teachers: PayrollStatementTeacher[];
+}
+
+export interface AttendanceDeductionIncident {
+  incidentId: string;
+  scheduledStartAt: string;
+  actualStartedAt: string | null;
+  minutesLate: number;
+  classroomName: string | null;
+  curriculumName: string | null;
+  amount?: number;
+}
+
+export interface AttendanceDeductionInput {
+  incidentId: string;
+  amount: number;
+  currency: PayrollStatementCurrency;
 }
 
 export interface PayrollDraftInput {
@@ -175,6 +191,14 @@ export const adminPayrollApi = {
       )
     ).data;
   },
+  listDeductionIncidents: async (teacherId: string, curriculumId: string, from: string, to: string) => {
+    const query = new URLSearchParams({ teacherId, curriculumId, from, to });
+    return (
+      await apiRequest<{ success: true; data: AttendanceDeductionIncident[] }>(
+        `/admin/payrolls/statements/deduction-incidents?${query}`,
+      )
+    ).data;
+  },
   createStatement: async (body: {
     teacherId: string;
     curriculumId: string;
@@ -186,6 +210,9 @@ export const adminPayrollApi = {
     generalAmount?: number;
     bonuses?: number;
     deductions?: number;
+    manualDeductions?: number;
+    deductionReason?: string;
+    attendanceDeductions?: AttendanceDeductionInput[];
     gradeRates?: Array<{ gradeId: string; hourlyRate: number }>;
     courseRates: Array<{ courseId: string; hourlyRate: number }>;
   }) =>
@@ -227,6 +254,9 @@ export const adminPayrollApi = {
       courseRates: Array<{ courseId: string; hourlyRate: number }>;
       bonuses?: number;
       deductions?: number;
+      manualDeductions?: number;
+      deductionReason?: string;
+      attendanceDeductions?: AttendanceDeductionInput[];
     },
   ) =>
     (
@@ -240,6 +270,13 @@ export const adminPayrollApi = {
       await apiRequest<{ success: true; data: TeacherPayrollStatement }>(
         `/admin/payrolls/statements/${encodeURIComponent(id)}/send`,
         { method: "POST" },
+      )
+    ).data,
+  sendStatementsBulk: async (body: { curriculumId: string; from: string; to: string }) =>
+    (
+      await apiRequest<{ success: true; data: { matched: number; sent: number; failed: number; sentIds: string[]; failures: Array<{ id: string; code: string }> } }>(
+        "/admin/payrolls/statements/send-bulk",
+        { method: "POST", body: JSON.stringify(body) },
       )
     ).data,
   deleteStatement: async (id: string) =>

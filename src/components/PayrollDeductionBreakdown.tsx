@@ -1,0 +1,8 @@
+import type { TeacherPayrollStatement } from "@/api/teacherPayrollStatementsApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPayrollStatementMoney } from "@/lib/payrollStatementCurrency";
+
+export default function PayrollDeductionBreakdown({ statement }: { statement: TeacherPayrollStatement }) {
+  const items = statement.deductionItems || [];
+  return <Card><CardHeader><CardTitle>تفاصيل الخصومات</CardTitle></CardHeader><CardContent>{items.length ? <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead><tr className="border-b text-right text-muted-foreground"><th className="p-3">النوع</th><th className="p-3">الحصة</th><th className="p-3">المنهج</th><th className="p-3">التاريخ</th><th className="p-3">التأخير</th><th className="p-3">القيمة</th></tr></thead><tbody>{items.map((item, index) => <tr key={`${item.incident || item.source}-${index}`} className="border-b last:border-0"><td className="p-3 font-medium">{item.source === "automatic_late" ? "تأخير تلقائي" : item.reason}</td><td className="p-3">{item.classroomName || "—"}</td><td className="p-3">{item.curriculumName || statement.curriculum.name || "—"}</td><td className="p-3">{item.occurredAt ? new Intl.DateTimeFormat("ar-EG-u-ca-gregory", { dateStyle: "medium" }).format(new Date(item.occurredAt)) : "—"}</td><td className="p-3">{item.source === "automatic_late" ? `${item.minutesLate || 0} دقيقة` : "—"}</td><td className="p-3 font-bold" dir="ltr">{formatPayrollStatementMoney(item.amount, statement.currency)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">لا توجد خصومات على هذا الكشف.</p>}</CardContent></Card>;
+}

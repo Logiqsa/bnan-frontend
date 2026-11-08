@@ -45,6 +45,7 @@ const adminNotificationRoutes: Record<string, string> = {
   teachers: "/admin/teachers",
   schedule: "/admin/schedule",
   chat_room: "/admin/messages",
+  teacher_attendance_incident: "/admin/teacher-attendance",
 };
 
 const teacherNotificationRoutes: Record<string, string> = {
@@ -75,6 +76,7 @@ const supervisorNotificationRoutes: Record<string, string> = {
   supervisor_students: "/portal/supervisor/classrooms",
   complaints: "/portal/supervisor/classrooms",
   chat_room: "/portal/supervisor/messages",
+  teacher_attendance_incident: "/portal/supervisor/teacher-attendance",
 };
 
 const studentNotificationRoutes: Record<string, string> = {
@@ -138,6 +140,7 @@ const resourceNotificationLink = (notification: Notification, role: PortalRole) 
       payment: `/admin/payments/${id}`,
       student: `/admin/students/${id}`,
       subscription: `/admin/subscriptions/${id}`,
+      teacherattendanceincident: `/admin/teacher-attendance/${id}`,
     };
     return routes[model];
   }
@@ -152,7 +155,10 @@ const resourceNotificationLink = (notification: Notification, role: PortalRole) 
     if (model === "certificate") return "/portal/student/certificates";
     if (model === "subscription" || model === "payment" || model === "package") return "/portal/student/subscriptions";
   }
-  if (role === "supervisor" && model === "classroom") return `/portal/supervisor/classrooms/${id}`;
+  if (role === "supervisor") {
+    if (model === "classroom") return `/portal/supervisor/classrooms/${id}`;
+    if (model === "teacherattendanceincident") return `/portal/supervisor/teacher-attendance/${id}`;
+  }
   return undefined;
 };
 

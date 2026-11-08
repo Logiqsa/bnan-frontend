@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -21,6 +21,7 @@ import {
   formatPayrollStatementMoney,
   payrollStatementCurrencyName,
   payrollStatementCurrencySymbol,
+  type PayrollStatementCurrency,
 } from "@/lib/payrollStatementCurrency";
 import TeacherPayrollStatement from "./TeacherPayrollStatement";
 
@@ -51,6 +52,14 @@ export default function AdminPayrollStatementDetailPage() {
   const [statementDeduction, setStatementDeduction] = useState<number | null>(null);
   const [statementDeductionReason, setStatementDeductionReason] = useState("");
   const [attendanceDeductions, setAttendanceDeductions] = useState<AttendanceDeductionInput[]>([]);
+  const [statementCurrency, setStatementCurrency] = useState<
+    PayrollStatementCurrency | ""
+  >("");
+  useEffect(() => {
+    if (!statementCurrency && statement?.currency) {
+      setStatementCurrency(statement.currency as PayrollStatementCurrency);
+    }
+  }, [statement?.currency, statementCurrency]);
   const deductionIncidentsQuery = useQuery({
     queryKey: ["admin-payroll-deduction-incidents", statement?.teacher.id, statement?.curriculum.id, statement?.period.from, statement?.period.to],
     queryFn: () => adminPayrollApi.listDeductionIncidents(statement!.teacher.id, statement!.curriculum.id, statement!.period.from, statement!.period.to),
@@ -74,7 +83,7 @@ export default function AdminPayrollStatementDetailPage() {
       });
     }
     return [...available.values()];
-  }, [deductionIncidentsQuery.data, statement?.deductionItems]);
+  }, [deductionIncidentsQuery.data, statement?.deductionItems, statement?.period.from]);
   const savedCourseRates = useMemo(
     () =>
       Object.fromEntries(
@@ -137,6 +146,9 @@ export default function AdminPayrollStatementDetailPage() {
   const update = useMutation({
     mutationFn: () =>
       adminPayrollApi.updateStatement(statementId, {
+        currency: statementCurrency || undefined,
+        academicCurrency: statementCurrency || undefined,
+        courseCurrency: statementCurrency || undefined,
         gradeRates: (statement?.generalSubscription.gradeGroups || []).map(
           (group) => ({
             gradeId: group.gradeId,
@@ -168,10 +180,6 @@ export default function AdminPayrollStatementDetailPage() {
     statement?.status === "draft" &&
     !statement.sentAt &&
     !statement.payment;
-  const savedAcademicCurrency =
-    statement?.academicCurrency || statement?.currency || "";
-  const savedCourseCurrency =
-    statement?.courseCurrency || statement?.currency || "";
   return (
     <DashboardLayout>
       <div className="mx-auto w-full max-w-5xl space-y-5" dir="rtl">
@@ -208,8 +216,8 @@ export default function AdminPayrollStatementDetailPage() {
             statement={editorStatement}
             curriculumName={statement.curriculum.name || "—"}
             period={statement.period}
-            academicCurrency={savedAcademicCurrency as "EGP" | "SAR"}
-            courseCurrency={savedCourseCurrency as "EGP" | "SAR"}
+            currency={statementCurrency}
+            onCurrencyChange={setStatementCurrency}
             initialCourseRates={savedCourseRates}
             initialGradeRates={savedGradeRates}
             onRatesChange={setCourseRates}

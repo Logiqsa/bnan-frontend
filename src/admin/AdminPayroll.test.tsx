@@ -168,7 +168,7 @@ describe("AdminPayroll", () => {
     expect(screen.getByText("Teacher Two")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("عرض الكشف")[0]);
     expect(screen.getAllByText("كشف مستحقات المعلم").length).toBeGreaterThan(0);
-    fireEvent.change(await screen.findByLabelText("العملة"), { target: { value: "EGP" } });
+    fireEvent.change(await screen.findByLabelText("عملة الكشف"), { target: { value: "EGP" } });
     expect(screen.getByText("Math")).toBeInTheDocument();
   });
 
@@ -222,14 +222,18 @@ describe("AdminPayroll", () => {
     });
     vi.mocked(adminPayrollApi.createStatement).mockResolvedValue({} as never);
     renderPage("/admin/payroll/statement?curriculumId=curriculum-1&from=2026-09-01&to=2026-09-30&teacherId=teacher-1");
-    expect(await screen.findByText("اختر العملة بجوار إدخال السعر لعرض الكشف وحفظ المسودة.")).toBeInTheDocument();
+    expect(await screen.findByText("اختر عملة الكشف من أعلى الصفحة لعرض الإجماليات وحفظ المسودة.")).toBeInTheDocument();
     expect(screen.getByText("حفظ المسودة")).toBeDisabled();
-    expect(screen.getByLabelText("العملة").closest("section")).toHaveTextContent("أسعار ساعات الدورات");
-    fireEvent.change(screen.getByLabelText("العملة"), { target: { value: "SAR" } });
+    expect(screen.getByLabelText("عملة الكشف")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("عملة الكشف"), { target: { value: "SAR" } });
     expect((await screen.findAllByText("ريال سعودي (ر.س)")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText("حفظ المسودة"));
     fireEvent.click(screen.getByRole("button", { name: "حفظ المسودة" }));
-    await waitFor(() => expect(adminPayrollApi.createStatement).toHaveBeenCalledWith(expect.objectContaining({ currency: "SAR" })));
+    await waitFor(() => expect(adminPayrollApi.createStatement).toHaveBeenCalledWith(expect.objectContaining({
+      currency: "SAR",
+      academicCurrency: "SAR",
+      courseCurrency: "SAR",
+    })));
   });
 
   it("caches teacher curriculum sources when the create form is reopened", async () => {

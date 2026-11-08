@@ -250,6 +250,9 @@ export const adminPayrollApi = {
   updateStatement: async (
     id: string,
     body: {
+      currency?: PayrollStatementCurrency;
+      academicCurrency?: PayrollStatementCurrency;
+      courseCurrency?: PayrollStatementCurrency;
       gradeRates: Array<{ gradeId: string; hourlyRate: number }>;
       courseRates: Array<{ courseId: string; hourlyRate: number }>;
       bonuses?: number;

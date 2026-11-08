@@ -11,9 +11,10 @@ vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children
 vi.mock("@/i18n/LanguageContext", () => ({ useLanguage: () => ({ language: "ar" }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("./TeacherPayrollStatement", () => ({
-  default: (props: { actionLabel: string; onRatesChange: (rates: Record<string, string>) => void; onGradeRatesChange: (rates: Record<string, string>) => void; onSend: () => void }) => <div>
+  default: (props: { actionLabel: string; onRatesChange: (rates: Record<string, string>) => void; onGradeRatesChange: (rates: Record<string, string>) => void; onCurrencyChange: (currency: "EGP" | "SAR") => void; onSend: () => void }) => <div>
     <span>واجهة الكشف الحالية</span>
     <button onClick={() => { props.onGradeRatesChange({ "grade-1": "120" }); props.onRatesChange({ "course-1": "80" }); }}>تغيير الأسعار</button>
+    <button onClick={() => props.onCurrencyChange("SAR")}>تغيير العملة</button>
     <button onClick={props.onSend}>{props.actionLabel}</button>
   </div>,
 }));
@@ -49,13 +50,19 @@ describe("AdminPayrollStatementDetailPage editing", () => {
     renderPage();
     expect(await screen.findByText("واجهة الكشف الحالية")).toBeInTheDocument();
     fireEvent.click(screen.getByText("تغيير الأسعار"));
+    fireEvent.click(screen.getByText("تغيير العملة"));
     fireEvent.click(screen.getByText("حفظ التعديلات"));
 
     await waitFor(() => expect(adminPayrollApi.updateStatement).toHaveBeenCalledWith("statement-1", {
       gradeRates: [{ gradeId: "grade-1", hourlyRate: 120 }],
       courseRates: [{ courseId: "course-1", hourlyRate: 80 }],
+      currency: "SAR",
+      academicCurrency: "SAR",
+      courseCurrency: "SAR",
       bonuses: 10,
-      deductions: 5,
+      manualDeductions: 5,
+      deductionReason: "",
+      attendanceDeductions: [],
     }));
   });
 

@@ -1370,10 +1370,7 @@ export function AdminTeacherPayrollStatementPage() {
   const { pick } = useLanguage();
   const [courseRates, setCourseRates] = useState<Record<string, string>>({});
   const [gradeRates, setGradeRates] = useState<Record<string, string>>({});
-  const [academicCurrency, setAcademicCurrency] = useState<
-    PayrollStatementCurrency | ""
-  >("");
-  const [courseCurrency, setCourseCurrency] = useState<
+  const [statementCurrency, setStatementCurrency] = useState<
     PayrollStatementCurrency | ""
   >("");
   const [statementDeduction, setStatementDeduction] = useState(0);
@@ -1396,30 +1393,26 @@ export function AdminTeacherPayrollStatementPage() {
     enabled: Boolean(teacherId && curriculumId && from && to),
     retry: 1,
   });
+  const availableDeductionIncidents = useMemo(
+    () => deductionIncidents.data || [],
+    [deductionIncidents.data],
+  );
   useEffect(() => {
     if (!teacher || !statement.data?.curriculum.registrationMode) return;
     const defaultCurrency = statement.data.curriculum.registrationMode === "egyptian" ? "EGP" : "SAR";
-    if ((teacher.general.gradeGroups?.length || teacher.general.minutes) && !academicCurrency) setAcademicCurrency(defaultCurrency);
-    if (teacher.courses.length && !courseCurrency) setCourseCurrency(defaultCurrency);
-  }, [academicCurrency, courseCurrency, statement.data?.curriculum.registrationMode, teacher]);
+    if (!statementCurrency) setStatementCurrency(defaultCurrency);
+  }, [statement.data?.curriculum.registrationMode, statementCurrency, teacher]);
   const sendStatement = useMutation({
     mutationFn: () => {
-      if (!academicCurrency && !courseCurrency)
-        throw new Error("اختر عملة الصفوف أو الدورات أولًا.");
-      if (
-        academicCurrency &&
-        courseCurrency &&
-        academicCurrency !== courseCurrency
-      )
-        throw new Error("يجب أن تكون عملة الصفوف والدورات واحدة.");
+      if (!statementCurrency) throw new Error("اختر عملة الكشف أولًا.");
       return adminPayrollApi.createStatement({
         teacherId,
         curriculumId,
         from,
         to,
-        currency: academicCurrency || courseCurrency,
-        academicCurrency: academicCurrency || undefined,
-        courseCurrency: courseCurrency || undefined,
+        currency: statementCurrency,
+        academicCurrency: statementCurrency,
+        courseCurrency: statementCurrency,
         generalAmount: teacher?.payroll?.generalAmount || 0,
         bonuses: teacher?.payroll?.bonus || 0,
         manualDeductions: statementDeduction,
@@ -1493,35 +1486,18 @@ export function AdminTeacherPayrollStatementPage() {
             statement={teacher}
             curriculumName={statement.data.curriculum.name}
             period={statement.data.period}
-            academicCurrency={academicCurrency}
-            courseCurrency={courseCurrency}
-            onAcademicCurrencyChange={setAcademicCurrency}
-            onCourseCurrencyChange={(value) => {
-              setCourseCurrency(value);
-              if (!academicCurrency) setAcademicCurrency(value);
-            }}
+            currency={statementCurrency}
+            onCurrencyChange={setStatementCurrency}
             onRatesChange={setCourseRates}
             onGradeRatesChange={setGradeRates}
             onDeductionChange={setStatementDeduction}
             onDeductionReasonChange={setStatementDeductionReason}
-            attendanceIncidents={deductionIncidents.data || []}
+            attendanceIncidents={availableDeductionIncidents}
             onAttendanceDeductionsChange={setAttendanceDeductions}
             initialDeduction={teacher.payroll?.deduction || 0}
             onSend={() => setSendConfirmOpen(true)}
             sending={sendStatement.isPending}
-            sendDisabled={
-              Boolean(
-                (teacher.general.gradeGroups?.length ||
-                  teacher.general.minutes) &&
-                !academicCurrency,
-              ) ||
-              Boolean(teacher.courses.length && !courseCurrency) ||
-              Boolean(
-                academicCurrency &&
-                courseCurrency &&
-                academicCurrency !== courseCurrency,
-              )
-            }
+            sendDisabled={!statementCurrency}
             actionLabel="حفظ المسودة"
           />
         )}

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { PayrollStatementTeacher } from "@/api/adminPayrollApi";
 import TeacherPayrollStatement from "./TeacherPayrollStatement";
 
@@ -21,6 +21,24 @@ const statement: PayrollStatementTeacher = {
 };
 
 describe("TeacherPayrollStatement", () => {
+  it("uses one statement currency for rates, deductions, totals, and printing", () => {
+    const onCurrencyChange = vi.fn();
+    render(
+      <TeacherPayrollStatement
+        statement={{ ...statement, courses: [], general: { ...statement.general, gradeGroups: [], sessions: [], minutes: 0 } }}
+        curriculumName="Egyptian"
+        period={{ from: "2026-09-01", to: "2026-09-30" }}
+        currency="EGP"
+        onCurrencyChange={onCurrencyChange}
+      />,
+    );
+    expect(screen.getByLabelText("عملة الكشف")).toHaveValue("EGP");
+    expect(screen.getAllByText(/جنيه مصري/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText("عملة الكشف"), { target: { value: "SAR" } });
+    expect(onCurrencyChange).toHaveBeenCalledWith("SAR");
+  });
+
   it("separates general and course hours and calculates the editable course amount", () => {
     render(<TeacherPayrollStatement statement={statement} curriculumName="Egyptian" period={{ from: "2026-09-01", to: "2026-09-30" }} />);
     const screenView = within(screen.getByTestId("statement-screen"));

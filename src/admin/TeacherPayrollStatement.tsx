@@ -246,23 +246,19 @@ export default function TeacherPayrollStatement({
   useEffect(() => {
     onDeductionReasonChange?.(deductionReason);
   }, [deductionReason, onDeductionReasonChange]);
-  const hasAcademicSessions = Boolean(
-    statement.general.gradeGroups?.length ||
-    statement.general.sessions?.length ||
-    statement.general.minutes,
-  );
   const hasCourseSessions = statement.courses.length > 0;
-  const academicCurrency =
-    selectedAcademicCurrency ||
-    selectedCurrency ||
-    statement.payroll?.currency ||
-    "EGP";
-  const courseCurrency =
-    selectedCourseCurrency ||
-    selectedCurrency ||
-    statement.payroll?.currency ||
-    "EGP";
-  const currency = academicCurrency;
+  const editableCurrency =
+    selectedCurrency || selectedAcademicCurrency || selectedCourseCurrency || "";
+  const currency = editableCurrency || statement.payroll?.currency || "EGP";
+  const canChangeCurrency = Boolean(
+    onCurrencyChange || onAcademicCurrencyChange || onCourseCurrencyChange,
+  );
+  const currencySelected = !canChangeCurrency || Boolean(editableCurrency);
+  const changeCurrency = (value: PayrollStatementCurrency | "") => {
+    onCurrencyChange?.(value);
+    onAcademicCurrencyChange?.(value);
+    onCourseCurrencyChange?.(value);
+  };
   const attendanceDeductions = useMemo<AttendanceDeductionInput[]>(() =>
     attendanceIncidents.flatMap((incident) => {
       const amount = Number(attendanceAmounts[incident.incidentId]);
@@ -273,22 +269,6 @@ export default function TeacherPayrollStatement({
   useEffect(() => {
     onAttendanceDeductionsChange?.(attendanceDeductions);
   }, [attendanceDeductions, onAttendanceDeductionsChange]);
-  const academicCurrencySelected =
-    !hasAcademicSessions ||
-    (!onAcademicCurrencyChange && !onCurrencyChange) ||
-    Boolean(selectedAcademicCurrency || selectedCurrency);
-  const courseCurrencySelected =
-    !hasCourseSessions ||
-    (!onCourseCurrencyChange && !onCurrencyChange) ||
-    Boolean(selectedCourseCurrency || selectedCurrency);
-  const currenciesMatch =
-    !hasAcademicSessions ||
-    !hasCourseSessions ||
-    academicCurrency === courseCurrency;
-  const currencySelected =
-    academicCurrencySelected && courseCurrencySelected && currenciesMatch;
-  const changeAcademicCurrency = onAcademicCurrencyChange || onCurrencyChange;
-  const changeCourseCurrency = onCourseCurrencyChange || onCurrencyChange;
   const courseTotal = useMemo(
     () =>
       statement.courses.reduce((total, course) => {
@@ -441,33 +421,42 @@ export default function TeacherPayrollStatement({
             </div>
           </CardHeader>
           <CardContent className="payroll-print-content space-y-5">
+            {canChangeCurrency && (
+              <section className="teacher-payroll-print-hidden rounded-xl border bg-muted/10 p-4">
+                <div className="grid gap-2 sm:max-w-sm">
+                  <label className="text-sm font-semibold" htmlFor="statement-currency">
+                    عملة الكشف
+                  </label>
+                  <select
+                    id="statement-currency"
+                    aria-label="عملة الكشف"
+                    value={editableCurrency}
+                    onChange={(event) =>
+                      changeCurrency(
+                        event.target.value as PayrollStatementCurrency | "",
+                      )
+                    }
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">اختر عملة الكشف</option>
+                    {PAYROLL_STATEMENT_CURRENCIES.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.code === "SAR" ? "ريال سعودي (ر.س)" : "جنيه مصري (جنيه)"}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    تُطبق هذه العملة على أسعار الساعات والخصومات والمكافآت وإجمالي الكشف.
+                  </p>
+                </div>
+              </section>
+            )}
             {!!statement.general.gradeGroups?.length && (
               <section className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
                   <h3 className="text-lg font-semibold">
                     أسعار ساعات التعليم الأكاديمي
                   </h3>
-                  {changeAcademicCurrency && (
-                    <select
-                      aria-label={
-                        hasCourseSessions ? "عملة التعليم الأكاديمي" : "العملة"
-                      }
-                      value={selectedAcademicCurrency || selectedCurrency || ""}
-                      onChange={(event) =>
-                        changeAcademicCurrency(
-                          event.target.value as PayrollStatementCurrency | "",
-                        )
-                      }
-                      className="h-9 w-36 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      <option value="">العملة</option>
-                      {PAYROLL_STATEMENT_CURRENCIES.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.code === "SAR" ? "ريال (ر.س)" : "جنيه (EGP)"}
-                        </option>
-                      ))}
-                    </select>
-                  )}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {(statement.general.gradeGroups || []).map((group) => (
@@ -498,7 +487,7 @@ export default function TeacherPayrollStatement({
                         />
                         <span className="grid h-9 w-24 shrink-0 place-items-center rounded-md border bg-background text-sm font-medium">
                           {currencySelected
-                            ? payrollStatementCurrencySymbol(academicCurrency)
+                            ? payrollStatementCurrencySymbol(currency)
                             : "—"}
                         </span>
                       </div>
@@ -510,48 +499,6 @@ export default function TeacherPayrollStatement({
             <section className="rounded-xl border bg-muted/10 p-4">
               <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
                 <h3 className="text-lg font-semibold">أسعار ساعات الدورات</h3>
-                {changeAcademicCurrency &&
-                  hasAcademicSessions &&
-                  !statement.general.gradeGroups?.length && (
-                    <select
-                      aria-label={
-                        hasCourseSessions ? "عملة التعليم الأكاديمي" : "العملة"
-                      }
-                      value={selectedAcademicCurrency || selectedCurrency || ""}
-                      onChange={(event) =>
-                        changeAcademicCurrency(
-                          event.target.value as PayrollStatementCurrency | "",
-                        )
-                      }
-                      className="h-9 w-36 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      <option value="">العملة</option>
-                      {PAYROLL_STATEMENT_CURRENCIES.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.code === "SAR" ? "ريال (ر.س)" : "جنيه (EGP)"}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                {changeCourseCurrency && hasCourseSessions && (
-                  <select
-                    aria-label="العملة"
-                    value={selectedCourseCurrency || selectedCurrency || ""}
-                    onChange={(event) =>
-                      changeCourseCurrency(
-                        event.target.value as PayrollStatementCurrency | "",
-                      )
-                    }
-                    className="h-9 w-36 rounded-md border border-input bg-background px-2 text-sm"
-                  >
-                    <option value="">العملة</option>
-                    {PAYROLL_STATEMENT_CURRENCIES.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.code === "SAR" ? "ريال (ر.س)" : "جنيه (EGP)"}
-                      </option>
-                    ))}
-                  </select>
-                )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {statement.courses.map((course) => (
@@ -580,7 +527,7 @@ export default function TeacherPayrollStatement({
                       />
                       <span className="grid h-9 w-24 shrink-0 place-items-center rounded-md border bg-background text-sm font-medium">
                         {currencySelected
-                          ? payrollStatementCurrencySymbol(courseCurrency)
+                          ? payrollStatementCurrencySymbol(currency)
                           : "—"}
                       </span>
                     </div>
@@ -589,17 +536,9 @@ export default function TeacherPayrollStatement({
               </div>
               {!hasCourseSessions && (
                 <p className="text-sm text-muted-foreground">
-                  لا توجد جلسات دورات في هذه الفترة، ولا يلزم اختيار عملة لها.
+                  لا توجد جلسات دورات في هذه الفترة.
                 </p>
               )}
-              {(changeAcademicCurrency || changeCourseCurrency) &&
-                hasAcademicSessions &&
-                hasCourseSessions &&
-                !currenciesMatch && (
-                  <p className="mt-2 text-sm text-destructive">
-                    يجب أن تكون عملة الصفوف والدورات واحدة داخل كشف الدفع.
-                  </p>
-                )}
             </section>
             {onAttendanceDeductionsChange && (
               <section className="rounded-xl border bg-muted/10 p-4">
@@ -680,7 +619,7 @@ export default function TeacherPayrollStatement({
               </>
             ) : (
               <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                اختر العملة بجوار إدخال السعر لعرض الكشف وحفظ المسودة.
+                اختر عملة الكشف من أعلى الصفحة لعرض الإجماليات وحفظ المسودة.
               </p>
             )}
           </CardContent>

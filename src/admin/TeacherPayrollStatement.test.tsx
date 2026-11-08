@@ -44,10 +44,41 @@ describe("TeacherPayrollStatement", () => {
     const printView = within(screen.getByTestId("statement-print"));
     expect(printView.getByText("التقرير المالي")).toBeInTheDocument();
     expect(printView.getByText("المعلم")).toBeInTheDocument();
+    expect(printView.getByText("تفاصيل الخصومات")).toBeInTheDocument();
+    expect(printView.getByText("خصم إضافي")).toBeInTheDocument();
+    expect(printView.getByText("خصم إضافي من الإدارة")).toBeInTheDocument();
     expect(printView.getAllByText("تاريخ الحصة").length).toBeGreaterThan(0);
     expect(printView.queryByText("أسعار ساعات الدورات")).not.toBeInTheDocument();
     expect(screen.getByTestId("statement-print").querySelectorAll("input, button, select, textarea")).toHaveLength(0);
     expect(printView.queryByText("Student One")).not.toBeInTheDocument();
     expect(screen.getByTestId("statement-print").parentElement).toBe(document.body);
+  });
+
+  it("prints approved attendance deductions with their lesson details", () => {
+    render(
+      <TeacherPayrollStatement
+        statement={statement}
+        curriculumName="Egyptian"
+        period={{ from: "2026-09-01", to: "2026-09-30" }}
+        currency="SAR"
+        attendanceIncidents={[{
+          incidentId: "incident-1",
+          scheduledStartAt: "2026-09-10T09:00:00.000Z",
+          actualStartedAt: "2026-09-10T09:08:00.000Z",
+          minutesLate: 8,
+          classroomName: "الصف الأول",
+          curriculumName: "المنهج السعودي",
+          amount: 15,
+        }]}
+        onAttendanceDeductionsChange={() => undefined}
+        initialDeduction={0}
+      />,
+    );
+    const printView = within(screen.getByTestId("statement-print"));
+    expect(printView.getByText("مخالفة تأخير")).toBeInTheDocument();
+    expect(printView.getByText("الصف الأول")).toBeInTheDocument();
+    expect(printView.getByText("المنهج السعودي")).toBeInTheDocument();
+    expect(printView.getByText(/8 دقيقة تأخير/)).toBeInTheDocument();
+    expect(printView.getAllByText("١٥ ر.س").length).toBeGreaterThan(0);
   });
 });

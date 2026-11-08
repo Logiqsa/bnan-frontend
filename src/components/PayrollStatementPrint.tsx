@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import academyLogo from "@/assets/logo-bnan.png";
 import type { TeacherPayrollStatement } from "@/api/teacherPayrollStatementsApi";
 import PayrollStatementBreakdown from "@/components/PayrollStatementBreakdown";
+import PayrollPrintDeductions from "@/components/PayrollPrintDeductions";
 import { formatPayrollStatementMoney, payrollStatementCurrencyName, payrollStatementCurrencySymbol } from "@/lib/payrollStatementCurrency";
 
 const money = (value: number, currency: string) => formatPayrollStatementMoney(value, currency);
@@ -43,6 +44,14 @@ const PRINT_STYLES = `
     .statement-print .payroll-session-table th { background: #0E1C3E !important; color: #fff !important; }
     .statement-print .payroll-session-row { break-inside: avoid !important; page-break-inside: avoid !important; }
     .statement-print .payroll-section-total { break-inside: avoid; break-before: avoid; page-break-inside: avoid; page-break-before: avoid; display: block; width: fit-content; margin: 3mm 0 0 auto; border-radius: 999px; background: #0E1C3E !important; color: #fff !important; padding: 2mm 4mm; font-size: 9.5pt; }
+    .statement-print-deductions { margin-top: 7mm; }
+    .statement-print-deductions h2 { break-after: avoid; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #0E1C3E; color: #0E1C3E; font-size: 15pt; }
+    .statement-print-deductions table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    .statement-print-deductions thead { display: table-header-group; }
+    .statement-print-deductions tr { break-inside: avoid; }
+    .statement-print-deductions th, .statement-print-deductions td { border: 1px solid #cbd5e1; padding: 2.5mm 2mm; font-size: 8.5pt; text-align: right; vertical-align: top; }
+    .statement-print-deductions th { background: #0E1C3E !important; color: #fff !important; }
+    .statement-print-deductions-empty { margin: 0; border: 1px solid #cbd5e1; border-radius: 2mm; padding: 4mm; font-size: 9pt; color: #64748b; }
     .statement-print-summary { break-inside: avoid; page-break-inside: avoid; margin-top: 7mm; padding-top: 4mm; border-top: 2px solid #0E1C3E; }
     .statement-print-summary h2 { margin: 0 0 3mm; color: #0E1C3E; font-size: 15pt; }
     .statement-print-summary p { display: flex; justify-content: space-between; margin: 0; padding: 2mm 0; border-bottom: 1px solid #e2e8f0; font-size: 10pt; }
@@ -54,6 +63,15 @@ const PRINT_STYLES = `
 export default function PayrollStatementPrint({ statement }: { statement: TeacherPayrollStatement }) {
   const courseTotal = statement.courses.reduce((sum, course) => sum + Number(course.amount || 0), 0);
   const teacherName = statement.teacher.fullName || statement.teacher.email || "—";
+  const deductionItems = (statement.deductionItems || []).map((item, index) => ({
+    key: `${item.incident || item.source}-${index}`,
+    type: item.source === "automatic_late" ? "مخالفة تأخير" : "خصم إضافي",
+    detail: item.classroomName || item.reason || "—",
+    curriculum: item.curriculumName || statement.curriculum.name,
+    occurredAt: item.occurredAt,
+    minutesLate: item.source === "automatic_late" ? item.minutesLate : null,
+    amount: item.amount,
+  }));
 
   return <>
     <style>{PRINT_STYLES}</style>
@@ -70,6 +88,7 @@ export default function PayrollStatementPrint({ statement }: { statement: Teache
       </header>
       <main className="statement-print-body">
         <PayrollStatementBreakdown general={statement.generalSubscription} courses={statement.courses} currency={statement.currency} />
+        <PayrollPrintDeductions items={deductionItems} currency={statement.currency} />
         <section className="statement-print-summary" aria-label="الملخص المالي">
           <h2>الملخص المالي</h2>
           <p><span>إجمالي التعليم الأكاديمي</span><strong>{money(statement.generalSubscription.amount, statement.currency)}</strong></p>

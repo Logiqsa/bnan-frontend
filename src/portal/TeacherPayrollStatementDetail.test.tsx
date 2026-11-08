@@ -19,7 +19,19 @@ const statement: TeacherPayrollStatement = {
   period: { from: "2026-09-01T00:00:00.000Z", to: "2026-09-30T23:59:59.999Z" },
   generalSubscription: { hours: 1, amount: 100, details: [], gradeGroups: [], sessions: [] },
   courses: [{ course: "course-1", courseName: "دورة تجريبية", hours: 1, hourlyRate: 50, amount: 50, sessions: [] }],
-  bonuses: 10, deductions: 5, finalAmount: 155, currency: "EGP", status: "sent",
+  bonuses: 10,
+  deductions: 5,
+  deductionItems: [{
+    source: "automatic_late",
+    incident: "incident-1",
+    reason: "تأخير 8 دقائق",
+    amount: 5,
+    occurredAt: "2026-09-10T09:00:00.000Z",
+    minutesLate: 8,
+    classroomName: "الصف الأول",
+    curriculumName: "المنهج المصري",
+  }],
+  finalAmount: 155, currency: "EGP", status: "sent",
   sentAt: "2026-09-30T12:00:00.000Z", payment: null,
   createdAt: "2026-09-30T12:00:00.000Z", updatedAt: "2026-09-30T12:00:00.000Z",
 };
@@ -44,6 +56,8 @@ describe("TeacherPayrollStatementDetail", () => {
 
     const download = await screen.findByRole("button", { name: "تحميل الكشف" });
     expect(screen.getByTestId("statement-print")).toHaveTextContent("التقرير المالي");
+    expect(screen.getByTestId("statement-print")).toHaveTextContent("تفاصيل الخصومات");
+    expect(screen.getByTestId("statement-print")).toHaveTextContent("الصف الأول");
     expect(screen.getByTestId("statement-print")).toHaveTextContent("محمد أحمد");
     expect(screen.getByTestId("statement-print")).toHaveTextContent("المنهج المصري");
 

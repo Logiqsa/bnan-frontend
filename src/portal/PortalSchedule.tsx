@@ -42,6 +42,7 @@ import { closeReservedZoomWindow, navigateReservedZoomWindow, reserveZoomWindow 
 import { teacherApplicationsApi } from "@/api/teacherApplicationsApi";
 import { TeacherApplicationDetails } from "@/admin/TeacherApplicationDetails";
 import ScheduleRangeText from "@/components/ScheduleRangeText";
+import { displayWeeklySlot } from "@/lib/weeklyScheduleTime";
 
 const dayNames = [
   "السبت",
@@ -237,6 +238,8 @@ export default function PortalSchedule({
   );
 
   const load = useCallback(async () => {
+    // Re-fetch the API's viewer-local projection whenever the account time zone changes.
+    void timeZone;
     setError("");
     try {
       const unifiedWeeks = await Promise.all(
@@ -270,6 +273,7 @@ export default function PortalSchedule({
     filter,
     pick,
     role,
+    timeZone,
   ]);
   useEffect(() => {
     setLoading(true);
@@ -290,8 +294,8 @@ export default function PortalSchedule({
     );
   }, [lessons]);
   useEffect(() => {
-    setScheduleStartTime(selected?.sourceStartTime || selected?.startTime || "");
-    setScheduleEndTime(selected?.sourceEndTime || selected?.endTime || "");
+    setScheduleStartTime(selected?.startTime || "");
+    setScheduleEndTime(selected?.endTime || "");
     setRescheduling(false);
   }, [selected]);
   useEffect(() => {
@@ -496,12 +500,29 @@ export default function PortalSchedule({
     setSavingSchedule(true);
     setStartError("");
     try {
+      const sourceSlot = selected.sourceTimeZone
+        ? displayWeeklySlot(
+            {
+              day: selected.day as Parameters<typeof displayWeeklySlot>[0]["day"],
+              startTime: scheduleStartTime || selected.startTime,
+              endTime: scheduleEndTime || selected.endTime || "",
+            },
+            timeZone,
+            selected.sourceTimeZone,
+          )
+        : {
+            day: selected.day,
+            startTime:
+              scheduleStartTime || selected.sourceStartTime || selected.startTime,
+            endTime:
+              scheduleEndTime || selected.sourceEndTime || selected.endTime || "",
+          };
       await upsertUnifiedScheduleEntry(selected.classroom.id, {
         ...(selected.scheduleEntryId ? { entryId: selected.scheduleEntryId } : {}),
-        day: selected.day,
+        day: sourceSlot.day,
         classroomSubjectId: selected.classroomSubjectId,
-        startTime: scheduleStartTime || selected.sourceStartTime || selected.startTime,
-        endTime: scheduleEndTime || selected.sourceEndTime || selected.endTime || "",
+        startTime: sourceSlot.startTime,
+        endTime: sourceSlot.endTime || "",
       });
       await load();
       setSelected(null);

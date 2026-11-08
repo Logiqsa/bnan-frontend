@@ -66,14 +66,14 @@ describe("regular session lifecycle API", () => {
     vi.mocked(apiRequest).mockResolvedValue({ data: {
       weekStart: "2026-09-19", weekEnd: "2026-09-25", timezone: "Africa/Cairo",
       days: [{ date: "2026-09-19", day: "saturday", lessons: [
-        { id: "entry-1", type: "classroom", system: "gulf", classroom: { id: "classroom-1", name: "Class" }, classroomSubjectId: "subject-1", subject: { id: "subject-1", name: "Math" }, day: "saturday", date: "2026-09-19", startTime: "09:00", scheduledAt: "2026-09-19T06:00:00.000Z", activeSession: null },
+        { id: "entry-1", type: "classroom", system: "gulf", classroom: { id: "classroom-1", name: "Class" }, classroomSubjectId: "subject-1", subject: { id: "subject-1", name: "Math" }, day: "saturday", date: "2026-09-19", startTime: "09:00", sourceTimeZone: "Asia/Riyadh", scheduledAt: "2026-09-19T06:00:00.000Z", activeSession: null },
         { id: "course:schedule-1:saturday:10:00", type: "course", system: "gulf", classroom: { id: "course-class-1", name: "Course class" }, subject: { id: "course-1", name: "Course" }, courseId: "course-1", courseName: "Course", day: "saturday", date: "2026-09-19", startTime: "10:00", scheduledAt: "2026-09-19T07:00:00.000Z", activeSession: null },
       ] }],
     } });
     const week = await getUnifiedScheduleWeek("2026-09-19");
     expect(apiRequest).toHaveBeenCalledWith("/schedules/mySchedule?weekStart=2026-09-19");
     expect(week.lessons).toEqual(expect.arrayContaining([
-      expect.objectContaining({ scheduleKind: "classroom", scheduleEntryId: "entry-1" }),
+      expect.objectContaining({ scheduleKind: "classroom", scheduleEntryId: "entry-1", sourceTimeZone: "Asia/Riyadh" }),
       expect.objectContaining({ scheduleKind: "course", courseId: "course-1" }),
     ]));
   });

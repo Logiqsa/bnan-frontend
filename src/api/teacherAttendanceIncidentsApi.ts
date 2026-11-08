@@ -10,7 +10,7 @@ export interface TeacherAttendanceIncident {
   id: string;
   occurrenceId: string;
   sessionId: string | null;
-  teacher: { id: string; fullName: string | null };
+  teacher: { id: string; userId: string | null; fullName: string | null };
   classroom: { id: string; name: string | null };
   type: "late" | "absent";
   scheduledStartAt: string;

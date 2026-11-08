@@ -239,6 +239,21 @@ export const notificationLink = (
   if (notification.key === "GLOBAL_NOTIFICATION" || target === "global_notification_details") {
     return globalNotificationLink(notification, role);
   }
+  if (target === "teacher_attendance_incident") {
+    const incidentId = firstParam(
+      notification,
+      "incidentId",
+      "teacherAttendanceIncidentId",
+    ) || (notification.resource?.model?.toLowerCase() === "teacherattendanceincident"
+      ? notification.resource.id || undefined
+      : undefined);
+    if (incidentId && role === "admin") {
+      return `/admin/teacher-attendance/${encodeURIComponent(incidentId)}`;
+    }
+    if (incidentId && role === "supervisor") {
+      return `/portal/supervisor/teacher-attendance/${encodeURIComponent(incidentId)}`;
+    }
+  }
   if (role === "admin") {
     if (notification.type === "chat_room" || target === "chat_room") {
       const roomId = notificationParam(notification, "roomId");

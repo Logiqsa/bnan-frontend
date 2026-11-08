@@ -31,6 +31,7 @@ interface UnifiedScheduleEntry {
   endTime?: string;
   sourceStartTime?: string;
   sourceEndTime?: string;
+  sourceTimeZone?: string;
   scheduledAt: string | null;
   activeSession?: PortalLesson["activeSession"] | null;
   courseId?: string;
@@ -82,6 +83,7 @@ const toPortalLesson = (
   endTime: lesson.endTime,
   sourceStartTime: lesson.sourceStartTime,
   sourceEndTime: lesson.sourceEndTime,
+  sourceTimeZone: lesson.sourceTimeZone,
   scheduledAt: lesson.scheduledAt,
   activeSession: lesson.activeSession || null,
   scheduleKind: lesson.type,

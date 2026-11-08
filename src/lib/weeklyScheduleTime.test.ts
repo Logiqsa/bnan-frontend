@@ -24,4 +24,9 @@ describe("displayWeeklySlot", () => {
   it("keeps source values when both time zones match", () => {
     expect(displayWeeklySlot(slot, "Asia/Riyadh", "Asia/Riyadh", monday)).toEqual(slot);
   });
+
+  it("converts an edited viewer time back to the source schedule time", () => {
+    const displayed = displayWeeklySlot(slot, "Asia/Riyadh", "Africa/Cairo", monday);
+    expect(displayWeeklySlot(displayed, "Africa/Cairo", "Asia/Riyadh", monday)).toMatchObject(slot);
+  });
 });

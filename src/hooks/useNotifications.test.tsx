@@ -127,6 +127,24 @@ describe("useNotifications", () => {
   });
 
   it.each([
+    ["admin", "/admin/teacher-attendance/incident%2F1"],
+    ["supervisor", "/portal/supervisor/teacher-attendance/incident%2F1"],
+  ] as const)("opens the exact attendance incident for %s", (role, route) => {
+    expect(notificationLink({
+      ...stored,
+      key: "TEACHER_SESSION_LATE",
+      navigation: {
+        target: "teacher_attendance_incident",
+        params: {
+          incidentId: "incident/1",
+          teacherId: "teacher-1",
+          classroomId: "classroom-1",
+        },
+      },
+    }, role)).toBe(route);
+  });
+
+  it.each([
     ["teacher_requests", "/portal/teacher/requests"],
     ["schedule", "/portal/teacher/schedule"],
     ["active_session", "/portal/teacher/schedule"],

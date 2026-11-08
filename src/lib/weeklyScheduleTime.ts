@@ -1,5 +1,4 @@
 import type { CourseScheduleSlot } from "@/api/coursesApi";
-import type { SupportedTimeZone } from "@/contexts/TimeZoneContext";
 
 const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 const parts = (value: Date, timeZone: string) => Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone, calendar: "gregory", numberingSystem: "latn", year: "numeric", month: "2-digit", day: "2-digit", weekday: "long", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(value).map((item) => [item.type, item.value]));
@@ -26,7 +25,7 @@ export const weeklySlotOccurrence = (slot: CourseScheduleSlot, sourceTimeZone: s
   return { date, start, end, phase };
 };
 
-export const displayWeeklySlot = (slot: CourseScheduleSlot, sourceTimeZone: string, viewerTimeZone: SupportedTimeZone, now = new Date()) => {
+export const displayWeeklySlot = (slot: CourseScheduleSlot, sourceTimeZone: string, viewerTimeZone: string, now = new Date()) => {
   if (sourceTimeZone === viewerTimeZone) return slot;
   const today = parts(now, sourceTimeZone);
   const sourceDay = weekdays.indexOf(slot.day as typeof weekdays[number]);

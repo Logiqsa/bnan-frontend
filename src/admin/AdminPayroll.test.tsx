@@ -80,8 +80,8 @@ describe("AdminPayroll", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Sent statements" }));
 
-    expect(await screen.findByText("الكشوفات المرسلة")).toBeInTheDocument();
-    expect(screen.getByText("لا توجد كشوفات مرسلة حتى الآن.")).toBeInTheDocument();
+    expect(await screen.findByText("مسودات وكشوف الرواتب")).toBeInTheDocument();
+    expect(screen.getByText("لا توجد مسودات أو كشوف رواتب حتى الآن.")).toBeInTheDocument();
     expect(screen.queryByText("Create draft")).not.toBeInTheDocument();
   });
 

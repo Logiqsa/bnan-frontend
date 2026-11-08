@@ -10,6 +10,7 @@ vi.mock("@/api/adminPayrollApi", () => ({
   adminPayrollApi: {
     listStatements: vi.fn(),
     getStatement: vi.fn(),
+    sendStatement: vi.fn(),
     deleteStatement: vi.fn(),
     payStatement: vi.fn(),
     getStatementReceipt: vi.fn(),
@@ -64,6 +65,9 @@ describe("AdminSentPayrollStatements deletion", () => {
         statement("paid-1", "paid", "معلم مدفوع"),
       ]);
     vi.mocked(adminPayrollApi.deleteStatement).mockResolvedValue({ id: "draft-1" });
+    vi.mocked(adminPayrollApi.sendStatement).mockResolvedValue(
+      statement("draft-1", "sent", "معلم مسودة"),
+    );
   });
 
   it("restores the original statement actions and keeps draft editing", async () => {
@@ -75,7 +79,8 @@ describe("AdminSentPayrollStatements deletion", () => {
 
     expect(within(draftRow).getByRole("link", { name: "عرض الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/draft-1");
     expect(within(draftRow).getByRole("link", { name: "تعديل الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/draft-1?edit=1");
-    expect(within(draftRow).getByRole("button", { name: "إرسال الراتب" })).toBeEnabled();
+    expect(within(draftRow).getByRole("button", { name: "إرسال الكشف للمعلم" })).toBeEnabled();
+    expect(within(draftRow).queryByRole("button", { name: "إرسال الراتب" })).not.toBeInTheDocument();
     expect(within(draftRow).getByRole("button", { name: /حذف الكشف/ })).toBeEnabled();
 
     expect(within(sentRow).getByRole("link", { name: "عرض الكشف" })).toHaveAttribute("href", "/admin/payroll/statements/sent-1");
@@ -87,6 +92,31 @@ describe("AdminSentPayrollStatements deletion", () => {
     expect(within(paidRow).queryByRole("link", { name: "تعديل الكشف" })).not.toBeInTheDocument();
     expect(within(paidRow).queryByRole("button", { name: "إرسال الراتب" })).not.toBeInTheDocument();
     expect(within(paidRow).getByRole("button", { name: /حذف الكشف/ })).toBeDisabled();
+  });
+
+  it("sends a draft to the teacher before exposing the salary payment action", async () => {
+    vi.mocked(adminPayrollApi.listStatements)
+      .mockReset()
+      .mockResolvedValueOnce([
+        statement("draft-1", "draft", "معلم مسودة"),
+        statement("sent-1", "sent", "معلم مرسل"),
+        statement("paid-1", "paid", "معلم مدفوع"),
+      ])
+      .mockResolvedValue([
+        statement("draft-1", "sent", "معلم مسودة"),
+        statement("sent-1", "sent", "معلم مرسل"),
+        statement("paid-1", "paid", "معلم مدفوع"),
+      ]);
+    renderPage();
+    const draftRow = (await screen.findByText("معلم مسودة")).closest("tr")!;
+    fireEvent.click(within(draftRow).getByRole("button", { name: "إرسال الكشف للمعلم" }));
+
+    await waitFor(() => expect(adminPayrollApi.sendStatement).toHaveBeenCalledWith("draft-1"));
+    await waitFor(() => {
+      const updatedRow = screen.getByText("معلم مسودة").closest("tr")!;
+      expect(within(updatedRow).getByRole("button", { name: "إرسال الراتب" })).toBeEnabled();
+      expect(within(updatedRow).queryByRole("button", { name: "إرسال الكشف للمعلم" })).not.toBeInTheDocument();
+    });
   });
 
   it("requires confirmation, allows cancellation, and removes the row after success", async () => {

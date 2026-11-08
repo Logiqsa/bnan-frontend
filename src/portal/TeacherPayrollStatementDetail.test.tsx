@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { teacherPayrollStatementsApi, type TeacherPayrollStatement } from "@/api/teacherPayrollStatementsApi";
@@ -49,6 +49,8 @@ describe("TeacherPayrollStatementDetail", () => {
     vi.clearAllMocks();
     vi.mocked(teacherPayrollStatementsApi.get).mockResolvedValue(statement);
     vi.spyOn(window, "print").mockImplementation(() => undefined);
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:payment-receipt") });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
   });
 
   it("downloads the saved statement through the agreed printable layout", async () => {
@@ -63,5 +65,33 @@ describe("TeacherPayrollStatementDetail", () => {
 
     fireEvent.click(download);
     expect(window.print).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads the payment receipt as a compact thumbnail and opens it inside the site", async () => {
+    vi.mocked(teacherPayrollStatementsApi.get).mockResolvedValue({
+      ...statement,
+      status: "paid",
+      payment: {
+        amount: 155,
+        currency: "EGP",
+        method: "wallet",
+        methodSnapshot: { method: "wallet", accountHolderName: "محمد أحمد", walletPhone: "01000000000" },
+        paymentReference: null,
+        paidAt: "2026-10-01T12:00:00.000Z",
+        hasReceipt: true,
+      },
+    });
+    vi.mocked(teacherPayrollStatementsApi.getReceipt).mockResolvedValue(new Blob(["receipt"], { type: "image/png" }));
+
+    renderPage();
+
+    const thumbnail = await screen.findByRole("button", { name: "معاينة إيصال الدفع" });
+    await waitFor(() => expect(within(thumbnail).getByRole("img", { name: "إيصال الدفع" })).toHaveAttribute("src", "blob:payment-receipt"));
+    expect(teacherPayrollStatementsApi.getReceipt).toHaveBeenCalledWith("statement-1");
+
+    fireEvent.click(thumbnail);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("img", { name: "إيصال الدفع" })).toHaveAttribute("src", "blob:payment-receipt");
+    expect(within(dialog).getByText("معاينة الإيصال داخل الموقع")).toBeInTheDocument();
   });
 });

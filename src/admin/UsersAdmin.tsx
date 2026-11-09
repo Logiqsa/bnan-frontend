@@ -19,6 +19,7 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";

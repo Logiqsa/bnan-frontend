@@ -145,6 +145,7 @@ interface UsersAdminProps {
   approvedTeachersOnly?: boolean;
   includeAllRoles?: boolean;
   showDateFilter?: boolean;
+  onManageAdminAccess?: (user: AdminUser) => void;
 }
 
 type RoleFilter = AdminUserRole | "all";
@@ -159,6 +160,7 @@ export default function UsersAdmin({
   approvedTeachersOnly = false,
   includeAllRoles = false,
   showDateFilter = false,
+  onManageAdminAccess,
 }: UsersAdminProps) {
   const { isArabic, pick } = useLanguage();
   const rolesKey = roles.join(",");
@@ -1026,6 +1028,15 @@ export default function UsersAdmin({
                                   >
                                     <Pencil className="h-4 w-4" />
                                     {pick("تعديل البيانات", "Edit details")}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              {onManageAdminAccess && (
+                                <>
+                                  <DropdownMenuItem onClick={() => onManageAdminAccess(item)} className="gap-2">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    {pick("إدارة الصلاحيات", "Manage permissions")}
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                 </>

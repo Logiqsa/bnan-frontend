@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { hasAdminPermission, permissionForAdminLocation } from "@/lib/adminPermissions";
 import {
   AlertTriangle,
   Megaphone,
@@ -635,9 +636,15 @@ const SidebarContent = ({
   // but their active CourseEnrollment has a real weekly schedule. Do not hide
   // the unified schedule entry for course-only accounts.
   const studentAcademicOnlyPaths = new Set(["/portal/student/subjects", "/portal/student/assignments", "/portal/student/evaluations", "/portal/student/subscriptions", "/portal/student/subject-requests", "/portal/student/change-requests"]);
-  const items = role === "student" && user?.studentType && user.studentType !== "academy"
+  const baseItems = role === "student" && user?.studentType && user.studentType !== "academy"
     ? (roleNavItems[role] || []).filter((item) => !studentAcademicOnlyPaths.has(item.path))
     : roleNavItems[role] || [];
+  const items = role === "admin"
+    ? baseItems.filter((item) => {
+        const [pathname, query = ""] = item.path.split("?");
+        return hasAdminPermission(user, permissionForAdminLocation(pathname, query ? `?${query}` : ""));
+      })
+    : baseItems;
   const { isArabic, pick } = useLanguage();
   const { items: notifications } = useNotificationsContext();
   const scheduleRoles = role === "teacher" || role === "student" || role === "supervisor";

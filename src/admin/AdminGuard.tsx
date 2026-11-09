@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
+import { firstAllowedAdminPath, hasAdminPermission, permissionForAdminLocation } from "@/lib/adminPermissions";
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = usePortalAuth();
@@ -12,5 +13,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
       : `/portal/${user.role}/schedule`;
     return <Navigate to={destination} replace />;
   }
+  const permission = permissionForAdminLocation(location.pathname, location.search);
+  if (!hasAdminPermission(user, permission)) return <Navigate to={firstAllowedAdminPath(user)} replace />;
   return <>{children}</>;
 }

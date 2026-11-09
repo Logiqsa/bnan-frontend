@@ -81,6 +81,8 @@ export interface PortalUser {
   createdAt?: string;
   parentEmail?: string | null;
   role: PortalRole;
+  adminAccess?: "full" | "custom";
+  adminPermissions?: string[];
   status: string;
   registrationMode?: RegistrationMode;
   registrationModes?: RegistrationMode[];

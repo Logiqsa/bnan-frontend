@@ -31,6 +31,8 @@ export interface AdminUser {
   whatsapp?: string;
   whatsappNumber?: string;
   role: AdminUserRole;
+  adminAccess?: "full" | "custom";
+  adminPermissions?: string[];
   status?: AdminUserStatus;
   isVerified?: boolean;
   curriculum?: string;
@@ -187,9 +189,16 @@ export const adminUsersApi = {
     apiRequest<{ success: true; message?: string }>(`/users/${id}`, {
       method: "DELETE",
     }),
-  createAdmin: async (body: { fullName: string; email: string; password: string; phone?: string }) => {
+  createAdmin: async (body: { fullName: string; email: string; password: string; phone?: string; adminAccess: "full" | "custom"; adminPermissions?: string[] }) => {
     const result = await apiRequest<{ success: true; data: AdminUserPayload }>("/users/admins", {
       method: "POST",
+      body: JSON.stringify(body),
+    });
+    return { ...result, data: normalizeUser(result.data) };
+  },
+  updateAdminAccess: async (id: string, body: { adminAccess: "full" | "custom"; adminPermissions?: string[] }) => {
+    const result = await apiRequest<{ success: true; data: AdminUserPayload }>(`/users/admins/${id}/access`, {
+      method: "PATCH",
       body: JSON.stringify(body),
     });
     return { ...result, data: normalizeUser(result.data) };

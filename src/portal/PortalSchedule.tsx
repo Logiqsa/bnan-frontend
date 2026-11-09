@@ -519,6 +519,7 @@ export default function PortalSchedule({
           };
       await upsertUnifiedScheduleEntry(selected.classroom.id, {
         ...(selected.scheduleEntryId ? { entryId: selected.scheduleEntryId } : {}),
+        ...(selected.scheduledAt ? { rescheduledOccurrenceStartAt: selected.scheduledAt } : {}),
         day: sourceSlot.day,
         classroomSubjectId: selected.classroomSubjectId,
         startTime: sourceSlot.startTime,

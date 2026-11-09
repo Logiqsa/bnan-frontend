@@ -43,6 +43,8 @@ interface UnifiedScheduleResponse {
 }
 export interface UnifiedScheduleEntryInput {
   entryId?: string;
+  /** Canonical UTC start of the exact dated occurrence being replaced. */
+  rescheduledOccurrenceStartAt?: string;
   day: string;
   classroomSubjectId: string;
   startTime: string;

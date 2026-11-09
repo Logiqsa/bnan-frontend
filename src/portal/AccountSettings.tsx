@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Clock3, Eye, EyeOff, Loader2, LockKeyhole, Save, UserRound } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clock3, Eye, EyeOff, Loader2, LockKeyhole, Save, Trash2, UserRound } from "lucide-react";
 import { authApi } from "@/api/authApi";
 import { ApiError, tokenStore } from "@/api/client";
 import { studentSettingsApi } from "@/api/studentSettingsApi";
@@ -23,14 +23,14 @@ const PasswordInput = ({ id, label, value, onChange }: { id: string; label: stri
 
 const messageFor = (error: ApiError, fallback: string) => {
   if (error.status === 403) return "ليس لديك صلاحية لتنفيذ هذا الإجراء.";
-  if (["INCORRECT_PASSWORD", "INVALID_CURRENT_PASSWORD"].includes(error.code)) return "كلمة المرور الحالية غير صحيحة.";
+  if (["INCORRECT_PASSWORD", "INVALID_CURRENT_PASSWORD", "CURRENT_PASSWORD_INCORRECT"].includes(error.code)) return "كلمة المرور الحالية غير صحيحة.";
   if (error.code === "INVALID_PARENT_CREDENTIALS") return "كلمة مرور ولي الأمر غير صحيحة.";
   if (["SETTINGS_VERIFICATION_REQUIRED", "INVALID_OR_EXPIRED_SETTINGS_VERIFICATION"].includes(error.code)) return "انتهت صلاحية التحقق. أدخل كلمة مرور ولي الأمر مرة أخرى.";
   return error.message || fallback;
 };
 
 export default function AccountSettings() {
-  const { user, updateCurrentUser } = usePortalAuth();
+  const { user, updateCurrentUser, forgetRememberedAccount, logout } = usePortalAuth();
   const { timeZone, setTimeZone } = useTimeZone();
   const [pendingTimeZone, setPendingTimeZone] = useState<SupportedTimeZone>(timeZone);
   const [timeZoneMessage, setTimeZoneMessage] = useState("");
@@ -56,6 +56,10 @@ export default function AccountSettings() {
   const [parentPassword, setParentPassword] = useState("");
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [verificationError, setVerificationError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     setFullName(user?.fullName || "");
@@ -164,12 +168,29 @@ export default function AccountSettings() {
     } finally { setVerificationBusy(false); }
   };
 
+  const deleteAccount = async () => {
+    setDeleteError("");
+    if (!deletePassword) return setDeleteError("أدخل كلمة المرور الحالية لتأكيد حذف الحساب.");
+    setDeleteBusy(true);
+    try {
+      await authApi.deleteAccount(deletePassword);
+      if (user?.id) forgetRememberedAccount(user.id);
+      logout();
+    } catch (caught) {
+      setDeleteError(messageFor(caught as ApiError, "تعذر حذف الحساب."));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   return <DashboardLayout><div dir="rtl" className="mx-auto max-w-3xl space-y-6"><header><h1 className="text-3xl font-bold">إعدادات الحساب</h1><p className="mt-1 text-muted-foreground">إدارة بيانات حسابك وكلمة المرور.</p></header>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary"/>البيانات الأساسية</CardTitle></CardHeader><CardContent className="space-y-5"><div className="space-y-2"><Label htmlFor="settings-name">الاسم الكامل</Label><Input id="settings-name" value={fullName} onChange={(event) => setFullName(event.target.value)}/></div><div className="space-y-2"><Label htmlFor="settings-email">البريد الإلكتروني</Label><Input id="settings-email" value={user?.email || ""} readOnly dir="ltr" className="bg-muted/50 text-left"/><p className="text-xs text-muted-foreground">لا يمكن تغيير البريد الإلكتروني حاليًا.</p></div>{studentNeedsParent && <div className="space-y-2"><Label htmlFor="settings-parent-email">بريد ولي الأمر</Label><Input id="settings-parent-email" value={parentEmail} readOnly dir="ltr" className="bg-muted/50 text-left"/></div>}{nameError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{nameError}</p>}{nameMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{nameMessage}</p>}<Button onClick={() => void saveName()} disabled={nameBusy} className="gap-2">{nameBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ الاسم</Button></CardContent></Card>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-primary"/>المنطقة الزمنية</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm leading-6 text-muted-foreground">يتم تحديد المنطقة تلقائيًا في أول زيارة، ويمكنك تغييرها ليظهر وقت الحصص والإشعارات حسب موقعك.</p><TimeZoneSelect value={pendingTimeZone} onValueChange={(value) => { timeZoneSelectionDirty.current = true; setPendingTimeZone(value); setTimeZoneMessage(""); setTimeZoneError(""); }} className="w-full sm:max-w-xs" />{timeZoneError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{timeZoneError}</p>}{timeZoneMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{timeZoneMessage}</p>}<Button type="button" className="gap-2" disabled={pendingTimeZone === timeZone || timeZoneBusy} onClick={() => void saveTimeZone()}>{timeZoneBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}حفظ المنطقة الزمنية</Button></CardContent></Card>
     {user?.role === "teacher" && <TeacherPhoneSettings />}
     {user?.role === "teacher" && <TeacherPayoutProfileSettings />}
     <Card className="overflow-hidden"><button type="button" onClick={() => setPasswordOpen((current) => !current)} className="flex w-full cursor-pointer items-center justify-between gap-3 p-6 text-start transition-colors hover:bg-muted/40" aria-expanded={passwordOpen}><span className="flex items-center gap-2 text-lg font-semibold"><LockKeyhole className="h-5 w-5 text-primary"/>تغيير كلمة المرور</span><ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${passwordOpen ? "rotate-180" : ""}`}/></button>{passwordOpen && <CardContent className="animate-in slide-in-from-top-2 space-y-5 border-t pt-6 duration-300">{!isStudent && <PasswordInput id="current-password" label="كلمة المرور الحالية" value={currentPassword} onChange={setCurrentPassword}/>}<PasswordInput id="new-password" label="كلمة المرور الجديدة" value={updatedPassword} onChange={setUpdatedPassword}/><PasswordInput id="confirm-password" label="تأكيد كلمة المرور الجديدة" value={confirmPassword} onChange={setConfirmPassword}/>{passwordError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{passwordError}</p>}{passwordMessage && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{passwordMessage}</p>}<Button onClick={() => void savePassword()} disabled={passwordBusy} className="gap-2">{passwordBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <LockKeyhole className="h-4 w-4"/>}تغيير كلمة المرور</Button></CardContent>}</Card>
+    <Card className="border-destructive/30 bg-destructive/[0.03]"><CardHeader><CardTitle className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5"/>حذف الحساب</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm leading-6 text-muted-foreground">سيتم إيقاف حسابك نهائيًا، وحذف بيانات الدخول والبيانات الشخصية. قد نحتفظ بالسجلات المالية وسجلات الحصص المطلوبة للإدارة والمراجعة بعد إخفاء هويتك.</p><Button type="button" variant="destructive" className="gap-2" onClick={() => { setDeletePassword(""); setDeleteError(""); setDeleteOpen(true); }}><Trash2 className="h-4 w-4"/>حذف حسابي</Button></CardContent></Card>
     <Dialog open={Boolean(verificationAction)} onOpenChange={(open) => { if (!open && !verificationBusy) { setVerificationAction(null); setParentPassword(""); setVerificationError(""); } }}><DialogContent dir="rtl"><DialogHeader><DialogTitle>التحقق من ولي الأمر</DialogTitle><DialogDescription>أدخل كلمة مرور ولي الأمر للمتابعة.</DialogDescription></DialogHeader><PasswordInput id="parent-password" label="كلمة مرور ولي الأمر" value={parentPassword} onChange={setParentPassword}/>{verificationError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{verificationError}</p>}<DialogFooter><Button variant="outline" onClick={() => setVerificationAction(null)} disabled={verificationBusy}>إلغاء</Button><Button onClick={() => void confirmParentVerification()} disabled={verificationBusy}>{verificationBusy && <Loader2 className="h-4 w-4 animate-spin"/>}متابعة</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={deleteOpen} onOpenChange={(open) => { if (!deleteBusy) { setDeleteOpen(open); if (!open) { setDeletePassword(""); setDeleteError(""); } } }}><DialogContent dir="rtl"><DialogHeader><DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5"/>تأكيد حذف الحساب</DialogTitle><DialogDescription className="leading-6">هذا الإجراء نهائي ولا يمكن التراجع عنه. أدخل كلمة المرور الحالية للمتابعة.</DialogDescription></DialogHeader><PasswordInput id="delete-account-password" label="كلمة المرور الحالية" value={deletePassword} onChange={setDeletePassword}/>{deleteError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{deleteError}</p>}<DialogFooter><Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteBusy}>إلغاء</Button><Button variant="destructive" className="gap-2" onClick={() => void deleteAccount()} disabled={deleteBusy}>{deleteBusy ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}حذف الحساب نهائيًا</Button></DialogFooter></DialogContent></Dialog>
   </div></DashboardLayout>;
 }

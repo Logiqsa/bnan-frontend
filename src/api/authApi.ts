@@ -156,4 +156,8 @@ export const authApi = {
     apiRequest<{ success: true; token?: string; refreshToken?: string; data?: { token?: string; refreshToken?: string } }>("/auth/updatePassword", {
       method: "PATCH", body: JSON.stringify({ currentPassword, updatedPassword }),
     }),
+  deleteAccount: (currentPassword: string) =>
+    apiRequest<{ success: true; data: null }>("/users/me", {
+      method: "DELETE", body: JSON.stringify({ currentPassword }),
+    }),
 };

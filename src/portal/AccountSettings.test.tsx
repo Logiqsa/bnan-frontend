@@ -6,6 +6,8 @@ import AccountSettings from "./AccountSettings";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const updateCurrentUser = vi.fn();
+const forgetRememberedAccount = vi.fn();
+const logout = vi.fn();
 const student = { id: "student-1", fullName: "Old Name", email: "student@example.com", role: "student" as const, status: "active" };
 
 vi.mock("@/api/authApi", () => ({
@@ -14,6 +16,7 @@ vi.mock("@/api/authApi", () => ({
     updateName: vi.fn(),
     updatePassword: vi.fn(),
     updateTimeZone: vi.fn(),
+    deleteAccount: vi.fn(),
   },
 }));
 vi.mock("@/api/studentSettingsApi", () => ({
@@ -28,7 +31,7 @@ vi.mock("@/api/client", () => ({
   tokenStore: { getRefresh: vi.fn(() => "refresh"), isPersistent: vi.fn(() => false), set: vi.fn() },
 }));
 vi.mock("@/layouts/DashboardLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
-vi.mock("./PortalAuthContext", () => ({ usePortalAuth: () => ({ user: student, updateCurrentUser, loading: false }) }));
+vi.mock("./PortalAuthContext", () => ({ usePortalAuth: () => ({ user: student, updateCurrentUser, forgetRememberedAccount, logout, loading: false }) }));
 vi.mock("./TeacherSettingsSections", () => ({ TeacherPhoneSettings: () => null, TeacherPayoutProfileSettings: () => null }));
 vi.mock("@/components/TimeZoneSelect", () => ({
   default: ({ value, onValueChange }: { value: string; onValueChange: (value: string) => void }) => (
@@ -45,6 +48,7 @@ describe("AccountSettings student verification", () => {
     vi.mocked(studentSettingsApi.verifyParentPassword).mockResolvedValue({ success: true, data: { verificationToken: "proof", expiresAt: "later" } });
     vi.mocked(studentSettingsApi.updateName).mockResolvedValue({ success: true, data: { fullName: "New Name" } });
     vi.mocked(studentSettingsApi.updatePassword).mockResolvedValue({ success: true, token: "new-token", refreshToken: "new-refresh" });
+    vi.mocked(authApi.deleteAccount).mockResolvedValue({ success: true, data: null });
   });
 
   it("verifies the parent before changing the student name without persisting secrets", async () => {
@@ -79,5 +83,16 @@ describe("AccountSettings student verification", () => {
     fireEvent.click(screen.getByRole("button", { name: "اختيار مصر" }));
     resolveProfile({ success: true, data: { timeZone: "Asia/Riyadh" } });
     await waitFor(() => expect(screen.getByRole("button", { name: "اختيار مصر" })).toHaveTextContent("Africa/Cairo"));
+  });
+
+  it("requires the current password, deletes the account, and clears its local session", async () => {
+    renderSettings();
+    fireEvent.click(screen.getByRole("button", { name: "حذف حسابي" }));
+    fireEvent.change(screen.getByLabelText("كلمة المرور الحالية"), { target: { value: "account-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "حذف الحساب نهائيًا" }));
+
+    await waitFor(() => expect(authApi.deleteAccount).toHaveBeenCalledWith("account-password"));
+    expect(forgetRememberedAccount).toHaveBeenCalledWith("student-1");
+    expect(logout).toHaveBeenCalled();
   });
 });

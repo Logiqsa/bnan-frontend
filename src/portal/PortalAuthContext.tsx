@@ -21,13 +21,24 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     if (!raw || !tokenStore.get() || !tokenStore.getRefresh()) { setLoading(false); return; }
     try {
       const saved = JSON.parse(raw) as PortalUser;
-      setUser(saved);
-      setLoading(false);
       // التحقق يتم في الخلفية. أخطاء الشبكة العادية لا تنهي الجلسة؛
       // apiRequest يطلق session-expired فقط إذا رفض الخادم refresh token.
-      // Admin accounts do not necessarily have a user profile document.
-      // Their protected API requests still validate the stored access token.
-      if (saved.role !== "admin") void authApi.profile().catch(() => undefined);
+      if (saved.role === "admin") {
+        void authApi.profile().then((response) => {
+          const fresh = response.data as Partial<PortalUser> & { _id?: string };
+          const synced = { ...saved, ...fresh, id: fresh.id || fresh._id || saved.id };
+          const storage = sessionStorage.getItem(USER_KEY) ? sessionStorage : localStorage;
+          storage.setItem(USER_KEY, JSON.stringify(synced));
+          const remembered = getRememberedAccounts().find((item) => item.user.id === saved.id);
+          if (remembered) rememberAccount({ ...remembered, user: synced });
+          setRememberedAccounts(getRememberedAccounts());
+          setUser(synced);
+        }).catch(() => setUser(saved)).finally(() => setLoading(false));
+        return;
+      }
+      setUser(saved);
+      setLoading(false);
+      void authApi.profile().catch(() => undefined);
     } catch {
       // بيانات مستخدم تالفة ليست جلسة قابلة للاستعادة، لكن لا نمس التوكنات هنا.
       localStorage.removeItem(USER_KEY);
@@ -85,9 +96,19 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     disconnectSocket();
     await clearAccountScopedQueries(queryClient);
     tokenStore.set(account.token, account.refreshToken, true);
-    localStorage.setItem(USER_KEY, JSON.stringify(account.user)); sessionStorage.removeItem(USER_KEY);
-    rememberAccount({ ...account, lastUsedAt: new Date().toISOString() });
-    setRememberedAccounts(getRememberedAccounts()); setUser(account.user); setLoading(false);
+    let nextUser = account.user;
+    if (account.user.role === "admin") {
+      try {
+        const response = await authApi.profile();
+        const fresh = response.data as Partial<PortalUser> & { _id?: string };
+        nextUser = { ...account.user, ...fresh, id: fresh.id || fresh._id || account.user.id };
+      } catch {
+        // Keep the remembered account usable when the profile refresh fails transiently.
+      }
+    }
+    localStorage.setItem(USER_KEY, JSON.stringify(nextUser)); sessionStorage.removeItem(USER_KEY);
+    rememberAccount({ ...account, user: nextUser, lastUsedAt: new Date().toISOString() });
+    setRememberedAccounts(getRememberedAccounts()); setUser(nextUser); setLoading(false);
     return true;
   };
   const prepareAddAccount = () => {

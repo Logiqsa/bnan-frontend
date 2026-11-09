@@ -7,6 +7,8 @@ import type { PortalUser } from "@/api/types";
 import { PortalAuthProvider, usePortalAuth } from "./PortalAuthContext";
 
 vi.mock("@/lib/socket", () => ({ disconnectSocket: vi.fn() }));
+const authMocks = vi.hoisted(() => ({ profile: vi.fn() }));
+vi.mock("@/api/authApi", () => ({ authApi: { profile: authMocks.profile } }));
 
 const account = (id: string): PortalUser => ({
   id,
@@ -29,6 +31,8 @@ const Probe = () => {
 
 describe("PortalAuthProvider account switching", () => {
   beforeEach(() => {
+    authMocks.profile.mockReset();
+    authMocks.profile.mockResolvedValue({ success: true, data: {} });
     localStorage.clear();
     sessionStorage.clear();
     const accountA = account("account-a");
@@ -39,6 +43,22 @@ describe("PortalAuthProvider account switching", () => {
       { user: accountB, token: "token-b", refreshToken: "refresh-b", lastUsedAt: "2026-09-26T09:00:00.000Z" },
     ]));
     tokenStore.set("token-a", "refresh-a", true);
+  });
+
+  it("refreshes administrator permissions before exposing the restored session", async () => {
+    authMocks.profile.mockResolvedValue({
+      success: true,
+      data: { adminAccess: "custom", adminPermissions: ["students"] },
+    });
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PortalAuthProvider><Probe /></PortalAuthProvider></QueryClientProvider>);
+
+    expect(await screen.findByText("account-a")).toBeInTheDocument();
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("bnan_portal_user") || "{}")).toMatchObject({
+      adminAccess: "custom",
+      adminPermissions: ["students"],
+    }));
   });
 
   afterEach(() => {

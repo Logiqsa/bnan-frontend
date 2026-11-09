@@ -76,6 +76,7 @@ export default function AdminPayrollStatementDetailPage() {
         incidentId,
         scheduledStartAt: item.occurredAt || statement?.period.from || "",
         actualStartedAt: null,
+        type: item.reason?.includes("عدم حضور") ? "absent" : "late",
         minutesLate: item.minutesLate || 0,
         classroomName: item.classroomName || null,
         curriculumName: item.curriculumName || null,

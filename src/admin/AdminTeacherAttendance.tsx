@@ -5,8 +5,8 @@ import {
   useQueryClient,
   type UseQueryResult,
 } from "@tanstack/react-query";
-import { Check, Clock, Loader2, RefreshCw, Save, X } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Check, Clock, Loader2, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   teacherAttendanceIncidentsApi,
@@ -73,6 +73,7 @@ export default function AdminTeacherAttendance() {
     : "/portal/supervisor/classrooms";
   const { incidentId } = useParams<{ incidentId?: string }>();
   const client = useQueryClient();
+  const navigate = useNavigate();
   const [type, setType] = useState("all");
   const [reviewStatus, setReviewStatus] = useState("pending");
   const [policy, setPolicy] = useState(defaults);
@@ -136,6 +137,23 @@ export default function AdminTeacherAttendance() {
     },
     onError: (error: Error) => toast.error(error.message || "تعذر حفظ القرار."),
   });
+  const removeIncident = useMutation({
+    mutationFn: (id: string) => teacherAttendanceIncidentsApi.remove(id),
+    onSuccess: async (_, id) => {
+      await client.invalidateQueries({ queryKey: ["teacher-attendance-incidents"] });
+      client.removeQueries({ queryKey: ["teacher-attendance-incident", id] });
+      if (incidentId === id) navigate(basePath, { replace: true });
+      toast.success("تم حذف سجل الحضور ولن يعاد إنشاؤه تلقائيًا.");
+    },
+    onError: (error: Error) => toast.error(
+      error.message === "ATTENDANCE_INCIDENT_USED_IN_PAYROLL"
+        ? "لا يمكن حذف المخالفة لأنها مستخدمة بالفعل في كشف راتب."
+        : error.message || "تعذر حذف السجل.",
+    ),
+  });
+  const requestDelete = (id: string) => {
+    if (window.confirm("هل تريد حذف سجل الحضور نهائيًا من السجل؟")) removeIncident.mutate(id);
+  };
   const item = detail.data;
   const approveDisabled = updateIncident.isPending;
 
@@ -150,8 +168,8 @@ export default function AdminTeacherAttendance() {
             <div>
               <h1 className="text-2xl font-bold">تأخير وغياب المعلمين</h1>
               <p className="text-sm text-muted-foreground">
-                التأخير ينتظر اعتماد الإدارة أو المشرف قبل دخوله في خصومات
-                الراتب. عدم الحضور يسجل بدون خصم.
+                التأخير ينتظر اعتماد الإدارة أو المشرف، وعدم الحضور يسجل
+                تلقائيًا. يمكن تحديد قيمة الخصم لكل منهما عند إعداد الراتب.
               </p>
             </div>
           </div>
@@ -244,9 +262,7 @@ export default function AdminTeacherAttendance() {
                       قرار المراجعة:
                     </span>{" "}
                     <Badge variant={reviewVariant(item.reviewStatus)}>
-                      {item.type === "absent"
-                        ? "مسجل بدون خصم"
-                        : reviewLabel[item.reviewStatus]}
+                      {reviewLabel[item.reviewStatus]}
                     </Badge>
                   </p>
                 </div>
@@ -316,9 +332,22 @@ export default function AdminTeacherAttendance() {
                     )}
                   </div>
                 )}
-                <Button asChild variant="outline">
-                  <Link to={basePath}>العودة للسجل</Link>
-                </Button>
+                {item.type === "absent" && (
+                  <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+                    عدم الحضور معتمد ومتاح ضمن مخالفات الحضور عند إعداد مسودة كشف الراتب، ويمكن للأدمن تحديد قيمة الخصم أو تركه بدون خصم.
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild variant="outline">
+                    <Link to={basePath}>العودة للسجل</Link>
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="destructive" disabled={removeIncident.isPending} onClick={() => requestDelete(item.id)}>
+                      <Trash2 className="me-2 h-4 w-4" />
+                      حذف السجل
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )
@@ -332,7 +361,10 @@ export default function AdminTeacherAttendance() {
             basePath={basePath}
             classroomBasePath={classroomBasePath}
             canViewTeacher={isAdmin}
+            canDelete={isAdmin}
             onTeacherClick={setTeacherDialogUserId}
+            onDelete={requestDelete}
+            deletingId={removeIncident.isPending ? removeIncident.variables : undefined}
           />
         )}
         <Dialog
@@ -492,7 +524,10 @@ function IncidentList({
   basePath,
   classroomBasePath,
   canViewTeacher,
+  canDelete,
   onTeacherClick,
+  onDelete,
+  deletingId,
 }: {
   type: string;
   setType: (value: string) => void;
@@ -502,7 +537,10 @@ function IncidentList({
   basePath: string;
   classroomBasePath: string;
   canViewTeacher: boolean;
+  canDelete: boolean;
   onTeacherClick: (userId: string) => void;
+  onDelete: (id: string) => void;
+  deletingId?: string;
 }) {
   return (
     <Card>
@@ -599,13 +637,13 @@ function IncidentList({
                     <td className="p-3">
                       <Badge variant={reviewVariant(row.reviewStatus)}>
                         {row.type === "absent"
-                          ? "مسجل بدون خصم"
+                          ? "متاح للخصم"
                           : reviewLabel[row.reviewStatus]}
                       </Badge>
                     </td>
                     <td className="max-w-64 p-3">
                       {row.type === "absent" ? (
-                        "بدون خصم"
+                        "القيمة تُحدد في مسودة الراتب"
                       ) : row.reviewStatus === "ignored" ? (
                         <span>
                           <strong>سبب التجاهل:</strong> {row.ignoreReason}
@@ -617,13 +655,20 @@ function IncidentList({
                       )}
                     </td>
                     <td className="p-3">
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`${basePath}/${row.id}`}>
-                          {row.reviewStatus === "pending" && row.type === "late"
-                            ? "مراجعة"
-                            : "التفاصيل"}
-                        </Link>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`${basePath}/${row.id}`}>
+                            {row.reviewStatus === "pending" && row.type === "late"
+                              ? "مراجعة"
+                              : "التفاصيل"}
+                          </Link>
+                        </Button>
+                        {canDelete && (
+                          <Button size="icon" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deletingId === row.id} aria-label="حذف سجل الحضور" onClick={() => onDelete(row.id)}>
+                            {deletingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

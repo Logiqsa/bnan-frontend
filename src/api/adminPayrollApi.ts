@@ -117,6 +117,7 @@ export interface PayrollStatementPreview {
 
 export interface AttendanceDeductionIncident {
   incidentId: string;
+  type?: "late" | "absent";
   scheduledStartAt: string;
   actualStartedAt: string | null;
   minutesLate: number;

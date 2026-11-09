@@ -35,4 +35,5 @@ export const teacherAttendanceIncidentsApi = {
   },
   get: async (id: string) => (await apiRequest<{ success: true; data: TeacherAttendanceIncident }>(`/admin/teacher-attendance/${encodeURIComponent(id)}`)).data,
   update: async (id: string, body: { decision: "approve" | "ignore"; ignoreReason?: string }) => (await apiRequest<{ success: true; data: TeacherAttendanceIncident }>(`/admin/teacher-attendance/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) })).data,
+  remove: async (id: string) => (await apiRequest<{ success: true; data: { id: string } }>(`/admin/teacher-attendance/${encodeURIComponent(id)}`, { method: "DELETE" })).data,
 };

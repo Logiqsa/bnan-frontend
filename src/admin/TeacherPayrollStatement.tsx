@@ -543,10 +543,10 @@ export default function TeacherPayrollStatement({
             {onAttendanceDeductionsChange && (
               <section className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-3">
-                  <h3 className="text-lg font-semibold">خصومات مخالفات التأخير</h3>
-                  <p className="text-xs text-muted-foreground">المخالفات المعتمدة فقط. أدخل قيمة أكبر من صفر لإضافتها للكشف، أو اتركها صفرًا لاستبعادها من هذه المسودة. العملة هي عملة الكشف.</p>
+                  <h3 className="text-lg font-semibold">خصومات مخالفات الحضور</h3>
+                  <p className="text-xs text-muted-foreground">حالات التأخير وعدم الحضور المعتمدة فقط. أدخل قيمة أكبر من صفر لإضافتها للكشف، أو اتركها صفرًا لاستبعادها من هذه المسودة. العملة هي عملة الكشف.</p>
                 </div>
-                {attendanceIncidents.length ? <div className="space-y-3">{attendanceIncidents.map((incident) => <div key={incident.incidentId} className="grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[1fr_12rem] sm:items-center"><div><p className="font-medium">{incident.classroomName || "حصة"} — تأخير {incident.minutesLate} دقيقة</p><p className="text-xs text-muted-foreground">{dateOnly(incident.scheduledStartAt)}</p></div><div className="flex items-center gap-2"><Input type="number" min="0" step="0.01" aria-label={`خصم مخالفة ${incident.classroomName || incident.incidentId}`} value={attendanceAmounts[incident.incidentId] || ""} placeholder="0" onChange={(event) => setAttendanceAmounts((current) => ({ ...current, [incident.incidentId]: event.target.value }))} /><span className="shrink-0 text-sm font-medium">{currencySelected ? payrollStatementCurrencySymbol(currency) : "—"}</span></div></div>)}</div> : <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">لا توجد مخالفات تأخير معتمدة لهذا المعلم في هذه الفترة والمنهج.</p>}
+                {attendanceIncidents.length ? <div className="space-y-3">{attendanceIncidents.map((incident) => <div key={incident.incidentId} className="grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[1fr_12rem] sm:items-center"><div><p className="font-medium">{incident.classroomName || "حصة"} — {incident.type === "absent" ? "عدم حضور" : `تأخير ${incident.minutesLate} دقيقة`}</p><p className="text-xs text-muted-foreground">{dateOnly(incident.scheduledStartAt)}</p></div><div className="flex items-center gap-2"><Input type="number" min="0" step="0.01" aria-label={`خصم مخالفة ${incident.classroomName || incident.incidentId}`} value={attendanceAmounts[incident.incidentId] || ""} placeholder="0" onChange={(event) => setAttendanceAmounts((current) => ({ ...current, [incident.incidentId]: event.target.value }))} /><span className="shrink-0 text-sm font-medium">{currencySelected ? payrollStatementCurrencySymbol(currency) : "—"}</span></div></div>)}</div> : <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">لا توجد مخالفات حضور معتمدة لهذا المعلم في هذه الفترة والمنهج.</p>}
               </section>
             )}
             {onDeductionChange && (
@@ -571,7 +571,7 @@ export default function TeacherPayrollStatement({
                   onChange={(event) => setDeductionReason(event.target.value)}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  خصم يدوي إضافي بخلاف مخالفات التأخير، وبعملة الكشف نفسها.
+                  خصم يدوي إضافي بخلاف مخالفات الحضور، وبعملة الكشف نفسها.
                 </p>
               </section>
             )}

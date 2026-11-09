@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  AlertTriangle,
   Ban,
   CheckCircle2,
   ChevronLeft,
@@ -20,6 +21,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  ShieldX,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -178,6 +180,7 @@ export default function UsersAdmin({
   const [total, setTotal] = useState<number>();
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<ApiError | null>(null);
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [teacherDetails, setTeacherDetails] =
@@ -212,6 +215,7 @@ export default function UsersAdmin({
   const load = useCallback(async () => {
     void refreshKey;
     setLoading(true);
+    setLoadError(null);
     try {
       if (approvedTeachersOnly) {
         const [teacherUsers, approvedApplications] = await Promise.all([
@@ -288,8 +292,10 @@ export default function UsersAdmin({
       setHasNextPage(result.hasNextPage ?? result.data.length === pageSize);
     } catch (error) {
       setItems([]);
-      toast.error(
-        (error as ApiError).message ||
+      const apiError = error as ApiError;
+      setLoadError(apiError);
+      if (apiError.status !== 403) toast.error(
+        apiError.message ||
           pick(`تعذر تحميل ${title}`, `Unable to load ${title}`),
       );
     } finally {
@@ -820,6 +826,24 @@ export default function UsersAdmin({
             <div className="grid min-h-64 place-items-center">
               <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
             </div>
+          ) : loadError?.status === 403 ? (
+            <div role="alert" className="grid min-h-72 place-items-center p-6 text-center">
+              <div className="max-w-md space-y-4">
+                <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-destructive/10 text-destructive shadow-sm ring-1 ring-destructive/20">
+                  <ShieldX className="h-10 w-10" />
+                </div>
+                <div className="space-y-2">
+                  <span className="inline-flex rounded-full bg-destructive/10 px-3 py-1 text-sm font-bold text-destructive">403</span>
+                  <h2 className="text-2xl font-bold text-foreground">{pick("غير مصرح لك بالدخول", "Access denied")}</h2>
+                  <p className="text-muted-foreground">{pick("ليس لديك صلاحية لعرض بيانات هذا القسم. اطلب من مدير النظام إضافة الصلاحية المناسبة لحسابك.", "You do not have permission to view this section. Ask a full administrator to grant the required access.")}</p>
+                </div>
+                <Button type="button" variant="outline" className="gap-2" onClick={() => void load()}>
+                  <RefreshCw className="h-4 w-4" />{pick("إعادة المحاولة", "Try again")}
+                </Button>
+              </div>
+            </div>
+          ) : loadError ? (
+            <div role="alert" className="grid min-h-64 place-items-center p-6 text-center"><div className="space-y-3"><AlertTriangle className="mx-auto h-10 w-10 text-destructive"/><p className="font-semibold">{loadError.message || pick("تعذر تحميل البيانات", "Unable to load data")}</p><Button variant="outline" onClick={() => void load()}>{pick("إعادة المحاولة", "Try again")}</Button></div></div>
           ) : items.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
               {pick("لا توجد بيانات للعرض", "No data to display")}

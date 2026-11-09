@@ -8,6 +8,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import UsersAdmin from "./UsersAdmin";
+import { ApiError } from "@/api/client";
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
@@ -348,5 +349,17 @@ describe("UsersAdmin verification OTP", () => {
     await waitFor(() =>
       expect(screen.queryByText("4821")).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe("UsersAdmin access errors", () => {
+  it("shows a styled 403 state instead of an empty table", async () => {
+    localStorage.setItem("bnan_language", "en");
+    mocks.list.mockReset().mockRejectedValue(new ApiError(403, "ADMIN_PERMISSION_DENIED", "Forbidden"));
+    mocks.listAll.mockReset().mockRejectedValue(new ApiError(403, "ADMIN_PERMISSION_DENIED", "Forbidden"));
+    renderPage();
+    expect(await screen.findByText("403")).toBeInTheDocument();
+    expect(screen.getByText("Access denied")).toBeInTheDocument();
+    expect(screen.queryByText("No data to display")).not.toBeInTheDocument();
   });
 });

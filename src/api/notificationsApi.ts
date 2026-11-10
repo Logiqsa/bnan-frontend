@@ -53,6 +53,11 @@ interface MarkReadResponse {
   data: { modifiedCount: number; unreadCount: number };
 }
 
+interface DeleteNotificationResponse {
+  success: true;
+  data: { id: string; unreadCount: number };
+}
+
 export const notificationsApi = {
   list: async (limit = 50) => normalizeList(await apiRequest<RawNotificationListResponse>(`/notifications?page=1&limit=${limit}`)),
   getGlobal: (broadcastId: string) => apiRequest<{ success: true; data: ApiNotification }>(`/notifications/global/${encodeURIComponent(broadcastId)}`),
@@ -63,5 +68,8 @@ export const notificationsApi = {
   markAllRead: () => apiRequest<MarkReadResponse>("/notifications/read", {
     method: "PATCH",
     body: JSON.stringify({ all: true }),
+  }),
+  delete: (notificationId: string) => apiRequest<DeleteNotificationResponse>(`/notifications/${encodeURIComponent(notificationId)}`, {
+    method: "DELETE",
   }),
 };

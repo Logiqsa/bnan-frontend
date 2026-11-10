@@ -5,6 +5,7 @@ import NotificationsBell from "./NotificationsBell";
 
 const mocks = vi.hoisted(() => ({
   markRead: vi.fn().mockResolvedValue(undefined),
+  deleteNotification: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/contexts/notifications-context", () => ({
@@ -29,6 +30,7 @@ vi.mock("@/contexts/notifications-context", () => ({
     reload: vi.fn(),
     markRead: mocks.markRead,
     markAllRead: vi.fn(),
+    deleteNotification: mocks.deleteNotification,
   }),
 }));
 vi.mock("@/i18n/LanguageContext", () => ({
@@ -60,5 +62,22 @@ describe("NotificationsBell", () => {
       "/portal/teacher/payroll-statements/statement-1",
     );
     expect(mocks.markRead).toHaveBeenCalledWith("notification-1");
+  });
+
+  it("deletes a notification after confirmation without navigating", async () => {
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <NotificationsBell role="admin" />
+        <Routes><Route path="*" element={<Location />} /></Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "فتح الإشعارات" }));
+    fireEvent.click(await screen.findByRole("button", { name: "حذف الإشعار" }));
+    expect(await screen.findByText("هل تريد حذف هذا الإشعار؟ لن يظهر لك مرة أخرى، ولن يتأثر باقي المستلمين.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "حذف" }));
+
+    expect(mocks.deleteNotification).toHaveBeenCalledWith("notification-1");
+    expect(screen.getByTestId("location")).toHaveTextContent("/admin");
   });
 });

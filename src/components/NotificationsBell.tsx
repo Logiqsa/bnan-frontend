@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, Loader2, RefreshCw } from "lucide-react";
+import { Bell, Check, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,17 +11,43 @@ import { formatDistanceToNow } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const NotificationsBell = ({ role }: { role: PortalRole }) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { isArabic, pick } = useLanguage();
-  const { items, unreadCount, loading, error, reload, markRead, markAllRead } = useNotificationsContext();
+  const { items, unreadCount, loading, error, reload, markRead, markAllRead, deleteNotification } = useNotificationsContext();
   const run = (operation: Promise<void>) => {
     void operation.catch(() => toast.error(pick("تعذر تحديث الإشعارات.", "Unable to update notifications.")));
   };
 
-  return <Popover open={open} onOpenChange={setOpen}>
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteNotification(deleteTarget);
+      setDeleteTarget(null);
+      toast.success(pick("تم حذف الإشعار.", "Notification deleted."));
+    } catch {
+      toast.error(pick("تعذر حذف الإشعار.", "Unable to delete notification."));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return <><Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
       <Button variant="outline" size="icon" className="relative bg-background shadow-sm" aria-label={pick("فتح الإشعارات", "Open notifications")}>
         <Bell className="h-5 w-5" />
@@ -55,14 +81,28 @@ const NotificationsBell = ({ role }: { role: PortalRole }) => {
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-start justify-between gap-2"><p dir="auto" className="min-w-0 break-words font-cairo text-sm font-medium leading-6">{notification.title || pick("إشعار جديد", "New notification")}</p>{!notification.isRead && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}</div>
                 {notification.body && <p dir="auto" className="mt-1 break-words whitespace-normal text-xs leading-5 text-muted-foreground">{notification.body}</p>}
-                <p dir="auto" className="mt-1 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: isArabic ? ar : enUS })}</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p dir="auto" className="text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: isArabic ? ar : enUS })}</p>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={pick("حذف الإشعار", "Delete notification")} onClick={(event) => { event.stopPropagation(); setDeleteTarget(notification.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
               </div>
               {notification.image && <img src={notification.image} alt="" loading="lazy" className="h-14 w-16 shrink-0 rounded-lg border object-cover sm:h-16 sm:w-20" />}
             </div>
           </li>)}</ul>}
       </div>
     </PopoverContent>
-  </Popover>;
+  </Popover><AlertDialog open={Boolean(deleteTarget)} onOpenChange={(nextOpen) => { if (!nextOpen && !deleting) setDeleteTarget(null); }}>
+    <AlertDialogContent dir={isArabic ? "rtl" : "ltr"}>
+      <AlertDialogHeader className={isArabic ? "text-right" : "text-left"}>
+        <AlertDialogTitle>{pick("حذف الإشعار", "Delete notification")}</AlertDialogTitle>
+        <AlertDialogDescription>{pick("هل تريد حذف هذا الإشعار؟ لن يظهر لك مرة أخرى، ولن يتأثر باقي المستلمين.", "Delete this notification? It will no longer appear for you, and other recipients will not be affected.")}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={deleting}>{pick("إلغاء", "Cancel")}</AlertDialogCancel>
+        <AlertDialogAction disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={(event) => { event.preventDefault(); void confirmDelete(); }}>{deleting && <Loader2 className="h-4 w-4 animate-spin" />}{pick("حذف", "Delete")}</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog></>;
 };
 
 export default NotificationsBell;

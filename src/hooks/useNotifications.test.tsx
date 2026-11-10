@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   markRead: vi.fn(),
   markAllRead: vi.fn(),
+  delete: vi.fn(),
   toast: vi.fn(),
   toastError: vi.fn(),
   listeners: new Map<string, (payload?: unknown) => void>(),
@@ -20,6 +21,7 @@ vi.mock("@/api/notificationsApi", () => ({
     list: mocks.list,
     markRead: mocks.markRead,
     markAllRead: mocks.markAllRead,
+    delete: mocks.delete,
   },
 }));
 vi.mock("@/lib/socket", () => ({
@@ -42,6 +44,7 @@ describe("useNotifications", () => {
     mocks.list.mockReset().mockResolvedValue({ data: [stored], unreadCount: 1 });
     mocks.markRead.mockReset().mockResolvedValue({ data: { unreadCount: 0 } });
     mocks.markAllRead.mockReset().mockResolvedValue({ data: { unreadCount: 0 } });
+    mocks.delete.mockReset().mockResolvedValue({ data: { id: "notification-1", unreadCount: 0 } });
     mocks.toast.mockClear();
     mocks.toastError.mockClear();
   });
@@ -71,6 +74,17 @@ describe("useNotifications", () => {
     act(() => mocks.listeners.get("notification")?.({ ...stored, id: "notification-2" }));
     await act(() => result.current.markAllRead());
     expect(mocks.markAllRead).toHaveBeenCalledTimes(1);
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it("deletes one notification and uses the unread count returned by the backend", async () => {
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.items).toEqual([stored]));
+
+    await act(() => result.current.deleteNotification("notification-1"));
+
+    expect(mocks.delete).toHaveBeenCalledWith("notification-1");
+    expect(result.current.items).toEqual([]);
     expect(result.current.unreadCount).toBe(0);
   });
 

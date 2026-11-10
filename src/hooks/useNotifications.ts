@@ -449,5 +449,12 @@ export function useNotifications(language?: "ar" | "en") {
     }
   }, [items, unreadCount]);
 
-  return useMemo(() => ({ items, unreadCount, loading, error, reload: load, markRead, markAllRead }), [items, unreadCount, loading, error, load, markRead, markAllRead]);
+  const deleteNotification = useCallback(async (id: string) => {
+    const response = await notificationsApi.delete(id);
+    setItems((current) => current.filter((item) => item.id !== id));
+    setUnreadCount(response.data.unreadCount);
+    receivedIds.current.delete(id);
+  }, []);
+
+  return useMemo(() => ({ items, unreadCount, loading, error, reload: load, markRead, markAllRead, deleteNotification }), [items, unreadCount, loading, error, load, markRead, markAllRead, deleteNotification]);
 }

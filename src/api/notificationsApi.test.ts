@@ -24,5 +24,10 @@ describe("notificationsApi", () => {
       method: "PATCH",
       body: JSON.stringify({ all: true }),
     });
+
+    await notificationsApi.delete("notification/one");
+    expect(apiRequest).toHaveBeenCalledWith("/notifications/notification%2Fone", {
+      method: "DELETE",
+    });
   });
 });

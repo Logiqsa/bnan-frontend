@@ -471,6 +471,7 @@ export default function PortalSchedule({
         WEEKLY_ZOOM_OCCURRENCE_AMBIGUOUS: "تعذر مطابقة الحصة بموعدها الأسبوعي بأمان. تواصل مع الإدارة.",
         WEEKLY_ZOOM_OCCURRENCE_CANCELLED: "تم إلغاء هذه الحصة في الجدول، ولا يمكن بدءها.",
         WEEKLY_ZOOM_OCCURRENCE_COMPLETED: "هذه الحصة مكتملة بالفعل، ولا يمكن بدءها مرة أخرى.",
+        WEEKLY_ZOOM_ASSIGNMENT_STALE: "تم تغيير موعد الحصة ولم يكتمل تحديث ربط Zoom. حدّث الصفحة، وإن استمرت المشكلة تواصل مع الإدارة.",
       };
       setStartError(
         messages[apiErrorCode(apiError)] || apiError.message || "تعذر بدء الحصة.",

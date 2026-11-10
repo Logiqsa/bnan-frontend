@@ -20,6 +20,7 @@ const statement: TeacherPayrollStatement = {
   generalSubscription: { hours: 1, amount: 100, details: [], gradeGroups: [], sessions: [] },
   courses: [{ course: "course-1", courseName: "دورة تجريبية", hours: 1, hourlyRate: 50, amount: 50, sessions: [] }],
   bonuses: 10,
+  bonusReason: "التميز في متابعة الطلاب",
   deductions: 5,
   deductionItems: [{
     source: "automatic_late",
@@ -62,6 +63,7 @@ describe("TeacherPayrollStatementDetail", () => {
     expect(screen.getByTestId("statement-print")).toHaveTextContent("الصف الأول");
     expect(screen.getByTestId("statement-print")).toHaveTextContent("محمد أحمد");
     expect(screen.getByTestId("statement-print")).toHaveTextContent("المنهج المصري");
+    expect(screen.getByTestId("statement-print")).toHaveTextContent("التميز في متابعة الطلاب");
 
     fireEvent.click(download);
     expect(window.print).toHaveBeenCalledTimes(1);

@@ -40,6 +40,7 @@ export interface TeacherPayrollStatement {
     sessions?: StatementSession[];
   }>;
   bonuses: number;
+  bonusReason?: string | null;
   manualDeductions?: number;
   deductionItems?: Array<{
     source: "automatic_late" | "manual";

@@ -1373,6 +1373,8 @@ export function AdminTeacherPayrollStatementPage() {
   const [statementCurrency, setStatementCurrency] = useState<
     PayrollStatementCurrency | ""
   >("");
+  const [statementBonus, setStatementBonus] = useState(0);
+  const [statementBonusReason, setStatementBonusReason] = useState("");
   const [statementDeduction, setStatementDeduction] = useState(0);
   const [statementDeductionReason, setStatementDeductionReason] = useState("");
   const [attendanceDeductions, setAttendanceDeductions] = useState<AttendanceDeductionInput[]>([]);
@@ -1414,7 +1416,8 @@ export function AdminTeacherPayrollStatementPage() {
         academicCurrency: statementCurrency,
         courseCurrency: statementCurrency,
         generalAmount: teacher?.payroll?.generalAmount || 0,
-        bonuses: teacher?.payroll?.bonus || 0,
+        bonuses: statementBonus,
+        bonusReason: statementBonusReason.trim(),
         manualDeductions: statementDeduction,
         deductionReason: statementDeductionReason,
         attendanceDeductions,
@@ -1490,14 +1493,17 @@ export function AdminTeacherPayrollStatementPage() {
             onCurrencyChange={setStatementCurrency}
             onRatesChange={setCourseRates}
             onGradeRatesChange={setGradeRates}
+            onBonusChange={setStatementBonus}
+            onBonusReasonChange={setStatementBonusReason}
             onDeductionChange={setStatementDeduction}
             onDeductionReasonChange={setStatementDeductionReason}
             attendanceIncidents={availableDeductionIncidents}
             onAttendanceDeductionsChange={setAttendanceDeductions}
             initialDeduction={teacher.payroll?.deduction || 0}
+            initialBonus={teacher.payroll?.bonus || 0}
             onSend={() => setSendConfirmOpen(true)}
             sending={sendStatement.isPending}
-            sendDisabled={!statementCurrency}
+            sendDisabled={!statementCurrency || (statementBonus > 0 && !statementBonusReason.trim())}
             actionLabel="حفظ المسودة"
           />
         )}

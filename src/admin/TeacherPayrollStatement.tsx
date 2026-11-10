@@ -60,6 +60,7 @@ function PrintableTeacherPayrollStatement({
   courseTotal,
   generalTotal,
   bonus,
+  bonusReason,
   deduction,
   deductionItems,
   finalTotal,
@@ -81,6 +82,7 @@ function PrintableTeacherPayrollStatement({
   courseTotal: number;
   generalTotal: number;
   bonus: number;
+  bonusReason: string;
   deduction: number;
   deductionItems: PayrollPrintDeductionItem[];
   finalTotal: number;
@@ -132,6 +134,12 @@ function PrintableTeacherPayrollStatement({
           courses={courses}
           currency={currency}
         />
+        {bonus > 0 && (
+          <section className="statement-print-bonus" aria-label="تفاصيل المكافأة">
+            <h2>تفاصيل المكافأة</h2>
+            <p><span>{bonusReason || "مكافأة إضافية"}</span><strong>{money(bonus, currency)}</strong></p>
+          </section>
+        )}
         <PayrollPrintDeductions items={deductionItems} currency={currency} />
         <section className="statement-print-summary" aria-label="الملخص المالي">
           <h2>الملخص المالي</h2>
@@ -176,12 +184,16 @@ export default function TeacherPayrollStatement({
   sendDisabled = false,
   onRatesChange,
   onGradeRatesChange,
+  onBonusChange,
+  onBonusReasonChange,
   onDeductionChange,
   onDeductionReasonChange,
   attendanceIncidents = [],
   onAttendanceDeductionsChange,
   initialDeduction,
   initialDeductionReason = "",
+  initialBonus,
+  initialBonusReason = "",
   initialCourseRates = {},
   initialGradeRates = {},
   actionLabel = "إرسال للمعلم",
@@ -200,12 +212,16 @@ export default function TeacherPayrollStatement({
   sendDisabled?: boolean;
   onRatesChange?: (rates: Record<string, string>) => void;
   onGradeRatesChange?: (rates: Record<string, string>) => void;
+  onBonusChange?: (bonus: number) => void;
+  onBonusReasonChange?: (reason: string) => void;
   onDeductionChange?: (deduction: number) => void;
   onDeductionReasonChange?: (reason: string) => void;
   attendanceIncidents?: AttendanceDeductionIncident[];
   onAttendanceDeductionsChange?: (items: AttendanceDeductionInput[]) => void;
   initialDeduction?: number;
   initialDeductionReason?: string;
+  initialBonus?: number;
+  initialBonusReason?: string;
   initialCourseRates?: Record<string, string>;
   initialGradeRates?: Record<string, string>;
   actionLabel?: string;
@@ -218,6 +234,10 @@ export default function TeacherPayrollStatement({
     String(initialDeduction ?? statement.payroll?.deduction ?? 0),
   );
   const [deductionReason, setDeductionReason] = useState(initialDeductionReason);
+  const [bonusValue, setBonusValue] = useState(
+    String(initialBonus ?? statement.payroll?.bonus ?? 0),
+  );
+  const [bonusReason, setBonusReason] = useState(initialBonusReason);
   const [attendanceAmounts, setAttendanceAmounts] = useState<Record<string, string>>(() =>
     Object.fromEntries(attendanceIncidents.filter((item) => Number(item.amount) > 0).map((item) => [item.incidentId, String(item.amount)])),
   );
@@ -246,6 +266,12 @@ export default function TeacherPayrollStatement({
   useEffect(() => {
     onDeductionReasonChange?.(deductionReason);
   }, [deductionReason, onDeductionReasonChange]);
+  useEffect(() => {
+    onBonusChange?.(Number(bonusValue) || 0);
+  }, [bonusValue, onBonusChange]);
+  useEffect(() => {
+    onBonusReasonChange?.(bonusReason);
+  }, [bonusReason, onBonusReasonChange]);
   const hasCourseSessions = statement.courses.length > 0;
   const editableCurrency =
     selectedCurrency || selectedAcademicCurrency || selectedCourseCurrency || "";
@@ -312,7 +338,7 @@ export default function TeacherPayrollStatement({
   const generalTotal = pricedGradeGroups.length
     ? pricedGradeGroups.reduce((sum, group) => sum + group.totalAmount, 0)
     : statement.payroll?.generalAmount || 0;
-  const bonus = statement.payroll?.bonus || 0;
+  const bonus = Number(bonusValue) || 0;
   const manualDeduction = Number(deductionValue) || 0;
   const attendanceDeduction = attendanceDeductions.reduce((sum, item) => sum + item.amount, 0);
   const deduction = manualDeduction + attendanceDeduction;
@@ -371,6 +397,7 @@ export default function TeacherPayrollStatement({
     <div className="teacher-payroll-statement-root" dir="rtl">
       <style>{`@media screen { .statement-print-portal { display: none; } } @media print { @page { size: A4 portrait; margin: 10mm; } html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; } body > *:not(.statement-print-portal) { display: none !important; } .statement-print-portal { display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; direction: rtl; color: #0f172a; background: #fff !important; } .statement-print-portal, .statement-print-portal * { box-sizing: border-box; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; } .statement-print-header { display: grid; grid-template-columns: auto 1fr; gap: 4mm 7mm; align-items: center; border-radius: 0 0 6mm 6mm; padding: 7mm 9mm; background: #0E1C3E !important; color: #fff !important; } .statement-print-header img { width: 22mm; height: 18mm; object-fit: contain; filter: brightness(0) invert(1); } .statement-print-header h1 { margin: 0; font-size: 20pt; line-height: 1.2; color: #fff !important; } .statement-print-header p { margin: 2mm 0 0; font-size: 11pt; color: #fff !important; } .statement-print-header dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 1mm 0 0; padding-top: 4mm; border-top: 1px solid rgba(255,255,255,.35); } .statement-print-header dl div { display: flex; gap: 2mm; align-items: baseline; } .statement-print-header dt { font-size: 8pt; color: #cbd5e1; } .statement-print-header dd { margin: 0; font-size: 10pt; font-weight: 700; color: #fff; } .statement-print-body { width: 100%; padding-top: 7mm; } .statement-print .payroll-breakdown { gap: 6mm !important; } .statement-print .payroll-breakdown > section { break-inside: auto !important; page-break-inside: auto !important; } .statement-print .payroll-breakdown section > h2 { break-after: avoid; page-break-after: avoid; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #0E1C3E; color: #0E1C3E; font-size: 15pt; } .statement-print .payroll-section { break-inside: auto !important; page-break-inside: auto !important; margin-bottom: 4mm; padding: 4mm !important; border-color: #cbd5e1 !important; border-radius: 3mm !important; } .statement-print .payroll-section-heading { break-after: avoid; page-break-after: avoid; } .statement-print .payroll-section h3 { color: #0E1C3E; font-size: 11pt; } .statement-print .payroll-section-heading p { font-size: 9.5pt; } .statement-print .payroll-session-table { break-inside: auto !important; page-break-inside: auto !important; overflow: visible !important; border-color: #cbd5e1 !important; border-radius: 2mm !important; } .statement-print .payroll-session-table table { width: 100% !important; min-width: 0 !important; table-layout: fixed; border-collapse: collapse; } .statement-print .payroll-session-table thead { display: table-header-group; } .statement-print .payroll-session-table tbody { display: table-row-group; } .statement-print .payroll-session-table th, .statement-print .payroll-session-table td { border: 1px solid #cbd5e1 !important; padding: 2.5mm 2mm !important; font-size: 9pt; } .statement-print .payroll-session-table th { background: #0E1C3E !important; color: #fff !important; } .statement-print .payroll-session-row { break-inside: avoid !important; page-break-inside: avoid !important; } .statement-print .payroll-section-total { break-inside: avoid; break-before: avoid; page-break-inside: avoid; page-break-before: avoid; display: block; width: fit-content; margin: 3mm 0 0 auto; border-radius: 999px; background: #0E1C3E !important; color: #fff !important; padding: 2mm 4mm; font-size: 9.5pt; } .statement-print-summary { break-inside: avoid; page-break-inside: avoid; margin-top: 7mm; padding-top: 4mm; border-top: 2px solid #0E1C3E; } .statement-print-summary h2 { margin: 0 0 3mm; color: #0E1C3E; font-size: 15pt; } .statement-print-summary p { display: flex; justify-content: space-between; margin: 0; padding: 2mm 0; border-bottom: 1px solid #e2e8f0; font-size: 10pt; } .statement-print-summary strong { font-weight: 700; } .statement-print-summary .statement-print-net { margin-top: 4mm; padding: 4mm 5mm; border: 0; border-radius: 3mm; background: #0E1C3E !important; color: #fff !important; font-size: 13pt; } }`}</style>
       <style>{`@media print { .statement-print-deductions { margin-top: 7mm; } .statement-print-deductions h2 { break-after: avoid; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #0E1C3E; color: #0E1C3E; font-size: 15pt; } .statement-print-deductions table { width: 100%; table-layout: fixed; border-collapse: collapse; } .statement-print-deductions thead { display: table-header-group; } .statement-print-deductions tr { break-inside: avoid; } .statement-print-deductions th, .statement-print-deductions td { border: 1px solid #cbd5e1; padding: 2.5mm 2mm; font-size: 8.5pt; text-align: right; vertical-align: top; } .statement-print-deductions th { background: #0E1C3E !important; color: #fff !important; } .statement-print-deductions-empty { margin: 0; border: 1px solid #cbd5e1; border-radius: 2mm; padding: 4mm; font-size: 9pt; color: #64748b; } }`}</style>
+      <style>{`@media print { .statement-print-bonus { break-inside: avoid; margin-top: 7mm; } .statement-print-bonus h2 { margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #0E1C3E; color: #0E1C3E; font-size: 15pt; } .statement-print-bonus p { display: flex; justify-content: space-between; gap: 5mm; margin: 0; border: 1px solid #cbd5e1; border-radius: 2mm; padding: 4mm; font-size: 9.5pt; } }`}</style>
       <div className="statement-screen" data-testid="statement-screen">
         <Card
           id="teacher-payroll-statement"
@@ -549,6 +576,25 @@ export default function TeacherPayrollStatement({
                 {attendanceIncidents.length ? <div className="space-y-3">{attendanceIncidents.map((incident) => <div key={incident.incidentId} className="grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[1fr_12rem] sm:items-center"><div><p className="font-medium">{incident.classroomName || "حصة"} — {incident.type === "absent" ? "عدم حضور" : `تأخير ${incident.minutesLate} دقيقة`}</p><p className="text-xs text-muted-foreground">{dateOnly(incident.scheduledStartAt)}</p></div><div className="flex items-center gap-2"><Input type="number" min="0" step="0.01" aria-label={`خصم مخالفة ${incident.classroomName || incident.incidentId}`} value={attendanceAmounts[incident.incidentId] || ""} placeholder="0" onChange={(event) => setAttendanceAmounts((current) => ({ ...current, [incident.incidentId]: event.target.value }))} /><span className="shrink-0 text-sm font-medium">{currencySelected ? payrollStatementCurrencySymbol(currency) : "—"}</span></div></div>)}</div> : <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">لا توجد مخالفات حضور معتمدة لهذا المعلم في هذه الفترة والمنهج.</p>}
               </section>
             )}
+            {onBonusChange && (
+              <section className="rounded-xl border bg-muted/10 p-4">
+                <h3 className="mb-3 text-lg font-semibold">المكافآت</h3>
+                <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
+                  <div>
+                    <label className="mb-1 block text-sm" htmlFor="teacher-bonus">قيمة المكافأة</label>
+                    <div className="flex items-center gap-2">
+                      <Input id="teacher-bonus" aria-label="قيمة مكافأة المعلم" type="number" min="0" step="0.01" value={bonusValue} onChange={(event) => setBonusValue(event.target.value)} />
+                      <span className="shrink-0 text-sm font-medium">{currencySelected ? payrollStatementCurrencySymbol(currency) : "—"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm" htmlFor="teacher-bonus-reason">سبب المكافأة</label>
+                    <Input id="teacher-bonus-reason" aria-label="سبب مكافأة المعلم" placeholder="مثال: التميز في متابعة الطلاب" value={bonusReason} onChange={(event) => setBonusReason(event.target.value)} required={bonus > 0} />
+                  </div>
+                </div>
+                {bonus > 0 && !bonusReason.trim() && <p className="mt-2 text-xs text-destructive">اكتب سبب المكافأة قبل حفظ الكشف.</p>}
+              </section>
+            )}
             {onDeductionChange && (
               <section className="rounded-xl border bg-muted/10 p-4">
                 <label className="mb-1 block text-sm" htmlFor="teacher-deduction">
@@ -645,6 +691,7 @@ export default function TeacherPayrollStatement({
             courseTotal={courseTotal}
             generalTotal={generalTotal}
             bonus={bonus}
+            bonusReason={bonusReason}
             deduction={deduction}
             deductionItems={printDeductionItems}
             finalTotal={finalTotal}

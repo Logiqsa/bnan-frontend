@@ -60,6 +60,7 @@ describe("AdminPayrollStatementDetailPage editing", () => {
       academicCurrency: "SAR",
       courseCurrency: "SAR",
       bonuses: 10,
+      bonusReason: "",
       manualDeductions: 5,
       deductionReason: "",
       attendanceDeductions: [],

@@ -502,7 +502,7 @@ const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: Te
                   )}
                   {selectedRoom?.type === "classroom" && selectedRoom.classroomId && (
                     <Button asChild size="sm" variant="outline" className="ms-auto shrink-0 gap-1.5">
-                      <Link to={`${mode === "supervisor" ? "/portal/supervisor/classrooms" : "/portal/teacher/classrooms"}/${encodeURIComponent(selectedRoom.classroomId)}`}>
+                      <Link to={`${mode === "supervisor" ? "/portal/supervisor/classrooms" : "/portal/teacher/classrooms"}/${encodeURIComponent(selectedRoom.classroomId)}?tab=schedule`}>
                         <CalendarDays className="h-4 w-4" />
                         {pick("عرض جدول الفصل", "View classroom schedule")}
                       </Link>

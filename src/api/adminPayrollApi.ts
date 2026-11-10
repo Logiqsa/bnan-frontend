@@ -210,6 +210,7 @@ export const adminPayrollApi = {
     courseCurrency?: PayrollStatementCurrency;
     generalAmount?: number;
     bonuses?: number;
+    bonusReason?: string;
     deductions?: number;
     manualDeductions?: number;
     deductionReason?: string;
@@ -257,6 +258,7 @@ export const adminPayrollApi = {
       gradeRates: Array<{ gradeId: string; hourlyRate: number }>;
       courseRates: Array<{ courseId: string; hourlyRate: number }>;
       bonuses?: number;
+      bonusReason?: string;
       deductions?: number;
       manualDeductions?: number;
       deductionReason?: string;

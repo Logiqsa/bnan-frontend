@@ -52,6 +52,9 @@ const PRINT_STYLES = `
     .statement-print-deductions th, .statement-print-deductions td { border: 1px solid #cbd5e1; padding: 2.5mm 2mm; font-size: 8.5pt; text-align: right; vertical-align: top; }
     .statement-print-deductions th { background: #0E1C3E !important; color: #fff !important; }
     .statement-print-deductions-empty { margin: 0; border: 1px solid #cbd5e1; border-radius: 2mm; padding: 4mm; font-size: 9pt; color: #64748b; }
+    .statement-print-bonus { break-inside: avoid; margin-top: 7mm; }
+    .statement-print-bonus h2 { margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #0E1C3E; color: #0E1C3E; font-size: 15pt; }
+    .statement-print-bonus p { display: flex; justify-content: space-between; gap: 5mm; margin: 0; border: 1px solid #cbd5e1; border-radius: 2mm; padding: 4mm; font-size: 9.5pt; }
     .statement-print-summary { break-inside: avoid; page-break-inside: avoid; margin-top: 7mm; padding-top: 4mm; border-top: 2px solid #0E1C3E; }
     .statement-print-summary h2 { margin: 0 0 3mm; color: #0E1C3E; font-size: 15pt; }
     .statement-print-summary p { display: flex; justify-content: space-between; margin: 0; padding: 2mm 0; border-bottom: 1px solid #e2e8f0; font-size: 10pt; }
@@ -88,6 +91,7 @@ export default function PayrollStatementPrint({ statement }: { statement: Teache
       </header>
       <main className="statement-print-body">
         <PayrollStatementBreakdown general={statement.generalSubscription} courses={statement.courses} currency={statement.currency} />
+        {statement.bonuses > 0 && <section className="statement-print-bonus" aria-label="تفاصيل المكافأة"><h2>تفاصيل المكافأة</h2><p><span>{statement.bonusReason || "مكافأة إضافية"}</span><strong>{money(statement.bonuses, statement.currency)}</strong></p></section>}
         <PayrollPrintDeductions items={deductionItems} currency={statement.currency} />
         <section className="statement-print-summary" aria-label="الملخص المالي">
           <h2>الملخص المالي</h2>

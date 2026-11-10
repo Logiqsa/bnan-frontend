@@ -72,6 +72,29 @@ describe("TeacherPayrollStatement", () => {
     expect(screen.getByTestId("statement-print").parentElement).toBe(document.body);
   });
 
+  it("edits and prints the bonus amount with its reason", () => {
+    const onBonusChange = vi.fn();
+    const onBonusReasonChange = vi.fn();
+    render(
+      <TeacherPayrollStatement
+        statement={statement}
+        curriculumName="Egyptian"
+        period={{ from: "2026-09-01", to: "2026-09-30" }}
+        onBonusChange={onBonusChange}
+        onBonusReasonChange={onBonusReasonChange}
+        initialBonus={25}
+        initialBonusReason="التميز في متابعة الطلاب"
+      />,
+    );
+    expect(screen.getByLabelText("قيمة مكافأة المعلم")).toHaveValue(25);
+    expect(screen.getByLabelText("سبب مكافأة المعلم")).toHaveValue("التميز في متابعة الطلاب");
+    const printView = within(screen.getByTestId("statement-print"));
+    expect(printView.getByText("تفاصيل المكافأة")).toBeInTheDocument();
+    expect(printView.getByText("التميز في متابعة الطلاب")).toBeInTheDocument();
+    expect(onBonusChange).toHaveBeenCalledWith(25);
+    expect(onBonusReasonChange).toHaveBeenCalledWith("التميز في متابعة الطلاب");
+  });
+
   it("prints approved attendance deductions with their lesson details", () => {
     render(
       <TeacherPayrollStatement

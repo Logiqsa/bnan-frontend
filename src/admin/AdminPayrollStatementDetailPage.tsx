@@ -49,6 +49,8 @@ export default function AdminPayrollStatementDetailPage() {
   const statement = query.data;
   const [courseRates, setCourseRates] = useState<Record<string, string>>({});
   const [gradeRates, setGradeRates] = useState<Record<string, string>>({});
+  const [statementBonus, setStatementBonus] = useState<number | null>(null);
+  const [statementBonusReason, setStatementBonusReason] = useState("");
   const [statementDeduction, setStatementDeduction] = useState<number | null>(null);
   const [statementDeductionReason, setStatementDeductionReason] = useState("");
   const [attendanceDeductions, setAttendanceDeductions] = useState<AttendanceDeductionInput[]>([]);
@@ -162,7 +164,8 @@ export default function AdminPayrollStatementDetailPage() {
           courseId: course.course,
           hourlyRate: Number(courseRates[course.course] ?? course.hourlyRate),
         })),
-        bonuses: statement?.bonuses,
+        bonuses: statementBonus ?? statement?.bonuses,
+        bonusReason: statementBonusReason.trim(),
         manualDeductions: statementDeduction ?? statement?.manualDeductions ?? statement?.deductions,
         deductionReason: statementDeductionReason,
         attendanceDeductions,
@@ -223,14 +226,19 @@ export default function AdminPayrollStatementDetailPage() {
             initialGradeRates={savedGradeRates}
             onRatesChange={setCourseRates}
             onGradeRatesChange={setGradeRates}
+            onBonusChange={setStatementBonus}
+            onBonusReasonChange={setStatementBonusReason}
             onDeductionChange={setStatementDeduction}
             onDeductionReasonChange={setStatementDeductionReason}
             attendanceIncidents={attendanceIncidents}
             onAttendanceDeductionsChange={setAttendanceDeductions}
             initialDeduction={statement.manualDeductions ?? statement.deductions}
             initialDeductionReason={statement.deductionItems?.find((item) => item.source === "manual")?.reason || ""}
+            initialBonus={statement.bonuses}
+            initialBonusReason={statement.bonusReason || ""}
             onSend={() => update.mutate()}
             sending={update.isPending}
+            sendDisabled={(statementBonus ?? statement.bonuses) > 0 && !statementBonusReason.trim()}
             actionLabel="حفظ التعديلات"
           />
         ) : (
@@ -276,6 +284,7 @@ export default function AdminPayrollStatementDetailPage() {
               courses={statement.courses}
               currency={statement.currency}
             />
+            {statement.bonuses > 0 && <Card><CardHeader><CardTitle>تفاصيل المكافأة</CardTitle></CardHeader><CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><p>{statement.bonusReason || "مكافأة إضافية"}</p><strong>{money(statement.bonuses, statement.currency, locale)}</strong></CardContent></Card>}
             <PayrollDeductionBreakdown statement={statement} />
             <Card>
               <CardHeader>

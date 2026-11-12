@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   CalendarClock,
+  CircleCheck,
   ClipboardList,
   ChevronLeft,
   ChevronRight,
@@ -80,6 +81,7 @@ const calendarDays = (month: Date) => {
 };
 const isLessonEnded = (lesson: PortalLesson) =>
   lesson.activeSession?.status === "ended" ||
+  lesson.activeSession?.status === "completed" ||
   (lesson.scheduleKind === "course" && lesson.activeSession?.status === "awaiting_zoom_end");
 const sessionRecording = (lesson: PortalLesson) =>
   lesson.activeSession?.recordingUrl ||
@@ -763,11 +765,18 @@ export default function PortalSchedule({
                                 </p>
                               )}
                             <div className="flex items-center justify-between mt-3">
-                              <span
-                                className={`text-xs font-semibold ${waiting ? "text-amber-700" : lesson.activeSession?.status === "live" || (role === "teacher" && isLiveForTeacher(lesson)) ? "text-green-600" : ended ? "text-destructive" : "text-muted-foreground"}`}
-                              >
-                                {waiting ? pick("في انتظار انتهاء Zoom...", "Waiting for Zoom to end...") : statusText(lesson, role === "student")}
-                              </span>
+                              {ended ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                  <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                                  {pick("انتهت", "Ended")}
+                                </span>
+                              ) : (
+                                <span
+                                  className={`text-xs font-semibold ${waiting ? "text-amber-700" : lesson.activeSession?.status === "live" || (role === "teacher" && isLiveForTeacher(lesson)) ? "text-green-600" : "text-muted-foreground"}`}
+                                >
+                                  {waiting ? pick("في انتظار انتهاء Zoom...", "Waiting for Zoom to end...") : statusText(lesson, role === "student")}
+                                </span>
+                              )}
                               <span className="text-xs rounded-full bg-secondary/20 px-2 py-1">
                                 {lesson.scheduleKind === "course"
                                   ? pick("دورة", "Course")

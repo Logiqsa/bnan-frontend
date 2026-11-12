@@ -107,7 +107,7 @@ export interface RegistrationResponse {
 export interface ActiveSession {
   id?: string;
   sessionId?: string;
-  status: "starting" | "live" | "awaiting_zoom_end" | "ended";
+  status: "starting" | "live" | "awaiting_zoom_end" | "ended" | "completed";
   canJoin?: boolean;
   classroomId?: string;
   subjectId?: string;

@@ -39,6 +39,11 @@ const curriculumReference = (value: unknown) => {
   return id ? { id, name: curriculum.name || "" } : null;
 };
 
+const classroomPath = (classroom: TeacherClassroomItem) =>
+  classroom.source === "course" && classroom.courseId && classroom.groupId
+    ? `/portal/teacher/courses/${encodeURIComponent(classroom.courseId)}/groups/${encodeURIComponent(classroom.groupId)}`
+    : `/portal/teacher/classrooms/${encodeURIComponent(classroom.classroomId)}`;
+
 export default function TeacherClassrooms() {
   const { pick } = useLanguage();
   const [selectedCurriculum, setSelectedCurriculum] = useState("all");
@@ -162,7 +167,7 @@ export default function TeacherClassrooms() {
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={pick("الفصول المسندة", "Assigned classrooms")}>
             {filteredClassrooms.map((classroom) => (
               <Card key={classroom.classroomId} className="group overflow-hidden transition-shadow hover:shadow-md">
-                <Link to={`/portal/teacher/classrooms/${encodeURIComponent(classroom.classroomId)}`} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <Link to={classroomPath(classroom)} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                   <CardContent className="flex h-full min-w-0 flex-col gap-4 p-5">
                     <div className="flex items-start justify-between gap-3">
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><School className="h-5 w-5" /></span>

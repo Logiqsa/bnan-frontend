@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,5 +78,18 @@ describe("TeacherClassrooms", () => {
 
     expect(await screen.findByText("فصل عادي")).toBeInTheDocument();
     expect(screen.getByText("فصل الدورة")).toBeInTheDocument();
+
+    const regularCardLink = screen.getByText("فصل عادي").closest("a");
+    expect(regularCardLink).toHaveAttribute(
+      "href",
+      "/portal/teacher/classrooms/regular-classroom-1",
+    );
+
+    const courseCardLink = screen.getByText("فصل الدورة").closest("a");
+    expect(courseCardLink).toHaveAttribute(
+      "href",
+      "/portal/teacher/courses/course-1/groups/group-1",
+    );
+    expect(within(courseCardLink!).getByText("مجموعة الدورة")).toBeInTheDocument();
   });
 });

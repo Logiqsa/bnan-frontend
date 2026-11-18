@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Ban,
@@ -211,8 +211,10 @@ export default function UsersAdmin({
   const [passwordForm, setPasswordForm] = useState({ password: "", confirmation: "" });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<MediaPreview | null>(null);
+  const latestLoadRequest = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++latestLoadRequest.current;
     void refreshKey;
     setLoading(true);
     setLoadError(null);
@@ -241,6 +243,7 @@ export default function UsersAdmin({
           const matchesTo = !dateTo || (createdAt !== null && createdAt <= new Date(`${dateTo}T23:59:59.999`).getTime());
           return approved && matchesSearch && matchesFrom && matchesTo;
         });
+        if (requestId !== latestLoadRequest.current) return;
         setItems(approvedTeachers.slice((page - 1) * pageSize, page * pageSize));
         setTotal(approvedTeachers.length);
         setHasNextPage(page * pageSize < approvedTeachers.length);
@@ -265,6 +268,7 @@ export default function UsersAdmin({
           .sort((a, b) =>
             (b.createdAt || "").localeCompare(a.createdAt || ""),
           );
+        if (requestId !== latestLoadRequest.current) return;
         setItems(filteredUsers.slice((page - 1) * pageSize, page * pageSize));
         setTotal(filteredUsers.length);
         setHasNextPage(page * pageSize < filteredUsers.length);
@@ -287,10 +291,12 @@ export default function UsersAdmin({
       const visibleItems = result.data.filter((item) =>
         allowedRoles.includes(item.role),
       );
+      if (requestId !== latestLoadRequest.current) return;
       setItems(visibleItems);
       setTotal(allRoleUsers?.length ?? result.total ?? result.data.length);
       setHasNextPage(result.hasNextPage ?? result.data.length === pageSize);
     } catch (error) {
+      if (requestId !== latestLoadRequest.current) return;
       setItems([]);
       const apiError = error as ApiError;
       setLoadError(apiError);
@@ -299,7 +305,7 @@ export default function UsersAdmin({
           pick(`تعذر تحميل ${title}`, `Unable to load ${title}`),
       );
     } finally {
-      setLoading(false);
+      if (requestId === latestLoadRequest.current) setLoading(false);
     }
   }, [
     page,

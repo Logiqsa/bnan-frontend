@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CalendarDays, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
-import { chatApi, type ChatMessage, type ChatRoomSummary } from "@/api/chatApi";
+import { chatApi, sortChatRoomsByActivity, type ChatMessage, type ChatRoomSummary } from "@/api/chatApi";
 import ChatRoomList from "@/components/chat/ChatRoomList";
 import TeacherChatConversation from "@/components/chat/TeacherChatConversation";
 import {
@@ -53,7 +53,7 @@ const StudentMessages = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const roomItems = useMemo(() => rooms.data || [], [rooms.data]);
+  const roomItems = useMemo(() => sortChatRoomsByActivity(rooms.data || []), [rooms.data]);
   const roomIdsKey = roomItems.map((room) => room.id).join("|");
   const selectedRoom = roomItems.find((room) => room.id === selectedRoomId);
   const invalidRequestedRoom = Boolean(
@@ -131,14 +131,14 @@ const StudentMessages = () => {
 
       const senderId = raw.sender?.id || raw.sender?._id;
       queryClient.setQueryData<ChatRoomSummary[]>(studentChatRoomsQueryKey, (current) =>
-        current?.map((room) => room.id === roomId ? {
+        current ? sortChatRoomsByActivity(current.map((room) => room.id === roomId ? {
           ...room,
           lastMessage: messagePreview(incoming) || room.lastMessage,
           lastMessageAt: incoming.createdAt || room.lastMessageAt,
           unreadCount: active || senderId === user?.id
             ? active ? 0 : room.unreadCount
             : (room.unreadCount ?? 0) + 1,
-        } : room),
+        } : room)) : current,
       );
     };
     const receiveEdited = (raw: RealtimeChatMessage) => {

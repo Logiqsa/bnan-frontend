@@ -61,6 +61,12 @@ export interface AdminUsersResponse {
   limit?: number;
   total?: number;
   hasNextPage?: boolean;
+  pagination?: {
+    currentPage?: number;
+    perPage?: number;
+    total?: number;
+    lastPage?: number;
+  };
 }
 
 export interface RegenerateVerificationCodeResponse {
@@ -107,13 +113,14 @@ const normalizeTeacher = (item: AdminTeacherPayload): AdminUser => {
 const normalizeList = (result: AdminUsersPayload, requestedLimit = 20): AdminUsersResponse => ({
   ...result,
   data: result.data.map(normalizeUser),
-  page: result.page ?? result.currentPage,
-  total: result.total ?? result.totalCount,
-  hasNextPage: result.totalPages !== undefined
-    ? (result.page ?? result.currentPage ?? 1) < result.totalPages
+  page: result.page ?? result.currentPage ?? result.pagination?.currentPage,
+  limit: result.limit ?? result.pagination?.perPage,
+  total: result.total ?? result.totalCount ?? result.pagination?.total,
+  hasNextPage: result.totalPages !== undefined || result.pagination?.lastPage !== undefined
+    ? (result.page ?? result.currentPage ?? result.pagination?.currentPage ?? 1) < (result.totalPages ?? result.pagination?.lastPage ?? 1)
     : result.hasNextPage ?? (
-      result.total !== undefined || result.totalCount !== undefined
-        ? (result.page ?? result.currentPage ?? 1) * (result.limit ?? requestedLimit) < (result.total ?? result.totalCount ?? 0)
+      result.total !== undefined || result.totalCount !== undefined || result.pagination?.total !== undefined
+        ? (result.page ?? result.currentPage ?? result.pagination?.currentPage ?? 1) * (result.limit ?? result.pagination?.perPage ?? requestedLimit) < (result.total ?? result.totalCount ?? result.pagination?.total ?? 0)
         : result.data.length === requestedLimit
     ),
 });

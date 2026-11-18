@@ -8,6 +8,7 @@ export interface ChatRoomSummary {
   subtitle?: string;
   lastMessage?: string | null;
   lastMessageAt?: string | null;
+  createdAt?: string | null;
   unreadCount?: number;
 }
 export interface AdminChatClassroomMetadata {
@@ -84,6 +85,13 @@ const withId = <T extends object>(item: Raw<T>) => ({
   ...item,
   id: item.id || item._id || "",
 });
+export const sortChatRoomsByActivity = (rooms: ChatRoomSummary[]) =>
+  [...rooms].sort((left, right) => {
+    const leftActivity = new Date(left.lastMessageAt || left.createdAt || 0).getTime();
+    const rightActivity = new Date(right.lastMessageAt || right.createdAt || 0).getTime();
+    if (rightActivity !== leftActivity) return rightActivity - leftActivity;
+    return 0;
+  });
 export const chatApi = {
   rooms: async () =>
     (
@@ -91,7 +99,9 @@ export const chatApi = {
         success: true;
         data: Raw<Omit<ChatRoomSummary, "id">>[];
       }>("/chats/rooms")
-    ).data.map(withId),
+    ).data.map(withId).sort((left, right) =>
+      new Date(right.lastMessageAt || right.createdAt || 0).getTime() -
+      new Date(left.lastMessageAt || left.createdAt || 0).getTime()),
   createSupportRoom: async () =>
     withId(
       (
@@ -125,7 +135,7 @@ export const chatApi = {
       hasNextPage = response.hasNextPage;
       page += 1;
     }
-    return rooms;
+    return sortChatRoomsByActivity(rooms);
   },
   allAdminRooms: async () => {
     const rooms: ChatRoomSummary[] = [];
@@ -145,7 +155,7 @@ export const chatApi = {
       page += 1;
     }
 
-    return rooms;
+    return sortChatRoomsByActivity(rooms);
   },
   adminClassroomMetadata: async () => {
     const load = async (sourceType: "legacy" | "course") => {

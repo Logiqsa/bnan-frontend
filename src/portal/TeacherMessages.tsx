@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CalendarDays, MessageCircle, MessagesSquare, PanelLeftClose, PanelLeftOpen, RefreshCw, Search } from "lucide-react";
 import {
   chatApi,
+  sortChatRoomsByActivity,
   type ChatMessage,
 } from "@/api/chatApi";
 import ChatRoomList from "@/components/chat/ChatRoomList";
@@ -73,7 +74,7 @@ const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: Te
     retry: 1,
   });
   const roomItems = useMemo(
-    () => (rooms.data || []).filter((room) => !classroomId || room.classroomId === classroomId),
+    () => sortChatRoomsByActivity(rooms.data || []).filter((room) => !classroomId || room.classroomId === classroomId),
     [classroomId, rooms.data],
   );
   const metadataByClassroom = useMemo(
@@ -106,12 +107,7 @@ const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: Te
   }, [classroomMetadata.data, curriculumId]);
   const filteredRooms = useMemo(() => {
     const search = roomSearch.trim().toLocaleLowerCase();
-    const scopedRooms = [...roomItems].sort((a, b) => {
-      if (mode !== "teacher") return 0;
-      const classroomOrder = Number(b.type === "classroom") - Number(a.type === "classroom");
-      if (classroomOrder !== 0) return classroomOrder;
-      return new Date(b.lastMessageAt || 0).getTime() - new Date(a.lastMessageAt || 0).getTime();
-    });
+    const scopedRooms = sortChatRoomsByActivity(roomItems);
     return scopedRooms.filter((room) => {
       const metadata = room.classroomId
         ? metadataByClassroom.get(room.classroomId)
@@ -217,6 +213,22 @@ const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: Te
         id: messageId,
       };
       const activeRoomId = selectedRoomIdRef.current;
+      const senderId = raw.sender?.id || raw.sender?._id;
+      queryClient.setQueryData<ChatRoomSummary[]>(
+        roomsQueryKey,
+        (current) => current ? sortChatRoomsByActivity(current.map((room) =>
+          room.id === roomId
+            ? {
+                ...room,
+                lastMessage: raw.text?.trim() || (raw.attachments?.length ? "📎 Attachment" : "") || raw.summaryTitle?.trim() || raw.sessionName?.trim() || room.lastMessage,
+                lastMessageAt: incoming.createdAt || room.lastMessageAt,
+                unreadCount: roomId === activeRoomId || senderId === user?.id
+                  ? roomId === activeRoomId ? 0 : room.unreadCount
+                  : (room.unreadCount ?? 0) + 1,
+              }
+            : room,
+        )) : current,
+      );
       if (roomId === activeRoomId) {
         if (cachedMessages) {
           queryClient.setQueryData<MessagesResult>(messageKey, (current) =>
@@ -239,17 +251,6 @@ const TeacherMessages = ({ mode = "teacher", embedded = false, classroomId }: Te
         return;
       }
 
-      const senderId = raw.sender?.id || raw.sender?._id;
-      if (senderId === user?.id) return;
-      queryClient.setQueryData<ChatRoomSummary[]>(
-        roomsQueryKey,
-        (current) =>
-          current?.map((room) =>
-            room.id === roomId
-              ? { ...room, unreadCount: (room.unreadCount ?? 0) + 1 }
-              : room,
-          ),
-      );
     };
 
     const removeDeletedMessage = (payload: { roomId?: string; messageId?: string }) => {

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ExternalLink,
   Eye,
+  Coins,
   RefreshCw,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -212,6 +213,32 @@ export default function AdminPayments() {
                 value={filters.to || ""}
                 onChange={(event) => change("to", event.target.value)}
               />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/20 bg-primary/[0.03]">
+          <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Coins className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold">إجمالي المبالغ للفترة والفلاتر المحددة</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {filters.from || filters.to
+                    ? `من ${filters.from || "البداية"} إلى ${filters.to || "اليوم"}`
+                    : "كل الفترات"}
+                  {query.data?.summary ? ` · ${query.data.summary.paymentsCount.toLocaleString("ar-EG")} عملية` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {query.isLoading ? <Skeleton className="h-12 w-36" /> : query.data?.summary.totalAmountByCurrency.length ? query.data.summary.totalAmountByCurrency.map((total) => (
+                <div key={total.currency} className="min-w-36 rounded-xl border bg-background px-4 py-3 text-center shadow-sm">
+                  <p className="text-xs text-muted-foreground">الإجمالي</p>
+                  <p className="mt-1 text-xl font-bold tabular-nums" dir="ltr">{moneyLabel(total.amount, total.currency)}</p>
+                </div>
+              )) : <p className="text-sm text-muted-foreground">لا توجد مبالغ مطابقة.</p>}
             </div>
           </CardContent>
         </Card>

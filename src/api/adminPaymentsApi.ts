@@ -98,6 +98,10 @@ interface PaymentListResponse {
   results: number;
   data: AdminPayment[];
   pagination: AdminPagination;
+  summary: {
+    paymentsCount: number;
+    totalAmountByCurrency: Array<{ currency: string; amount: number }>;
+  };
 }
 interface PaymentDetailResponse {
   success: true;

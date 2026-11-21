@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import {
   BookOpen,
   Boxes,
+  CircleAlert,
   Edit,
   GraduationCap,
   Loader2,
@@ -35,6 +36,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1092,6 +1099,27 @@ const packageScopeLabels: Record<NonNullable<PackageInput["accessScope"]>, strin
   shared_subjects: "باقة مشتركة",
   all_subjects: "باقة كل المواد",
 };
+function PackageFieldHelp({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{label}</span>
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`شرح ${label}`}
+            className="inline-flex rounded-full text-amber-600 transition-colors hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+          >
+            <CircleAlert className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-80 space-y-1 text-right leading-6" dir="rtl">
+          {children}
+        </TooltipContent>
+      </Tooltip>
+    </span>
+  );
+}
 function Packages() {
   const qc = useQueryClient();
   const curricula = useQuery({
@@ -1189,6 +1217,7 @@ function Packages() {
         </CardContent>
       </Card>
       {editing && (
+        <TooltipProvider>
         <Card className="border-primary/30">
           <CardHeader>
             <CardTitle>
@@ -1205,7 +1234,7 @@ function Packages() {
               />
             </div>
             <div>
-              <Label>النوع</Label>
+              <Label><PackageFieldHelp label="النوع"><p><strong>ساعات:</strong> الباقة تُحسب بعدد الساعات المحدد.</p><p><strong>شهري:</strong> الباقة صالحة لمدة شهر ولا تحتاج عدد ساعات.</p></PackageFieldHelp></Label>
               <select
                 className={inputClass}
                 value={form.type}
@@ -1218,7 +1247,7 @@ function Packages() {
               </select>
             </div>
             <div>
-              <Label>نطاق الوصول</Label>
+              <Label><PackageFieldHelp label="نطاق الوصول"><p><strong>كل المواد:</strong> تشمل جميع مواد الصف.</p><p><strong>مادة واحدة:</strong> يختار الطالب مادة واحدة فقط.</p><p><strong>باقة مشتركة:</strong> يمكن توزيع الساعات على أكثر من مادة.</p></PackageFieldHelp></Label>
               <select
                 className={inputClass}
                 value={form.accessScope}
@@ -1235,7 +1264,7 @@ function Packages() {
               </select>
             </div>
             <div>
-              <Label>العملة</Label>
+              <Label><PackageFieldHelp label="العملة"><p>العملة التي سيظهر ويُحصّل بها سعر الباقة. اختر EGP لمصر وSAR للسعودية.</p></PackageFieldHelp></Label>
               <select
                 className={inputClass}
                 value={form.currency}
@@ -1247,9 +1276,7 @@ function Packages() {
               </select>
             </div>
             <div>
-              <Label>
-                الساعات {form.type === "monthly" ? "(لا تنطبق)" : ""}
-              </Label>
+              <Label><PackageFieldHelp label={`الساعات ${form.type === "monthly" ? "(لا تنطبق)" : ""}`}><p>إجمالي الساعات المتاحة للطالب. يتوقف هذا الحقل تلقائيًا عند اختيار النوع «شهري».</p></PackageFieldHelp></Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -1261,7 +1288,7 @@ function Packages() {
               />
             </div>
             <div>
-              <Label>السعر القديم</Label>
+              <Label><PackageFieldHelp label="السعر القديم"><p>يظهر مشطوبًا بجوار السعر الحالي لإبراز الخصم. اتركه صفرًا إذا لم يوجد سعر قديم.</p></PackageFieldHelp></Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -1281,7 +1308,7 @@ function Packages() {
               />
             </div>
             <div>
-              <Label>عنوان الخصم</Label>
+              <Label><PackageFieldHelp label="عنوان الخصم"><p>نص اختياري يوضح سبب الخصم، مثل «عرض العودة للمدارس».</p></PackageFieldHelp></Label>
               <Input
                 className="mt-1"
                 value={form.discountTitle || ""}
@@ -1303,7 +1330,7 @@ function Packages() {
                   checked={Boolean(form.isPopular)}
                   onChange={(e) => setField("isPopular", e.target.checked)}
                 />
-                الأكثر شيوعًا
+                <PackageFieldHelp label="الأكثر شيوعًا"><p>تميّز الباقة للمستخدم وتعرض عليها شارة «الأكثر طلبًا».</p></PackageFieldHelp>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -1311,7 +1338,7 @@ function Packages() {
                   checked={form.isActive !== false}
                   onChange={(e) => setField("isActive", e.target.checked)}
                 />
-                نشطة
+                <PackageFieldHelp label="نشطة"><p>الباقة النشطة تظهر للمستخدم ويمكنه اختيارها. غير النشطة تبقى محفوظة للأدمن ولا تظهر للتسجيل.</p></PackageFieldHelp>
               </label>
             </div>
             <div className="flex gap-2 md:col-span-2">
@@ -1335,6 +1362,7 @@ function Packages() {
             </div>
           </CardContent>
         </Card>
+        </TooltipProvider>
       )}
       <Card>
         <SectionHeader

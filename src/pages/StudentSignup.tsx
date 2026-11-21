@@ -294,9 +294,14 @@ export default function StudentSignup({
   const detailsStep = courseOnly ? 1 : 2;
   const selectedPackage = packages.find((p) => p.id === packageId);
   // Older packages created before accessScope was introduced do not have the
-  // field persisted. They historically included every subject in the grade.
+  // field persisted, and some legacy records contain an obsolete scope value.
+  // Egyptian legacy packages historically included every subject in the grade.
   const selectedAccessScope = selectedPackage
-    ? selectedPackage.accessScope || "all_subjects"
+    ? (["all_subjects", "shared_subjects", "single_subject"].includes(
+        selectedPackage.accessScope || "",
+      )
+        ? selectedPackage.accessScope
+        : "all_subjects")
     : undefined;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
   const isSharedSubjectPackage = selectedAccessScope === "shared_subjects";
@@ -1336,7 +1341,7 @@ export default function StudentSignup({
                           );
                         })}
                       </div>
-                    ) : isAllSubjectsPackage ? (
+                    ) : (
                       <div className="flex flex-wrap gap-3">
                         {subjects.map((s) => (
                           <span
@@ -1347,10 +1352,6 @@ export default function StudentSignup({
                           </span>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-destructive font-tajawal text-sm">
-                        نوع الباقة غير مدعوم.
-                      </p>
                     )}
                     {mode === "gulf" && subjectIds.length > 0 && (
                       <div className="mt-5 space-y-3 border-t pt-4">

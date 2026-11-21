@@ -63,7 +63,7 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {packages.map((pkg, index) => (
             <motion.div
               key={pkg.id}
@@ -84,6 +84,11 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
                 </div>
               )}
               <h4 className="text-xl font-cairo font-bold mb-1">{pkg.name}</h4>
+              {pkg.description && (
+                <p className={`text-sm font-tajawal mb-3 ${pkg.isPopular ? "opacity-90" : "text-muted-foreground"}`}>
+                  {pkg.description}
+                </p>
+              )}
               {(pkg.hours || pkg.months) && (
                 <p className={`text-sm font-tajawal mb-4 ${pkg.isPopular ? "opacity-90" : "text-muted-foreground"}`}>
                   {pkg.hours ? `${pkg.hours} ساعات` : `${pkg.months} شهر`}

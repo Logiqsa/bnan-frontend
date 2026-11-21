@@ -108,6 +108,14 @@ export interface CourseGroup {
   schedule?: CourseSchedule | null;
   activeSession?: ActiveCourseSession | null;
 }
+export interface CourseGroupCertificate {
+  id?: string;
+  _id?: string;
+  certificateNumber: string;
+  recipientSnapshot?: { fullName?: string };
+  status: "draft" | "issued" | "revoked";
+  issuedAt?: string;
+}
 export interface TeacherCourseAssignment {
   course: Course;
   groups: CourseGroup[];
@@ -474,6 +482,12 @@ export const coursesApi = {
     ),
   deleteGroup: async (groupId: string, force = false) =>
     (await apiRequest<Envelope<{ id: string; deleted: boolean }>>(`/admin/courses/groups/${groupId}${force ? "?force=true" : ""}`, { method: "DELETE" })).data,
+  listGroupCertificates: async (groupId: string) =>
+    (await apiRequest<Envelope<CourseGroupCertificate[]>>(`/admin/courses/groups/${encodeURIComponent(groupId)}/certificates`)).data,
+  createGroupCertificateDrafts: async (groupId: string) =>
+    (await apiRequest<Envelope<CourseGroupCertificate[]>>(`/admin/courses/groups/${encodeURIComponent(groupId)}/certificates/drafts`, { method: "POST" })).data,
+  issueGroupCertificates: async (groupId: string) =>
+    (await apiRequest<Envelope<CourseGroupCertificate[]>>(`/admin/courses/groups/${encodeURIComponent(groupId)}/certificates/issue`, { method: "POST" })).data,
   revoke: async (id: string, status: "cancelled" | "refunded" | "removed") =>
     enrollment(
       (

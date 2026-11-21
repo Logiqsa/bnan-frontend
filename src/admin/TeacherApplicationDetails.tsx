@@ -343,7 +343,7 @@ export function TeacherApplicationDetails({
             onPreview={setPreview}
           />
           <FileButton
-            label="إثبات الهوية"
+            label="صورة (الهوية الشخصية/البطاقة الشخصية)"
             url={fileUrl(application, "identityDocument")}
             onPreview={setPreview}
           />

@@ -2,6 +2,7 @@ import { apiRequest } from "@/api/client";
 
 export type KnownModernCertificateType =
   | "student_monthly"
+  | "course_completion"
   | "ideal_teacher"
   | "ideal_supervisor"
   | "general_teacher";
@@ -19,6 +20,13 @@ export interface ModernStudentCertificate {
     gradeNameSnapshot: string;
     classroom?: string;
     classroomNameSnapshot?: string;
+  };
+  courseContext?: {
+    course?: string;
+    courseGroup?: string;
+    courseNameSnapshot?: string;
+    groupNameSnapshot?: string;
+    completionDate?: string;
   };
   period?: { month: number; year: number };
   subjects?: Array<{

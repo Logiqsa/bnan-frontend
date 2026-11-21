@@ -18,6 +18,7 @@ import { referenceName } from "./classroomZoomNormalization";
 import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 import { zoomAccountsApi, type WeeklyZoomClassroomAssignments, type WeeklyZoomSlotStatus } from "@/api/zoomAccountsApi";
+import { deleteUnifiedScheduleEntry } from "@/api/scheduleApi";
 
 type Day = typeof CLASSROOM_DAYS[number];
 type Row = ClassroomScheduleEntry & { key: string };
@@ -67,6 +68,7 @@ export default function ClassroomScheduleManagement({
   const [isEditing, setIsEditing] = useState(false);
   const [weeklyZoom, setWeeklyZoom] = useState<WeeklyZoomClassroomAssignments | null>(null);
   const [refreshingZoom, setRefreshingZoom] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState("");
   const mode = classroom && typeof classroom.curriculum !== "string" ? classroom.curriculum?.registrationMode : undefined;
   const backPath = user?.role === "teacher"
     ? "/portal/teacher/classrooms"
@@ -139,6 +141,22 @@ export default function ClassroomScheduleManagement({
     try { await navigator.clipboard.writeText(value); toast.success("تم نسخ رابط Zoom للمشاركين."); }
     catch { toast.error("تعذر نسخ الرابط. انسخه يدويًا."); }
   };
+  const deleteEntry = async (row: Row) => {
+    if (!row.id) {
+      setRows((current) => current.filter((item) => item.key !== row.key));
+      return;
+    }
+    if (!window.confirm("هل تريد حذف هذا الموعد نهائيًا؟")) return;
+    setDeletingEntryId(row.id);
+    try {
+      await deleteUnifiedScheduleEntry(classroomId, row.id);
+      setRows((current) => current.filter((item) => item.id !== row.id));
+      setOriginalEntries((current) => current.filter((item) => item.id !== row.id));
+      if (user?.role === "admin") await refreshZoom();
+      toast.success("تم حذف الموعد.");
+    } catch (error) { toast.error(errorMessage(error)); }
+    finally { setDeletingEntryId(""); }
+  };
 
   const save = async () => {
     if (!mode || !subjects.length) return toast.error("لا توجد مواد مكلّفة داخل الفصل.");
@@ -186,7 +204,7 @@ export default function ClassroomScheduleManagement({
       <Tabs value={activeDay} onValueChange={(value) => setActiveDay(value as Day)} dir="rtl">
         <div className="schedule-day-tabs-scroll w-full max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch]"><TabsList className="h-auto w-max min-w-full justify-start gap-1 p-1.5 sm:justify-center">{CLASSROOM_DAYS.map((day) => <TabsTrigger key={day} value={day} className="shrink-0 snap-start gap-2 px-4 py-2.5"><span>{CLASSROOM_DAY_NAMES[day]}</span>{(rowsByDay.get(day)?.length || 0) > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{rowsByDay.get(day)?.length}</Badge>}</TabsTrigger>)}</TabsList></div>
         {CLASSROOM_DAYS.map((day) => { const dayRows = rowsByDay.get(day) || []; return <TabsContent key={day} value={day} className="mt-3"><Card><CardHeader className="flex-row items-center justify-between gap-3 border-b"><div><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary"/>حصص يوم {CLASSROOM_DAY_NAMES[day]}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{dayRows.length ? `${dayRows.length} حصة` : "لا توجد حصص في هذا اليوم"}</p></div>{canEdit && <Button variant="outline" onClick={() => addLesson(day)} className="gap-2"><Plus className="h-4 w-4"/>إضافة حصة</Button>}</CardHeader><CardContent className="space-y-3 p-4 sm:p-6">
-          {!dayRows.length ? canEdit ? <button type="button" onClick={() => addLesson(day)} className="grid min-h-48 w-full place-items-center rounded-xl border border-dashed text-center text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.02]"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>اضغط لإضافة أول حصة في هذا اليوم</span></button> : <div className="grid min-h-48 place-items-center rounded-xl border border-dashed text-center text-muted-foreground"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>لا توجد حصص في هذا اليوم</span></div> : dayRows.map((row, index) => <div key={row.key} className="rounded-xl border bg-muted/15 p-4"><div className="mb-4 flex items-center justify-between"><h3 className="font-bold">الحصة {index + 1}</h3>{canEdit && <Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))} aria-label="حذف الحصة"><Trash2 className="h-4 w-4"/></Button>}</div><div className="grid gap-4 lg:grid-cols-3">
+          {!dayRows.length ? canEdit ? <button type="button" onClick={() => addLesson(day)} className="grid min-h-48 w-full place-items-center rounded-xl border border-dashed text-center text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.02]"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>اضغط لإضافة أول حصة في هذا اليوم</span></button> : <div className="grid min-h-48 place-items-center rounded-xl border border-dashed text-center text-muted-foreground"><span><CalendarDays className="mx-auto mb-3 h-9 w-9 opacity-40"/>لا توجد حصص في هذا اليوم</span></div> : dayRows.map((row, index) => <div key={row.key} className="rounded-xl border bg-muted/15 p-4"><div className="mb-4 flex items-center justify-between"><h3 className="font-bold">الحصة {index + 1}</h3>{(canEdit || user?.role === "admin") && <Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" disabled={deletingEntryId === row.id} onClick={() => void deleteEntry(row)} aria-label="حذف الموعد">{deletingEntryId === row.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4"/>}</Button>}</div><div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-2"><Label className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-primary"/>المادة</Label><Select value={mode === "gulf" ? gulfSubjectId : row.classroomSubjectId} onValueChange={(classroomSubjectId) => mode === "gulf" ? setGulfSubjectId(classroomSubjectId) : updateRow(row.key, { classroomSubjectId })} disabled={!canEdit}><SelectTrigger><SelectValue placeholder="اختر المادة"/></SelectTrigger><SelectContent>{subjects.map((subject) => <SelectItem key={subject.classroomSubjectId} value={subject.classroomSubjectId}>{subjectLabel(subject)}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>من</Label><Time12Input value={row.startTime} onChange={(startTime) => updateRow(row.key, { startTime })} disabled={!canEdit}/></div>
             <div className="space-y-2"><Label className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-primary"/>إلى</Label><Time12Input value={row.endTime || ""} allowEmpty onChange={(endTime) => updateRow(row.key, { endTime })} disabled={!canEdit}/></div>

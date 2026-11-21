@@ -1005,7 +1005,7 @@ export default function TeacherSignup() {
                       />
                     </Field>
                     <Field
-                      label="البطاقة الشخصية *"
+                      label="صورة (الهوية الشخصية/البطاقة الشخصية) *"
                       error={showValidationErrors && !files.identityDocument}
                     >
                       <Input

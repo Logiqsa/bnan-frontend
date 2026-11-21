@@ -318,6 +318,8 @@ export const classroomRecordingsApi = {
 
   getSessionReport: (sessionId: string) => apiRequest<ClassroomSessionReportResponse>(`/sessions/${encodeURIComponent(sessionId)}/report`),
 
+  deleteSession: (sessionId: string) => apiRequest<void>(`/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
+
   upload: (classroomId: string, body: FormData, onProgress: (value: number) => void) =>
     new Promise<UploadResult>((resolve, reject) => {
       const send = (retried = false) => {

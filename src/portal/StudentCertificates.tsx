@@ -39,7 +39,12 @@ function ModernCertificateCard({ certificate }: { certificate: ModernStudentCert
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
   const period = periodText(certificate.period, locale);
   const issuedAt = dateText(certificate.issuedAt, locale);
-  const supported = certificate.certificateType === "student_monthly";
+  const supported = certificate.certificateType === "student_monthly" || certificate.certificateType === "course_completion";
+  const title = certificate.certificateType === "course_completion"
+    ? pick("شهادة إتمام دورة", "Course completion certificate")
+    : certificate.certificateType === "student_monthly"
+      ? pick("شهادة التقييم الشهري", "Monthly certificate")
+      : pick("نوع شهادة غير مدعوم", "Unsupported certificate type");
 
   const openPdf = async () => {
     const popup = window.open("about:blank", "_blank");
@@ -77,7 +82,7 @@ function ModernCertificateCard({ certificate }: { certificate: ModernStudentCert
       : preview.url ? <img src={preview.url} alt={pick("معاينة الشهادة", "Certificate preview")} className="aspect-[16/9] w-full bg-muted object-contain" />
       : <div className="grid aspect-[16/9] place-items-center bg-muted/50 text-muted-foreground"><div className="text-center"><ImageOff className="mx-auto mb-2 h-8 w-8 opacity-50" /><p className="text-sm">{pick("لا توجد معاينة", "No preview available")}</p></div></div>}
     <CardHeader className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2"><CardTitle className="break-words text-lg">{supported ? pick("شهادة التقييم الشهري", "Monthly certificate") : pick("نوع شهادة غير مدعوم", "Unsupported certificate type")}</CardTitle><Badge variant={supported ? "default" : "secondary"}>{supported ? pick("رسمية", "Official") : certificate.certificateType}</Badge></div>
+      <div className="flex flex-wrap items-start justify-between gap-2"><CardTitle className="break-words text-lg">{title}</CardTitle><Badge variant={supported ? "default" : "secondary"}>{supported ? pick("رسمية", "Official") : certificate.certificateType}</Badge></div>
       <p className="break-all text-sm text-muted-foreground">{pick("رقم الشهادة", "Certificate number")}: <span dir="ltr">{certificate.certificateNumber}</span></p>
     </CardHeader>
     <CardContent className="space-y-4">
@@ -87,6 +92,8 @@ function ModernCertificateCard({ certificate }: { certificate: ModernStudentCert
         {certificate.academicContext?.curriculumNameSnapshot && <div><dt className="text-xs text-muted-foreground">{pick("المنهج", "Curriculum")}</dt><dd className="mt-1 break-words font-semibold">{certificate.academicContext.curriculumNameSnapshot}</dd></div>}
         {certificate.academicContext?.gradeNameSnapshot && <div><dt className="text-xs text-muted-foreground">{pick("الصف", "Grade")}</dt><dd className="mt-1 break-words font-semibold">{certificate.academicContext.gradeNameSnapshot}</dd></div>}
         {certificate.academicContext?.classroomNameSnapshot && <div><dt className="text-xs text-muted-foreground">{pick("الفصل", "Classroom")}</dt><dd className="mt-1 break-words font-semibold">{certificate.academicContext.classroomNameSnapshot}</dd></div>}
+        {certificate.courseContext?.courseNameSnapshot && <div><dt className="text-xs text-muted-foreground">{pick("الدورة", "Course")}</dt><dd className="mt-1 break-words font-semibold">{certificate.courseContext.courseNameSnapshot}</dd></div>}
+        {certificate.courseContext?.groupNameSnapshot && <div><dt className="text-xs text-muted-foreground">{pick("المجموعة", "Group")}</dt><dd className="mt-1 break-words font-semibold">{certificate.courseContext.groupNameSnapshot}</dd></div>}
         {issuedAt && <div><dt className="text-xs text-muted-foreground">{pick("تاريخ الإصدار", "Issued at")}</dt><dd className="mt-1 font-semibold">{issuedAt}</dd></div>}
         {typeof certificate.totalScore === "number" && <div><dt className="text-xs text-muted-foreground">{pick("المجموع", "Total score")}</dt><dd className="mt-1 font-semibold tabular-nums">{certificate.totalScore}{typeof certificate.totalMaxScore === "number" ? ` / ${certificate.totalMaxScore}` : ""}</dd></div>}
         {typeof certificate.percentage === "number" && <div><dt className="text-xs text-muted-foreground">{pick("النسبة", "Percentage")}</dt><dd className="mt-1 font-semibold tabular-nums">{certificate.percentage}%</dd></div>}

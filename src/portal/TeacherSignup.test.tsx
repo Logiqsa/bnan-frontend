@@ -109,7 +109,7 @@ describe("TeacherSignup password flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "التالي" }));
     fireEvent.change(screen.getByLabelText("السيرة الذاتية *"), { target: { files: [file("cv.pdf")] } });
     fireEvent.change(screen.getByLabelText("شهادة التخرج *"), { target: { files: [file("degree.pdf")] } });
-    fireEvent.change(screen.getByLabelText("البطاقة الشخصية *"), { target: { files: [file("id.pdf")] } });
+    fireEvent.change(screen.getByLabelText("صورة (الهوية الشخصية/البطاقة الشخصية) *"), { target: { files: [file("id.pdf")] } });
     fireEvent.click(screen.getByRole("button", { name: "التالي" }));
     await screen.findByText("اختر المواد لكل صف");
     fireEvent.click(screen.getByRole("button", { name: "التالي" }));
@@ -132,7 +132,7 @@ describe("TeacherSignup password flow", () => {
 
     fireEvent.change(screen.getByLabelText("السيرة الذاتية *"), { target: { files: [file("cv.pdf")] } });
     fireEvent.change(screen.getByLabelText("شهادة التخرج *"), { target: { files: [file("degree.pdf")] } });
-    fireEvent.change(screen.getByLabelText("البطاقة الشخصية *"), { target: { files: [file("id.pdf")] } });
+    fireEvent.change(screen.getByLabelText("صورة (الهوية الشخصية/البطاقة الشخصية) *"), { target: { files: [file("id.pdf")] } });
     fireEvent.click(screen.getByRole("button", { name: "التالي" }));
 
     await screen.findByText("اختر المواد لكل صف");

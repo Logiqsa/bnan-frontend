@@ -6,9 +6,11 @@ import {
   FileText,
   Play,
   RefreshCw,
+  Trash2,
   Video,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   classroomRecordingsApi,
   type ClassroomSession,
@@ -72,6 +74,7 @@ export default function AdminClassroomSessionsTab({
   active?: boolean;
 }) {
   const { pick, isArabic } = useLanguage();
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState("");
   const [player, setPlayer] = useState<PlayerRecording | null>(null);
   const sessions = useQuery({
@@ -115,6 +118,20 @@ export default function AdminClassroomSessionsTab({
       session?.recordingLink,
     [session],
   );
+  const removeSession = useMutation({
+    mutationFn: (sessionId: string) => classroomRecordingsApi.deleteSession(sessionId),
+    onSuccess: async (_, sessionId) => {
+      if (selectedId === sessionId) setSelectedId("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-sessions-tab", classroomId] });
+      toast.success(pick("تم حذف تسجيل الحصة.", "Session record deleted."));
+    },
+    onError: () => toast.error(pick("تعذر حذف تسجيل الحصة.", "Unable to delete session record.")),
+  });
+  const confirmDelete = (sessionId: string) => {
+    if (window.confirm(pick("هل تريد حذف تسجيل الحصة نهائيًا؟", "Permanently delete this session record?"))) {
+      removeSession.mutate(sessionId);
+    }
+  };
 
   return (
     <TabsContent value="sessions" className="space-y-4">
@@ -192,6 +209,16 @@ export default function AdminClassroomSessionsTab({
                       >
                         <Eye className="ml-1 h-4 w-4" />
                         {pick("التفاصيل", "Details")}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        aria-label={pick("حذف تسجيل الحصة", "Delete session record")}
+                        disabled={removeSession.isPending || (!item.id && !item._id)}
+                        onClick={() => confirmDelete(item.id || item._id || "")}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

@@ -1271,7 +1271,7 @@ function Packages() {
               </p>
             </div>
             <div>
-              <Label><PackageFieldHelp label="العملة"><p>العملة التي سيظهر ويُحصّل بها سعر الباقة. اختر EGP لمصر وSAR للسعودية.</p></PackageFieldHelp></Label>
+              <Label>العملة</Label>
               <select
                 className={inputClass}
                 value={form.currency}
@@ -1283,7 +1283,7 @@ function Packages() {
               </select>
             </div>
             <div>
-              <Label><PackageFieldHelp label={`الساعات ${form.type === "monthly" ? "(لا تنطبق)" : ""}`}><p>إجمالي الساعات المتاحة للطالب. يتوقف هذا الحقل تلقائيًا عند اختيار النوع «شهري».</p></PackageFieldHelp></Label>
+              <Label>الساعات {form.type === "monthly" ? "(لا تنطبق)" : ""}</Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -1295,7 +1295,7 @@ function Packages() {
               />
             </div>
             <div>
-              <Label><PackageFieldHelp label="السعر القديم"><p>يظهر مشطوبًا بجوار السعر الحالي لإبراز الخصم. اتركه صفرًا إذا لم يوجد سعر قديم.</p></PackageFieldHelp></Label>
+              <Label>السعر القديم</Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -1315,7 +1315,7 @@ function Packages() {
               />
             </div>
             <div>
-              <Label><PackageFieldHelp label="عنوان الخصم"><p>نص اختياري يوضح سبب الخصم، مثل «عرض العودة للمدارس».</p></PackageFieldHelp></Label>
+              <Label>عنوان الخصم</Label>
               <Input
                 className="mt-1"
                 value={form.discountTitle || ""}

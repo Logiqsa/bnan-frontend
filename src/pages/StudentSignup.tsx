@@ -42,6 +42,7 @@ import {
 import { cn } from "@/lib/utils";
 import { egyptianGradeLanguage } from "@/lib/egyptianGradeLanguage";
 import { courseRegistrationIntentStore } from "@/lib/courseRegistrationIntent";
+import { formatArabicMoney } from "@/lib/currencyDisplay";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 import visaImg from "@/assets/payment/visa.png";
 import mastercardImg from "@/assets/payment/mastercard.png";
@@ -1248,21 +1249,14 @@ export default function StudentSignup({
                                   ? "تشمل مادة واحدة من اختيارك"
                                   : "تشمل جميع مواد الصف"}
                             </span>
-                            {(p.hours || p.months) && (
-                              <span className="block text-xs text-muted-foreground mt-1">
-                                {p.hours
-                                  ? `${p.hours} ساعات`
-                                  : `${p.months} شهر`}
-                              </span>
-                            )}
                             <span className="flex items-baseline gap-2 mt-2">
                               {typeof p.oldPrice === "number" && p.oldPrice > 0 ? (
                                 <span className="text-xs line-through text-muted-foreground">
-                                  {p.oldPrice} {p.currency}
+                                  {formatArabicMoney(p.oldPrice, p.currency)}
                                 </span>
                               ) : null}
                               <span className="text-lg font-cairo font-bold">
-                                {p.price} {p.currency}
+                                {formatArabicMoney(p.price, p.currency)}
                               </span>
                             </span>
                           </button>

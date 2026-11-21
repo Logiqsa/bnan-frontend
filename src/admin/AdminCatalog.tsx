@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { arabicCurrencyName, formatArabicMoney } from "@/lib/currencyDisplay";
 import { ApiError } from "@/api/client";
 import {
   egyptianGradeLanguage,
@@ -1208,7 +1209,7 @@ function Packages() {
               <option value="">كل أنواع المدة</option><option value="hours">ساعات</option><option value="monthly">شهري</option>
             </select>
             <select className={inputClass} aria-label="فلترة العملة" value={filters.currency || ""} onChange={(e) => setFilters((current) => ({ ...current, currency: e.target.value || undefined }))}>
-              <option value="">كل العملات</option>{currencies.map((item) => <option key={item}>{item}</option>)}
+              <option value="">كل العملات</option>{currencies.map((item) => <option key={item} value={item}>{arabicCurrencyName(item)}</option>)}
             </select>
             <select className={inputClass} aria-label="فلترة حالة الباقة" value={filters.isActive === undefined ? "" : String(filters.isActive)} onChange={(e) => setFilters((current) => ({ ...current, isActive: e.target.value === "" ? undefined : e.target.value === "true" }))}>
               <option value="">كل الحالات</option><option value="true">نشطة</option><option value="false">غير نشطة</option>
@@ -1278,7 +1279,7 @@ function Packages() {
                 onChange={(e) => setField("currency", e.target.value)}
               >
                 {currencies.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item} value={item}>{arabicCurrencyName(item)}</option>
                 ))}
               </select>
             </div>
@@ -1403,10 +1404,7 @@ function Packages() {
                   <div>
                     <h3 className="font-semibold">{item.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {item.type === "monthly"
-                        ? "شهري"
-                        : `${item.hours || 0} ساعة`}{" "}
-                      · {item.price} {item.currency}
+                      {formatArabicMoney(item.price, item.currency)}
                     </p>
                     <Badge
                       variant={item.isActive === false ? "outline" : "default"}

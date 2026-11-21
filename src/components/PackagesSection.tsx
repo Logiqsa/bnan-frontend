@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { catalogApi, type PackageOption } from "@/api/catalogApi";
 import { ApiError } from "@/api/client";
 import SectionTitleAccent from "@/components/SectionTitleAccent";
+import { formatArabicMoney } from "@/lib/currencyDisplay";
 
 interface PackagesSectionProps {
   curriculumLabel: string;
@@ -92,10 +93,10 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
               <div className="flex items-baseline gap-2 mb-6">
                 {typeof pkg.oldPrice === "number" && pkg.oldPrice > 0 ? (
                   <span className={`text-sm line-through ${pkg.isPopular ? "opacity-70" : "text-muted-foreground"}`}>
-                    {pkg.oldPrice} {pkg.currency}
+                    {formatArabicMoney(pkg.oldPrice, pkg.currency)}
                   </span>
                 ) : null}
-                <span className="text-3xl font-cairo font-bold">{pkg.price} {pkg.currency}</span>
+                <span className="text-3xl font-cairo font-bold">{formatArabicMoney(pkg.price, pkg.currency)}</span>
               </div>
               <div className="flex-1" />
               <Button

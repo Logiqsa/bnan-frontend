@@ -89,11 +89,6 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
                   {pkg.description}
                 </p>
               )}
-              {(pkg.hours || pkg.months) && (
-                <p className={`text-sm font-tajawal mb-4 ${pkg.isPopular ? "opacity-90" : "text-muted-foreground"}`}>
-                  {pkg.hours ? `${pkg.hours} ساعات` : `${pkg.months} شهر`}
-                </p>
-              )}
               <div className="flex items-baseline gap-2 mb-6">
                 {pkg.oldPrice && (
                   <span className={`text-sm line-through ${pkg.isPopular ? "opacity-70" : "text-muted-foreground"}`}>

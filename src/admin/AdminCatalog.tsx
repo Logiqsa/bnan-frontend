@@ -1262,6 +1262,13 @@ function Packages() {
                 <option value="single_subject">مادة واحدة</option>
                 <option value="shared_subjects">باقة مشتركة</option>
               </select>
+              <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900">
+                {form.accessScope === "all_subjects"
+                  ? "ستدعم الباقة تلقائيًا جميع المواد التابعة للصف الذي يختاره الطالب أثناء التسجيل."
+                  : form.accessScope === "single_subject"
+                    ? "سيختار الطالب مادة واحدة فقط من مواد الصف الذي حدده أثناء التسجيل."
+                    : "سيتمكن الطالب من اختيار أكثر من مادة من مواد صفه وتوزيع ساعات الباقة عليها."}
+              </p>
             </div>
             <div>
               <Label><PackageFieldHelp label="العملة"><p>العملة التي سيظهر ويُحصّل بها سعر الباقة. اختر EGP لمصر وSAR للسعودية.</p></PackageFieldHelp></Label>

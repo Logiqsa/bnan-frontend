@@ -293,7 +293,11 @@ export default function StudentSignup({
   const mode = selectedCurriculum?.registrationMode;
   const detailsStep = courseOnly ? 1 : 2;
   const selectedPackage = packages.find((p) => p.id === packageId);
-  const selectedAccessScope = selectedPackage?.accessScope;
+  // Older packages created before accessScope was introduced do not have the
+  // field persisted. They historically included every subject in the grade.
+  const selectedAccessScope = selectedPackage
+    ? selectedPackage.accessScope || "all_subjects"
+    : undefined;
   const isSingleSubjectPackage = selectedAccessScope === "single_subject";
   const isSharedSubjectPackage = selectedAccessScope === "shared_subjects";
   const isAllSubjectsPackage = selectedAccessScope === "all_subjects";
@@ -1247,11 +1251,11 @@ export default function StudentSignup({
                               </span>
                             )}
                             <span className="flex items-baseline gap-2 mt-2">
-                              {p.oldPrice && (
+                              {typeof p.oldPrice === "number" && p.oldPrice > 0 ? (
                                 <span className="text-xs line-through text-muted-foreground">
                                   {p.oldPrice} {p.currency}
                                 </span>
-                              )}
+                              ) : null}
                               <span className="text-lg font-cairo font-bold">
                                 {p.price} {p.currency}
                               </span>

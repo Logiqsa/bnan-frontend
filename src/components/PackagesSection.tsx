@@ -90,11 +90,11 @@ const PackagesSection = ({ curriculumLabel, curriculumId, onBack, onSubscribe }:
                 </p>
               )}
               <div className="flex items-baseline gap-2 mb-6">
-                {pkg.oldPrice && (
+                {typeof pkg.oldPrice === "number" && pkg.oldPrice > 0 ? (
                   <span className={`text-sm line-through ${pkg.isPopular ? "opacity-70" : "text-muted-foreground"}`}>
                     {pkg.oldPrice} {pkg.currency}
                   </span>
-                )}
+                ) : null}
                 <span className="text-3xl font-cairo font-bold">{pkg.price} {pkg.currency}</span>
               </div>
               <div className="flex-1" />

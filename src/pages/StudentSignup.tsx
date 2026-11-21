@@ -538,6 +538,7 @@ export default function StudentSignup({
         return false;
       if (mode === "gulf") return isSharedSubjectPackage ? subjectIds.length >= 2 : subjectIds.length >= 1;
       if (isSingleSubjectPackage) return subjectIds.length === 1;
+      if (isSharedSubjectPackage) return subjectIds.length >= 2;
       if (isAllSubjectsPackage) return subjectIds.length === subjects.length;
       return false;
     }
@@ -1247,7 +1248,9 @@ export default function StudentSignup({
                                 ? "اختر مادة واحدة أو أكثر"
                                 : p.accessScope === "single_subject"
                                   ? "تشمل مادة واحدة من اختيارك"
-                                  : "تشمل جميع مواد الصف"}
+                                  : p.accessScope === "shared_subjects"
+                                    ? "اختر مادتين أو أكثر من مواد الصف"
+                                    : "تشمل جميع مواد الصف"}
                             </span>
                             <span className="flex items-baseline gap-2 mt-2">
                               {typeof p.oldPrice === "number" && p.oldPrice > 0 ? (
@@ -1276,7 +1279,9 @@ export default function StudentSignup({
                           : "اختر مادة واحدة *"
                         : isSingleSubjectPackage
                           ? "اختر مادة واحدة *"
-                          : "المواد المشمولة في الباقة"}
+                          : isSharedSubjectPackage
+                            ? "اختر المواد المشمولة *"
+                            : "المواد المشمولة في الباقة"}
                     </h3>
                     <p className="text-sm text-muted-foreground font-tajawal mb-3">
                       {mode === "gulf"
@@ -1285,6 +1290,8 @@ export default function StudentSignup({
                           : "حدد المادة التي يرغب الطالب في دراستها."
                         : isSingleSubjectPackage
                           ? "يمكنك اختيار مادة واحدة فقط ضمن هذه الباقة."
+                          : isSharedSubjectPackage
+                            ? "اختر مادتين أو أكثر؛ سيتم تسجيل الطالب في المواد التي تحددها فقط."
                           : isAllSubjectsPackage
                             ? "هذه جميع مواد الصف التي سيحصل عليها الطالب."
                             : "تعذر تحديد المواد لأن نوع الباقة غير مدعوم."}
@@ -1315,7 +1322,7 @@ export default function StudentSignup({
                           );
                         })}
                       </div>
-                    ) : isSingleSubjectPackage ? (
+                    ) : isSingleSubjectPackage || isSharedSubjectPackage ? (
                       <div className="flex flex-wrap gap-3">
                         {subjects.map((s) => {
                           const checked = subjectIds.includes(s.id);
@@ -1325,10 +1332,10 @@ export default function StudentSignup({
                               className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-tajawal ${checked ? "border-secondary bg-secondary/10" : "bg-muted"}`}
                             >
                               <input
-                                type="radio"
-                                name="registration-subject"
+                                type={isSharedSubjectPackage ? "checkbox" : "radio"}
+                                name={isSharedSubjectPackage ? undefined : "registration-subject"}
                                 checked={checked}
-                                onChange={() => selectSubject(s.id)}
+                                onChange={() => isSharedSubjectPackage ? toggleSubject(s.id) : selectSubject(s.id)}
                               />
                               {s.name}
                             </label>

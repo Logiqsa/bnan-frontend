@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightLeft, BookPlus, CalendarDays, ClipboardList, Eye, Loader2, MessageSquare, Play, RefreshCw, School, Trash2, Users, UserPlus, Video } from "lucide-react";
 import { ApiError } from "@/api/client";
 import { adminAssignmentsApi } from "@/api/adminAssignmentsApi";
+import { adminTeacherAssignmentApi } from "@/api/adminTeacherAssignmentApi";
 import { adminClassroomAttendanceApi, type AdminAttendanceStatus } from "@/api/adminClassroomAttendanceApi";
 import { classroomRecordingsApi } from "@/api/classroomRecordingsApi";
 import { classroomZoomApi } from "@/api/classroomZoomApi";
@@ -48,6 +49,7 @@ const errorText = (error: unknown) => {
 };
 
 const display = (value?: string | null) => value || "—";
+const referenceId = (value: unknown) => typeof value === "string" ? value : value && typeof value === "object" ? String((value as { id?: string; _id?: string }).id || (value as { _id?: string })._id || "") : "";
 const dateLabel = (value?: string) => (value ? new Date(value).toLocaleString("ar-EG-u-ca-gregory") : "—");
 const classroomGradesLabel = (classroom?: { classroomKind?: string; grade?: IdReference; sharedAcademicTargets?: Array<{ grade: IdReference }> }) => {
   if (classroom?.classroomKind === "shared") {
@@ -113,6 +115,7 @@ export default function AdminClassroomHub() {
   const [transferTargetId, setTransferTargetId] = useState("");
   const [transferSearch, setTransferSearch] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [teacherSelections, setTeacherSelections] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
   const details = useQuery({
@@ -126,6 +129,12 @@ export default function AdminClassroomHub() {
     queryFn: () => classroomRecordingsApi.listSubjects(classroomId),
     enabled: Boolean(classroomId),
     retry: false,
+  });
+  const teachers = useQuery({
+    queryKey: ["admin-classroom-hub-teachers"],
+    queryFn: adminTeacherAssignmentApi.listTeachers,
+    enabled: Boolean(classroomId),
+    staleTime: 5 * 60_000,
   });
   const students = useQuery({
     queryKey: ["admin-classroom-hub-students", classroomId],
@@ -206,6 +215,16 @@ export default function AdminClassroomHub() {
     },
     onError: (error) => toast.error(error instanceof ApiError && error.status === 409 ? "لا يمكن حذف المادة لأنها مستخدمة في الجدول. احذف حصصها أولًا." : "تعذر حذف المادة من الفصل."),
   });
+  const assignTeacher = useMutation({
+    mutationFn: ({ subjectId, teacherId }: { subjectId: string; teacherId: string }) =>
+      adminTeacherAssignmentApi.assign(classroomId, subjectId, teacherId),
+    onSuccess: async (_response, variables) => {
+      setTeacherSelections((current) => ({ ...current, [variables.subjectId]: "" }));
+      toast.success("تم تعيين المعلم للمادة.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-subjects", classroomId] });
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "تعذر تعيين المعلم للمادة."),
+  });
   const recordings = useQuery({
     queryKey: ["admin-classroom-hub-recordings", classroomId],
     queryFn: () => classroomRecordingsApi.listRecordings(classroomId),
@@ -279,6 +298,11 @@ export default function AdminClassroomHub() {
   const studentItems = students.data?.data || [];
   const availableStudentItems = availableStudents.data?.data || [];
   const classroom = details.data?.data;
+  const classroomCurriculumId = referenceId(classroom?.curriculum);
+  const eligibleTeachers = (teachers.data || []).filter((teacher) =>
+    teacher.teacherStatus === "approved" &&
+    teacher.teacherId &&
+    teacher.curriculums?.some((curriculum) => referenceId(curriculum) === classroomCurriculumId));
   const zoom = useMemo(() => normalizeZoomState(classroom), [classroom]);
   const recordingsItems = Array.isArray(recordings.data?.data) ? recordings.data.data : recordings.data?.data?.recordings || recordings.data?.data?.data || [];
   const assignmentItems = assignmentQuery.data?.data || [];
@@ -440,14 +464,18 @@ export default function AdminClassroomHub() {
               <>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {subjectItems.map((subject) => (
-                    <div key={subject.classroomSubjectId || subject.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                      <div className="min-w-0">
+                    <div key={subject.classroomSubjectId || subject.id} className="space-y-3 rounded-lg border p-3">
+                      <div className="flex items-center justify-between gap-3"><div className="min-w-0">
                         <p className="truncate font-medium">المادة: {subject.name || subject.subject?.name || "مادة"}</p>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">{subject.teacher ? "تم تعيين معلم" : "بدون معلم"}</p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">{subject.teacher?.name || "بدون معلم"}</p>
                       </div>
                       <Button type="button" size="icon" variant="ghost" className="shrink-0 text-destructive hover:text-destructive" aria-label={`حذف مادة ${subject.name}`} disabled={deleteSubject.isPending} onClick={() => deleteSubject.mutate(subject.classroomSubjectId || subject.id)}>
                         {deleteSubject.isPending && deleteSubject.variables === (subject.classroomSubjectId || subject.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      </Button>
+                      </Button></div>
+                      <div className="grid gap-2 sm:grid-cols-[1fr_auto] lg:grid-cols-1 xl:grid-cols-[1fr_auto]">
+                        <AdminSearchableSelect label="المعلم" value={teacherSelections[subject.subjectId] || ""} placeholder={subject.teacher ? "تغيير المعلم" : "اختر المعلم"} options={eligibleTeachers.filter((teacher) => teacher.teacherId !== subject.teacher?.id).map((teacher) => ({ value: teacher.teacherId!, label: teacher.fullName || teacher.email || teacher.teacherId!, searchText: teacher.email }))} onChange={(value) => setTeacherSelections((current) => ({ ...current, [subject.subjectId]: value || "" }))} loading={teachers.isLoading} noOptionsLabel="لا يوجد معلمون مؤهلون لهذا المنهج." searchPlaceholder="ابحث باسم المعلم أو البريد" />
+                        <Button type="button" className="self-end" disabled={!teacherSelections[subject.subjectId] || assignTeacher.isPending} onClick={() => assignTeacher.mutate({ subjectId: subject.subjectId, teacherId: teacherSelections[subject.subjectId] })}>{assignTeacher.isPending && assignTeacher.variables?.subjectId === subject.subjectId ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <UserPlus className="ml-2 h-4 w-4" />}تعيين</Button>
+                      </div>
                     </div>
                   ))}
                   {!subjectItems.length && <p className="text-sm text-muted-foreground">لا توجد مواد مضافة حاليًا.</p>}

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   listSessions: vi.fn(), listRecordings: vi.fn(), getSession: vi.fn(), getSessionReport: vi.fn(),
   listAssignments: vi.fn(), getAssignment: vi.fn(), listSubmissions: vi.fn(), getSubmission: vi.fn(),
   listAttendance: vi.fn(),
+  listTeachers: vi.fn(), assignTeacher: vi.fn(),
 }));
 
 vi.mock("@/api/classroomZoomApi", () => ({ classroomZoomApi: { getClassroom: mocks.getClassroom } }));
@@ -21,6 +22,7 @@ vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: {
 } }));
 vi.mock("@/api/adminAssignmentsApi", () => ({ adminAssignmentsApi: { listAssignments: mocks.listAssignments, getAssignment: mocks.getAssignment, listSubmissions: mocks.listSubmissions, getSubmission: mocks.getSubmission } }));
 vi.mock("@/api/adminClassroomAttendanceApi", () => ({ adminClassroomAttendanceApi: { listClassroomAttendance: mocks.listAttendance } }));
+vi.mock("@/api/adminTeacherAssignmentApi", () => ({ adminTeacherAssignmentApi: { listTeachers: mocks.listTeachers, assign: mocks.assignTeacher } }));
 vi.mock("@/admin/AdminClassroomChat", () => ({
   default: ({ classroomId, active }: { classroomId: string; active: boolean }) => active ? <div>classroom-chat-{classroomId}</div> : null,
 }));
@@ -64,6 +66,8 @@ describe("AdminClassroomHub", () => {
     mocks.listSubmissions.mockResolvedValue({ success: true, results: 0, assignment: { id: "a1" }, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
     mocks.getSubmission.mockResolvedValue({ success: true, data: { id: "sub1" } });
     mocks.listAttendance.mockResolvedValue({ success: true, results: 0, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
+    mocks.listTeachers.mockResolvedValue([]);
+    mocks.assignTeacher.mockResolvedValue({ success: true, data: {} });
   });
 
   it("loads the classroom details, subjects, and students and renders actual header data", async () => {
@@ -107,10 +111,10 @@ describe("AdminClassroomHub", () => {
     expect(screen.getByText("العربية")).toBeInTheDocument();
     expect(screen.getByText("الرياضيات")).toBeInTheDocument();
     expect(screen.getByText("العلوم")).toBeInTheDocument();
-    expect(screen.getAllByText("أحمد محمد")).toHaveLength(2);
-    expect(screen.getByText("محمد علي")).toBeInTheDocument();
+    expect(screen.getAllByText("أحمد محمد")).toHaveLength(4);
+    expect(screen.getAllByText("محمد علي")).toHaveLength(2);
     expect(screen.queryByText("معلم غير معتمد")).not.toBeInTheDocument();
-    expect(screen.getByText("الدراسات").parentElement).toHaveTextContent("—");
+    expect(screen.getAllByText("الدراسات").some((item) => item.parentElement?.textContent?.includes("—"))).toBe(true);
   });
 
   it("loads classroom-scoped attendance lazily without calling unrelated tab APIs", async () => {

@@ -146,13 +146,19 @@ describe("AdminCatalog", () => {
       data: [
         { id: "ga", name: "الصف الأول عربي", isActive: true },
         { id: "gl", name: "الصف الأول لغات", isActive: true },
+        { id: "gs", name: "الصف الأول مشترك", isActive: true },
         { id: "go", name: "صف غير مصنف", isActive: true },
       ],
     });
-    mocks.subjects.mockResolvedValue({
-      success: true,
-      data: [{ id: "sa", name: "مادة عربي" }],
-    });
+    mocks.subjects.mockImplementation((grade: string) =>
+      Promise.resolve({
+        success: true,
+        data:
+          grade === "gs"
+            ? [{ id: "ss", name: "مادة مشتركة" }]
+            : [{ id: "sa", name: "مادة عربي" }],
+      }),
+    );
     renderPage("/admin/catalog/subjects");
     const selects = await screen.findAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "c1" } });
@@ -178,6 +184,9 @@ describe("AdminCatalog", () => {
     ).not.toBeInTheDocument();
     fireEvent.change(gradeSelect, { target: { value: "ga" } });
     expect(await screen.findByText("مادة عربي")).toBeInTheDocument();
+    expect(await screen.findByText("مادة مشتركة")).toBeInTheDocument();
+    expect(screen.getByText("في فصل مشترك")).toBeInTheDocument();
+    expect(screen.getByText("(2)")).toBeInTheDocument();
   });
 
   it("applies the same language filter to the Grades tab", async () => {

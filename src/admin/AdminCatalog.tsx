@@ -30,6 +30,10 @@ import {
   type WebsiteGradeStage,
 } from "@/lib/gradeStages";
 import {
+  isSharedTeacherGrade,
+  sharedCompanionGrade,
+} from "@/lib/teacherGradeSubjects";
+import {
   catalogApi,
   type CurriculumInput,
   type CurriculumOption,
@@ -885,7 +889,24 @@ function Subjects() {
       ? stageGrades.filter(
           (item) => egyptianGradeLanguage(item.name) === studyLanguage,
         )
-      : stageGrades;
+      : stageGrades.filter((item) => !isSharedTeacherGrade(item.name));
+  const selectedGrade = allGrades.find((item) => item.id === grade);
+  const sharedGrade = selectedGrade
+    ? sharedCompanionGrade(selectedGrade, allGrades)
+    : undefined;
+  const sharedSubjects = useQuery({
+    queryKey: ["admin-catalog", "shared-grade-subjects", sharedGrade?.id],
+    queryFn: () => catalogApi.subjects(sharedGrade?.id || ""),
+    enabled: Boolean(sharedGrade),
+  });
+  const displayedSubjects = [
+    ...(query.data?.data || []).map((item) => ({ item, shared: false })),
+    ...(sharedSubjects.data?.data || []).map((item) => ({ item, shared: true })),
+  ].filter(
+    (entry, index, entries) =>
+      entries.findIndex((candidate) => candidate.item.id === entry.item.id) ===
+      index,
+  );
   const save = useMutation({
     mutationFn: (value: { id?: string; body: SubjectInput }) =>
       value.id
@@ -1094,17 +1115,33 @@ function Subjects() {
       <Card>
         <SectionHeader
           title="المواد"
-          count={grade ? query.data?.data.length : 0}
-          onRefresh={() => void query.refetch()}
+          count={grade ? displayedSubjects.length : 0}
+          onRefresh={() => {
+            void query.refetch();
+            if (sharedGrade) void sharedSubjects.refetch();
+          }}
           onAdd={() => begin("new")}
           addLabel="إضافة مادة"
           addDisabled={!curriculum || !grade}
         />
         <CardContent>
           <LoadingOrError
-            loading={query.isLoading || curricula.isLoading || grades.isLoading}
-            error={query.isError || curricula.isError || grades.isError}
-            retry={() => void query.refetch()}
+            loading={
+              query.isLoading ||
+              sharedSubjects.isLoading ||
+              curricula.isLoading ||
+              grades.isLoading
+            }
+            error={
+              query.isError ||
+              sharedSubjects.isError ||
+              curricula.isError ||
+              grades.isError
+            }
+            retry={() => {
+              void query.refetch();
+              if (sharedGrade) void sharedSubjects.refetch();
+            }}
           />
           {!curriculum ? (
             <p className="p-8 text-center text-muted-foreground">
@@ -1118,20 +1155,26 @@ function Subjects() {
             <p className="p-8 text-center text-muted-foreground">
               اختر الصف لعرض المواد.
             </p>
-          ) : !query.isLoading && !query.isError && !query.data?.data.length ? (
+          ) : !query.isLoading &&
+            !sharedSubjects.isLoading &&
+            !query.isError &&
+            !sharedSubjects.isError &&
+            !displayedSubjects.length ? (
             <p className="p-8 text-center text-muted-foreground">
               لا توجد مواد مرتبطة بهذا الصف.
             </p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {(query.data?.data || []).map((item) => (
+              {displayedSubjects.map(({ item, shared }) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between rounded-xl border p-4"
                 >
                   <div>
                     <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">الصف المحدد</p>
+                    <p className="text-sm text-muted-foreground">
+                      {shared ? "في فصل مشترك" : "الصف المحدد"}
+                    </p>
                   </div>
                   <div className="flex gap-1">
                     <Button

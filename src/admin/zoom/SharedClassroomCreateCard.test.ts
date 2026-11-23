@@ -16,6 +16,7 @@ describe("shared classroom grade ordering", () => {
     expect(schoolStageForGrade("ثانية ثانوي علمي - عربي")).toBe("secondary");
     expect(schoolStageForGrade("KG2 - لغات")).toBe("kindergarten");
     expect(schoolStageForGrade("حضانة تمهيدي")).toBe("kindergarten");
+    expect(schoolStageForGrade("فصل التأسيس")).toBe("kindergarten");
     expect(schoolStageForGrade("صف تجريبي مختلف")).toBe("other");
   });
 

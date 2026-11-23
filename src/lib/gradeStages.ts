@@ -9,7 +9,7 @@ export const normalizeGradeName = (value: string) => value
 
 export const websiteStageForGrade = (value: string): WebsiteGradeStage => {
   const name = normalizeGradeName(value);
-  if (/(?:رياض\s*(?:ال)?اطفال|روضه|روضة|حضان|تمهيد|pre[\s-]?k|kindergarten|\bkg\s*[0-9]*\b)/iu.test(name)) return "kindergarten";
+  if (/(?:رياض\s*(?:ال)?اطفال|روضه|روضة|حضان|تمهيد|(?:ال)?تاسيس|pre[\s-]?k|kindergarten|\bkg\s*[0-9]*\b)/iu.test(name)) return "kindergarten";
   if (/ابتدا/u.test(name)) return "primary";
   if (/(?:اعداد|متوسط)/u.test(name)) return "preparatory";
   if (/ثانو/u.test(name)) return "secondary";

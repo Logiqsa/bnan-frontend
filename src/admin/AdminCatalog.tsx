@@ -996,8 +996,7 @@ function Subjects() {
             disabled={
               !curriculum ||
                 !stage ||
-              grades.isLoading ||
-              (languageRequired && !studyLanguage)
+              grades.isLoading
             }
             onChange={(event) => {
               setGrade(event.target.value);
@@ -1095,13 +1094,11 @@ function Subjects() {
       <Card>
         <SectionHeader
           title="المواد"
-          count={query.data?.data.length}
+          count={grade ? query.data?.data.length : 0}
           onRefresh={() => void query.refetch()}
           onAdd={() => begin("new")}
           addLabel="إضافة مادة"
-          addDisabled={
-            !curriculum || !grade || (languageRequired && !studyLanguage)
-          }
+          addDisabled={!curriculum || !grade}
         />
         <CardContent>
           <LoadingOrError
@@ -1116,10 +1113,6 @@ function Subjects() {
           ) : !stage ? (
             <p className="p-8 text-center text-muted-foreground">
               اختر المرحلة لعرض الصفوف.
-            </p>
-          ) : languageRequired && !studyLanguage ? (
-            <p className="p-8 text-center text-muted-foreground">
-              اختر لغة الدراسة لعرض الصفوف.
             </p>
           ) : !grade ? (
             <p className="p-8 text-center text-muted-foreground">

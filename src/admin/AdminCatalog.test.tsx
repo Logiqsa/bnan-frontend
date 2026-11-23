@@ -101,9 +101,11 @@ describe("AdminCatalog", () => {
     await waitFor(() => expect(selects[1]).not.toBeDisabled());
     fireEvent.change(selects[1], { target: { value: "other" } });
     expect(screen.getByText("اختر الصف لعرض المواد.")).toBeInTheDocument();
+    expect(screen.getByText("(0)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /إضافة مادة/ })).toBeDisabled();
     fireEvent.change(selects[2], { target: { value: "g1" } });
     expect(await screen.findByText("رياضيات")).toBeInTheDocument();
+    expect(screen.getByText("(1)")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /إضافة مادة/ }),
     ).not.toBeDisabled();
@@ -156,14 +158,18 @@ describe("AdminCatalog", () => {
     fireEvent.change(selects[0], { target: { value: "c1" } });
     await waitFor(() => expect(selects[1]).not.toBeDisabled());
     fireEvent.change(selects[1], { target: { value: "other" } });
+    const gradeSelect = (await screen.findAllByRole("combobox"))[3];
+    expect(gradeSelect).not.toBeDisabled();
     expect(
-      await screen.findByText("اختر لغة الدراسة لعرض الصفوف."),
+      within(gradeSelect).getByRole("option", { name: "الصف الأول عربي" }),
+    ).toBeInTheDocument();
+    expect(
+      within(gradeSelect).getByRole("option", { name: "الصف الأول لغات" }),
     ).toBeInTheDocument();
     const languageSelect = (await screen.findAllByRole("combobox"))[2];
     expect(screen.getByRole("option", { name: "عربي" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "لغات" })).toBeInTheDocument();
     fireEvent.change(languageSelect, { target: { value: "arabic" } });
-    const gradeSelect = (await screen.findAllByRole("combobox"))[3];
     expect(
       within(gradeSelect).getByRole("option", { name: "الصف الأول عربي" }),
     ).toBeInTheDocument();

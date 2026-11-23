@@ -665,7 +665,7 @@ function Grades() {
                   setEditing(null);
                 }}
               >
-                <option value="">اختر لغة الدراسة</option>
+                <option value="">الكل</option>
                 {languageOptions.map((option) => (
                   <option key={option} value={option}>
                     {option === "languages" ? "لغات" : "عربي"}
@@ -1000,7 +1000,7 @@ function Subjects() {
                   setEditing(null);
                 }}
               >
-                <option value="">اختر لغة الدراسة</option>
+                <option value="">الكل</option>
                 {languageOptions.map((option) => (
                   <option key={option} value={option}>
                     {option === "languages" ? "لغات" : "عربي"}

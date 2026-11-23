@@ -22,7 +22,7 @@ import NotFound from "@/pages/NotFound";
 import { PortalAuthProvider } from "@/portal/PortalAuthContext";
 import PortalLogin from "@/portal/PortalLogin";
 import ForgotPassword from "@/portal/ForgotPassword";
-import ParentAppNotice from "@/portal/ParentAppNotice";
+import ParentSchedule from "@/portal/ParentSchedule";
 import TeacherSignup from "@/portal/TeacherSignup";
 import TeacherDashboard from "@/portal/TeacherDashboard";
 import TeacherRequests from "@/portal/TeacherRequests";
@@ -203,7 +203,8 @@ export default function App() {
                     />
                     <Route path="/portal/login" element={<PortalLogin />} />
                     <Route path="/portal/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/portal/parent-app" element={<ParentAppNotice />} />
+                    <Route path="/portal/parent-app" element={<Navigate to="/portal/parent/schedule" replace />} />
+                    <Route path="/portal/parent/schedule" element={<PortalGuard role="parent"><ParentSchedule /></PortalGuard>} />
                     <Route
                       path="/portal/teacher/signup"
                       element={<TeacherSignup />}

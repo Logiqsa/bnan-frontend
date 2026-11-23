@@ -95,10 +95,8 @@ export default function ForgotPassword() {
     if (password !== confirmation) { setPasswordError("كلمتا المرور غير متطابقتين."); return; }
     setBusy(true);
     try {
-      const response = await authApi.resetPassword(email, password);
-      const role = String(response.data.role);
-      if (role === "parent") navigate("/portal/parent-app?passwordReset=1", { replace: true });
-      else navigate(`/portal/login?reset=1&email=${encodeURIComponent(email)}`, { replace: true });
+      await authApi.resetPassword(email, password);
+      navigate(`/portal/login?reset=1&email=${encodeURIComponent(email)}`, { replace: true });
     } catch (value) {
       const apiError = value as ApiError;
       if (apiError.code === "RESET_CODE_NOT_VERIFIED") { setStep("otp"); setOtp(""); }

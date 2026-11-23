@@ -57,8 +57,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("bnan:session-expired", onSessionExpired);
   }, [queryClient]);
   const saveAuthenticatedUser = async (response: Awaited<ReturnType<typeof authApi.login>>, remember: boolean) => {
-    if (String(response.data.role) === "parent") throw Object.assign(new Error("حساب وليّ الأمر متاح عبر تطبيق Bnan."), { code: "PARENT_APP_ONLY" });
-    if (!["teacher", "student", "supervisor", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
+    if (!["teacher", "student", "parent", "supervisor", "admin"].includes(response.data.role)) throw Object.assign(new Error("هذا النوع من الحسابات غير مدعوم."), { code: "WRONG_ROLE" });
     const rawUser = response.data as PortalUser & { _id?: string };
     const authenticatedUser = { ...rawUser, id: rawUser.id || rawUser._id || "" };
     setLoading(true);

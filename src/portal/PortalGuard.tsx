@@ -13,6 +13,8 @@ export default function PortalGuard({ role, children }: { role: PortalRole; chil
         ? "/portal/teacher"
         : user.role === "student"
           ? "/portal/student"
+          : user.role === "parent"
+            ? "/portal/parent/schedule"
           : `/portal/${user.role}/schedule`;
     return <Navigate to={destination} replace />;
   }

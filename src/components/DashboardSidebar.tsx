@@ -413,6 +413,14 @@ export const roleNavItems: Record<string, NavItem[]> = {
       path: "/portal/student/settings",
     },
   ],
+  parent: [
+    {
+      label: "جداول الأبناء",
+      labelEn: "Children schedules",
+      icon: Calendar,
+      path: "/portal/parent/schedule",
+    },
+  ],
   supervisor: [
     {
       label: "الفصول",
@@ -489,6 +497,7 @@ const roleLabels: Record<string, string> = {
   admin: "مدير النظام",
   teacher: "معلم",
   student: "طالب",
+  parent: "ولي أمر",
   supervisor: "مشرف",
 };
 
@@ -510,6 +519,7 @@ const importantNotificationKeys: Record<string, Set<string>> = {
     "SUBSCRIPTION_HOURS_LOW", "STUDENT_ABSENT", "STUDENT_LATE", "STUDENT_ATTENDANCE_UPDATED",
     "CLASSROOM_CHANGE_REQUEST_DECIDED", "STUDENT_ACCEPTED_IN_CLASSROOM", "PLATFORM_IMPORTANT_ANNOUNCEMENT",
   ]),
+  parent: new Set([]),
   supervisor: new Set([
     "NEW_MESSAGE", "WEEKLY_EVALUATION_SUPERVISOR_REMINDER", "SUPERVISOR_CLASSROOM_ASSIGNED",
     "SUPERVISOR_CLASSROOM_UNASSIGNED", "CLASSROOM_SCHEDULE_CREATED", "CLASSROOM_SCHEDULE_CHANGED",
@@ -609,6 +619,8 @@ const roleNavGroup = (role: string, path: string) => {
     return { ar: "التعليم", en: "Learning" };
   }
 
+  if (role === "parent") return { ar: "الأبناء", en: "Children" };
+
   return { ar: "القائمة", en: "Navigation" };
 };
 
@@ -671,6 +683,8 @@ const SidebarContent = ({
         ? "/portal/teacher"
       : accountRole === "student"
         ? "/portal/student"
+        : accountRole === "parent"
+          ? "/portal/parent/schedule"
         : accountRole === "supervisor"
           ? "/portal/supervisor/classrooms"
         : `/portal/${accountRole}/schedule`;
@@ -691,6 +705,7 @@ const SidebarContent = ({
       "/portal/student/subscriptions", "/portal/student/notifications", "/portal/student/messages",
       "/portal/student/subject-requests", "/portal/student/change-requests",
     ]),
+    parent: new Set(["/portal/parent/schedule"]),
     supervisor: new Set([
       "/portal/supervisor/classrooms", "/portal/supervisor/schedule", "/portal/supervisor/messages",
     ]),

@@ -39,7 +39,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <DashboardSidebar />
       <main data-scroll-container className="dashboard-scrollbar min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 pt-16 md:p-6 md:pt-6" dir="ltr">
         <div dir={isArabic ? "rtl" : "ltr"}>
-          {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student" || user?.role === "supervisor") && (
+          {(user?.role === "admin" || user?.role === "teacher" || user?.role === "student" || user?.role === "parent" || user?.role === "supervisor") && (
             <div className="mb-3 flex justify-start gap-2" dir="ltr">
               <NotificationsBell role={user.role} />
               <Select value={timeZone} disabled={changingTimeZone} onValueChange={(next) => void changeTimeZone(next as SupportedTimeZone)}>
@@ -62,7 +62,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       </main>
     </div>
   );
-  return user && ["admin", "teacher", "student", "supervisor"].includes(user.role)
+  return user && ["admin", "teacher", "student", "parent", "supervisor"].includes(user.role)
     ? <NotificationsEnabledContent>{content}</NotificationsEnabledContent>
     : content;
 };

@@ -68,6 +68,8 @@ export default function PortalLogin() {
         ? "/portal/teacher"
         : role === "student"
           ? "/portal/student"
+          : role === "parent"
+            ? "/portal/parent/schedule"
           : `/portal/${role}/schedule`;
   if (user && !addingAccount)
     return <Navigate to={returnTo || homeFor(user.role)} replace />;
@@ -81,9 +83,7 @@ export default function PortalLogin() {
       navigate(returnTo || homeFor(account.role), { replace: true });
     } catch (value) {
       const apiError = value as ApiError;
-      if (apiError.code === "PARENT_APP_ONLY") {
-        navigate("/portal/parent-app", { replace: true });
-      } else if (apiError.code === "ACCOUNT_NOT_VERIFIED") {
+      if (apiError.code === "ACCOUNT_NOT_VERIFIED") {
         setVerificationEmail(email.trim());
       } else
         setError(

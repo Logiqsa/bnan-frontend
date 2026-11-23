@@ -97,9 +97,11 @@ const toPortalLesson = (
 export async function getUnifiedScheduleWeek(
   weekStart: string,
   registrationMode?: RegistrationMode,
+  studentId?: string,
 ): Promise<PortalScheduleWeek> {
   const query = new URLSearchParams({ weekStart });
   if (registrationMode) query.set("registrationMode", registrationMode);
+  if (studentId) query.set("studentId", studentId);
   const result = await apiRequest<UnifiedScheduleResponse>(`/schedules/mySchedule?${query.toString()}`);
   const lessons = (result.data.days || []).flatMap((day) =>
     (day.lessons || []).map((lesson) => toPortalLesson(lesson, day)),

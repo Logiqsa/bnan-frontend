@@ -14,6 +14,7 @@ const backRoutes: Record<PortalRole, string> = {
   admin: "/admin/notifications/history",
   teacher: "/portal/teacher/notifications",
   student: "/portal/student/notifications",
+  parent: "/portal/parent/schedule",
   supervisor: "/portal/supervisor/classrooms",
 };
 

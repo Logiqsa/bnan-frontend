@@ -13,6 +13,7 @@ import StudentSessionSheet from "@/components/student/StudentSessionSheet";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { formatScheduleTime } from "@/admin/zoom/classroomManagement";
+import type { ParentChild } from "@/api/parentApi";
 
 const DAYS = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const DAY_NAMES: Record<string, [string, string]> = {
@@ -32,7 +33,25 @@ const joinError = (error: unknown, pick: (ar: string, en: string) => string) => 
   return apiError.message || pick("تعذر الدخول إلى الحصة.", "Unable to join the lesson.");
 };
 
-export default function StudentSchedule() {
+interface StudentScheduleProps {
+  parentView?: boolean;
+  children?: ParentChild[];
+  childrenLoading?: boolean;
+  childrenError?: boolean;
+  selectedChildId?: string;
+  onSelectChild?: (studentId: string) => void;
+  onRetryChildren?: () => void;
+}
+
+export default function StudentSchedule({
+  parentView = false,
+  children = [],
+  childrenLoading = false,
+  childrenError = false,
+  selectedChildId = "",
+  onSelectChild,
+  onRetryChildren,
+}: StudentScheduleProps = {}) {
   const { isArabic, pick } = useLanguage();
   const locale = isArabic ? "ar-EG-u-ca-gregory" : "en-US-u-ca-gregory";
   const currentSaturday = useMemo(() => saturdayOf(new Date()), []);
@@ -41,8 +60,11 @@ export default function StudentSchedule() {
   const [joiningClassroom, setJoiningClassroom] = useState("");
   const [selectedLesson, setSelectedLesson] = useState<PortalLesson | null>(null);
   const scheduleQuery = useQuery({
-    queryKey: ["student-schedule", "unified", requestedWeek],
-    queryFn: () => getUnifiedScheduleWeek(requestedWeek),
+    queryKey: [parentView ? "parent-child-schedule" : "student-schedule", "unified", selectedChildId, requestedWeek],
+    queryFn: () => parentView
+      ? getUnifiedScheduleWeek(requestedWeek, undefined, selectedChildId)
+      : getUnifiedScheduleWeek(requestedWeek),
+    enabled: !parentView || Boolean(selectedChildId),
     placeholderData: (previous) => previous,
   });
   const joinMutation = useMutation({
@@ -69,9 +91,13 @@ export default function StudentSchedule() {
 
   return <DashboardLayout><main className="mx-auto max-w-6xl space-y-5" dir={isArabic ? "rtl" : "ltr"}>
     <header className="flex flex-wrap items-start justify-between gap-4">
-      <div><h1 className="text-2xl font-bold sm:text-3xl">{pick("جدول الحصص", "Lesson schedule")}</h1><p className="mt-1 text-sm text-muted-foreground">{pick("مواعيد حصصك الأسبوعية وحالة الجلسة المباشرة.", "Your weekly lessons and live-session status.")}</p></div>
-      <Button variant="outline" onClick={() => void scheduleQuery.refetch()} disabled={scheduleQuery.isFetching}><RefreshCw className={`me-2 h-4 w-4 ${scheduleQuery.isFetching ? "animate-spin" : ""}`} />{pick("تحديث", "Refresh")}</Button>
+      <div><h1 className="text-2xl font-bold sm:text-3xl">{parentView ? pick("جداول الأبناء", "Children schedules") : pick("جدول الحصص", "Lesson schedule")}</h1><p className="mt-1 text-sm text-muted-foreground">{parentView ? pick("اختر الابن لعرض جدول حصصه الأسبوعي.", "Select a child to view their weekly lesson schedule.") : pick("مواعيد حصصك الأسبوعية وحالة الجلسة المباشرة.", "Your weekly lessons and live-session status.")}</p></div>
+      <Button variant="outline" onClick={() => void scheduleQuery.refetch()} disabled={scheduleQuery.isFetching || (parentView && !selectedChildId)}><RefreshCw className={`me-2 h-4 w-4 ${scheduleQuery.isFetching ? "animate-spin" : ""}`} />{pick("تحديث", "Refresh")}</Button>
     </header>
+    {parentView && <Card><CardContent className="p-4 sm:p-5">
+      {childrenLoading ? <Skeleton className="h-11 w-full" /> : childrenError ? <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-destructive">{pick("تعذر تحميل قائمة الأبناء.", "Unable to load children.")}</p><Button size="sm" variant="outline" onClick={onRetryChildren}>{pick("إعادة المحاولة", "Retry")}</Button></div> : children.length === 0 ? <p className="text-center text-sm text-muted-foreground">{pick("لا يوجد أبناء مرتبطون بهذا الحساب.", "No children are linked to this account.")}</p> : <label className="block text-sm font-semibold">{pick("الابن", "Child")}<select aria-label={pick("اختر الابن", "Select child")} className="mt-2 h-11 w-full rounded-md border bg-background px-3 font-normal" value={selectedChildId} onChange={(event) => onSelectChild?.(event.target.value)}>{children.map((child) => <option key={child.id} value={child.id}>{child.fullName}{child.grade?.name ? ` — ${child.grade.name}` : ""}</option>)}</select></label>}
+    </CardContent></Card>}
+    {parentView && !selectedChildId ? null : <>
     <Card><CardContent className="p-4 sm:p-5"><div className="flex flex-wrap items-center justify-between gap-3">
       <Button variant="outline" size="sm" onClick={() => setRequestedWeek((value) => moveWeek(value, -1))}><ChevronRight className="me-1 h-4 w-4" />{pick("الأسبوع السابق", "Previous week")}</Button>
       <div className="min-w-0 text-center"><div className="flex flex-wrap items-center justify-center gap-2"><p className="font-semibold">{week ? `${displayDate(week.weekStart, locale)} — ${displayDate(week.weekEnd, locale)}` : pick("جاري تحميل الأسبوع...", "Loading week...")}</p>{isCurrentWeek && <Badge>{pick("هذا الأسبوع", "Current week")}</Badge>}</div>{week?.timezone && <p className="mt-1 text-xs text-muted-foreground" dir="ltr">{week.timezone}</p>}</div>
@@ -80,16 +106,17 @@ export default function StudentSchedule() {
     {scheduleQuery.isLoading && !week ? <div className="grid gap-4 md:grid-cols-2">{[1,2,3,4].map((item) => <Skeleton key={item} className="h-44 w-full" />)}</div>
       : scheduleQuery.error ? <Card><CardContent className="grid min-h-52 place-items-center gap-3 p-6 text-center"><p className="text-destructive">{(scheduleQuery.error as Error).message || pick("تعذر تحميل الجدول.", "Unable to load the schedule.")}</p><Button onClick={() => void scheduleQuery.refetch()}>{pick("إعادة المحاولة", "Retry")}</Button></CardContent></Card>
       : <section className={`grid gap-4 ${scheduleQuery.isFetching ? "opacity-70" : ""} md:grid-cols-2 xl:grid-cols-3`} aria-busy={scheduleQuery.isFetching}>
-        {DAYS.map((day) => { const lessons = grouped.get(day) || []; return <Card key={day} className="min-w-0"><CardHeader className="pb-3"><CardTitle className="flex items-center justify-between gap-2 text-lg"><span className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" />{pick(...DAY_NAMES[day])}</span><Badge variant="secondary">{lessons.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-3">{lessons.length === 0 ? <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">{pick("لا توجد حصص", "No lessons")}</p> : lessons.map((lesson) => <article key={lesson.key} role="button" tabIndex={0} aria-label={`${pick("فتح تفاصيل", "Open details")} ${lesson.subject.name}`} onClick={() => { setJoinMessage(""); setSelectedLesson(lesson); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setJoinMessage(""); setSelectedLesson(lesson); } }} className="min-w-0 cursor-pointer rounded-xl border bg-muted/20 p-4 transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-semibold">{lesson.subject.name}</h2><p className="mt-1 break-words text-sm text-muted-foreground">{lesson.classroom.name}</p></div><span className="shrink-0 text-sm font-semibold text-primary" dir="ltr">{formatScheduleTime(lesson.startTime, isArabic)}{lesson.endTime ? ` – ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}</span></div>{lesson.date && <p className="mt-2 text-xs text-muted-foreground">{displayDate(lesson.date, locale)}</p>}{lesson.teacher && <p className="mt-2 break-words text-sm">{pick("المعلم:", "Teacher:")} {lesson.teacher.name || lesson.teacher.fullName || pick("غير متاح", "Unavailable")}</p>}<div className="mt-3 flex flex-wrap items-center justify-between gap-2">{lesson.activeSession?.status && <Badge variant={lesson.activeSession.canJoin ? "default" : "outline"}>{lesson.activeSession.status}</Badge>}{lesson.activeSession?.canJoin === true && <Button size="sm" disabled={joinMutation.isPending} onClick={(event) => { event.stopPropagation(); setJoinMessage(""); setJoiningClassroom(lesson.classroom.id); joinMutation.mutate({ classroomId: lesson.classroom.id, weeklySlotKey: lesson.activeSession?.weeklySlotKey }); }}><ExternalLink className="me-1 h-4 w-4" />{joinMutation.isPending && joiningClassroom === lesson.classroom.id ? pick("جاري الدخول...", "Joining...") : pick("دخول الحصة", "Join lesson")}</Button>}</div></article>)}</CardContent></Card>; })}
+        {DAYS.map((day) => { const lessons = grouped.get(day) || []; return <Card key={day} className="min-w-0"><CardHeader className="pb-3"><CardTitle className="flex items-center justify-between gap-2 text-lg"><span className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" />{pick(...DAY_NAMES[day])}</span><Badge variant="secondary">{lessons.length}</Badge></CardTitle></CardHeader><CardContent className="space-y-3">{lessons.length === 0 ? <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">{pick("لا توجد حصص", "No lessons")}</p> : lessons.map((lesson) => <article key={lesson.key} role={parentView ? undefined : "button"} tabIndex={parentView ? undefined : 0} aria-label={`${parentView ? pick("تفاصيل", "Details") : pick("فتح تفاصيل", "Open details")} ${lesson.subject.name}`} onClick={() => { if (!parentView) { setJoinMessage(""); setSelectedLesson(lesson); } }} onKeyDown={(event) => { if (!parentView && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setJoinMessage(""); setSelectedLesson(lesson); } }} className={`min-w-0 rounded-xl border bg-muted/20 p-4 ${parentView ? "" : "cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-semibold">{lesson.subject.name}</h2><p className="mt-1 break-words text-sm text-muted-foreground">{lesson.classroom.name}</p></div><span className="shrink-0 text-sm font-semibold text-primary" dir="ltr">{formatScheduleTime(lesson.startTime, isArabic)}{lesson.endTime ? ` – ${formatScheduleTime(lesson.endTime, isArabic)}` : ""}</span></div>{lesson.date && <p className="mt-2 text-xs text-muted-foreground">{displayDate(lesson.date, locale)}</p>}{lesson.teacher && <p className="mt-2 break-words text-sm">{pick("المعلم:", "Teacher:")} {lesson.teacher.name || lesson.teacher.fullName || pick("غير متاح", "Unavailable")}</p>}<div className="mt-3 flex flex-wrap items-center justify-between gap-2">{lesson.activeSession?.status && <Badge variant={lesson.activeSession.canJoin && !parentView ? "default" : "outline"}>{lesson.activeSession.status}</Badge>}{!parentView && lesson.activeSession?.canJoin === true && <Button size="sm" disabled={joinMutation.isPending} onClick={(event) => { event.stopPropagation(); setJoinMessage(""); setJoiningClassroom(lesson.classroom.id); joinMutation.mutate({ classroomId: lesson.classroom.id, weeklySlotKey: lesson.activeSession?.weeklySlotKey }); }}><ExternalLink className="me-1 h-4 w-4" />{joinMutation.isPending && joiningClassroom === lesson.classroom.id ? pick("جاري الدخول...", "Joining...") : pick("دخول الحصة", "Join lesson")}</Button>}</div></article>)}</CardContent></Card>; })}
       </section>}
     {joinMessage && <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{joinMessage}</p>}
-    <StudentSessionSheet
+    {!parentView && <StudentSessionSheet
       lesson={selectedLesson}
       open={Boolean(selectedLesson)}
       onOpenChange={(open) => { if (!open) { setSelectedLesson(null); setJoinMessage(""); } }}
       onJoin={(lesson) => { setJoinMessage(""); setJoiningClassroom(lesson.classroom.id); joinMutation.mutate({ classroomId: lesson.classroom.id, weeklySlotKey: lesson.activeSession?.weeklySlotKey }); }}
       joining={joinMutation.isPending && joiningClassroom === selectedLesson?.classroom.id}
       joinError={joinMessage}
-    />
+    />}
+    </>}
   </main></DashboardLayout>;
 }

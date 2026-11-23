@@ -76,11 +76,17 @@ export const egyptianRegistrationRequestsApi = {
       body,
     });
   },
-  approve: (studentId: string) =>
+  eligibleClassrooms: (studentId: string) =>
+    apiRequest<{
+      success: true;
+      data: Array<{ id: string; name: string; classroomKind: "general" | "private" | "shared" }>;
+    }>(`/admin/egyptian-registration-requests/${studentId}/classrooms`),
+  approve: (studentId: string, classroomId?: string) =>
     apiRequest<{
       success: true;
       data: { student: EgyptianRegistrationRequest };
     }>(`/admin/egyptian-registration-requests/${studentId}/approve`, {
       method: "PATCH",
+      body: JSON.stringify(classroomId ? { classroomId } : {}),
     }),
 };

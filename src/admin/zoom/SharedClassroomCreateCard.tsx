@@ -75,7 +75,6 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   const [firstId, setFirstId] = useState("");
   const [secondId, setSecondId] = useState("");
   const [stage, setStage] = useState<SchoolStage | "">("");
-  const [gradePickerOpen, setGradePickerOpen] = useState(false);
   const [subjectPickerOpen, setSubjectPickerOpen] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
@@ -107,45 +106,33 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
   const targets = useMemo(() => curricula.filter((curriculum) => curriculum.registrationMode === "egyptian").flatMap((curriculum) => (grades[curriculum.id] || [])
     .filter((grade) => !usedGradeIds.has(grade.id))
     .map((grade) => ({ curriculum: curriculum.id, curriculumName: curriculum.name, grade: grade.id, gradeName: grade.name }))), [curricula, grades, usedGradeIds]);
-  const pairs = useMemo(() => {
-    const grouped = new Map<string, { id: string; name: string; curriculumName: string; targets: SharedTarget[] }>();
-    targets.forEach((target) => {
-      const name = sharedGradeBaseName(target.gradeName);
-      const id = `${target.curriculum}:${name}`;
-      const group = grouped.get(id) || { id, name, curriculumName: target.curriculumName, targets: [] };
-      group.targets.push(target);
-      grouped.set(id, group);
-    });
-    return [...grouped.values()].filter((group) => group.targets.length === 2).sort((left, right) => {
-      const leftStage = schoolStageForGrade(left.name);
-      const rightStage = schoolStageForGrade(right.name);
-      const stageDifference = stageOptions.findIndex((item) => item.id === leftStage) - stageOptions.findIndex((item) => item.id === rightStage);
-      return stageDifference || schoolGradeOrder(left.name) - schoolGradeOrder(right.name) || left.name.localeCompare(right.name, "ar");
-    });
-  }, [targets]);
-  const visiblePairs = useMemo(() => pairs.filter((pair) => !stage || schoolStageForGrade(pair.name) === stage), [pairs, stage]);
+  const visibleTargets = useMemo(() => targets
+    .filter((target) => !stage || schoolStageForGrade(target.gradeName) === stage)
+    .sort((left, right) => schoolGradeOrder(left.gradeName) - schoolGradeOrder(right.gradeName) || left.gradeName.localeCompare(right.gradeName, "ar")), [targets, stage]);
   const first = targets.find((item) => item.grade === firstId);
   const second = targets.find((item) => item.grade === secondId);
-  const selectedPair = pairs.find((pair) => pair.targets.some((item) => item.grade === firstId));
   const availableSupervisors = useMemo(() => first ? supervisors.filter((item) => !item.curriculumIds?.length || item.curriculumIds.includes(first.curriculum)) : supervisors, [first, supervisors]);
   const simpleSupervisors = useMemo(() => curriculumId ? supervisors.filter((item) => !item.curriculumIds?.length || item.curriculumIds.includes(curriculumId)) : supervisors, [curriculumId, supervisors]);
 
-  const choosePair = async (pair: (typeof pairs)[number]) => {
-    const ordered = [...pair.targets].sort((left, right) => left.gradeName.localeCompare(right.gradeName, "ar"));
-    setFirstId(ordered[0].grade); setSecondId(ordered[1].grade); setSupervisorId(""); setError("");
-    setName(`${pair.name} - مشترك`); setGradePickerOpen(false);
+  useEffect(() => {
+    if (!first || !second || first.grade === second.grade) {
+      setSubjectOptions([]); setSelectedSubjectIds([]);
+      return;
+    }
+    let active = true;
+    setName((current) => current || `${sharedGradeBaseName(first.gradeName)} - مشترك`);
     setSelectedSubjectIds([]); setSubjectOptions([]); setSubjectsLoading(true);
-    try {
-      const responses = await Promise.all(pair.targets.map((target) => catalogApi.subjects(target.grade)));
+    Promise.all([catalogApi.subjects(first.grade), catalogApi.subjects(second.grade)]).then((responses) => {
       const byName = new Map<string, { id: string; name: string }>();
       responses.flatMap((response) => response.data).forEach((subject) => {
         const key = subject.name.trim().toLocaleLowerCase("ar");
         if (!byName.has(key)) byName.set(key, { id: subject.id, name: subject.name });
       });
-      setSubjectOptions([...byName.values()].sort((left, right) => left.name.localeCompare(right.name, "ar")));
-    } catch { setError("تعذر تحميل مواد الصفين."); }
-    finally { setSubjectsLoading(false); }
-  };
+      if (active) setSubjectOptions([...byName.values()].sort((left, right) => left.name.localeCompare(right.name, "ar")));
+    }).catch(() => { if (active) setError("تعذر تحميل مواد الصفين."); })
+      .finally(() => { if (active) setSubjectsLoading(false); });
+    return () => { active = false; };
+  }, [firstId, secondId]);
   const reset = () => { setOpen(false); setClassroomKind("general"); setName(""); setCurriculumId(""); setGradeId(""); setFirstId(""); setSecondId(""); setStage(""); setSupervisorId(""); setSelectedSubjectIds([]); setSubjectOptions([]); setError(""); };
   const submit = async () => {
     if (!name.trim() || !supervisorId) return setError("اكتب اسم الفصل وحدد المشرف.");
@@ -170,7 +157,7 @@ export default function SharedClassroomCreateCard({ onCreated }: { onCreated: ()
       {loading ? <div className="grid min-h-40 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary"/></div> : <>
         <div><p className="mb-2 text-sm font-semibold">نوع الفصل</p><div className="grid grid-cols-3 gap-2 rounded-xl bg-muted p-1">{([{"id":"general","name":"عام"},{"id":"private","name":"خاص"},{"id":"shared","name":"مشترك"}] as const).map((item) => <button key={item.id} type="button" onClick={() => { setClassroomKind(item.id); setSupervisorId(""); setError(""); }} className={`h-10 rounded-lg text-sm font-semibold transition ${classroomKind === item.id ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{item.name}</button>)}</div></div>
         {classroomKind !== "shared" && <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2 sm:p-5"><label className="text-sm font-semibold">المنهج<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={curriculumId} onChange={(event) => { setCurriculumId(event.target.value); setGradeId(""); setSupervisorId(""); }}><option value="">اختر المنهج</option>{curricula.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-sm font-semibold">الصف<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={gradeId} onChange={(event) => setGradeId(event.target.value)} disabled={!curriculumId}><option value="">اختر الصف</option>{(grades[curriculumId] || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>}
-        {classroomKind === "shared" && <><div className="rounded-xl border bg-muted/20 p-4 sm:p-5"><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-semibold">اختر المرحلة<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={stage} onChange={(event) => { setStage(event.target.value as SchoolStage); setGradePickerOpen(false); }}><option value="">كل المراحل</option>{stageOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div><label className="mb-2 block text-sm font-semibold">اختر الصف</label><Popover open={gradePickerOpen} onOpenChange={setGradePickerOpen}><PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" aria-expanded={gradePickerOpen} className="h-11 w-full justify-between gap-3 bg-background px-4 font-normal"><span className="truncate">{selectedPair ? `${selectedPair.name} · ${selectedPair.curriculumName}` : "ابحث واختر الصف"}</span><ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50"/></Button></PopoverTrigger><PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl"><Command><CommandInput placeholder="ابحث باسم الصف..."/><CommandList><CommandEmpty>لا يوجد صف متاح مطابق.</CommandEmpty><CommandGroup>{visiblePairs.map((pair) => <CommandItem key={pair.id} value={`${pair.name} ${pair.curriculumName}`} onSelect={() => choosePair(pair)}><Check className={cn("ml-2 h-4 w-4", selectedPair?.id === pair.id ? "opacity-100" : "opacity-0")}/>{pair.name} · {pair.curriculumName}</CommandItem>)}</CommandGroup></CommandList></Command></PopoverContent></Popover></div></div><p className="mt-3 text-xs text-muted-foreground">تظهر فقط الصفوف المصرية المتناظرة وغير المرتبطة بفصل مشترك سابق.</p></div>{selectedPair && <div className="grid gap-3 sm:grid-cols-2">{selectedPair.targets.map((target, index) => <div key={target.grade} className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4"><Badge variant="outline">الصف {index + 1}</Badge><p className="mt-3 font-bold">{target.gradeName}</p><p className="mt-1 text-xs">{target.curriculumName}</p></div>)}</div>}{selectedPair && <div className="rounded-xl border p-4"><p className="mb-3 flex items-center gap-2 font-semibold"><BookOpen className="h-4 w-4 text-primary"/>مواد الفصل</p><Popover open={subjectPickerOpen} onOpenChange={setSubjectPickerOpen}><PopoverTrigger asChild><Button type="button" variant="outline" className="w-full justify-between" disabled={subjectsLoading}>{subjectsLoading ? "جاري تحميل المواد" : `${selectedSubjectIds.length} مواد مختارة`}<ChevronsUpDown className="h-4 w-4"/></Button></PopoverTrigger><PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl"><Command><CommandInput placeholder="ابحث باسم المادة..."/><CommandList><CommandEmpty>لا توجد مادة مطابقة.</CommandEmpty><CommandGroup>{subjectOptions.map((subject) => { const checked = selectedSubjectIds.includes(subject.id); return <CommandItem key={subject.id} value={subject.name} onSelect={() => setSelectedSubjectIds((current) => checked ? current.filter((id) => id !== subject.id) : [...current, subject.id])}><Check className={cn("ml-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")}/>{subject.name}</CommandItem>; })}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>}</>}
+        {classroomKind === "shared" && <><div className="space-y-4 rounded-xl border bg-muted/20 p-4 sm:p-5"><label className="block text-sm font-semibold">المرحلة<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={stage} onChange={(event) => { setStage(event.target.value as SchoolStage); setFirstId(""); setSecondId(""); setSupervisorId(""); }}><option value="">كل المراحل</option>{stageOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-semibold">الفصل الأول<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={firstId} onChange={(event) => { setFirstId(event.target.value); if (event.target.value === secondId) setSecondId(""); setSupervisorId(""); setError(""); }}><option value="">اختر الفصل الأول</option>{visibleTargets.filter((target) => target.grade !== secondId).map((target) => <option key={`${target.curriculum}:${target.grade}`} value={target.grade}>{target.gradeName} · {target.curriculumName}</option>)}</select></label><label className="text-sm font-semibold">الفصل الثاني<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={secondId} onChange={(event) => { setSecondId(event.target.value); setError(""); }} disabled={!firstId}><option value="">اختر الفصل الثاني</option>{visibleTargets.filter((target) => target.grade !== firstId).map((target) => <option key={`${target.curriculum}:${target.grade}`} value={target.grade}>{target.gradeName} · {target.curriculumName}</option>)}</select></label></div><p className="text-xs text-muted-foreground">اختر فصلين مختلفين، وسيتم جمع موادهما ومزامنة طلابهما تلقائيًا.</p></div>{first && second && <div className="grid gap-3 sm:grid-cols-2">{[first, second].map((target, index) => <div key={target.grade} className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4"><Badge variant="outline">الفصل {index + 1}</Badge><p className="mt-3 font-bold">{target.gradeName}</p><p className="mt-1 text-xs">{target.curriculumName}</p></div>)}</div>}{first && second && <div className="rounded-xl border p-4"><p className="mb-3 flex items-center gap-2 font-semibold"><BookOpen className="h-4 w-4 text-primary"/>مواد الفصل</p><Popover open={subjectPickerOpen} onOpenChange={setSubjectPickerOpen}><PopoverTrigger asChild><Button type="button" variant="outline" className="w-full justify-between" disabled={subjectsLoading}>{subjectsLoading ? "جاري تحميل المواد" : `${selectedSubjectIds.length} مواد مختارة`}<ChevronsUpDown className="h-4 w-4"/></Button></PopoverTrigger><PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" dir="rtl"><Command><CommandInput placeholder="ابحث باسم المادة..."/><CommandList><CommandEmpty>لا توجد مادة مطابقة.</CommandEmpty><CommandGroup>{subjectOptions.map((subject) => { const checked = selectedSubjectIds.includes(subject.id); return <CommandItem key={subject.id} value={subject.name} onSelect={() => setSelectedSubjectIds((current) => checked ? current.filter((id) => id !== subject.id) : [...current, subject.id])}><Check className={cn("ml-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")}/>{subject.name}</CommandItem>; })}</CommandGroup></CommandList></Command></PopoverContent></Popover></div>}</>}
         <div className="grid gap-4 lg:grid-cols-2"><label className="text-sm font-semibold">اسم الفصل<Input className="mt-2 h-11" value={name} onChange={(event) => setName(event.target.value)} placeholder={classroomKind === "shared" ? "أولى ابتدائي - مشترك" : "اسم الفصل"}/></label><label className="text-sm font-semibold">المشرف<select className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal" value={supervisorId} onChange={(event) => setSupervisorId(event.target.value)} disabled={classroomKind === "shared" ? !first : !curriculumId}><option value="">اختر المشرف</option>{(classroomKind === "shared" ? availableSupervisors : simpleSupervisors).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
       </>}
       {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}

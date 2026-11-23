@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   BookOpen,
   Boxes,
@@ -19,6 +24,11 @@ import {
   egyptianGradeLanguage,
   type EgyptianGradeLanguage,
 } from "@/lib/egyptianGradeLanguage";
+import {
+  websiteGradeStages,
+  websiteStageForGrade,
+  type WebsiteGradeStage,
+} from "@/lib/gradeStages";
 import {
   catalogApi,
   type CurriculumInput,
@@ -497,6 +507,7 @@ function Grades() {
   const [studyLanguage, setStudyLanguage] = useState<
     EgyptianGradeLanguage | ""
   >(() => (searchParams.get("studyLanguage") as EgyptianGradeLanguage) || "");
+  const [stage, setStage] = useState<WebsiteGradeStage | "">("");
   const query = useQuery({
     queryKey: ["admin-catalog", "grades", curriculum],
     queryFn: () => catalogApi.grades(curriculum),
@@ -510,21 +521,31 @@ function Grades() {
     (item) => item.id === curriculum,
   );
   const egyptian = selectedCurriculum?.registrationMode === "egyptian";
-  const languageOptions = (query.data?.data || []).reduce<
-    EgyptianGradeLanguage[]
-  >((options, item) => {
+  const allGrades = query.data?.data || [];
+  const stageOptions = websiteGradeStages.filter((option) =>
+    allGrades.some((grade) => websiteStageForGrade(grade.name) === option.key),
+  );
+  const stageGrades = stage
+    ? allGrades.filter((grade) => websiteStageForGrade(grade.name) === stage)
+    : [];
+  const hasLanguageDimension =
+    egyptian && allGrades.some((grade) => egyptianGradeLanguage(grade.name));
+  const languageOptions = stageGrades.reduce<EgyptianGradeLanguage[]>(
+    (options, item) => {
     const language = egyptianGradeLanguage(item.name);
     return language && !options.includes(language)
       ? [...options, language]
       : options;
-  }, []);
-  const languageRequired = egyptian && languageOptions.length > 0;
+    },
+    [],
+  );
+  const languageRequired = Boolean(hasLanguageDimension);
   const visibleGrades =
     languageRequired && studyLanguage
-      ? (query.data?.data || []).filter(
+      ? stageGrades.filter(
           (item) => egyptianGradeLanguage(item.name) === studyLanguage,
         )
-      : query.data?.data || [];
+      : stageGrades;
   const save = useMutation({
     mutationFn: (value: { id?: string; name: string }) =>
       value.id
@@ -594,24 +615,47 @@ function Grades() {
   return (
     <CatalogShell resource="grades">
       <Card>
-        <CardContent className="grid gap-2 p-4">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-3">
+          <div>
           <Label>المنهج</Label>
           <CurriculumSelect
             curriculums={curricula.data?.data || []}
             value={curriculum}
             onChange={(value) => {
               setCurriculum(value);
+                setStage("");
               setStudyLanguage("");
               setEditing(null);
             }}
           />
-          {languageRequired && (
-            <>
-              <Label className="mt-2">لغة الدراسة</Label>
+          </div>
+          <div>
+            <Label>المرحلة</Label>
               <select
-                className={inputClass}
+              className={`${inputClass} mt-1`}
+              value={stage}
+              disabled={!curriculum || query.isLoading}
+              onChange={(event) => {
+                setStage(event.target.value as WebsiteGradeStage);
+                setStudyLanguage("");
+                setEditing(null);
+              }}
+            >
+              <option value="">اختر المرحلة</option>
+              {stageOptions.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.ar}
+                </option>
+              ))}
+            </select>
+          </div>
+          {hasLanguageDimension && (
+            <div>
+              <Label>لغة الدراسة</Label>
+              <select
+                className={`${inputClass} mt-1`}
                 value={studyLanguage}
-                disabled={query.isLoading}
+                disabled={!stage || query.isLoading}
                 onChange={(event) => {
                   setStudyLanguage(event.target.value as EgyptianGradeLanguage);
                   setEditing(null);
@@ -624,7 +668,7 @@ function Grades() {
                   </option>
                 ))}
               </select>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -713,7 +757,9 @@ function Grades() {
           onRefresh={() => void query.refetch()}
           onAdd={() => begin("new")}
           addLabel="إضافة صف"
-          addDisabled={!curriculum || (languageRequired && !studyLanguage)}
+          addDisabled={
+            !curriculum || !stage || (languageRequired && !studyLanguage)
+          }
         />
         <CardContent>
           <LoadingOrError
@@ -724,6 +770,10 @@ function Grades() {
           {!query.isLoading && !query.isError && !curriculum ? (
             <p className="p-8 text-center text-muted-foreground">
               اختر المنهج لعرض الصفوف.
+            </p>
+          ) : !query.isLoading && !query.isError && !stage ? (
+            <p className="p-8 text-center text-muted-foreground">
+              اختر المرحلة لعرض الصفوف.
             </p>
           ) : !query.isLoading &&
             !query.isError &&
@@ -797,6 +847,7 @@ function Subjects() {
   const [studyLanguage, setStudyLanguage] = useState<
     EgyptianGradeLanguage | ""
   >("");
+  const [stage, setStage] = useState<WebsiteGradeStage | "">("");
   const [grade, setGrade] = useState("");
   const query = useQuery({
     queryKey: ["admin-catalog", "grade-subjects", grade],
@@ -819,21 +870,31 @@ function Subjects() {
     (item) => item.id === curriculum,
   );
   const egyptian = selectedCurriculum?.registrationMode === "egyptian";
-  const languageOptions = (grades.data?.data || []).reduce<
-    EgyptianGradeLanguage[]
-  >((options, item) => {
+  const allGrades = grades.data?.data || [];
+  const stageOptions = websiteGradeStages.filter((option) =>
+    allGrades.some((item) => websiteStageForGrade(item.name) === option.key),
+  );
+  const stageGrades = stage
+    ? allGrades.filter((item) => websiteStageForGrade(item.name) === stage)
+    : [];
+  const hasLanguageDimension =
+    egyptian && allGrades.some((item) => egyptianGradeLanguage(item.name));
+  const languageOptions = stageGrades.reduce<EgyptianGradeLanguage[]>(
+    (options, item) => {
     const language = egyptianGradeLanguage(item.name);
     return language && !options.includes(language)
       ? [...options, language]
       : options;
-  }, []);
-  const languageRequired = egyptian && languageOptions.length > 0;
+    },
+    [],
+  );
+  const languageRequired = Boolean(hasLanguageDimension);
   const visibleGrades =
     languageRequired && studyLanguage
-      ? (grades.data?.data || []).filter(
+      ? stageGrades.filter(
           (item) => egyptianGradeLanguage(item.name) === studyLanguage,
         )
-      : grades.data?.data || [];
+      : stageGrades;
   const save = useMutation({
     mutationFn: (value: { id?: string; body: SubjectInput }) =>
       value.id
@@ -878,25 +939,49 @@ function Subjects() {
   return (
     <CatalogShell resource="subjects">
       <Card>
-        <CardContent className="grid gap-2 p-4">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-3">
+          <div>
           <Label>المنهج</Label>
           <CurriculumSelect
             curriculums={curricula.data?.data || []}
             value={curriculum}
             onChange={(value) => {
               setCurriculum(value);
+                setStage("");
               setStudyLanguage("");
               setGrade("");
               setEditing(null);
             }}
           />
-          {languageRequired && (
-            <>
-              <Label className="mt-2">لغة الدراسة</Label>
+          </div>
+          <div>
+            <Label>المرحلة</Label>
               <select
-                className={inputClass}
+              className={`${inputClass} mt-1`}
+              value={stage}
+              disabled={!curriculum || grades.isLoading}
+              onChange={(event) => {
+                setStage(event.target.value as WebsiteGradeStage);
+                setStudyLanguage("");
+                setGrade("");
+                setEditing(null);
+              }}
+            >
+              <option value="">اختر المرحلة</option>
+              {stageOptions.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.ar}
+                </option>
+              ))}
+            </select>
+          </div>
+          {hasLanguageDimension && (
+            <div>
+              <Label>لغة الدراسة</Label>
+              <select
+                className={`${inputClass} mt-1`}
                 value={studyLanguage}
-                disabled={grades.isLoading}
+                disabled={!stage || grades.isLoading}
                 onChange={(event) => {
                   setStudyLanguage(event.target.value as EgyptianGradeLanguage);
                   setGrade("");
@@ -910,14 +995,16 @@ function Subjects() {
                   </option>
                 ))}
               </select>
-            </>
+            </div>
           )}
-          <Label className="mt-2">الصف</Label>
+          <div className="md:col-span-3">
+            <Label>الصف</Label>
           <select
-            className={inputClass}
+              className={`${inputClass} mt-1`}
             value={grade}
             disabled={
               !curriculum ||
+                !stage ||
               grades.isLoading ||
               (languageRequired && !studyLanguage)
             }
@@ -926,16 +1013,16 @@ function Subjects() {
               setEditing(null);
             }}
           >
-            <option value="">
-              {curriculum ? "اختر الصف" : "اختر المنهج أولًا"}
-            </option>
+              <option value="">اختر الصف</option>
             {visibleGrades.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
           </select>
+          </div>
           {curriculum &&
+            stage &&
             !grades.isLoading &&
             !grades.isError &&
             !visibleGrades.length && (
@@ -1035,6 +1122,10 @@ function Subjects() {
             <p className="p-8 text-center text-muted-foreground">
               اختر المنهج لعرض الصفوف.
             </p>
+          ) : !stage ? (
+            <p className="p-8 text-center text-muted-foreground">
+              اختر المرحلة لعرض الصفوف.
+            </p>
           ) : languageRequired && !studyLanguage ? (
             <p className="p-8 text-center text-muted-foreground">
               اختر لغة الدراسة لعرض الصفوف.
@@ -1095,12 +1186,21 @@ function Subjects() {
 }
 
 const currencies = ["EGP", "SAR", "AED", "KWD", "QAR", "BHD", "OMR"];
-const packageScopeLabels: Record<NonNullable<PackageInput["accessScope"]>, string> = {
+const packageScopeLabels: Record<
+  NonNullable<PackageInput["accessScope"]>,
+  string
+> = {
   single_subject: "باقة مادة واحدة",
   shared_subjects: "باقة مشتركة",
   all_subjects: "باقة كل المواد",
 };
-function PackageFieldHelp({ label, children }: { label: string; children: ReactNode }) {
+function PackageFieldHelp({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span>{label}</span>
@@ -1114,7 +1214,11 @@ function PackageFieldHelp({ label, children }: { label: string; children: ReactN
             <CircleAlert className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-80 space-y-1 text-right leading-6" dir="rtl">
+        <TooltipContent
+          side="top"
+          className="max-w-80 space-y-1 text-right leading-6"
+          dir="rtl"
+        >
           {children}
         </TooltipContent>
       </Tooltip>
@@ -1128,7 +1232,12 @@ function Packages() {
     queryFn: () => catalogApi.curriculums(),
   });
   const [curriculum, setCurriculum] = useState("");
-  const [filters, setFilters] = useState<{ accessScope?: PackageInput["accessScope"]; type?: PackageInput["type"]; currency?: string; isActive?: boolean }>({});
+  const [filters, setFilters] = useState<{
+    accessScope?: PackageInput["accessScope"];
+    type?: PackageInput["type"];
+    currency?: string;
+    isActive?: boolean;
+  }>({});
   const query = useQuery({
     queryKey: ["admin-catalog", "packages", curriculum, filters],
     queryFn: () => catalogApi.packages(curriculum, filters),
@@ -1202,17 +1311,77 @@ function Packages() {
             }}
           />
           <div className="mt-3 grid gap-2 sm:grid-cols-4">
-            <select className={inputClass} aria-label="فلترة نوع الباقة" value={filters.accessScope || ""} onChange={(e) => setFilters((current) => ({ ...current, accessScope: (e.target.value || undefined) as PackageInput["accessScope"] }))}>
-              <option value="">كل أنواع الباقات</option>{Object.entries(packageScopeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            <select
+              className={inputClass}
+              aria-label="فلترة نوع الباقة"
+              value={filters.accessScope || ""}
+              onChange={(e) =>
+                setFilters((current) => ({
+                  ...current,
+                  accessScope: (e.target.value ||
+                    undefined) as PackageInput["accessScope"],
+                }))
+              }
+            >
+              <option value="">كل أنواع الباقات</option>
+              {Object.entries(packageScopeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
-            <select className={inputClass} aria-label="فلترة نوع الاشتراك" value={filters.type || ""} onChange={(e) => setFilters((current) => ({ ...current, type: (e.target.value || undefined) as PackageInput["type"] }))}>
-              <option value="">كل أنواع المدة</option><option value="hours">ساعات</option><option value="monthly">شهري</option>
+            <select
+              className={inputClass}
+              aria-label="فلترة نوع الاشتراك"
+              value={filters.type || ""}
+              onChange={(e) =>
+                setFilters((current) => ({
+                  ...current,
+                  type: (e.target.value || undefined) as PackageInput["type"],
+                }))
+              }
+            >
+              <option value="">كل أنواع المدة</option>
+              <option value="hours">ساعات</option>
+              <option value="monthly">شهري</option>
             </select>
-            <select className={inputClass} aria-label="فلترة العملة" value={filters.currency || ""} onChange={(e) => setFilters((current) => ({ ...current, currency: e.target.value || undefined }))}>
-              <option value="">كل العملات</option>{currencies.map((item) => <option key={item} value={item}>{arabicCurrencyName(item)}</option>)}
+            <select
+              className={inputClass}
+              aria-label="فلترة العملة"
+              value={filters.currency || ""}
+              onChange={(e) =>
+                setFilters((current) => ({
+                  ...current,
+                  currency: e.target.value || undefined,
+                }))
+              }
+            >
+              <option value="">كل العملات</option>
+              {currencies.map((item) => (
+                <option key={item} value={item}>
+                  {arabicCurrencyName(item)}
+                </option>
+              ))}
             </select>
-            <select className={inputClass} aria-label="فلترة حالة الباقة" value={filters.isActive === undefined ? "" : String(filters.isActive)} onChange={(e) => setFilters((current) => ({ ...current, isActive: e.target.value === "" ? undefined : e.target.value === "true" }))}>
-              <option value="">كل الحالات</option><option value="true">نشطة</option><option value="false">غير نشطة</option>
+            <select
+              className={inputClass}
+              aria-label="فلترة حالة الباقة"
+              value={
+                filters.isActive === undefined ? "" : String(filters.isActive)
+              }
+              onChange={(e) =>
+                setFilters((current) => ({
+                  ...current,
+                  isActive:
+                    e.target.value === ""
+                      ? undefined
+                      : e.target.value === "true",
+                }))
+              }
+            >
+              <option value="">كل الحالات</option>
+              <option value="true">نشطة</option>
+              <option value="false">غير نشطة</option>
             </select>
           </div>
         </CardContent>
@@ -1235,7 +1404,17 @@ function Packages() {
               />
             </div>
             <div>
-              <Label><PackageFieldHelp label="النوع"><p><strong>ساعات:</strong> الباقة تُحسب بعدد الساعات المحدد.</p><p><strong>شهري:</strong> الباقة صالحة لمدة شهر ولا تحتاج عدد ساعات.</p></PackageFieldHelp></Label>
+                <Label>
+                  <PackageFieldHelp label="النوع">
+                    <p>
+                      <strong>ساعات:</strong> الباقة تُحسب بعدد الساعات المحدد.
+                    </p>
+                    <p>
+                      <strong>شهري:</strong> الباقة صالحة لمدة شهر ولا تحتاج عدد
+                      ساعات.
+                    </p>
+                  </PackageFieldHelp>
+                </Label>
               <select
                 className={inputClass}
                 value={form.type}
@@ -1248,7 +1427,20 @@ function Packages() {
               </select>
             </div>
             <div>
-              <Label><PackageFieldHelp label="نطاق الوصول"><p><strong>كل المواد:</strong> تشمل جميع مواد الصف.</p><p><strong>مادة واحدة:</strong> يختار الطالب مادة واحدة فقط.</p><p><strong>باقة مشتركة:</strong> يمكن توزيع الساعات على أكثر من مادة.</p></PackageFieldHelp></Label>
+                <Label>
+                  <PackageFieldHelp label="نطاق الوصول">
+                    <p>
+                      <strong>كل المواد:</strong> تشمل جميع مواد الصف.
+                    </p>
+                    <p>
+                      <strong>مادة واحدة:</strong> يختار الطالب مادة واحدة فقط.
+                    </p>
+                    <p>
+                      <strong>باقة مشتركة:</strong> يمكن توزيع الساعات على أكثر
+                      من مادة.
+                    </p>
+                  </PackageFieldHelp>
+                </Label>
               <select
                 className={inputClass}
                 value={form.accessScope}
@@ -1281,12 +1473,16 @@ function Packages() {
                 onChange={(e) => setField("currency", e.target.value)}
               >
                 {currencies.map((item) => (
-                  <option key={item} value={item}>{arabicCurrencyName(item)}</option>
+                    <option key={item} value={item}>
+                      {arabicCurrencyName(item)}
+                    </option>
                 ))}
               </select>
             </div>
             <div>
-              <Label>الساعات {form.type === "monthly" ? "(لا تنطبق)" : ""}</Label>
+                <Label>
+                  الساعات {form.type === "monthly" ? "(لا تنطبق)" : ""}
+                </Label>
               <Input
                 className="mt-1"
                 type="number"
@@ -1340,7 +1536,11 @@ function Packages() {
                   checked={Boolean(form.isPopular)}
                   onChange={(e) => setField("isPopular", e.target.checked)}
                 />
-                <PackageFieldHelp label="الأكثر شيوعًا"><p>تميّز الباقة للمستخدم وتعرض عليها شارة «الأكثر طلبًا».</p></PackageFieldHelp>
+                  <PackageFieldHelp label="الأكثر شيوعًا">
+                    <p>
+                      تميّز الباقة للمستخدم وتعرض عليها شارة «الأكثر طلبًا».
+                    </p>
+                  </PackageFieldHelp>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -1348,7 +1548,12 @@ function Packages() {
                   checked={form.isActive !== false}
                   onChange={(e) => setField("isActive", e.target.checked)}
                 />
-                <PackageFieldHelp label="نشطة"><p>الباقة النشطة تظهر للمستخدم ويمكنه اختيارها. غير النشطة تبقى محفوظة للأدمن ولا تظهر للتسجيل.</p></PackageFieldHelp>
+                  <PackageFieldHelp label="نشطة">
+                    <p>
+                      الباقة النشطة تظهر للمستخدم ويمكنه اختيارها. غير النشطة
+                      تبقى محفوظة للأدمن ولا تظهر للتسجيل.
+                    </p>
+                  </PackageFieldHelp>
               </label>
             </div>
             <div className="flex gap-2 md:col-span-2">

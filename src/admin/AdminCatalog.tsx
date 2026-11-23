@@ -753,13 +753,11 @@ function Grades() {
       <Card>
         <SectionHeader
           title="الصفوف"
-          count={query.data?.data.length}
+          count={curriculum && stage ? visibleGrades.length : 0}
           onRefresh={() => void query.refetch()}
           onAdd={() => begin("new")}
           addLabel="إضافة صف"
-          addDisabled={
-            !curriculum || !stage || (languageRequired && !studyLanguage)
-          }
+          addDisabled={!curriculum || !stage}
         />
         <CardContent>
           <LoadingOrError
@@ -774,13 +772,6 @@ function Grades() {
           ) : !query.isLoading && !query.isError && !stage ? (
             <p className="p-8 text-center text-muted-foreground">
               اختر المرحلة لعرض الصفوف.
-            </p>
-          ) : !query.isLoading &&
-            !query.isError &&
-            languageRequired &&
-            !studyLanguage ? (
-            <p className="p-8 text-center text-muted-foreground">
-              اختر لغة الدراسة لعرض الصفوف.
             </p>
           ) : !query.isLoading && !query.isError && !visibleGrades.length ? (
             <p className="p-8 text-center text-muted-foreground">

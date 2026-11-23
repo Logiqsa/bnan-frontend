@@ -194,13 +194,14 @@ describe("AdminCatalog", () => {
     const selects = await screen.findAllByRole("combobox");
     await waitFor(() => expect(selects[1]).not.toBeDisabled());
     fireEvent.change(selects[1], { target: { value: "other" } });
-    expect(
-      await screen.findByText("اختر لغة الدراسة لعرض الصفوف."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /إضافة صف/ })).toBeDisabled();
+    expect(await screen.findByText("الأول عربي")).toBeInTheDocument();
+    expect(screen.getByText("الأول لغات")).toBeInTheDocument();
+    expect(screen.getByText("(3)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /إضافة صف/ })).not.toBeDisabled();
     const languageSelect = (await screen.findAllByRole("combobox"))[2];
     fireEvent.change(languageSelect, { target: { value: "languages" } });
     expect(await screen.findByText("الأول لغات")).toBeInTheDocument();
+    expect(screen.getByText("(1)")).toBeInTheDocument();
     expect(screen.queryByText("الأول عربي")).not.toBeInTheDocument();
     expect(
       screen.queryByText("الأول", { exact: true }),

@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import logo from "@/assets/logo-bnan.png";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { groupGradesByWebsiteStage } from "@/lib/gradeStages";
 import AccountVerification from "@/components/AccountVerification";
 import {
   COURSE_STUDENT_SIGNUP_DRAFT_KEY,
@@ -308,42 +309,7 @@ export default function StudentSignup({
   const isSharedSubjectPackage = selectedAccessScope === "shared_subjects";
   const isAllSubjectsPackage = selectedAccessScope === "all_subjects";
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
-    const normalize = (value: string) =>
-      value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
-    const definitions =
-      mode === "egyptian"
-        ? [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            {
-              key: "preparatory",
-              label: "المرحلة الإعدادية",
-              keyword: "اعدادي",
-            },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ]
-        : [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ];
-    const stages = definitions
-      .map((stage) => ({
-        ...stage,
-        grades: groupGrades.filter((grade) =>
-          normalize(grade.name).includes(stage.keyword),
-        ),
-      }))
-      .filter((stage) => stage.grades.length);
-    const stagedIds = new Set(
-      stages.flatMap((stage) => stage.grades.map((grade) => grade.id)),
-    );
-    const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
-    return [
-      ...stages,
-      ...(other.length
-        ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }]
-        : []),
-    ];
+    return groupGradesByWebsiteStage(groupGrades).map((stage) => ({ ...stage, label: stage.ar, keyword: "" }));
   };
   const splitGradesByTrack = (stageGrades: GradeOption[]) => {
     const languages = stageGrades.filter(

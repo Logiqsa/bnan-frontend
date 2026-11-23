@@ -19,6 +19,7 @@ import {
 } from "@/api/catalogApi";
 import { getCountries, type CountryOption } from "@/api/countriesApi";
 import { contentApi, type LegalPage } from "@/api/contentApi";
+import { groupGradesByWebsiteStage } from "@/lib/gradeStages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -341,42 +342,7 @@ export default function TeacherSignup() {
     ];
   }, [grades, selectedCurriculumData?.registrationMode]);
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
-    const normalize = (value: string) =>
-      value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
-    const definitions =
-      selectedCurriculumData?.registrationMode === "egyptian"
-        ? [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            {
-              key: "preparatory",
-              label: "المرحلة الإعدادية",
-              keyword: "اعدادي",
-            },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ]
-        : [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ];
-    const stages = definitions
-      .map((stage) => ({
-        ...stage,
-        grades: groupGrades.filter((grade) =>
-          normalize(grade.name).includes(stage.keyword),
-        ),
-      }))
-      .filter((stage) => stage.grades.length > 0);
-    const stagedIds = new Set(
-      stages.flatMap((stage) => stage.grades.map((grade) => grade.id)),
-    );
-    const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
-    return [
-      ...stages,
-      ...(other.length
-        ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }]
-        : []),
-    ];
+    return groupGradesByWebsiteStage(groupGrades).map((stage) => ({ ...stage, label: stage.ar, keyword: "" }));
   };
   const progress = useMemo(() => {
     const required = [

@@ -15,18 +15,14 @@ import { normalizeZoomState, referenceId, referenceName } from "./classroomZoomN
 import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES, classroomKindLabel, classroomZoomLabel, sortClassroomsNewestFirst } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 import SharedClassroomCreateCard from "./SharedClassroomCreateCard";
+import { websiteGradeStages, websiteStageForGrade } from "@/lib/gradeStages";
 
 type ClassroomLane = "arabic" | "languages";
 type ClassroomKindFilter = "general" | "private" | "shared" | "course";
 const normalizeArabic = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").toLocaleLowerCase("ar");
-const stageDefinitions = [
-  { id: "primary", name: "المرحلة الابتدائية", words: ["ابتدا"] },
-  { id: "middle", name: "المرحلة الإعدادية / المتوسطة", words: ["اعداد", "متوسط"] },
-  { id: "secondary", name: "المرحلة الثانوية", words: ["ثانو"] },
-];
+const stageDefinitions = websiteGradeStages.map((stage) => ({ id: stage.key, name: stage.ar }));
 const classroomStage = (item: ClassroomOption) => {
-  const name = normalizeArabic(referenceName(item.grade));
-  return stageDefinitions.find((stage) => stage.words.some((word) => name.includes(word)))?.id || "other";
+  return websiteStageForGrade(referenceName(item.grade));
 };
 const classroomLane = (item: ClassroomOption): ClassroomLane => {
   const name = normalizeArabic(`${referenceName(item.grade)} ${item.name}`);

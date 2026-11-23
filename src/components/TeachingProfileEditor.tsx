@@ -10,21 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { schoolGradeOrder, schoolStageForGrade } from "@/admin/zoom/SharedClassroomCreateCard";
+import { schoolGradeOrder } from "@/admin/zoom/SharedClassroomCreateCard";
+import { websiteGradeStages, websiteStageForGrade } from "@/lib/gradeStages";
 
-const stageOrder = ["primary", "preparatory", "secondary", null];
+const stageOrder = ["kindergarten", "primary", "preparatory", "secondary", "other"];
 const compareGrades = (left:{name:string}, right:{name:string}) =>
-  stageOrder.indexOf(schoolStageForGrade(left.name)) - stageOrder.indexOf(schoolStageForGrade(right.name)) ||
+  stageOrder.indexOf(websiteStageForGrade(left.name)) - stageOrder.indexOf(websiteStageForGrade(right.name)) ||
   schoolGradeOrder(left.name) - schoolGradeOrder(right.name) ||
   left.name.localeCompare(right.name, "ar");
-const stageGroups = [
-  { id:"primary", ar:"المرحلة الابتدائية", en:"Primary stage" },
-  { id:"preparatory", ar:"المرحلة المتوسطة / الإعدادية", en:"Middle / preparatory stage" },
-  { id:"secondary", ar:"المرحلة الثانوية", en:"Secondary stage" },
-  { id:null, ar:"صفوف أخرى", en:"Other grades" },
-] as const;
+const stageGroups = websiteGradeStages.map((stage) => ({ id: stage.key, ar: stage.ar, en: stage.en }));
 const groupGrades = <T extends {name:string}>(grades:T[]) => stageGroups
-  .map((stage) => ({ ...stage, grades:[...grades].filter((grade) => schoolStageForGrade(grade.name) === stage.id).sort(compareGrades) }))
+  .map((stage) => ({ ...stage, grades:[...grades].filter((grade) => websiteStageForGrade(grade.name) === stage.id).sort(compareGrades) }))
   .filter((stage) => stage.grades.length);
 
 export default function TeachingProfileEditor({ teacherId, title }: { teacherId?:string; title?:string }) {

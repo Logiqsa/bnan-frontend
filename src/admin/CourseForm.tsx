@@ -17,6 +17,7 @@ import {
 import { courseStaffApi, type CourseStaffOption } from "@/api/courseStaffApi";
 import type { Course, CourseInput, CourseStatus, CourseType } from "@/api/coursesApi";
 import { courseImageUrl, refId } from "@/lib/courseUi";
+import { groupGradesByWebsiteStage } from "@/lib/gradeStages";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -261,42 +262,7 @@ export default function CourseForm({
     ].filter((group) => group.grades.length);
   }, [grades, selectedCurriculumData?.registrationMode]);
   const splitGradesByStage = (groupGrades: GradeOption[]) => {
-    const normalize = (value: string) =>
-      value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
-    const definitions =
-      selectedCurriculumData?.registrationMode === "egyptian"
-        ? [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            {
-              key: "preparatory",
-              label: "المرحلة الإعدادية",
-              keyword: "اعدادي",
-            },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ]
-        : [
-            { key: "primary", label: "المرحلة الابتدائية", keyword: "ابتدائي" },
-            { key: "middle", label: "المرحلة المتوسطة", keyword: "متوسط" },
-            { key: "secondary", label: "المرحلة الثانوية", keyword: "ثانوي" },
-          ];
-    const stages = definitions
-      .map((stage) => ({
-        ...stage,
-        grades: groupGrades.filter((grade) =>
-          normalize(grade.name).includes(stage.keyword),
-        ),
-      }))
-      .filter((stage) => stage.grades.length);
-    const stagedIds = new Set(
-      stages.flatMap((stage) => stage.grades.map((grade) => grade.id)),
-    );
-    const other = groupGrades.filter((grade) => !stagedIds.has(grade.id));
-    return [
-      ...stages,
-      ...(other.length
-        ? [{ key: "other", label: "مراحل أخرى", keyword: "", grades: other }]
-        : []),
-    ];
+    return groupGradesByWebsiteStage(groupGrades).map((stage) => ({ ...stage, label: stage.ar, keyword: "" }));
   };
   useEffect(
     () => () => {

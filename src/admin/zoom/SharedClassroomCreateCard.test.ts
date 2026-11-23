@@ -14,6 +14,9 @@ describe("shared classroom grade ordering", () => {
     expect(schoolStageForGrade("ثالث إعدادي - لغات")).toBe("preparatory");
     expect(schoolStageForGrade("الثاني المتوسط - سعودي")).toBe("preparatory");
     expect(schoolStageForGrade("ثانية ثانوي علمي - عربي")).toBe("secondary");
+    expect(schoolStageForGrade("KG2 - لغات")).toBe("kindergarten");
+    expect(schoolStageForGrade("حضانة تمهيدي")).toBe("kindergarten");
+    expect(schoolStageForGrade("صف تجريبي مختلف")).toBe("other");
   });
 
   it("sorts grade years in their educational order", () => {

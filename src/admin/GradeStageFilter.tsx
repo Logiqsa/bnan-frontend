@@ -3,28 +3,11 @@ import type { RegistrationMode } from "@/api/types";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { groupGradesByWebsiteStage } from "@/lib/gradeStages";
 
 export interface StageGradeOption { id: string; name: string }
 
-const normalize = (value: string) => value.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي");
-
-const groupGradesByStage = (grades: StageGradeOption[], mode?: RegistrationMode) => {
-  const definitions = mode === "egyptian"
-    ? [
-        { key: "primary", ar: "المرحلة الابتدائية", en: "Primary", keyword: "ابتدائي" },
-        { key: "preparatory", ar: "المرحلة الإعدادية", en: "Preparatory", keyword: "اعدادي" },
-        { key: "secondary", ar: "المرحلة الثانوية", en: "Secondary", keyword: "ثانوي" },
-      ]
-    : [
-        { key: "primary", ar: "المرحلة الابتدائية", en: "Primary", keyword: "ابتدائي" },
-        { key: "middle", ar: "المرحلة المتوسطة", en: "Middle", keyword: "متوسط" },
-        { key: "secondary", ar: "المرحلة الثانوية", en: "Secondary", keyword: "ثانوي" },
-      ];
-  const stages = definitions.map((stage) => ({ ...stage, grades: grades.filter((grade) => normalize(grade.name).includes(stage.keyword)) })).filter((stage) => stage.grades.length);
-  const grouped = new Set(stages.flatMap((stage) => stage.grades.map((grade) => grade.id)));
-  const other = grades.filter((grade) => !grouped.has(grade.id));
-  return [...stages, ...(other.length ? [{ key: "other", ar: "مراحل أخرى", en: "Other stages", keyword: "", grades: other }] : [])];
-};
+const groupGradesByStage = (grades: StageGradeOption[], _mode?: RegistrationMode) => groupGradesByWebsiteStage(grades);
 
 interface GradeStageFilterProps {
   grades: StageGradeOption[];

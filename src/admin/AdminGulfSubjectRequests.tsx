@@ -30,7 +30,7 @@ const requestStatus = (status?: string | null) => gulfRequestStatusLabels[status
 
 export default function AdminGulfSubjectRequests({ embedded = false }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<AdminGulfSubjectRequestFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminGulfSubjectRequestFilters>({ page: 1, limit: 100 });
   const query = useQuery({ queryKey: ["admin-gulf-subject-requests", filters], queryFn: () => adminGulfSubjectRequestsApi.list(filters), retry: 1 });
   const students = useQuery({ queryKey: ["admin-gulf-subject-request-filter-students"], queryFn: () => listAdminStudents({ page: 1, limit: 100 }), staleTime: 300_000 });
   const curriculums = useQuery({ queryKey: ["admin-gulf-subject-request-filter-curriculums"], queryFn: () => catalogApi.curriculums(), staleTime: 300_000 });

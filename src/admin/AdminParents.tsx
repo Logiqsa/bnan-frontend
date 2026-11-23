@@ -17,7 +17,7 @@ const statusLabels: Record<string, string> = { active: "نشط", inactive: "غي
 
 export default function AdminParents() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<AdminParentFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminParentFilters>({ page: 1, limit: 100 });
   const query = useQuery({ queryKey: ["admin-parents", filters], queryFn: () => listAdminParents(filters), retry: 1 });
   const change = (key: keyof AdminParentFilters, value?: string | number) => setFilters((current) => ({ ...current, [key]: value || undefined, page: key === "page" ? Number(value) : 1 }));
   const page = query.data?.pagination.current_page || filters.page || 1;

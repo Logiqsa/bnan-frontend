@@ -56,7 +56,7 @@ export const adminClassroomChangeRequestsApi = {
     if (params.status) query.set("status", params.status);
     if (params.requestType) query.set("requestType", params.requestType);
     query.set("page", String(params.page || 1));
-    query.set("limit", String(params.limit || 20));
+    query.set("limit", String(params.limit || 100));
     const result = await apiRequest<AdminClassroomChangeRequestList>(`/admin/classroom-change-requests?${query.toString()}`);
     return { ...result, data: (result.data || []).map(normalize) };
   },

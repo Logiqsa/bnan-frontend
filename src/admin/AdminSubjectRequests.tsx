@@ -31,7 +31,7 @@ const studentName = (request: AdminSubjectRequest) => request.student?.user?.ful
 
 export default function AdminSubjectRequests({ embedded = false }: { embedded?: boolean } = {}) {
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<AdminSubjectRequestFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminSubjectRequestFilters>({ page: 1, limit: 100 });
   const [approvalTarget, setApprovalTarget] = useState<AdminSubjectRequest | null>(null);
   const [rejectionTarget, setRejectionTarget] = useState<AdminSubjectRequest | null>(null);
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
@@ -54,7 +54,7 @@ export default function AdminSubjectRequests({ embedded = false }: { embedded?: 
     onError: (error) => toast.error(errorText(error)),
   });
   const page = query.data?.page || filters.page || 1;
-  const limit = query.data?.limit || filters.limit || 20;
+  const limit = query.data?.limit || filters.limit || 100;
   const total = query.data?.total || 0;
   const lastPage = Math.max(1, Math.ceil(total / limit));
   const canApprove = Boolean(receiptImage) && !approve.isPending;

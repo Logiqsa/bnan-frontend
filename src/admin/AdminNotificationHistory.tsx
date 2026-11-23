@@ -57,7 +57,7 @@ const stat = (label: string, value: number) => (
 
 export default function AdminNotificationHistory() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<AdminNotificationHistoryFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminNotificationHistoryFilters>({ page: 1, limit: 100 });
   const query = useQuery({
     queryKey: ["admin-notification-history", filters],
     queryFn: () => adminNotificationHistoryApi.list(filters),
@@ -72,7 +72,7 @@ export default function AdminNotificationHistory() {
     }));
   };
 
-  const resetFilters = () => setFilters({ page: 1, limit: filters.limit || 20 });
+  const resetFilters = () => setFilters({ page: 1, limit: filters.limit || 100 });
   const page = query.data?.pagination.current_page || filters.page || 1;
   const lastPage = query.data?.pagination.last_page || 1;
 

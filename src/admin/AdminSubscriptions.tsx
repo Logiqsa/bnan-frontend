@@ -68,7 +68,7 @@ export default function AdminSubscriptions() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<AdminSubscriptionFilters>({
     page: 1,
-    limit: 20,
+    limit: 100,
   });
   const [searchText, setSearchText] = useState("");
   const query = useQuery({
@@ -319,7 +319,7 @@ export default function AdminSubscriptions() {
             {!query.isLoading && !query.isError && (
               <div className="flex items-center justify-between border-t p-4">
                 <Select
-                  value={String(filters.limit || 20)}
+                  value={String(filters.limit || 100)}
                   onValueChange={(value) => change("limit", Number(value))}
                 >
                   <SelectTrigger aria-label="عدد النتائج" className="w-24">

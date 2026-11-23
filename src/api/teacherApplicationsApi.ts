@@ -154,7 +154,7 @@ const fetchAllByStatus = async (status: TeacherApplicationStatus) => {
 };
 
 export const teacherApplicationsApi = {
-  list: async (status: TeacherApplicationStatus, page = 1, limit = 20) =>
+  list: async (status: TeacherApplicationStatus, page = 1, limit = 100) =>
     normalizeList(
       await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=${limit}`),
       limit,
@@ -173,7 +173,7 @@ export const teacherApplicationsApi = {
       let page = 1;
       let hasNextPage = true;
       while (hasNextPage) {
-        const result = normalizeList(await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=20`));
+        const result = normalizeList(await apiRequest<TeacherApplicationsPayload>(`/teachers?status=${status}&page=${page}&limit=100`));
         const application = result.data.find((item) => item.user?.id === userId || item.id === userId);
         if (application) {
           const details = await apiRequest<{ success: true; data: TeacherApplicationPayload }>(`/teachers/${application.id}`);

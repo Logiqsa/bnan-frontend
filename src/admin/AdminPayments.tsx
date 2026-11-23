@@ -74,7 +74,7 @@ export default function AdminPayments() {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<AdminPaymentFilters>(() => ({
     page: 1,
-    limit: 20,
+    limit: 100,
     status: searchParams.get("status") || "completed,failed",
     paymentModel:
       searchParams.get("paymentModel") === "egyptian" ||
@@ -361,7 +361,7 @@ export default function AdminPayments() {
             {!query.isLoading && !query.isError && (
               <div className="flex items-center justify-between border-t p-4">
                 <Select
-                  value={String(filters.limit || 20)}
+                  value={String(filters.limit || 100)}
                   onValueChange={(value) => change("limit", Number(value))}
                 >
                   <SelectTrigger aria-label="عدد النتائج" className="w-24">

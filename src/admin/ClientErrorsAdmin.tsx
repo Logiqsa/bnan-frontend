@@ -149,7 +149,7 @@ export default function ClientErrorsAdmin() {
     locale = isArabic ? "ar-SA-u-ca-gregory" : "en-US";
   const [filters, setFilters] = useState<ClientErrorListParams>({
       page: 1,
-      limit: 20,
+      limit: 100,
     }),
     [search, setSearch] = useState(""),
     [rows, setRows] = useState<AdminClientError[]>([]),
@@ -191,7 +191,7 @@ export default function ClientErrorsAdmin() {
   };
   const clear = () => {
     setSearch("");
-    setFilters({ page: 1, limit: 20 });
+    setFilters({ page: 1, limit: 100 });
   };
   const open = async (r: AdminClientError) => {
     setSelected(r);

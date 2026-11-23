@@ -33,7 +33,7 @@ const teacherOptions = (users: Awaited<ReturnType<typeof adminUsersApi.listAll>>
 
 export default function AdminAssignments() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<AdminAssignmentListParams>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminAssignmentListParams>({ page: 1, limit: 100 });
   const change = (key: keyof AdminAssignmentListParams, value?: string | number) => setFilters((current) => ({ ...current, [key]: value || undefined, page: key === "page" ? Number(value) : 1, ...(key === "curriculum" ? { grade: undefined, subject: undefined } : {}) }));
   const assignments = useQuery({ queryKey: ["admin-assignments", filters], queryFn: () => adminAssignmentsApi.listAssignments(filters), retry: 1 });
   const teachers = useQuery({ queryKey: ["admin-assignment-teachers"], queryFn: () => adminUsersApi.listAll("teacher") });
@@ -58,7 +58,7 @@ export function AdminAssignmentDetails() {
   const { id = "" } = useParams();
   const [page, setPage] = useState(1);
   const assignmentQuery = useQuery({ queryKey: ["admin-assignment", id], queryFn: () => adminAssignmentsApi.getAssignment(id), enabled: Boolean(id), retry: false });
-  const submissionsQuery = useQuery({ queryKey: ["admin-assignment-submissions", id, page], queryFn: () => adminAssignmentsApi.listSubmissions(id, { page, limit: 20 }), enabled: Boolean(id), retry: false });
+  const submissionsQuery = useQuery({ queryKey: ["admin-assignment-submissions", id, page], queryFn: () => adminAssignmentsApi.listSubmissions(id, { page, limit: 100 }), enabled: Boolean(id), retry: false });
   const assignment = assignmentQuery.data?.data;
   const submissionPage = submissionsQuery.data?.pagination.current_page || page;
   const detailField = (label: string, value: unknown) => <div className="rounded-lg border bg-muted/20 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 break-words text-sm font-medium">{fieldValue(value)}</p></div>;

@@ -224,7 +224,7 @@ export default function AdminClassroomHub() {
         from: assignmentFilters.from || undefined,
         to: assignmentFilters.to || undefined,
         page: assignmentFilters.page,
-        limit: 20,
+        limit: 100,
       }),
     enabled: Boolean(classroomId) && activeTab === "assignments",
     retry: false,
@@ -240,7 +240,7 @@ export default function AdminClassroomHub() {
     queryFn: () =>
       adminAssignmentsApi.listSubmissions(selectedAssignmentId, {
         page: 1,
-        limit: 20,
+        limit: 100,
       }),
     enabled: Boolean(selectedAssignmentId),
     retry: false,
@@ -261,7 +261,7 @@ export default function AdminClassroomHub() {
         from: attendanceFilters.from || undefined,
         to: attendanceFilters.to || undefined,
         page: attendanceFilters.page,
-        limit: 20,
+        limit: 100,
       }),
     enabled: Boolean(classroomId && attendanceFilters.session) && activeTab === "attendance",
     retry: false,

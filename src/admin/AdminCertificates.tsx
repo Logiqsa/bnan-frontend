@@ -38,7 +38,7 @@ const CertificateState = ({ message, retry, fetching }: { message: string; retry
 export default function AdminCertificates() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<AdminCertificateFilters>({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState<AdminCertificateFilters>({ page: 1, limit: 100 });
   const query = useQuery({ queryKey: ["admin-certificates", filters], queryFn: () => adminCertificatesApi.list(filters), retry: 1 });
   const [issuing, setIssuing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);

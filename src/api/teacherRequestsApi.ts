@@ -43,7 +43,7 @@ export interface PendingTeacherRequestsResponse {
 }
 
 export const teacherRequestsApi = {
-  listPending: async ({ page = 1, limit = 20 }: { page?: number; limit?: number } = {}) => {
+  listPending: async ({ page = 1, limit = 100 }: { page?: number; limit?: number } = {}) => {
     const query = new URLSearchParams({
       page: String(page),
       limit: String(limit),

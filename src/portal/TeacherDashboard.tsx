@@ -49,7 +49,7 @@ const TeacherDashboardContent = () => {
   });
   const pendingRequests = useQuery({
     queryKey: teacherPendingRequestsPageQueryKey(1, 20),
-    queryFn: () => teacherRequestsApi.listPending({ page: 1, limit: 20 }),
+    queryFn: () => teacherRequestsApi.listPending({ page: 1, limit: 100 }),
     staleTime: 30_000,
     retry: 1,
   });

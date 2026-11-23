@@ -248,7 +248,7 @@ export const classroomRecordingsApi = {
     const query = new URLSearchParams({
       status: "active",
       page: "1",
-      limit: keyword ? "20" : "100",
+      limit: "100",
     });
     if (keyword) query.set("keyword", keyword);
     return apiRequest<{ success: true; data: ClassroomOption[] }>(`/classrooms?${query}`);

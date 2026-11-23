@@ -126,7 +126,7 @@ const normalizeList = (result: AdminUsersPayload, requestedLimit = 20): AdminUse
 });
 
 export const adminUsersApi = {
-  list: async (role?: AdminUserRole, page = 1, isVerified?: boolean, search?: string, limit = 20) => {
+  list: async (role?: AdminUserRole, page = 1, isVerified?: boolean, search?: string, limit = 100) => {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),

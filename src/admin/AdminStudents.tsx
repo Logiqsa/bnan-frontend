@@ -51,7 +51,7 @@ export default function AdminStudents() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState<AdminStudentFilters>(() => ({ page: pageFromSearch(searchParams.get("page")), limit: 20 }));
+  const [filters, setFilters] = useState<AdminStudentFilters>(() => ({ page: pageFromSearch(searchParams.get("page")), limit: 100 }));
   const [pageInput, setPageInput] = useState(() => String(pageFromSearch(searchParams.get("page"))));
   const query = useQuery({ queryKey: ["admin-students", filters], queryFn: () => listAdminStudents(filters), retry: 1 });
   const parentsQuery = useQuery({ queryKey: ["admin-student-filter-parents"], queryFn: async () => (await listAdminParents({ page: 1, limit: 100 })).data, staleTime: 5 * 60_000, retry: 1 });

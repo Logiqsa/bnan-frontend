@@ -229,6 +229,7 @@ interface UploadResult {
 const language = () => (localStorage.getItem("bnan_language") === "en" ? "en" : "ar");
 
 export const classroomRecordingsApi = {
+  createClassroom: (body: { name: string; curriculum: string; grade: string; supervisorId: string; classroomKind: "general" | "private"; subjects?: string[] }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>("/classrooms", { method: "POST", body: JSON.stringify(body) }),
   createSharedClassroom: (body: { name: string; curriculum: string; grade: string; supervisorId: string; classroomKind: "shared"; sharedAcademicTargets: Array<{ curriculum: string; grade: string }>; subjects: string[] }) => apiRequest<{ status: "success"; data: { classroom: ClassroomOption } }>("/classrooms", { method: "POST", body: JSON.stringify(body) }),
   listAllClassrooms: () => apiRequest<{ success: true; data: ClassroomOption[] }>("/classrooms?page=1&limit=100"),
 

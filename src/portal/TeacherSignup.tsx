@@ -20,6 +20,7 @@ import {
 import { getCountries, type CountryOption } from "@/api/countriesApi";
 import { contentApi, type LegalPage } from "@/api/contentApi";
 import { groupGradesByWebsiteStage } from "@/lib/gradeStages";
+import { isSharedTeacherGrade, mergeUniqueSubjects, sharedCompanionGrade } from "@/lib/teacherGradeSubjects";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -290,11 +291,10 @@ export default function TeacherSignup() {
     selectedGrades.forEach((gradeId) => {
       if (subjects[gradeId] || loadingSubjects[gradeId]) return;
       setLoadingSubjects((current) => ({ ...current, [gradeId]: true }));
-      catalogApi
-        .subjects(gradeId)
-        .then((result) =>
-          setSubjects((current) => ({ ...current, [gradeId]: result.data })),
-        )
+      const grade = grades.find((item) => item.id === gradeId);
+      const sharedGrade = grade ? sharedCompanionGrade(grade, grades) : undefined;
+      Promise.all([catalogApi.subjects(gradeId), ...(sharedGrade ? [catalogApi.subjects(sharedGrade.id)] : [])])
+        .then((results) => setSubjects((current) => ({ ...current, [gradeId]: mergeUniqueSubjects(...results.map((result) => result.data)) })))
         .catch((value) => setError((value as ApiError).message))
         .finally(() =>
           setLoadingSubjects((current) => ({ ...current, [gradeId]: false })),
@@ -332,7 +332,7 @@ export default function TeacherSignup() {
     const groupedIds = new Set(
       [...languages, ...arabic].map((grade) => grade.id),
     );
-    const other = grades.filter((grade) => !groupedIds.has(grade.id));
+    const other = grades.filter((grade) => !groupedIds.has(grade.id) && !isSharedTeacherGrade(grade.name));
     return [
       { key: "languages", label: "قسم اللغات", grades: languages },
       { key: "arabic", label: "القسم العربي", grades: arabic },

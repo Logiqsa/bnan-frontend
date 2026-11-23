@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useLanguage } from "@/i18n/LanguageContext";
 import { schoolGradeOrder } from "@/admin/zoom/SharedClassroomCreateCard";
 import { websiteGradeStages, websiteStageForGrade } from "@/lib/gradeStages";
+import { isSharedTeacherGrade, mergeUniqueSubjects, sharedCompanionGrade } from "@/lib/teacherGradeSubjects";
 
 const stageOrder = ["kindergarten", "primary", "preparatory", "secondary", "other"];
 const compareGrades = (left:{name:string}, right:{name:string}) =>
@@ -20,7 +21,7 @@ const compareGrades = (left:{name:string}, right:{name:string}) =>
   left.name.localeCompare(right.name, "ar");
 const stageGroups = websiteGradeStages.map((stage) => ({ id: stage.key, ar: stage.ar, en: stage.en }));
 const groupGrades = <T extends {name:string}>(grades:T[]) => stageGroups
-  .map((stage) => ({ ...stage, grades:[...grades].filter((grade) => websiteStageForGrade(grade.name) === stage.id).sort(compareGrades) }))
+  .map((stage) => ({ ...stage, grades:[...grades].filter((grade) => !isSharedTeacherGrade(grade.name) && websiteStageForGrade(grade.name) === stage.id).sort(compareGrades) }))
   .filter((stage) => stage.grades.length);
 
 export default function TeachingProfileEditor({ teacherId, title }: { teacherId?:string; title?:string }) {
@@ -36,8 +37,8 @@ export default function TeachingProfileEditor({ teacherId, title }: { teacherId?
   const gradeQueries = useQueries({ queries:curriculums.map((id) => ({ queryKey:["catalog-grades", id], queryFn:() => catalogApi.grades(id), staleTime:300_000 })) });
   const grades = useMemo(() => gradeQueries.flatMap((query) => query.data?.data || []), [gradeQueries]);
   const gradeIds = Object.keys(assignments);
-  const subjectQueries = useQueries({ queries:gradeIds.map((id) => ({ queryKey:["catalog-subjects", id], queryFn:() => catalogApi.subjects(id), staleTime:300_000 })) });
-  const subjectsByGrade = useMemo(() => Object.fromEntries(gradeIds.map((id, index) => [id, subjectQueries[index]?.data?.data || []])), [gradeIds, subjectQueries]);
+  const subjectQueries = useQueries({ queries:gradeIds.map((id) => { const grade = grades.find((item) => item.id === id); const shared = grade ? sharedCompanionGrade(grade, grades) : undefined; return { queryKey:["catalog-subjects", id, shared?.id || "none"], queryFn:async() => { const results = await Promise.all([catalogApi.subjects(id), ...(shared ? [catalogApi.subjects(shared.id)] : [])]); return mergeUniqueSubjects(...results.map((result) => result.data)); }, staleTime:300_000 }; }) });
+  const subjectsByGrade = useMemo(() => Object.fromEntries(gradeIds.map((id, index) => [id, subjectQueries[index]?.data || []])), [gradeIds, subjectQueries]);
 
   const startEditing = (data:TeachingProfile) => {
     setCurriculums(data.curriculums.map((item) => item.id));

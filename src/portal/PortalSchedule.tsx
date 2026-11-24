@@ -126,8 +126,14 @@ const courseLessonPhase = (lesson: PortalLesson) => {
 
 export default function PortalSchedule({
   role,
+  studentId,
+  studentName,
+  toolbar,
 }: {
-  role: "teacher" | "student" | "admin";
+  role: "teacher" | "student" | "parent" | "admin";
+  studentId?: string;
+  studentName?: string;
+  toolbar?: React.ReactNode;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -167,6 +173,8 @@ export default function PortalSchedule({
   const modeKey =
     role === "student"
       ? user?.registrationMode || "egyptian"
+      : role === "parent"
+        ? "egyptian,gulf"
       : "egyptian,gulf";
   const today = dateKey(new Date());
   const [month, setMonth] = useState(
@@ -254,6 +262,7 @@ export default function PortalSchedule({
             : getUnifiedScheduleWeek(
                 week,
                 role === "teacher" && filter !== "all" ? filter : undefined,
+                role === "parent" ? studentId : undefined,
               ),
         ),
       );
@@ -275,6 +284,7 @@ export default function PortalSchedule({
     filter,
     pick,
     role,
+    studentId,
     timeZone,
   ]);
   useEffect(() => {
@@ -339,6 +349,8 @@ export default function PortalSchedule({
       !selected ||
       (role === "student"
         ? selected.activeSession?.status !== "live"
+        : role === "parent"
+          ? true
         : !isLiveForTeacher(selected))
     )
       return;
@@ -555,7 +567,7 @@ export default function PortalSchedule({
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <CalendarDays className="text-secondary" />
-              {pick("جدول الحصص", "Lesson schedule")}
+              {role === "parent" ? pick(`جدول حصص ${studentName || "الابن"}`, `${studentName || "Child"}'s lesson schedule`) : pick("جدول الحصص", "Lesson schedule")}
             </h1>
             <p className="text-muted-foreground mt-1">
               {role === "admin"
@@ -563,7 +575,7 @@ export default function PortalSchedule({
                     "متابعة حصص جميع الفصول خلال الشهر",
                     "Track all classroom lessons throughout the month",
                   )
-                : pick(
+                : role === "parent" ? pick("متابعة حصص الابن خلال الشهر", "Track your child's lessons throughout the month") : pick(
                     "متابعة حصصك خلال الشهر",
                     "Track your lessons throughout the month",
                   )}
@@ -574,6 +586,7 @@ export default function PortalSchedule({
             {pick("تحديث", "Refresh")}
           </Button>
         </div>
+        {toolbar}
         {modeKey.includes(",") && (
           <Tabs
             value={filter}
@@ -751,7 +764,7 @@ export default function PortalSchedule({
                                 <h3 className="font-bold">
                                   {lesson.subject.name}
                                 </h3>
-                                {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && role !== "student" ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
+                                {lesson.scheduleKind === "course" && lesson.courseGroupId && lesson.courseId && (role === "admin" || role === "teacher") ? <button type="button" className="mt-1 text-sm text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); navigate(role === "admin" ? `/admin/courses/${lesson.courseId}` : `/portal/teacher/courses/${lesson.courseId}/groups/${lesson.courseGroupId}`); }}>{lesson.classroom.name}</button> : <p className="mt-1 text-sm text-muted-foreground">{lesson.classroom.name}</p>}
                               </div>
                               <ScheduleRangeText className="font-semibold text-primary" startTime={lesson.startTime} endTime={lesson.endTime}/>
                             </div>
@@ -774,7 +787,7 @@ export default function PortalSchedule({
                                 <span
                                   className={`text-xs font-semibold ${waiting ? "text-amber-700" : lesson.activeSession?.status === "live" || (role === "teacher" && isLiveForTeacher(lesson)) ? "text-green-600" : "text-muted-foreground"}`}
                                 >
-                                  {waiting ? pick("في انتظار انتهاء Zoom...", "Waiting for Zoom to end...") : statusText(lesson, role === "student")}
+                                  {waiting ? pick("في انتظار انتهاء Zoom...", "Waiting for Zoom to end...") : statusText(lesson, role === "student" || role === "parent")}
                                 </span>
                               )}
                               <span className="text-xs rounded-full bg-secondary/20 px-2 py-1">
@@ -900,7 +913,7 @@ export default function PortalSchedule({
                     لن يظهر زر بدء الحصة إلا بعد حلول موعدها.
                   </div>
                 )}
-              {role === "student" &&
+              {(role === "student" || role === "parent") &&
                 selected?.activeSession?.status !== "live" && (
                   <div className="rounded-xl bg-muted p-3 text-sm">
                     {pick(
@@ -948,7 +961,7 @@ export default function PortalSchedule({
                         ? pick("دخول الحصة", "Join lesson")
                         : pick("بدء الحصة", "Start lesson")}
                   </Button>
-                ) : (
+                ) : role === "parent" ? null : (
                   <Button
                     disabled={
                       selected?.activeSession?.status !== "live" || joining

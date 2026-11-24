@@ -26,6 +26,7 @@ interface UnifiedScheduleEntry {
   subject: { id: string; name: string } | null;
   teacher?: { id?: string; userId?: string; name?: string; fullName?: string } | null;
   day: string;
+  sourceDay?: string;
   date: string;
   startTime: string;
   endTime?: string;
@@ -39,7 +40,7 @@ interface UnifiedScheduleEntry {
   courseGroupId?: string;
 }
 interface UnifiedScheduleResponse {
-  data: ScheduleWeekMetadata & { days?: Array<{ date: string; day: string; lessons?: UnifiedScheduleEntry[] }> };
+  data: ScheduleWeekMetadata & { sourceTimezone?: string; days?: Array<{ date: string; day: string; lessons?: UnifiedScheduleEntry[] }> };
 }
 export interface UnifiedScheduleEntryInput {
   entryId?: string;
@@ -58,9 +59,13 @@ export interface ClassroomScheduleEntry {
   endTime?: string;
   classroomSubjectId?: string;
   subjectName?: string;
+  sourceDay?: string;
+  sourceStartTime?: string;
+  sourceEndTime?: string;
 }
 
 export interface UnifiedClassroomSchedule extends ScheduleWeekMetadata {
+  sourceTimezone?: string;
   entries: ClassroomScheduleEntry[];
 }
 
@@ -152,6 +157,7 @@ export async function getUnifiedClassroomSchedule(
     weekStart: result.data.weekStart,
     weekEnd: result.data.weekEnd,
     timezone: result.data.timezone,
+    sourceTimezone: result.data.sourceTimezone,
     entries: (result.data.days || []).flatMap((day) =>
       (day.lessons || [])
         .filter((lesson) => lesson.type === "classroom")
@@ -162,6 +168,9 @@ export async function getUnifiedClassroomSchedule(
           endTime: lesson.endTime,
           classroomSubjectId: lesson.classroomSubjectId || undefined,
           subjectName: lesson.subject?.name,
+          sourceDay: lesson.sourceDay,
+          sourceStartTime: lesson.sourceStartTime,
+          sourceEndTime: lesson.sourceEndTime,
         })),
     ),
   };

@@ -3,7 +3,7 @@ import { apiRequest } from "@/api/client";
 export type EvaluationRating = "excellent" | "very_good" | "good" | "acceptable" | "weak" | "-";
 export interface ClassroomEvaluation { id?: string; attendance: string; attendanceAttended?: number | null; attendanceTotal?: number | null; participation: EvaluationRating; homework: EvaluationRating; behavior: EvaluationRating; notes?: string; bonus?: number; publicationStatus?: "draft" | "published"; publishedAt?: string | null; }
 export interface ClassroomEvaluationSubject { id: string; name: string; status: "evaluated" | "not_evaluated"; evaluation: ClassroomEvaluation | null; }
-export interface ClassroomEvaluationStudent { id: string; fullName: string; subjects: ClassroomEvaluationSubject[]; }
+export interface ClassroomEvaluationStudent { id: string; fullName: string; joinedAt?: string; studentWeek?: number; subjects: ClassroomEvaluationSubject[]; }
 export interface ClassroomEvaluationsResponse { data: { classroom: { id: string; name: string }; week: number; weekStart: string; students: ClassroomEvaluationStudent[] } }
 export interface ClassroomEvaluationElapsedWeeks { data: { classroom: { id: string; name: string }; startDate: string; weeksCount: number; completedWeeks: number; currentWeek: number | null } }
 

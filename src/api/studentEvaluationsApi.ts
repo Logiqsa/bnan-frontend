@@ -73,6 +73,7 @@ export type StudentEvaluationsResponse = EgyptianStudentEvaluationsResponse | Gu
 
 export interface StudentEvaluationQuery {
   week?: number;
+  studentWeek?: number;
   classroomId?: string;
 }
 
@@ -83,9 +84,10 @@ export const studentEvaluationKeys = {
 };
 
 export const studentEvaluationsApi = {
-  getMyWeeklyEvaluations: async ({ week, classroomId }: StudentEvaluationQuery = {}) => {
+  getMyWeeklyEvaluations: async ({ week, studentWeek, classroomId }: StudentEvaluationQuery = {}) => {
     const params = new URLSearchParams();
     if (week !== undefined) params.set("week", String(week));
+    if (studentWeek !== undefined) params.set("studentWeek", String(studentWeek));
     if (classroomId?.trim()) params.set("classroomId", classroomId.trim());
     const query = params.toString();
     return apiRequest<StudentEvaluationsResponse>(`/student-evaluations/me${query ? `?${query}` : ""}`);

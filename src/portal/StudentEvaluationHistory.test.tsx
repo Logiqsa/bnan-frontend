@@ -46,7 +46,7 @@ describe("StudentEvaluationHistory", () => {
     mocks.get.mockResolvedValue(egyptian(4));
     renderPage();
     expect(screen.getByLabelText("جاري تحميل سجل التقييمات")).toBeInTheDocument();
-    expect(await screen.findByText("الأسبوع 4")).toBeInTheDocument();
+    expect((await screen.findAllByText("الأسبوع 4")).length).toBeGreaterThan(0);
     expect(screen.getByText("الرياضيات")).toBeInTheDocument();
     expect(screen.getByText("حاضر")).toBeInTheDocument();
     expect(screen.getByText("جيد جدًا")).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("StudentEvaluationHistory", () => {
     }));
     mocks.get.mockResolvedValue(response);
     renderPage();
-    await screen.findByText("الأسبوع 1");
+    await screen.findAllByText("الأسبوع 1");
     ["حاضر", "غائب", "متأخر", "معذور", "ممتاز", "جيد جدًا", "جيد", "مقبول", "ضعيف", "—"].forEach((label) => {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     });
@@ -98,23 +98,23 @@ describe("StudentEvaluationHistory", () => {
   it("loads exactly one previous week and appends it", async () => {
     mocks.get.mockResolvedValueOnce(egyptian(3)).mockResolvedValueOnce(egyptian(2));
     renderPage();
-    await screen.findByText("الأسبوع 3");
+    await screen.findAllByText("الأسبوع 3");
     fireEvent.click(screen.getByRole("button", { name: "تحميل الأسبوع السابق" }));
-    expect(await screen.findByText("الأسبوع 2")).toBeInTheDocument();
-    expect(screen.getByText("الأسبوع 3")).toBeInTheDocument();
-    expect(mocks.get).toHaveBeenNthCalledWith(2, { week: 2 });
+    expect((await screen.findAllByText("الأسبوع 2")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("الأسبوع 3").length).toBeGreaterThan(0);
+    expect(mocks.get).toHaveBeenNthCalledWith(2, { studentWeek: 2 });
     expect(mocks.get.mock.calls.flat().join(" ")).not.toContain("week: 0");
   });
 
   it("keeps loaded history when an older week fails and allows retry", async () => {
     mocks.get.mockResolvedValueOnce(egyptian(3)).mockRejectedValueOnce(new Error("failed")).mockResolvedValueOnce(egyptian(2));
     renderPage();
-    await screen.findByText("الأسبوع 3");
+    await screen.findAllByText("الأسبوع 3");
     fireEvent.click(screen.getByRole("button", { name: "تحميل الأسبوع السابق" }));
     expect(await screen.findByText("تعذر تحميل سجل التقييمات.")).toBeInTheDocument();
-    expect(screen.getByText("الأسبوع 3")).toBeInTheDocument();
+    expect(screen.getAllByText("الأسبوع 3").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "إعادة محاولة تحميل الأسبوع السابق" }));
-    expect(await screen.findByText("الأسبوع 2")).toBeInTheDocument();
+    expect((await screen.findAllByText("الأسبوع 2")).length).toBeGreaterThan(0);
   });
 
   it("shows a dedicated no-enrollment error and retries", async () => {
@@ -123,6 +123,6 @@ describe("StudentEvaluationHistory", () => {
     expect(await screen.findByText("لا يوجد فصل دراسي معتمد لعرض التقييمات.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "إعادة المحاولة" }));
     await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText("الأسبوع 1")).toBeInTheDocument();
+    expect((await screen.findAllByText("الأسبوع 1")).length).toBeGreaterThan(0);
   });
 });

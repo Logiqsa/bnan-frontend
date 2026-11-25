@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { classroomEvaluationsApi, type ClassroomEvaluation, type EvaluationRating } from "@/api/classroomEvaluationsApi";
+import {
+  classroomEvaluationsApi,
+  type ClassroomEvaluation,
+  type EvaluationRating,
+} from "@/api/classroomEvaluationsApi";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,34 +16,406 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { usePortalAuth } from "@/portal/PortalAuthContext";
 
-const ratings: EvaluationRating[] = ["excellent", "very_good", "good", "acceptable", "weak", "-"];
-const ratingLabels: Record<EvaluationRating, string> = { excellent: "ممتاز", very_good: "جيد جدًا", good: "جيد", acceptable: "مقبول", weak: "ضعيف", "-": "—" };
-type Draft = { attendanceAttended: string; attendanceTotal: string; participation: EvaluationRating; homework: EvaluationRating; behavior: EvaluationRating; bonus: string; notes: string };
-const draftOf = (evaluation: ClassroomEvaluation | null | undefined): Draft => ({ attendanceAttended: String(evaluation?.attendanceAttended ?? 0), attendanceTotal: String(evaluation?.attendanceTotal ?? 0), participation: evaluation?.participation || "-", homework: evaluation?.homework || "-", behavior: evaluation?.behavior || "-", bonus: String(evaluation?.bonus ?? 0), notes: evaluation?.notes || "" });
+const ratings: EvaluationRating[] = [
+  "excellent",
+  "very_good",
+  "good",
+  "acceptable",
+  "weak",
+  "-",
+];
+const ratingLabels: Record<EvaluationRating, string> = {
+  excellent: "ممتاز",
+  very_good: "جيد جدًا",
+  good: "جيد",
+  acceptable: "مقبول",
+  weak: "ضعيف",
+  "-": "—",
+};
+type Draft = {
+  attendanceAttended: string;
+  attendanceTotal: string;
+  participation: EvaluationRating;
+  homework: EvaluationRating;
+  behavior: EvaluationRating;
+  bonus: string;
+  notes: string;
+};
+const draftOf = (
+  evaluation: ClassroomEvaluation | null | undefined,
+): Draft => ({
+  attendanceAttended: String(evaluation?.attendanceAttended ?? 0),
+  attendanceTotal: String(evaluation?.attendanceTotal ?? 0),
+  participation: evaluation?.participation || "-",
+  homework: evaluation?.homework || "-",
+  behavior: evaluation?.behavior || "-",
+  bonus: String(evaluation?.bonus ?? 0),
+  notes: evaluation?.notes || "",
+});
 
-export default function ClassroomEvaluations({ classroomId: suppliedClassroomId, embedded = false }: { classroomId?: string; embedded?: boolean }) {
-  const { classroomId: routeClassroomId = "" } = useParams<{ classroomId: string }>();
+export default function ClassroomEvaluations({
+  classroomId: suppliedClassroomId,
+  embedded = false,
+}: {
+  classroomId?: string;
+  embedded?: boolean;
+}) {
+  const { classroomId: routeClassroomId = "" } = useParams<{
+    classroomId: string;
+  }>();
   const classroomId = suppliedClassroomId || routeClassroomId;
   const { pick, isArabic } = useLanguage();
   const { user } = usePortalAuth();
   const queryClient = useQueryClient();
-  const elapsedWeeks = useQuery({ queryKey: ["classroom-evaluation-weeks", classroomId], queryFn: () => classroomEvaluationsApi.getElapsedWeeks(classroomId), enabled: Boolean(classroomId), retry: 1 });
-  const [selectedWeek, setSelectedWeek] = useState<number | undefined>(undefined);
+  const elapsedWeeks = useQuery({
+    queryKey: ["classroom-evaluation-weeks", classroomId],
+    queryFn: () => classroomEvaluationsApi.getElapsedWeeks(classroomId),
+    enabled: Boolean(classroomId),
+    retry: 1,
+  });
+  const [selectedWeek, setSelectedWeek] = useState<number | undefined>(
+    undefined,
+  );
   const currentWeek = elapsedWeeks.data?.currentWeek ?? undefined;
-  useEffect(() => { if (currentWeek !== undefined && selectedWeek === undefined) setSelectedWeek(currentWeek); }, [currentWeek, selectedWeek]);
-  const query = useQuery({ queryKey: ["classroom-evaluations", classroomId, selectedWeek], queryFn: () => classroomEvaluationsApi.getWeekly(classroomId, selectedWeek), enabled: Boolean(classroomId) && selectedWeek !== undefined, retry: 1 });
+  useEffect(() => {
+    if (currentWeek !== undefined && selectedWeek === undefined)
+      setSelectedWeek(currentWeek);
+  }, [currentWeek, selectedWeek]);
+  const query = useQuery({
+    queryKey: ["classroom-evaluations", classroomId, selectedWeek],
+    queryFn: () => classroomEvaluationsApi.getWeekly(classroomId, selectedWeek),
+    enabled: Boolean(classroomId) && selectedWeek !== undefined,
+    retry: 1,
+  });
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  useEffect(() => { if (query.data) setDrafts(Object.fromEntries(query.data.students.flatMap((student) => student.subjects.map((subject) => [`${student.id}:${subject.id}`, draftOf(subject.evaluation)])))); }, [query.data]);
-  const save = useMutation({ mutationFn: ({ studentId, subjectId, draft }: { studentId: string; subjectId: string; draft: Draft }) => classroomEvaluationsApi.save({ student: studentId, classroom: classroomId, subject: subjectId, week: query.data!.week, attendanceAttended: Number(draft.attendanceAttended), attendanceTotal: Number(draft.attendanceTotal), participation: draft.participation, homework: draft.homework, behavior: draft.behavior, bonus: Number(draft.bonus || 0), notes: draft.notes }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["classroom-evaluations", classroomId] }); toast.success(pick("تم حفظ التقييم", "Evaluation saved")); }, onError: (error: Error) => toast.error(error.message || pick("تعذر حفظ التقييم", "Could not save evaluation")) });
-  const publish = useMutation({ mutationFn: () => classroomEvaluationsApi.publishWeekly(classroomId, query.data!.week), onSuccess: async (result) => { await queryClient.invalidateQueries({ queryKey: ["classroom-evaluations", classroomId] }); toast.success(pick(`تم إرسال ${result.publishedCount} تقييم للطلاب وأولياء الأمور`, `${result.publishedCount} evaluations sent to students and parents`)); }, onError: (error: Error) => toast.error(error.message || pick("تعذر إرسال تقييمات الأسبوع", "Could not send weekly evaluations")) });
-  const rows = useMemo(() => query.data?.students.flatMap((student) => student.subjects.map((subject) => ({ student, subject, key: `${student.id}:${subject.id}` }))) || [], [query.data]);
-  const hasDraftEvaluation = rows.some(({ subject }) => Boolean(subject.evaluation?.id) && subject.evaluation?.publicationStatus !== "published");
-  const content = elapsedWeeks.isPending || query.isPending ? <div className="space-y-3"><Skeleton className="h-12 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div> : elapsedWeeks.isError || query.isError ? <Card><CardContent className="p-6 text-center text-destructive">{pick("تعذر تحميل تقييمات الفصل", "Unable to load classroom evaluations")}</CardContent></Card> : <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3"><div className="text-sm text-muted-foreground">{pick("يظهر التقييم للطالب وولي الأمر فور حفظه، ويمكن للمشرف إرسال إشعار اعتماد الأسبوع.", "Evaluations are visible to students and parents as soon as they are saved; the supervisor can send the weekly approval notification.")}</div>{user?.role === "supervisor" && <Button disabled={publish.isPending || !hasDraftEvaluation} onClick={() => publish.mutate()}>{publish.isPending ? pick("جارٍ الإرسال...", "Sending...") : pick("إرسال تقييمات الأسبوع", "Send weekly evaluations")}</Button>}</div><div className="overflow-x-auto rounded-xl border"><table dir={isArabic ? "rtl" : "ltr"} className="w-full min-w-[980px] text-sm"><thead className="bg-muted/50"><tr><th className="px-3 py-3 text-start">الطالب / المادة</th><th className="px-3 py-3">الحضور</th><th className="px-3 py-3">المشاركة</th><th className="px-3 py-3">الواجب</th><th className="px-3 py-3">السلوك</th><th className="px-3 py-3">Bonus</th><th className="px-3 py-3">الملاحظات</th><th /></tr></thead><tbody className="divide-y">{rows.map(({ student, subject, key }) => { const draft = drafts[key] || draftOf(subject.evaluation); const isPublished = subject.evaluation?.publicationStatus === "published"; const set = (patch: Partial<Draft>) => setDrafts((current) => ({ ...current, [key]: { ...draft, ...patch } })); return <tr key={key} className="align-top"><td className="px-3 py-3 font-medium"><div className="flex flex-wrap items-center gap-2"><span>{student.fullName}</span>{isPublished && <Badge variant="default">تم الإرسال</Badge>}</div><div className="mt-1 text-xs text-muted-foreground">{subject.name}</div></td><td className="px-3 py-3"><div className="inline-flex items-center rounded-md border bg-muted/40 px-3 py-2 font-semibold tabular-nums">{draft.attendanceAttended}/{draft.attendanceTotal}</div></td><td className="px-3 py-3"><select disabled={isPublished} className="h-9 rounded-md border bg-background px-2 disabled:cursor-not-allowed disabled:opacity-60" value={draft.participation} onChange={(e) => set({ participation: e.target.value as EvaluationRating })}>{ratings.map((value) => <option key={value} value={value}>{ratingLabels[value]}</option>)}</select></td><td className="px-3 py-3"><span className="inline-flex h-9 items-center rounded-md border bg-muted/40 px-3">{ratingLabels[draft.homework]}</span><div className="mt-1 text-[11px] text-muted-foreground">تلقائي حسب التسليم</div></td><td className="px-3 py-3"><select disabled={isPublished} className="h-9 rounded-md border bg-background px-2 disabled:cursor-not-allowed disabled:opacity-60" value={draft.behavior} onChange={(e) => set({ behavior: e.target.value as EvaluationRating })}>{ratings.map((value) => <option key={value} value={value}>{ratingLabels[value]}</option>)}</select></td><td className="px-3 py-3"><input disabled={isPublished} className="h-9 w-16 rounded-md border px-2 disabled:cursor-not-allowed disabled:opacity-60" type="number" min="0" max="5" step="any" value={draft.bonus} onChange={(e) => set({ bonus: e.target.value })} /></td><td className="px-3 py-3"><Textarea disabled={isPublished} className="min-h-20 w-44 disabled:cursor-not-allowed disabled:opacity-60" value={draft.notes} onChange={(e) => set({ notes: e.target.value })} /></td><td className="px-3 py-3">{!isPublished && <Button size="sm" disabled={save.isPending} onClick={() => save.mutate({ studentId: student.id, subjectId: subject.id, draft })}>{save.isPending ? pick("جارٍ حفظ التقييم...", "Saving evaluation...") : pick("حفظ", "Save")}</Button>}</td></tr>; })}</tbody></table></div></div>;
-  const page = <div className="space-y-4"><div><h1 className="text-2xl font-bold">{pick("تقييمات الفصل", "Classroom evaluations")}</h1><p className="mt-1 text-sm text-muted-foreground">{query.data ? `الأسبوع ${query.data.week}` : ""}</p></div>{content}</div>;
+  useEffect(() => {
+    if (query.data)
+      setDrafts(
+        Object.fromEntries(
+          query.data.students.flatMap((student) =>
+            student.subjects.map((subject) => [
+              `${student.id}:${subject.id}`,
+              draftOf(subject.evaluation),
+            ]),
+          ),
+        ),
+      );
+  }, [query.data]);
+  const save = useMutation({
+    mutationFn: ({
+      studentId,
+      subjectId,
+      draft,
+    }: {
+      studentId: string;
+      subjectId: string;
+      draft: Draft;
+    }) =>
+      classroomEvaluationsApi.save({
+        student: studentId,
+        classroom: classroomId,
+        subject: subjectId,
+        week: query.data!.week,
+        attendanceAttended: Number(draft.attendanceAttended),
+        attendanceTotal: Number(draft.attendanceTotal),
+        participation: draft.participation,
+        homework: draft.homework,
+        behavior: draft.behavior,
+        bonus: Number(draft.bonus || 0),
+        notes: draft.notes,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["classroom-evaluations", classroomId],
+      });
+      toast.success(pick("تم حفظ التقييم", "Evaluation saved"));
+    },
+    onError: (error: Error) =>
+      toast.error(
+        error.message || pick("تعذر حفظ التقييم", "Could not save evaluation"),
+      ),
+  });
+  const publish = useMutation({
+    mutationFn: () =>
+      classroomEvaluationsApi.publishWeekly(classroomId, query.data!.week),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["classroom-evaluations", classroomId],
+      });
+      toast.success(
+        pick(
+          `تم إرسال ${result.publishedCount} تقييم للطلاب وأولياء الأمور`,
+          `${result.publishedCount} evaluations sent to students and parents`,
+        ),
+      );
+    },
+    onError: (error: Error) =>
+      toast.error(
+        error.message ||
+          pick(
+            "تعذر إرسال تقييمات الأسبوع",
+            "Could not send weekly evaluations",
+          ),
+      ),
+  });
+  const rows = useMemo(
+    () =>
+      query.data?.students.flatMap((student) =>
+        student.subjects.map((subject) => ({
+          student,
+          subject,
+          key: `${student.id}:${subject.id}`,
+        })),
+      ) || [],
+    [query.data],
+  );
+  const hasDraftEvaluation = rows.some(
+    ({ subject }) =>
+      Boolean(subject.evaluation?.id) &&
+      subject.evaluation?.publicationStatus !== "published",
+  );
+  const content =
+    elapsedWeeks.isPending || query.isPending ? (
+      <div className="space-y-3">
+        <Skeleton className="h-12 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    ) : elapsedWeeks.isError || query.isError ? (
+      <Card>
+        <CardContent className="p-6 text-center text-destructive">
+          {pick(
+            "تعذر تحميل تقييمات الفصل",
+            "Unable to load classroom evaluations",
+          )}
+        </CardContent>
+      </Card>
+    ) : (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
+          <div className="text-sm text-muted-foreground">
+            {pick(
+              "يظهر التقييم للطالب وولي الأمر فور حفظه، ويمكن للمشرف إرسال إشعار اعتماد الأسبوع.",
+              "Evaluations are visible to students and parents as soon as they are saved; the supervisor can send the weekly approval notification.",
+            )}
+          </div>
+          {user?.role === "supervisor" && (
+            <Button
+              disabled={publish.isPending || !hasDraftEvaluation}
+              onClick={() => publish.mutate()}
+            >
+              {publish.isPending
+                ? pick("جارٍ الإرسال...", "Sending...")
+                : pick("إرسال تقييمات الأسبوع", "Send weekly evaluations")}
+            </Button>
+          )}
+        </div>
+        <div className="overflow-x-auto rounded-xl border">
+          <table
+            dir={isArabic ? "rtl" : "ltr"}
+            className="w-full min-w-[980px] text-sm"
+          >
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-3 py-3 text-start">الطالب / المادة</th>
+                <th className="px-3 py-3">الحضور</th>
+                <th className="px-3 py-3">المشاركة</th>
+                <th className="px-3 py-3">الواجب</th>
+                <th className="px-3 py-3">السلوك</th>
+                <th className="px-3 py-3">Bonus</th>
+                <th className="px-3 py-3">الملاحظات</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map(({ student, subject, key }) => {
+                const draft = drafts[key] || draftOf(subject.evaluation);
+                const isPublished =
+                  subject.evaluation?.publicationStatus === "published";
+                const set = (patch: Partial<Draft>) =>
+                  setDrafts((current) => ({
+                    ...current,
+                    [key]: { ...draft, ...patch },
+                  }));
+                return (
+                  <tr key={key} className="align-top">
+                    <td className="px-3 py-3 font-medium">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{student.fullName}</span>
+                        {student.studentWeek && (
+                          <Badge variant="outline">الأسبوع {student.studentWeek} للطالب</Badge>
+                        )}
+                        {isPublished && (
+                          <Badge variant="default">تم الإرسال</Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {subject.name}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="inline-flex items-center rounded-md border bg-muted/40 px-3 py-2 font-semibold tabular-nums">
+                        {draft.attendanceAttended}/{draft.attendanceTotal}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <select
+                        disabled={isPublished}
+                        className="h-9 rounded-md border bg-background px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        value={draft.participation}
+                        onChange={(e) =>
+                          set({
+                            participation: e.target.value as EvaluationRating,
+                          })
+                        }
+                      >
+                        {ratings.map((value) => (
+                          <option key={value} value={value}>
+                            {ratingLabels[value]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="inline-flex h-9 items-center rounded-md border bg-muted/40 px-3">
+                        {ratingLabels[draft.homework]}
+                      </span>
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        تلقائي حسب التسليم
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <select
+                        disabled={isPublished}
+                        className="h-9 rounded-md border bg-background px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        value={draft.behavior}
+                        onChange={(e) =>
+                          set({ behavior: e.target.value as EvaluationRating })
+                        }
+                      >
+                        {ratings.map((value) => (
+                          <option key={value} value={value}>
+                            {ratingLabels[value]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-3">
+                      <input
+                        disabled={isPublished}
+                        className="h-9 w-16 rounded-md border px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="any"
+                        value={draft.bonus}
+                        onChange={(e) => set({ bonus: e.target.value })}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <Textarea
+                        disabled={isPublished}
+                        className="min-h-20 w-44 disabled:cursor-not-allowed disabled:opacity-60"
+                        value={draft.notes}
+                        onChange={(e) => set({ notes: e.target.value })}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      {!isPublished && (
+                        <Button
+                          size="sm"
+                          disabled={save.isPending}
+                          onClick={() =>
+                            save.mutate({
+                              studentId: student.id,
+                              subjectId: subject.id,
+                              draft,
+                            })
+                          }
+                        >
+                          {save.isPending
+                            ? pick(
+                                "جارٍ حفظ التقييم...",
+                                "Saving evaluation...",
+                              )
+                            : pick("حفظ", "Save")}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  const page = (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">
+          {pick("تقييمات الفصل", "Classroom evaluations")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {query.data ? `الأسبوع ${query.data.week}` : ""}
+        </p>
+      </div>
+      {content}
+    </div>
+  );
   const weekButtons = elapsedWeeks.data?.currentWeek
-    ? Array.from({ length: elapsedWeeks.data.currentWeek }, (_, index) => elapsedWeeks.data!.currentWeek! - index)
+    ? Array.from(
+        { length: elapsedWeeks.data.currentWeek },
+        (_, index) => elapsedWeeks.data!.currentWeek! - index,
+      )
     : [];
-  const weeksBar = <div className="rounded-xl border bg-card p-2"><label htmlFor="classroom-evaluation-week" className="sr-only">{pick("اختر أسبوع التقييم", "Choose evaluation week")}</label><select id="classroom-evaluation-week" className="h-10 w-full rounded-md border bg-background px-3 text-sm font-medium" value={selectedWeek ?? ""} onChange={(event) => setSelectedWeek(Number(event.target.value))} disabled={weekButtons.length === 0}>{weekButtons.map((week) => <option key={week} value={week}>{pick(`الأسبوع ${week}`, `Week ${week}`)}</option>)}</select></div>;
-  const pageWithWeeks = <div className="space-y-4"><div><h1 className="text-2xl font-bold">{pick("تقييمات الفصل", "Classroom evaluations")}</h1><p className="mt-1 text-sm text-muted-foreground">{query.data ? `الأسبوع ${query.data.week}` : ""}</p></div>{weeksBar}{content}</div>;
-  return embedded ? <section className="space-y-4"><div><h2 className="text-xl font-bold">{pick("تقييمات الطلاب", "Student evaluations")}</h2><p className="mt-1 text-sm text-muted-foreground">{query.data ? `الأسبوع ${query.data.week}` : ""}</p></div>{weeksBar}{content}</section> : <DashboardLayout>{pageWithWeeks}</DashboardLayout>;
+  const weeksBar = (
+    <div className="rounded-xl border bg-card p-2">
+      <label htmlFor="classroom-evaluation-week" className="sr-only">
+        {pick("اختر أسبوع التقييم", "Choose evaluation week")}
+      </label>
+      <select
+        id="classroom-evaluation-week"
+        className="h-10 w-full rounded-md border bg-background px-3 text-sm font-medium"
+        value={selectedWeek ?? ""}
+        onChange={(event) => setSelectedWeek(Number(event.target.value))}
+        disabled={weekButtons.length === 0}
+      >
+        {weekButtons.map((week) => (
+          <option key={week} value={week}>
+            {pick(`الأسبوع ${week}`, `Week ${week}`)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+  const pageWithWeeks = (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">
+          {pick("تقييمات الفصل", "Classroom evaluations")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {query.data ? `الأسبوع ${query.data.week}` : ""}
+        </p>
+      </div>
+      {weeksBar}
+      {content}
+    </div>
+  );
+  return embedded ? (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold">
+          {pick("تقييمات الطلاب", "Student evaluations")}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {query.data ? `الأسبوع ${query.data.week}` : ""}
+        </p>
+      </div>
+      {weeksBar}
+      {content}
+    </section>
+  ) : (
+    <DashboardLayout>{pageWithWeeks}</DashboardLayout>
+  );
 }

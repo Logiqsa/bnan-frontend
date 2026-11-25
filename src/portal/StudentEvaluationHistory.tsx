@@ -100,7 +100,7 @@ export default function StudentEvaluationHistory() {
   const query = useInfiniteQuery({
     queryKey: studentEvaluationKeys.all,
     initialPageParam: null as number | null,
-    queryFn: ({ pageParam }) => studentEvaluationsApi.getMyWeeklyEvaluations(pageParam === null ? {} : { week: pageParam }),
+    queryFn: ({ pageParam }) => studentEvaluationsApi.getMyWeeklyEvaluations(pageParam === null ? {} : { studentWeek: pageParam }),
     getNextPageParam: (lastPage) => lastPage.data.week > 1 ? lastPage.data.week - 1 : undefined,
     retry: false,
   });

@@ -19,8 +19,6 @@ import { CLASSROOM_DAYS, CLASSROOM_DAY_NAMES } from "./classroomManagement";
 import ScheduleTimeText from "@/components/ScheduleTimeText";
 import { zoomAccountsApi, type WeeklyZoomClassroomAssignments, type WeeklyZoomSlotStatus } from "@/api/zoomAccountsApi";
 import { deleteUnifiedScheduleEntry } from "@/api/scheduleApi";
-import { displayWeeklySlot } from "@/lib/weeklyScheduleTime";
-import type { CourseScheduleSlot } from "@/api/coursesApi";
 
 type Day = typeof CLASSROOM_DAYS[number];
 type Row = ClassroomScheduleEntry & { key: string };
@@ -63,7 +61,7 @@ export default function ClassroomScheduleManagement({
   const [subjects, setSubjects] = useState<ClassroomSubjectOption[]>([]);
   const [rows, setRows] = useState<Row[]>([]);
   const [originalEntries, setOriginalEntries] = useState<ClassroomScheduleEntry[]>([]);
-  const [scheduleTimeZones, setScheduleTimeZones] = useState<{ viewer?: string; source?: string }>({});
+  const [scheduleWeekStart, setScheduleWeekStart] = useState<string>();
   const [activeDay, setActiveDay] = useState<Day>("saturday");
   const [gulfSubjectId, setGulfSubjectId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -102,7 +100,7 @@ export default function ClassroomScheduleManagement({
         try {
           const schedule = (await classroomZoomApi.getSchedule(classroomId)).data;
           entries = schedule.entries;
-          setScheduleTimeZones({ viewer: schedule.timezone, source: schedule.sourceTimezone });
+          setScheduleWeekStart(schedule.weekStart);
         } catch (error) {
           if ((error as ApiError).status !== 404) throw error;
         }
@@ -179,31 +177,15 @@ export default function ClassroomScheduleManagement({
       const nextEntries = mode === "gulf"
         ? rows.map((row) => ({ ...row, classroomSubjectId: gulfSubjectId }))
         : rows;
-      const viewerTimeZone = scheduleTimeZones.viewer;
-      const sourceTimeZone = scheduleTimeZones.source;
-      const toSourceEntry = (entry: ClassroomScheduleEntry): ClassroomScheduleEntry => {
-        if (!viewerTimeZone || !sourceTimeZone || viewerTimeZone === sourceTimeZone) return entry;
-        const source = displayWeeklySlot(
-          { day: entry.day, startTime: entry.startTime, endTime: entry.endTime } as CourseScheduleSlot,
-          viewerTimeZone,
-          sourceTimeZone,
-        );
-        return { ...entry, day: source.day, startTime: source.startTime, endTime: source.endTime };
-      };
-      const canonicalOriginalEntries = originalEntries.map((entry) => ({
-        ...entry,
-        day: entry.sourceDay || entry.day,
-        startTime: entry.sourceStartTime || entry.startTime,
-        endTime: entry.sourceEndTime || entry.endTime,
-      }));
       await classroomZoomApi.saveScheduleEntries(
         classroomId,
-        canonicalOriginalEntries,
-        nextEntries.map(toSourceEntry),
+        originalEntries,
+        nextEntries,
+        scheduleWeekStart,
       );
       const refreshedSchedule = (await classroomZoomApi.getSchedule(classroomId)).data;
       const refreshed = refreshedSchedule.entries;
-      setScheduleTimeZones({ viewer: refreshedSchedule.timezone, source: refreshedSchedule.sourceTimezone });
+      setScheduleWeekStart(refreshedSchedule.weekStart);
       const normalized = refreshed.map((entry, index) => ({
         ...entry,
         day: entry.day.toLowerCase(),

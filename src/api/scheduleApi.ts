@@ -50,6 +50,7 @@ export interface UnifiedScheduleEntryInput {
   classroomSubjectId: string;
   startTime: string;
   endTime: string;
+  referenceDate?: string;
 }
 
 export interface ClassroomScheduleEntry {
@@ -198,6 +199,7 @@ export async function reconcileUnifiedClassroomSchedule(
   classroomId: string,
   originalEntries: ClassroomScheduleEntry[],
   nextEntries: ClassroomScheduleEntry[],
+  referenceDate?: string,
 ) {
   const originalById = new Map(
     originalEntries.flatMap((entry) => (entry.id ? [[entry.id, entry] as const] : [])),
@@ -228,6 +230,7 @@ export async function reconcileUnifiedClassroomSchedule(
         classroomSubjectId: entry.classroomSubjectId,
         startTime: entry.startTime,
         endTime: entry.endTime,
+        ...(referenceDate ? { referenceDate } : {}),
       });
     }),
   );

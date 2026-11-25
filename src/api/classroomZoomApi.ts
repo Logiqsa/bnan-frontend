@@ -143,5 +143,6 @@ export const classroomZoomApi = {
     classroomId: string,
     originalEntries: ClassroomScheduleEntry[],
     nextEntries: ClassroomScheduleEntry[],
-  ) => reconcileUnifiedClassroomSchedule(classroomId, originalEntries, nextEntries),
+    referenceDate?: string,
+  ) => reconcileUnifiedClassroomSchedule(classroomId, originalEntries, nextEntries, referenceDate),
 };

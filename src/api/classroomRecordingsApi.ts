@@ -168,6 +168,7 @@ export interface ClassroomSession {
 export interface SessionRecording {
   sessionId?: string;
   sessionName: string;
+  sessionKind?: string;
   recordingLink: string;
   localUrl?: string | null;
   shareUrl?: string | null;
@@ -312,6 +313,9 @@ export const classroomRecordingsApi = {
     }),
 
   listRecordings: (classroomId: string) => apiRequest<ClassroomRecordingsResponse>(`/classrooms/${classroomId}/recordings`),
+
+  deleteRecording: (classroomId: string, sessionId: string) =>
+    apiRequest<void>(`/classrooms/${encodeURIComponent(classroomId)}/recordings/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
 
   listSessions: (classroomId: string) => apiRequest<ClassroomSessionsResponse>(`/classrooms/${classroomId}/sessions`),
 

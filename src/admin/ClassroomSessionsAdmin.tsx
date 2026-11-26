@@ -56,6 +56,7 @@ import {
   referenceName,
 } from "@/admin/zoom/classroomZoomNormalization";
 import GradeStageFilter from "@/admin/GradeStageFilter";
+import DeleteRecordingButton from "@/components/admin/DeleteRecordingButton";
 
 const statusLabelsAr: Record<string, string> = {
   live: "مباشرة",
@@ -485,7 +486,7 @@ export default function ClassroomSessionsAdmin() {
                   normalizeSessionName(item.sessionName) ===
                     normalizeSessionName(session.title || session.sessionName),
               );
-              const recording = matchingRecording?.localUrl;
+              const recording = matchingRecording?.localUrl || matchingRecording?.recordingLink || matchingRecording?.shareUrl;
               const recordingProcessing = Boolean(
                 matchingRecording && !recording,
               );
@@ -570,11 +571,24 @@ export default function ClassroomSessionsAdmin() {
                       )}
                     </div>
                     {recording ? (
-                      <div className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                        <Play className="h-4 w-4" />
-                        {pick(
-                          "اضغط لمشاهدة التسجيل",
-                          "Click to watch the recording",
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+                          <Play className="h-4 w-4" />
+                          {pick("اضغط لمشاهدة التسجيل", "Click to watch the recording")}
+                        </span>
+                        {sessionId && matchingRecording?.sessionId && (
+                          <DeleteRecordingButton
+                            classroomId={classroomId}
+                            sessionId={matchingRecording.sessionId}
+                            sessionName={sessionName}
+                            onDeleted={() => {
+                              setSelectedRecording(null);
+                              setRecordings((items) => items.filter((item) => item.sessionId !== matchingRecording.sessionId));
+                              if (session.sessionKind === "manual_recording") {
+                                setSessions((items) => items.filter((item) => (item.id || item._id) !== sessionId));
+                              }
+                            }}
+                          />
                         )}
                       </div>
                     ) : recordingProcessing ? (

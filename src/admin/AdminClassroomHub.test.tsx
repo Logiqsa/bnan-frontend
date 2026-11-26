@@ -7,7 +7,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const mocks = vi.hoisted(() => ({
   getClassroom: vi.fn(), listSubjects: vi.fn(), listStudents: vi.fn(), listAvailableStudents: vi.fn(), assignStudent: vi.fn(),
-  listSessions: vi.fn(), listRecordings: vi.fn(), getSession: vi.fn(), getSessionReport: vi.fn(),
+  listSessions: vi.fn(), listRecordings: vi.fn(), deleteRecording: vi.fn(), getSession: vi.fn(), getSessionReport: vi.fn(),
   listAssignments: vi.fn(), getAssignment: vi.fn(), listSubmissions: vi.fn(), getSubmission: vi.fn(),
   listAttendance: vi.fn(),
   listTeachers: vi.fn(), assignTeacher: vi.fn(),
@@ -18,6 +18,7 @@ vi.mock("@/api/classroomRecordingsApi", () => ({ classroomRecordingsApi: {
   listSubjects: mocks.listSubjects, listStudents: mocks.listStudents,
   listAvailableStudents: mocks.listAvailableStudents, assignStudent: mocks.assignStudent,
   listSessions: mocks.listSessions, listRecordings: mocks.listRecordings,
+  deleteRecording: mocks.deleteRecording,
   getSession: mocks.getSession, getSessionReport: mocks.getSessionReport,
 } }));
 vi.mock("@/api/adminAssignmentsApi", () => ({ adminAssignmentsApi: { listAssignments: mocks.listAssignments, getAssignment: mocks.getAssignment, listSubmissions: mocks.listSubmissions, getSubmission: mocks.getSubmission } }));
@@ -59,6 +60,7 @@ describe("AdminClassroomHub", () => {
     mocks.assignStudent.mockResolvedValue({ success: true, data: {} });
     mocks.listSessions.mockResolvedValue({ success: true, data: [{ id: "s1", title: "الحصة الأولى", status: "completed" }] });
     mocks.listRecordings.mockResolvedValue({ success: true, data: [] });
+    mocks.deleteRecording.mockResolvedValue(undefined);
     mocks.getSession.mockResolvedValue({ success: true, data: { id: "s1", title: "الحصة الأولى", status: "completed", startAt: "2026-09-24T10:00:00.000Z" } });
     mocks.getSessionReport.mockResolvedValue({ success: true, pagination: { currentPage: 1, perPage: 50, total: 2, lastPage: 1 }, data: { sessionId: "s1", status: "ready", participants: [] } });
     mocks.listAssignments.mockResolvedValue({ success: true, results: 0, data: [], pagination: { current_page: 1, last_page: 1, per_page: 20, total: 0 } });
@@ -154,6 +156,15 @@ describe("AdminClassroomHub", () => {
     expect(screen.queryByRole("link", { name: /إدارة ورفع التسجيلات/ })).not.toBeInTheDocument();
     await act(async () => { screen.getByRole("button", { name: /تشغيل التسجيل/ }).click(); });
     expect(await screen.findByRole("dialog", { name: /تشغيل تسجيل الرياضيات/ })).toBeInTheDocument();
+  });
+
+  it("confirms and deletes a classroom recording", async () => {
+    mocks.listRecordings.mockResolvedValue({ success: true, results: 1, data: [{ sessionId: "session-1", sessionName: "تسجيل الرياضيات", recordingLink: "https://media.example/lesson.mp4", localUrl: "https://media.example/lesson.mp4" }] });
+    renderPage("/admin/classrooms/c1?tab=recordings");
+    fireEvent.click(await screen.findByRole("button", { name: "حذف التسجيل" }));
+    expect(await screen.findByText("هل أنت متأكد من حذف التسجيل نهائيًا؟")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "حذف نهائي" }));
+    await waitFor(() => expect(mocks.deleteRecording).toHaveBeenCalledWith("c1", "session-1"));
   });
 
   it("loads classroom-scoped assignments lazily and opens read-only assignment details", async () => {

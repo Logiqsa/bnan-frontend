@@ -6,11 +6,9 @@ import {
   FileText,
   Play,
   RefreshCw,
-  Trash2,
   Video,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   classroomRecordingsApi,
   type ClassroomSession,
@@ -24,6 +22,7 @@ import RecordingPlayerModal, {
 } from "@/components/RecordingPlayerModal";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { TabsContent } from "@/components/ui/tabs";
+import DeleteRecordingButton from "@/components/admin/DeleteRecordingButton";
 
 const statusLabels: Record<string, string> = {
   live: "مباشرة",
@@ -118,21 +117,6 @@ export default function AdminClassroomSessionsTab({
       session?.recordingLink,
     [session],
   );
-  const removeSession = useMutation({
-    mutationFn: (sessionId: string) => classroomRecordingsApi.deleteSession(sessionId),
-    onSuccess: async (_, sessionId) => {
-      if (selectedId === sessionId) setSelectedId("");
-      await queryClient.invalidateQueries({ queryKey: ["admin-classroom-sessions-tab", classroomId] });
-      toast.success(pick("تم حذف تسجيل الحصة.", "Session record deleted."));
-    },
-    onError: () => toast.error(pick("تعذر حذف تسجيل الحصة.", "Unable to delete session record.")),
-  });
-  const confirmDelete = (sessionId: string) => {
-    if (window.confirm(pick("هل تريد حذف تسجيل الحصة نهائيًا؟", "Permanently delete this session record?"))) {
-      removeSession.mutate(sessionId);
-    }
-  };
-
   return (
     <TabsContent value="sessions" className="space-y-4">
       <Card>
@@ -209,16 +193,6 @@ export default function AdminClassroomSessionsTab({
                       >
                         <Eye className="ml-1 h-4 w-4" />
                         {pick("التفاصيل", "Details")}
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        aria-label={pick("حذف تسجيل الحصة", "Delete session record")}
-                        disabled={removeSession.isPending || (!item.id && !item._id)}
-                        onClick={() => confirmDelete(item.id || item._id || "")}
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -299,20 +273,30 @@ export default function AdminClassroomSessionsTab({
                       </CardHeader>
                       <CardContent>
                         {recording ? (
-                          <Button
-                            onClick={() =>
-                              setPlayer({
+                          <div className="flex flex-wrap gap-2">
+                            <Button onClick={() => setPlayer({
                                 sessionName:
                                   session.title ||
                                   session.sessionName ||
                                   "تسجيل الجلسة",
                                 recordingLink: recording,
-                              })
-                            }
-                          >
-                            <Play className="ml-1 h-4 w-4" />
-                            {pick("تشغيل التسجيل", "Play recording")}
-                          </Button>
+                              })}>
+                              <Play className="ml-1 h-4 w-4" />
+                              {pick("تشغيل التسجيل", "Play recording")}
+                            </Button>
+                            <DeleteRecordingButton
+                              classroomId={classroomId}
+                              sessionId={session.id || session._id || selectedId}
+                              sessionName={session.title || session.sessionName}
+                              onDeleted={async () => {
+                                setPlayer(null);
+                                if (session.sessionKind === "manual_recording") setSelectedId("");
+                                await queryClient.invalidateQueries({ queryKey: ["admin-classroom-sessions-tab", classroomId] });
+                                await queryClient.invalidateQueries({ queryKey: ["admin-classroom-session-detail", selectedId] });
+                                await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-recordings", classroomId] });
+                              }}
+                            />
+                          </div>
                         ) : (
                           <p className="text-sm text-muted-foreground">
                             {pick(

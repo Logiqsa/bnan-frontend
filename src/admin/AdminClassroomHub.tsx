@@ -28,6 +28,7 @@ import AdminClassroomEvaluationsTab from "@/admin/AdminClassroomEvaluationsTab";
 import ClassroomScheduleManagement from "@/admin/zoom/ClassroomScheduleManagement";
 import ClassroomZoomManagement from "@/admin/zoom/ClassroomZoomManagement";
 import { toast } from "sonner";
+import DeleteRecordingButton from "@/components/admin/DeleteRecordingButton";
 
 const tabs = [
   ["overview", "نظرة عامة"],
@@ -665,23 +666,29 @@ export default function AdminClassroomHub() {
                         return (
                           <div key={recording.sessionId || recording.recordingLink} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
                             <span>{recording.sessionName}</span>
-                            {url ? (
-                              <Button
-                                variant="link"
-                                className="h-auto p-0"
-                                onClick={() =>
-                                  setSelectedRecording({
+                            <div className="flex flex-wrap items-center gap-2">
+                              {url ? (
+                                <Button variant="link" className="h-auto p-0" onClick={() => setSelectedRecording({
                                     sessionName: recording.sessionName,
                                     recordingLink: url,
-                                  })
-                                }
-                              >
-                                <Play className="ml-1 h-4 w-4" />
-                                تشغيل التسجيل
-                              </Button>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">التسجيل غير متاح</span>
-                            )}
+                                  })}>
+                                  <Play className="ml-1 h-4 w-4" />
+                                  تشغيل التسجيل
+                                </Button>
+                              ) : <span className="text-sm text-muted-foreground">التسجيل غير متاح</span>}
+                              {recording.sessionId && (
+                                <DeleteRecordingButton
+                                  classroomId={classroomId}
+                                  sessionId={recording.sessionId}
+                                  sessionName={recording.sessionName}
+                                  onDeleted={async () => {
+                                    setSelectedRecording(null);
+                                    await queryClient.invalidateQueries({ queryKey: ["admin-classroom-hub-recordings", classroomId] });
+                                    await queryClient.invalidateQueries({ queryKey: ["admin-classroom-sessions-tab", classroomId] });
+                                  }}
+                                />
+                              )}
+                            </div>
                           </div>
                         );
                       })}
